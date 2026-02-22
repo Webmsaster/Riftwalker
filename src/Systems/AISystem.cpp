@@ -5,6 +5,7 @@
 #include "Components/CombatComponent.h"
 #include "Components/SpriteComponent.h"
 #include "Components/HealthComponent.h"
+#include "Components/ColliderComponent.h"
 #include "Systems/ParticleSystem.h"
 #include "Systems/CombatSystem.h"
 #include "Core/AudioManager.h"
@@ -41,6 +42,9 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             case EnemyType::Phaser:   updatePhaser(*e, dt, playerPos, playerDimension); break;
             case EnemyType::Exploder: updateExploder(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
             case EnemyType::Shielder: updateShielder(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
+            case EnemyType::Crawler:  updateCrawler(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
+            case EnemyType::Summoner: updateSummoner(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
+            case EnemyType::Sniper:   updateSniper(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
             case EnemyType::Boss: updateBoss(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
         }
     }
@@ -451,6 +455,278 @@ void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
 
     if (entity.hasComponent<SpriteComponent>()) {
         entity.getComponent<SpriteComponent>().flipX = !ai.facingRight;
+    }
+}
+
+void AISystem::updateCrawler(Entity& entity, float dt, Vec2 playerPos) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& transform = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    Vec2 pos = transform.getCenter();
+    float dist = distanceTo(pos, playerPos);
+
+    if (ai.onCeiling && !ai.dropping) {
+        // Patrol on ceiling
+        Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
+        float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
+        phys.velocity.x = dirX * ai.patrolSpeed;
+        phys.velocity.y = 0;
+        ai.facingRight = dirX > 0;
+
+        if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
+
+        // Drop when player is directly below and close
+        float horizDist = std::abs(pos.x - playerPos.x);
+        if (horizDist < 30.0f && playerPos.y > pos.y && dist < ai.detectRange) {
+            ai.dropping = true;
+            ai.onCeiling = false;
+            phys.useGravity = true;
+            phys.velocity.y = ai.dropSpeed;
+            AudioManager::instance().play(SFX::EnemyHit);
+        }
+    } else if (ai.dropping) {
+        // Falling toward player
+        if (phys.onGround) {
+            ai.dropping = false;
+            ai.state = AIState::Chase;
+            // Impact particles
+            if (m_particles) {
+                Vec2 feet = {pos.x, transform.position.y + transform.height};
+                m_particles->burst(feet, 8, {60, 160, 80, 200}, 100.0f, 3.0f);
+            }
+        }
+    } else {
+        // On ground: chase like a walker
+        if (dist < ai.detectRange) {
+            float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * ai.chaseSpeed;
+            ai.facingRight = dirX > 0;
+
+            if (dist < ai.attackRange) {
+                ai.attackTimer -= dt;
+                if (ai.attackTimer <= 0) {
+                    auto& combat = entity.getComponent<CombatComponent>();
+                    Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
+                    combat.startAttack(AttackType::Melee, dir);
+                    ai.attackTimer = ai.attackCooldown;
+                }
+            }
+        } else {
+            // Try to climb back to ceiling (for simplicity, just patrol on ground)
+            Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
+            float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * ai.patrolSpeed;
+            ai.facingRight = dirX > 0;
+            if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
+        }
+    }
+
+    if (entity.hasComponent<SpriteComponent>()) {
+        entity.getComponent<SpriteComponent>().flipX = !ai.facingRight;
+    }
+}
+
+void AISystem::updateSummoner(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& transform = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    Vec2 pos = transform.getCenter();
+    float dist = distanceTo(pos, playerPos);
+
+    // Count active minions
+    ai.activeMinions = 0;
+    entities.forEach([&](Entity& e) {
+        if (e.isAlive() && e.getTag() == "enemy_minion" && e.dimension == entity.dimension) {
+            ai.activeMinions++;
+        }
+    });
+
+    switch (ai.state) {
+        case AIState::Patrol: {
+            Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
+            float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * ai.patrolSpeed;
+            ai.facingRight = dirX > 0;
+
+            if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
+            if (dist < ai.detectRange) ai.state = AIState::Chase;
+            break;
+        }
+        case AIState::Chase: {
+            // Keep distance from player, retreat if too close
+            if (dist < 100.0f) {
+                float dirX = (playerPos.x > pos.x) ? -1.0f : 1.0f;
+                phys.velocity.x = dirX * ai.chaseSpeed;
+            } else if (dist > ai.attackRange) {
+                float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+                phys.velocity.x = dirX * ai.patrolSpeed;
+            } else {
+                phys.velocity.x *= 0.8f;
+            }
+            ai.facingRight = playerPos.x > pos.x;
+
+            // Summon minions
+            ai.summonTimer -= dt;
+            if (ai.summonTimer <= 0 && ai.activeMinions < ai.maxMinions) {
+                float offsetX = (ai.facingRight ? 1.0f : -1.0f) * 40.0f;
+                Vec2 spawnPos = {pos.x + offsetX, pos.y};
+
+                // Spawn via Enemy factory (uses Walker AI)
+                auto& minion = entities.addEntity("enemy_minion");
+                minion.dimension = entity.dimension;
+                auto& mt = minion.addComponent<TransformComponent>(spawnPos.x, spawnPos.y, 16, 16);
+                auto& ms = minion.addComponent<SpriteComponent>();
+                ms.setColor(200, 100, 255);
+                ms.renderLayer = 2;
+                auto& mp = minion.addComponent<PhysicsBody>();
+                mp.gravity = 980.0f;
+                mp.friction = 600.0f;
+                auto& mc = minion.addComponent<ColliderComponent>();
+                mc.width = 14; mc.height = 14; mc.offset = {1, 1};
+                mc.layer = LAYER_ENEMY;
+                mc.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+                auto& mh = minion.addComponent<HealthComponent>();
+                mh.maxHP = 10.0f; mh.currentHP = 10.0f;
+                auto& mcb = minion.addComponent<CombatComponent>();
+                mcb.meleeAttack.damage = 8.0f;
+                mcb.meleeAttack.knockback = 100.0f;
+                mcb.meleeAttack.cooldown = 1.5f;
+                auto& mai = minion.addComponent<AIComponent>();
+                mai.enemyType = EnemyType::Walker;
+                mai.detectRange = 150.0f;
+                mai.attackRange = 20.0f;
+                mai.chaseSpeed = 130.0f;
+                mai.patrolSpeed = 70.0f;
+                mai.patrolStart = spawnPos;
+                mai.patrolEnd = {spawnPos.x + 60.0f, spawnPos.y};
+
+                ai.summonTimer = ai.summonCooldown;
+
+                // Summon particles
+                if (m_particles) {
+                    m_particles->burst(spawnPos, 10, {180, 50, 220, 200}, 80.0f, 4.0f);
+                }
+                AudioManager::instance().play(SFX::RiftRepair);
+            }
+
+            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            break;
+        }
+        default: break;
+    }
+
+    // Pulsing glow when summoning
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        sprite.flipX = !ai.facingRight;
+        if (ai.summonTimer < 1.0f && ai.activeMinions < ai.maxMinions) {
+            float pulse = std::sin(SDL_GetTicks() * 0.01f) * 0.5f + 0.5f;
+            sprite.setColor(180 + static_cast<int>(pulse * 75), 50, 220);
+        }
+    }
+}
+
+void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& transform = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    Vec2 pos = transform.getCenter();
+    float dist = distanceTo(pos, playerPos);
+
+    switch (ai.state) {
+        case AIState::Patrol: {
+            Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
+            float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * ai.patrolSpeed;
+            ai.facingRight = dirX > 0;
+
+            if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
+            if (dist < ai.detectRange) ai.state = AIState::Chase;
+            break;
+        }
+        case AIState::Chase: {
+            ai.facingRight = playerPos.x > pos.x;
+
+            // Maintain preferred distance
+            if (dist < ai.preferredRange - 50.0f) {
+                // Too close, retreat
+                float dirX = (playerPos.x > pos.x) ? -1.0f : 1.0f;
+                phys.velocity.x = dirX * ai.retreatSpeed;
+            } else if (dist > ai.preferredRange + 50.0f) {
+                // Too far, approach
+                float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+                phys.velocity.x = dirX * ai.patrolSpeed;
+            } else {
+                // In sweet spot, stop and aim
+                phys.velocity.x *= 0.8f;
+            }
+
+            // Start telegraph when in range
+            ai.attackTimer -= dt;
+            if (ai.attackTimer <= 0 && dist < ai.sniperRange && !ai.isTelegraphing) {
+                ai.isTelegraphing = true;
+                ai.telegraphTimer = ai.telegraphDuration;
+            }
+
+            // Telegraph countdown
+            if (ai.isTelegraphing) {
+                ai.telegraphTimer -= dt;
+                phys.velocity.x *= 0.3f; // Slow down while aiming
+
+                if (ai.telegraphTimer <= 0) {
+                    // Fire high-damage shot
+                    ai.isTelegraphing = false;
+                    ai.attackTimer = entity.getComponent<CombatComponent>().rangedAttack.cooldown;
+
+                    // Create sniper projectile
+                    Vec2 dir = (playerPos - pos).normalized();
+                    auto& proj = entities.addEntity("projectile");
+                    proj.dimension = entity.dimension;
+                    auto& pt = proj.addComponent<TransformComponent>(pos.x, pos.y, 12, 4);
+                    auto& ps = proj.addComponent<SpriteComponent>();
+                    ps.setColor(255, 220, 50);
+                    ps.renderLayer = 3;
+                    auto& pp = proj.addComponent<PhysicsBody>();
+                    pp.useGravity = false;
+                    pp.velocity = dir * 600.0f;
+                    auto& pc = proj.addComponent<ColliderComponent>();
+                    pc.width = 10; pc.height = 4;
+                    pc.layer = LAYER_PROJECTILE;
+                    pc.mask = LAYER_TILE | LAYER_PLAYER;
+                    pc.type = ColliderType::Trigger;
+                    float damage = entity.getComponent<CombatComponent>().rangedAttack.damage;
+                    pc.onTrigger = [damage](Entity* self, Entity* other) {
+                        if (other->hasComponent<HealthComponent>()) {
+                            other->getComponent<HealthComponent>().takeDamage(damage);
+                        }
+                        self->destroy();
+                    };
+                    auto& ph = proj.addComponent<HealthComponent>();
+                    ph.maxHP = 1; ph.currentHP = 1;
+                    ph.onDamage = [&proj](float) { proj.destroy(); };
+
+                    AudioManager::instance().play(SFX::RangedShot);
+                    if (m_camera) m_camera->shake(3.0f, 0.1f);
+                }
+            }
+
+            if (dist > ai.loseRange) {
+                ai.state = AIState::Patrol;
+                ai.isTelegraphing = false;
+            }
+            break;
+        }
+        default: break;
+    }
+
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        sprite.flipX = !ai.facingRight;
+        // Flash red during telegraph
+        if (ai.isTelegraphing) {
+            float flash = std::sin(ai.telegraphTimer * 15.0f) * 0.5f + 0.5f;
+            sprite.setColor(200 + static_cast<int>(flash * 55), static_cast<int>(180 * (1.0f - flash)), 40);
+        }
     }
 }
 

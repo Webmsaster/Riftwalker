@@ -15,6 +15,9 @@ Entity& Enemy::createByType(EntityManager& entities, int type, Vec2 pos, int dim
         case EnemyType::Phaser:   return createPhaser(entities, pos, dimension);
         case EnemyType::Exploder: return createExploder(entities, pos, dimension);
         case EnemyType::Shielder: return createShielder(entities, pos, dimension);
+        case EnemyType::Crawler:  return createCrawler(entities, pos, dimension);
+        case EnemyType::Summoner: return createSummoner(entities, pos, dimension);
+        case EnemyType::Sniper:   return createSniper(entities, pos, dimension);
         case EnemyType::Boss: return createBoss(entities, pos, dimension, 1);
         default: return createWalker(entities, pos, dimension);
     }
@@ -302,6 +305,178 @@ Entity& Enemy::createShielder(EntityManager& entities, Vec2 pos, int dimension) 
     ai.shieldUp = true;
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 120.0f, pos.y};
+
+    return e;
+}
+
+Entity& Enemy::createCrawler(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_crawler");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 26, 18);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(60, 160, 80); // Dark green
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.useGravity = false;
+    phys.airResistance = 200.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 24;
+    col.height = 16;
+    col.offset = {1, 1};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 25.0f;
+    hp.currentHP = 25.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 15.0f;
+    combat.meleeAttack.knockback = 250.0f;
+    combat.meleeAttack.cooldown = 1.0f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Crawler;
+    ai.detectRange = 120.0f;
+    ai.attackRange = 20.0f;
+    ai.onCeiling = true;
+    ai.dropSpeed = 400.0f;
+    ai.patrolSpeed = 50.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 100.0f, pos.y};
+
+    return e;
+}
+
+Entity& Enemy::createSummoner(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_summoner");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 30, 38);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(180, 50, 220); // Purple
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 800.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 26;
+    col.height = 36;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 60.0f;
+    hp.currentHP = 60.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 8.0f;
+    combat.meleeAttack.knockback = 150.0f;
+    combat.meleeAttack.cooldown = 2.0f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Summoner;
+    ai.detectRange = 250.0f;
+    ai.attackRange = 200.0f;
+    ai.summonCooldown = 6.0f;
+    ai.maxMinions = 3;
+    ai.chaseSpeed = 60.0f;
+    ai.patrolSpeed = 30.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 80.0f, pos.y};
+
+    return e;
+}
+
+Entity& Enemy::createSniper(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_sniper");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 24, 34);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(200, 180, 40); // Gold-yellow
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 800.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 20;
+    col.height = 32;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 30.0f;
+    hp.currentHP = 30.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.rangedAttack.damage = 20.0f;
+    combat.rangedAttack.range = 400.0f;
+    combat.rangedAttack.knockback = 120.0f;
+    combat.rangedAttack.cooldown = 2.5f;
+    combat.rangedAttack.type = AttackType::Ranged;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Sniper;
+    ai.detectRange = 400.0f;
+    ai.attackRange = 380.0f;
+    ai.sniperRange = 400.0f;
+    ai.telegraphDuration = 0.8f;
+    ai.retreatSpeed = 120.0f;
+    ai.preferredRange = 300.0f;
+    ai.patrolSpeed = 40.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 60.0f, pos.y};
+
+    return e;
+}
+
+Entity& Enemy::createMinion(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_minion");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 16, 16);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(200, 100, 255); // Light purple
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 600.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 14;
+    col.height = 14;
+    col.offset = {1, 1};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 10.0f;
+    hp.currentHP = 10.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 8.0f;
+    combat.meleeAttack.knockback = 100.0f;
+    combat.meleeAttack.cooldown = 1.5f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Walker; // Minions use walker AI
+    ai.detectRange = 150.0f;
+    ai.attackRange = 20.0f;
+    ai.chaseSpeed = 130.0f;
+    ai.patrolSpeed = 70.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 60.0f, pos.y};
 
     return e;
 }

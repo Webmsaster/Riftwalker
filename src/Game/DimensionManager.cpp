@@ -9,6 +9,7 @@ void DimensionManager::switchDimension() {
 
     m_switching = true;
     m_switchTimer = 0;
+    m_hasSwitchedMidpoint = false;
     m_switchCount++;
     m_glitchIntensity = 1.0f;
 
@@ -31,9 +32,10 @@ void DimensionManager::update(float dt) {
             // Blend out current dimension
             m_blendAlpha = progress * 2.0f;
         } else {
-            // At midpoint, actually switch
-            if (progress >= 0.5f && m_blendAlpha < 1.0f) {
+            // At midpoint, actually switch (once per transition)
+            if (!m_hasSwitchedMidpoint) {
                 m_currentDim = (m_currentDim == 1) ? 2 : 1;
+                m_hasSwitchedMidpoint = true;
             }
             m_blendAlpha = 1.0f - (progress - 0.5f) * 2.0f;
         }

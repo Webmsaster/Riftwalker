@@ -59,6 +59,7 @@ void PlayState::startNewRun() {
     m_entropy = SuitEntropy();
     m_combatSystem.setParticleSystem(&m_particles);
     m_combatSystem.setCamera(&m_camera);
+    m_combatSystem.setPlayer(m_player.get());
     m_aiSystem.setParticleSystem(&m_particles);
     m_aiSystem.setCamera(&m_camera);
     m_aiSystem.setCombatSystem(&m_combatSystem);
@@ -715,21 +716,66 @@ void PlayState::render(SDL_Renderer* renderer) {
         m_activePuzzle->render(renderer, 1280, 720);
     }
 
-    // Level complete message
+    // Level complete: rift warp transition effect
     if (m_levelComplete) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 120);
-        SDL_Rect overlay = {0, 300, 1280, 120};
-        SDL_RenderFillRect(renderer, &overlay);
+        float progress = m_levelCompleteTimer / 2.0f; // 0 to 1 over 2 seconds
+        if (progress > 1.0f) progress = 1.0f;
+        Uint32 ticks = SDL_GetTicks();
+
+        // Growing dark overlay
+        Uint8 overlayA = static_cast<Uint8>(progress * 180);
+        SDL_SetRenderDrawColor(renderer, 10, 5, 20, overlayA);
+        SDL_Rect full = {0, 0, 1280, 720};
+        SDL_RenderFillRect(renderer, &full);
+
+        // Expanding rift circle from center
+        int maxRadius = 400;
+        int radius = static_cast<int>(progress * maxRadius);
+        float pulse = 0.7f + 0.3f * std::sin(ticks * 0.01f);
+        Uint8 riftA = static_cast<Uint8>((1.0f - progress * 0.5f) * 120 * pulse);
+
+        // Rift ring (multiple concentric rings)
+        for (int r = radius - 6; r <= radius + 6; r += 3) {
+            if (r < 0) continue;
+            for (int angle = 0; angle < 60; angle++) {
+                float a = angle * 6.283185f / 60.0f + ticks * 0.002f;
+                int px = 640 + static_cast<int>(std::cos(a) * r);
+                int py = 360 + static_cast<int>(std::sin(a) * r);
+                if (px < 0 || px >= 1280 || py < 0 || py >= 720) continue;
+                SDL_SetRenderDrawColor(renderer, 180, 100, 255, riftA);
+                SDL_Rect dot = {px - 1, py - 1, 3, 3};
+                SDL_RenderFillRect(renderer, &dot);
+            }
+        }
+
+        // Scanlines converging toward center
+        if (progress > 0.3f) {
+            int lineCount = static_cast<int>((progress - 0.3f) * 20);
+            for (int i = 0; i < lineCount; i++) {
+                int y = ((i * 4513 + ticks / 40) % 720);
+                Uint8 la = static_cast<Uint8>(progress * 60);
+                SDL_SetRenderDrawColor(renderer, 150, 80, 220, la);
+                SDL_Rect line = {0, y, 1280, 1};
+                SDL_RenderFillRect(renderer, &line);
+            }
+        }
+
+        // Text banner
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(180 * std::min(1.0f, progress * 3.0f)));
+        SDL_Rect banner = {0, 330, 1280, 60};
+        SDL_RenderFillRect(renderer, &banner);
 
         TTF_Font* font = game->getFont();
         if (font) {
-            SDL_Color c = {100, 255, 100, 255};
-            SDL_Surface* s = TTF_RenderText_Blended(font, "LEVEL COMPLETE - Entering next rift...", c);
+            float textAlpha = std::min(1.0f, progress * 3.0f);
+            Uint8 ta = static_cast<Uint8>(textAlpha * 255);
+            SDL_Color c = {140, 255, 180, ta};
+            SDL_Surface* s = TTF_RenderText_Blended(font, "RIFT STABILIZED - Warping to next dimension...", c);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    SDL_Rect r = {640 - s->w / 2, 345, s->w, s->h};
+                    SDL_Rect r = {640 - s->w / 2, 348, s->w, s->h};
                     SDL_RenderCopy(renderer, t, nullptr, &r);
                     SDL_DestroyTexture(t);
                 }

@@ -34,6 +34,7 @@ private:
     float m_switchTimer = 0;
     float m_cooldownTimer = 0;
     float m_blendAlpha = 0; // 0 = fully in current, 1 = fully transitioning
+    bool m_hasSwitchedMidpoint = false;
     int m_switchCount = 0;
 
     SDL_Color m_dimColorA{40, 60, 100, 255};  // Cool blue

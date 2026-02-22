@@ -36,6 +36,14 @@ public:
     ParticleSystem* particles = nullptr;
     bool wasInAir = false;
 
+    // Temporary buffs
+    float speedBoostTimer = 0;
+    float damageBoostTimer = 0;
+    float shieldTimer = 0;
+    bool hasShield = false;
+    float speedBoostMultiplier = 1.5f;
+    float damageBoostMultiplier = 1.5f;
+
 private:
     void handleMovement(float dt, const InputManager& input);
     void handleJump(const InputManager& input);

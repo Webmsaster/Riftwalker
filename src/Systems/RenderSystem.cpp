@@ -85,6 +85,15 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         renderExploder(renderer, screenRect, entity, alpha);
     } else if (tag == "enemy_shielder") {
         renderShielder(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_crawler") {
+        renderCrawler(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_summoner") {
+        renderSummoner(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_sniper") {
+        renderSniper(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_minion") {
+        // Minions use walker renderer but smaller
+        renderWalker(renderer, screenRect, entity, alpha);
     } else if (tag == "enemy_boss") {
         renderBoss(renderer, screenRect, entity, alpha);
     } else if (tag.find("pickup_") == 0) {
@@ -566,20 +575,40 @@ void RenderSystem::renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     // Floating bob
     int bob = static_cast<int>(std::sin(time) * 3);
 
-    if (entity.getTag() == "pickup_health") {
+    const std::string& tag = entity.getTag();
+    if (tag == "pickup_health") {
         // Green cross
         int cy = y + bob;
         fillRect(renderer, x + w / 3, cy, w / 3, h, 60, 220, 60, a);
         fillRect(renderer, x, cy + h / 3, w, h / 3, 60, 220, 60, a);
-        // Glow
         fillRect(renderer, x - 1, cy - 1, w + 2, h + 2, 80, 255, 80, static_cast<Uint8>(a * 0.2f));
+    } else if (tag == "pickup_shield") {
+        // Blue circle with inner ring
+        int cy = y + bob;
+        int cx = x + w / 2;
+        fillRect(renderer, x + 1, cy + 1, w - 2, h - 2, 80, 160, 255, a);
+        fillRect(renderer, cx - 3, cy + h / 3, 6, h / 3, 200, 230, 255, a);
+        fillRect(renderer, x - 1, cy - 1, w + 2, h + 2, 100, 180, 255, static_cast<Uint8>(a * 0.3f));
+    } else if (tag == "pickup_speed") {
+        // Yellow lightning bolt shape
+        int cy = y + bob;
+        fillRect(renderer, x + w / 3, cy, w / 3, h / 2, 255, 255, 80, a);
+        fillRect(renderer, x + w / 6, cy + h / 3, w * 2 / 3, h / 4, 255, 255, 80, a);
+        fillRect(renderer, x + w / 3, cy + h / 2, w / 3, h / 2, 255, 255, 80, a);
+        fillRect(renderer, x - 1, cy - 1, w + 2, h + 2, 255, 255, 120, static_cast<Uint8>(a * 0.25f));
+    } else if (tag == "pickup_damage") {
+        // Red sword/arrow up
+        int cy = y + bob;
+        int cx = x + w / 2;
+        fillRect(renderer, cx - 1, cy, 3, h, 255, 80, 80, a);
+        fillRect(renderer, cx - 4, cy + 2, 9, 3, 255, 80, 80, a);
+        fillRect(renderer, x - 1, cy - 1, w + 2, h + 2, 255, 60, 60, static_cast<Uint8>(a * 0.25f));
     } else {
         // Purple diamond (shard)
         int cx = x + w / 2;
         int cy = y + h / 2 + bob;
         fillRect(renderer, cx - 3, cy - 5, 6, 10, 180, 130, 255, a);
         fillRect(renderer, cx - 5, cy - 3, 10, 6, 180, 130, 255, a);
-        // Sparkle
         float sparkle = 0.5f + 0.5f * std::sin(time * 3);
         fillRect(renderer, cx - 1, cy - 1, 2, 2, 255, 255, 255, static_cast<Uint8>(a * sparkle));
     }
@@ -612,6 +641,146 @@ void RenderSystem::renderProjectile(SDL_Renderer* renderer, SDL_Rect rect, Entit
                 fillRect(renderer, tx - 1, ty - 1, 2, 2, 255, 200, 50, ta);
             }
         }
+    }
+}
+
+void RenderSystem::renderCrawler(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    bool flipped = sprite.flipX;
+    float time = SDL_GetTicks() * 0.005f;
+
+    bool onCeiling = false;
+    if (entity.hasComponent<AIComponent>()) {
+        onCeiling = entity.getComponent<AIComponent>().onCeiling;
+    }
+
+    // Flat, wide body (like a bug)
+    fillRect(renderer, x + 2, y + 2, w - 4, h - 4, sprite.color.r, sprite.color.g, sprite.color.b, a);
+
+    // Carapace stripe
+    fillRect(renderer, x + 4, y + h / 3, w - 8, 2,
+             static_cast<Uint8>(std::min(255, sprite.color.r + 40)),
+             static_cast<Uint8>(std::min(255, sprite.color.g + 40)),
+             static_cast<Uint8>(std::min(255, sprite.color.b + 40)), a);
+
+    // 6 legs (3 per side, animated)
+    for (int i = 0; i < 3; i++) {
+        float legAnim = std::sin(time * 3.0f + i * 2.0f) * 3.0f;
+        int legX = x + 4 + i * (w - 8) / 3;
+        int legDir = onCeiling ? -1 : 1;
+        int legY = onCeiling ? y : y + h;
+        drawLine(renderer, legX, legY, legX - 3, legY + legDir * (6 + static_cast<int>(legAnim)),
+                 80, 120, 60, a);
+        drawLine(renderer, legX, legY, legX + 3, legY + legDir * (6 - static_cast<int>(legAnim)),
+                 80, 120, 60, a);
+    }
+
+    // Eyes (2 small dots)
+    int eyeY = onCeiling ? y + h - 4 : y + 3;
+    if (!flipped) {
+        fillRect(renderer, x + w - 6, eyeY, 2, 2, 255, 200, 50, a);
+        fillRect(renderer, x + w - 10, eyeY, 2, 2, 255, 200, 50, a);
+    } else {
+        fillRect(renderer, x + 4, eyeY, 2, 2, 255, 200, 50, a);
+        fillRect(renderer, x + 8, eyeY, 2, 2, 255, 200, 50, a);
+    }
+}
+
+void RenderSystem::renderSummoner(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    bool flipped = sprite.flipX;
+    float time = SDL_GetTicks() * 0.004f;
+
+    // Robed body (trapezoid shape)
+    int robeTop = w / 2;
+    int robeBot = w;
+    fillRect(renderer, x + (w - robeTop) / 2, y + h / 4, robeTop, h / 4,
+             sprite.color.r, sprite.color.g, sprite.color.b, a);
+    fillRect(renderer, x, y + h / 2, robeBot, h / 2,
+             static_cast<Uint8>(sprite.color.r * 0.7f),
+             static_cast<Uint8>(sprite.color.g * 0.7f),
+             static_cast<Uint8>(sprite.color.b * 0.7f), a);
+
+    // Hood/head
+    int headW = w / 2;
+    int headH = h / 4;
+    fillRect(renderer, x + (w - headW) / 2, y, headW, headH,
+             static_cast<Uint8>(sprite.color.r * 0.5f),
+             static_cast<Uint8>(sprite.color.g * 0.5f),
+             static_cast<Uint8>(sprite.color.b * 0.5f), a);
+
+    // Glowing eyes under hood
+    int eyeY = y + headH / 2;
+    float eyePulse = 0.5f + 0.5f * std::sin(time * 2.0f);
+    Uint8 eyeGlow = static_cast<Uint8>(150 + 105 * eyePulse);
+    int eyeOff = headW / 4;
+    fillRect(renderer, x + w / 2 - eyeOff - 1, eyeY, 3, 2, eyeGlow, 50, eyeGlow, a);
+    fillRect(renderer, x + w / 2 + eyeOff - 1, eyeY, 3, 2, eyeGlow, 50, eyeGlow, a);
+
+    // Floating orbs around hands (summoning energy)
+    for (int i = 0; i < 3; i++) {
+        float angle = time * 2.0f + i * 2.094f;
+        int ox = x + w / 2 + static_cast<int>(std::cos(angle) * (w / 2 + 6));
+        int oy = y + h / 3 + static_cast<int>(std::sin(angle) * 8);
+        Uint8 oa = static_cast<Uint8>(a * (0.3f + 0.3f * std::sin(time * 3.0f + i)));
+        fillRect(renderer, ox - 2, oy - 2, 4, 4, 200, 100, 255, oa);
+    }
+}
+
+void RenderSystem::renderSniper(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    bool flipped = sprite.flipX;
+    float time = SDL_GetTicks() * 0.004f;
+
+    bool telegraphing = false;
+    if (entity.hasComponent<AIComponent>()) {
+        telegraphing = entity.getComponent<AIComponent>().isTelegraphing;
+    }
+
+    // Thin body
+    fillRect(renderer, x + 4, y + h / 5, w - 8, h * 3 / 5,
+             sprite.color.r, sprite.color.g, sprite.color.b, a);
+
+    // Head (small)
+    int headW = w / 2;
+    int headH = h / 5;
+    fillRect(renderer, x + (w - headW) / 2, y, headW, headH,
+             sprite.color.r, sprite.color.g, sprite.color.b, a);
+
+    // Scope eye (one glowing eye)
+    int eyeX = flipped ? x + w / 4 : x + w * 3 / 4 - 3;
+    int eyeY = y + headH / 3;
+    Uint8 scopeGlow = telegraphing ? 255 : static_cast<Uint8>(180 + 75 * std::sin(time * 2.0f));
+    fillRect(renderer, eyeX, eyeY, 3, 3, scopeGlow, 50, 50, a);
+
+    // Long rifle
+    int rifleLen = w + 8;
+    int rifleY = y + h / 3;
+    if (!flipped) {
+        fillRect(renderer, x + w - 2, rifleY, rifleLen, 3, 150, 140, 50, a);
+        fillRect(renderer, x + w + rifleLen - 4, rifleY - 1, 4, 5, 200, 180, 40, a);
+    } else {
+        fillRect(renderer, x - rifleLen + 2, rifleY, rifleLen, 3, 150, 140, 50, a);
+        fillRect(renderer, x - rifleLen + 2, rifleY - 1, 4, 5, 200, 180, 40, a);
+    }
+
+    // Legs
+    int legY = y + h * 4 / 5;
+    fillRect(renderer, x + w / 4, legY, 3, h / 5, sprite.color.r, sprite.color.g, sprite.color.b, a);
+    fillRect(renderer, x + w * 3 / 4 - 3, legY, 3, h / 5, sprite.color.r, sprite.color.g, sprite.color.b, a);
+
+    // Telegraph laser line
+    if (telegraphing) {
+        Uint8 laserA = static_cast<Uint8>(80 + 80 * std::sin(time * 15.0f));
+        int laserX = flipped ? x - 400 : x + w;
+        int laserW = 400;
+        fillRect(renderer, flipped ? laserX : laserX, rifleY, laserW, 1, 255, 50, 50, laserA);
     }
 }
 

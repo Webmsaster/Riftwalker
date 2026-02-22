@@ -20,6 +20,9 @@ enum class EnemyType {
     Phaser,     // Dimension-switching enemy
     Exploder,   // Runs at player, explodes on contact or death
     Shielder,   // Has shield that blocks frontal attacks
+    Crawler,    // Wall/ceiling clinger, drops on player
+    Summoner,   // Spawns minions from distance
+    Sniper,     // Long-range telegraphed shots, keeps distance
     Boss        // Level boss with multiple phases
 };
 
@@ -70,6 +73,26 @@ struct AIComponent : public Component {
     // Shielder specific
     bool shieldUp = true;
     float shieldAngle = 0; // direction shield faces
+
+    // Crawler specific
+    bool onCeiling = false;
+    bool dropping = false;
+    float dropSpeed = 400.0f;
+    float clingTimer = 0;
+
+    // Summoner specific
+    float summonCooldown = 6.0f;
+    float summonTimer = 0;
+    int maxMinions = 3;
+    int activeMinions = 0;
+
+    // Sniper specific
+    float sniperRange = 400.0f;
+    float telegraphTimer = 0;
+    float telegraphDuration = 0.8f;
+    bool isTelegraphing = false;
+    float retreatSpeed = 120.0f;
+    float preferredRange = 300.0f;
 
     // Boss specific
     int bossPhase = 1;         // 1=normal, 2=enraged, 3=desperate

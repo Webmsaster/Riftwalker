@@ -351,6 +351,44 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
+    // Active buff indicators (below ability bar)
+    if (player) {
+        int buffY = margin + (barH + 6) * 3 + 36;
+        int buffX = margin;
+        int buffSize = 16;
+        int buffGap = 4;
+
+        auto drawBuff = [&](const char* label, float timer, float maxTime, SDL_Color color) {
+            if (timer <= 0) return;
+            float pct = timer / maxTime;
+            // Background
+            SDL_SetRenderDrawColor(renderer, 10, 10, 20, 180);
+            SDL_Rect bg = {buffX, buffY, buffSize, buffSize};
+            SDL_RenderFillRect(renderer, &bg);
+            // Fill based on remaining time
+            int fillH = static_cast<int>(buffSize * pct);
+            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 180);
+            SDL_Rect fill = {buffX, buffY + buffSize - fillH, buffSize, fillH};
+            SDL_RenderFillRect(renderer, &fill);
+            // Border
+            float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
+            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, static_cast<Uint8>(120 * pulse));
+            SDL_RenderDrawRect(renderer, &bg);
+            // Label
+            if (font) {
+                renderText(renderer, font, label, buffX + 2, buffY + buffSize + 1,
+                           {color.r, color.g, color.b, 180});
+            }
+            buffX += buffSize + buffGap;
+        };
+
+        drawBuff("SP", player->speedBoostTimer, 6.0f, {255, 255, 80, 255});
+        drawBuff("DM", player->damageBoostTimer, 8.0f, {255, 80, 80, 255});
+        if (player->hasShield) {
+            drawBuff("SH", player->shieldTimer, 8.0f, {100, 180, 255, 255});
+        }
+    }
+
     // Combo counter (center top, only when combo > 1)
     if (player && player->getEntity()->hasComponent<CombatComponent>() && font) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();

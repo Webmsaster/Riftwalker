@@ -193,12 +193,45 @@ void Game::render() {
         m_currentState->render(renderer);
     }
 
-    // Transition overlay
+    // Transition overlay: rift warp effect
     if (m_transitionAlpha > 0) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, m_transitionAlpha);
+        float progress = static_cast<float>(m_transitionAlpha) / 255.0f;
+
+        // Base dark overlay with dimension color tint
+        Uint8 tintR = 40, tintG = 20, tintB = 60; // Purple rift color
+        SDL_SetRenderDrawColor(renderer, tintR, tintG, tintB, m_transitionAlpha);
         SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
         SDL_RenderFillRect(renderer, &full);
+
+        // Glitch scanlines during transition
+        if (progress > 0.2f && progress < 0.95f) {
+            int lineCount = static_cast<int>(progress * 15);
+            Uint32 ticks = SDL_GetTicks();
+            for (int i = 0; i < lineCount; i++) {
+                int y = ((i * 7919 + ticks / 50) % SCREEN_HEIGHT);
+                int h = 1 + (i % 3);
+                int offset = static_cast<int>((((i * 3251 + ticks / 30) % 40) - 20) * progress);
+                Uint8 la = static_cast<Uint8>(progress * 120);
+                // Alternating purple/cyan lines
+                if (i % 2 == 0)
+                    SDL_SetRenderDrawColor(renderer, 150, 50, 200, la);
+                else
+                    SDL_SetRenderDrawColor(renderer, 50, 150, 200, la);
+                SDL_Rect line = {offset, y, SCREEN_WIDTH, h};
+                SDL_RenderFillRect(renderer, &line);
+            }
+        }
+
+        // Central rift flash at peak
+        if (progress > 0.7f) {
+            float flashIntensity = (progress - 0.7f) / 0.3f;
+            Uint8 fa = static_cast<Uint8>(flashIntensity * 80);
+            SDL_SetRenderDrawColor(renderer, 200, 150, 255, fa);
+            int fh = static_cast<int>(flashIntensity * 40);
+            SDL_Rect flash = {0, SCREEN_HEIGHT / 2 - fh, SCREEN_WIDTH, fh * 2};
+            SDL_RenderFillRect(renderer, &flash);
+        }
     }
 
     SDL_RenderPresent(renderer);

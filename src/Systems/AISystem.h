@@ -21,6 +21,9 @@ private:
     void updatePhaser(Entity& entity, float dt, Vec2 playerPos, int playerDim);
     void updateExploder(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateShielder(Entity& entity, float dt, Vec2 playerPos);
+    void updateCrawler(Entity& entity, float dt, Vec2 playerPos);
+    void updateSummoner(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
+    void updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
 
     void explode(Entity& entity, EntityManager& entities);

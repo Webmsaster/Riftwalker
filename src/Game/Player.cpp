@@ -89,6 +89,26 @@ void Player::update(float dt, const InputManager& input) {
         jumpsRemaining = maxJumps;
         isWallSliding = false;
     }
+
+    // Update buff timers
+    if (speedBoostTimer > 0) {
+        speedBoostTimer -= dt;
+        if (speedBoostTimer <= 0) speedBoostTimer = 0;
+    }
+    if (damageBoostTimer > 0) {
+        damageBoostTimer -= dt;
+        if (damageBoostTimer <= 0) damageBoostTimer = 0;
+    }
+    if (hasShield) {
+        shieldTimer -= dt;
+        auto& hp = m_entity->getComponent<HealthComponent>();
+        hp.invulnerable = true;
+        if (shieldTimer <= 0) {
+            hasShield = false;
+            shieldTimer = 0;
+            hp.invulnerable = false;
+        }
+    }
 }
 
 void Player::handleMovement(float dt, const InputManager& input) {
@@ -97,7 +117,8 @@ void Player::handleMovement(float dt, const InputManager& input) {
     float axis = input.getAxis(Action::MoveLeft, Action::MoveRight);
 
     if (std::abs(axis) > 0.1f) {
-        phys.velocity.x = axis * moveSpeed;
+        float speed = moveSpeed * (speedBoostTimer > 0 ? speedBoostMultiplier : 1.0f);
+        phys.velocity.x = axis * speed;
         facingRight = axis > 0;
         m_entity->getComponent<SpriteComponent>().flipX = !facingRight;
     }

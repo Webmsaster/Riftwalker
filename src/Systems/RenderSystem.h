@@ -22,6 +22,9 @@ private:
     void renderPhaser(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderExploder(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderShielder(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderCrawler(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderSummoner(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderSniper(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderBoss(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderProjectile(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);

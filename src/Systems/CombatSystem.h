@@ -17,6 +17,7 @@ public:
     void setParticleSystem(ParticleSystem* ps) { m_particles = ps; }
     void setCamera(Camera* cam) { m_camera = cam; }
     void setCritChance(float chance) { m_critChance = chance; }
+    void setPlayer(class Player* p) { m_player = p; }
 
     // Hit-freeze: returns accumulated freeze time and resets
     float consumeHitFreeze();
@@ -39,5 +40,6 @@ private:
     Camera* m_camera = nullptr;
     float m_pendingHitFreeze = 0;
     float m_critChance = 0;
+    class Player* m_player = nullptr;
     std::vector<DamageEvent> m_damageEvents;
 };

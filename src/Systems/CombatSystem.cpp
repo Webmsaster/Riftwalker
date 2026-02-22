@@ -8,6 +8,7 @@
 #include "Components/AIComponent.h"
 #include "Core/AudioManager.h"
 #include "Game/ItemDrop.h"
+#include "Game/Player.h"
 #include <cmath>
 
 float CombatSystem::consumeHitFreeze() {
@@ -85,6 +86,11 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
+            // Damage boost from pickup
+            if (isPlayer && m_player && m_player->damageBoostTimer > 0) {
+                damage *= m_player->damageBoostMultiplier;
+            }
+
             // Check for Shielder shield blocking
             bool shieldBlocked = false;
             if (isPlayer && target.hasComponent<AIComponent>()) {
@@ -155,7 +161,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 AudioManager::instance().play(isPlayer ? SFX::PlayerDeath : SFX::EnemyDeath);
                 // Drop items from enemies
                 if (isPlayer && target.getTag().find("enemy") != std::string::npos) {
-                    ItemDrop::spawnRandomDrop(entities, targetCenter, target.dimension, 1);
+                    ItemDrop::spawnRandomDrop(entities, targetCenter, target.dimension, 1, m_player);
                 }
                 // Exploder death explosion is handled by AISystem
                 target.destroy();
