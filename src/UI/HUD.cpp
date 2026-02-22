@@ -163,7 +163,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     int barH = 18;
 
     // Semi-transparent HUD backing panel
-    SDL_Rect hudBg = {margin - 5, margin - 5, barW + 20, barH * 4 + 50};
+    SDL_Rect hudBg = {margin - 5, margin - 5, barW + 20, barH * 4 + 70};
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 80);
     SDL_RenderFillRect(renderer, &hudBg);
     SDL_SetRenderDrawColor(renderer, 80, 80, 100, 60);
@@ -252,18 +252,102 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
-    // Dash cooldown
-    if (player) {
-        int dashY = margin + (barH + 6) * 3;
-        float dashPercent = 1.0f - (player->dashCooldownTimer / player->dashCooldown);
-        if (dashPercent > 1.0f) dashPercent = 1.0f;
+    // Ability bar with cooldown indicators
+    if (player && player->getEntity()->hasComponent<CombatComponent>()) {
+        auto& combat = player->getEntity()->getComponent<CombatComponent>();
+        int abY = margin + (barH + 6) * 3;
+        int iconSize = 22;
+        int iconGap = 6;
 
-        SDL_Color dashColor = dashPercent >= 1.0f ?
-            SDL_Color{100, 200, 255, 255} : SDL_Color{60, 100, 140, 255};
-        renderBar(renderer, margin, dashY, 100, 10, dashPercent, dashColor, {20, 25, 35, 180});
+        struct AbilityInfo {
+            float cooldownPct; // 0=on cooldown, 1=ready
+            SDL_Color readyColor;
+            const char* label;
+        };
 
-        if (font && dashPercent >= 1.0f) {
-            renderText(renderer, font, "DASH", margin + 5, dashY, {100, 200, 255, 200});
+        // Calculate cooldown percentages
+        float meleePct = 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.meleeAttack.cooldown));
+        if (!combat.isAttacking || combat.currentAttack != AttackType::Melee) {
+            if (combat.cooldownTimer <= 0) meleePct = 1.0f;
+        }
+        float rangedPct = 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.rangedAttack.cooldown));
+        if (!combat.isAttacking || combat.currentAttack != AttackType::Ranged) {
+            if (combat.cooldownTimer <= 0) rangedPct = 1.0f;
+        }
+        float dashPct = 1.0f - (player->dashCooldownTimer / player->dashCooldown);
+        if (dashPct > 1.0f) dashPct = 1.0f;
+        float dimPct = dimMgr ? 1.0f - (dimMgr->getCooldownTimer() / dimMgr->switchCooldown) : 1.0f;
+        if (dimPct > 1.0f) dimPct = 1.0f;
+
+        AbilityInfo abilities[4] = {
+            {std::max(0.0f, meleePct), {255, 220, 100, 255}, "J"},
+            {std::max(0.0f, rangedPct), {100, 200, 255, 255}, "K"},
+            {std::max(0.0f, dashPct), {100, 255, 200, 255}, "SH"},
+            {std::max(0.0f, dimPct), {200, 150, 255, 255}, "E"}
+        };
+
+        for (int i = 0; i < 4; i++) {
+            int ix = margin + i * (iconSize + iconGap);
+            bool ready = abilities[i].cooldownPct >= 1.0f;
+            SDL_Color c = ready ? abilities[i].readyColor : SDL_Color{50, 50, 60, 200};
+
+            // Icon background
+            SDL_SetRenderDrawColor(renderer, 15, 15, 25, 180);
+            SDL_Rect bg = {ix, abY, iconSize, iconSize};
+            SDL_RenderFillRect(renderer, &bg);
+
+            // Draw procedural icon
+            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+            int cx = ix + iconSize / 2;
+            int cy = abY + iconSize / 2;
+
+            switch (i) {
+                case 0: // Melee: sword (diagonal line + crossguard)
+                    SDL_RenderDrawLine(renderer, cx - 5, cy + 5, cx + 5, cy - 5);
+                    SDL_RenderDrawLine(renderer, cx - 5, cy + 4, cx + 5, cy - 6);
+                    SDL_RenderDrawLine(renderer, cx - 3, cy - 1, cx + 3, cy + 1);
+                    break;
+                case 1: // Ranged: circle projectile with trail
+                    SDL_RenderDrawLine(renderer, cx - 6, cy, cx - 2, cy);
+                    SDL_RenderDrawLine(renderer, cx - 5, cy - 1, cx - 2, cy - 1);
+                    {
+                        SDL_Rect dot = {cx, cy - 3, 6, 6};
+                        SDL_RenderFillRect(renderer, &dot);
+                    }
+                    break;
+                case 2: // Dash: arrow
+                    SDL_RenderDrawLine(renderer, cx - 6, cy, cx + 4, cy);
+                    SDL_RenderDrawLine(renderer, cx + 4, cy, cx, cy - 4);
+                    SDL_RenderDrawLine(renderer, cx + 4, cy, cx, cy + 4);
+                    SDL_RenderDrawLine(renderer, cx - 6, cy - 1, cx + 4, cy - 1);
+                    break;
+                case 3: // Dim switch: two overlapping squares
+                    {
+                        SDL_Rect sq1 = {cx - 5, cy - 5, 7, 7};
+                        SDL_Rect sq2 = {cx - 1, cy - 1, 7, 7};
+                        SDL_RenderDrawRect(renderer, &sq1);
+                        SDL_RenderDrawRect(renderer, &sq2);
+                    }
+                    break;
+            }
+
+            // Cooldown overlay (dark sweep from top)
+            if (!ready) {
+                int coverH = static_cast<int>(iconSize * (1.0f - abilities[i].cooldownPct));
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
+                SDL_Rect cover = {ix, abY, iconSize, coverH};
+                SDL_RenderFillRect(renderer, &cover);
+            }
+
+            // Border (brighter when ready)
+            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(ready ? 180 : 60));
+            SDL_RenderDrawRect(renderer, &bg);
+
+            // Key label below
+            if (font) {
+                renderText(renderer, font, abilities[i].label, ix + 4, abY + iconSize + 1,
+                           {c.r, c.g, c.b, static_cast<Uint8>(ready ? 200 : 80)});
+            }
         }
     }
 

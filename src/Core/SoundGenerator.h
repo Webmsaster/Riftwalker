@@ -34,6 +34,11 @@ public:
     static Mix_Chunk* suitEntropyCritical();
     static Mix_Chunk* spikeDamage();
 
+    // Boss special attack sounds
+    static Mix_Chunk* bossMultiShot();
+    static Mix_Chunk* bossShieldBurst();
+    static Mix_Chunk* bossTeleport();
+
     // Ambient music loops (~4 seconds each)
     static Mix_Chunk* ambientDimA(); // Cool, ethereal drone
     static Mix_Chunk* ambientDimB(); // Warm, ominous drone

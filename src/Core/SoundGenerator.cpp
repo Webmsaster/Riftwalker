@@ -264,6 +264,44 @@ Mix_Chunk* SoundGenerator::spikeDamage() {
     return toChunk(s);
 }
 
+// ---- Boss special attack sounds ----
+
+Mix_Chunk* SoundGenerator::bossMultiShot() {
+    // Rapid staccato burst - multiple short tones
+    auto s = generate(0.25f);
+    for (int i = 0; i < 4; i++) {
+        float t0 = i * 0.05f;
+        float t1 = t0 + 0.04f;
+        addSweep(s, 600 + i * 100, 300 + i * 50, 0.25f, 0.0f, t0, t1);
+    }
+    addNoise(s, 0.12f, 0.0f, 0, 0.08f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::bossShieldBurst() {
+    // Deep charge-up then bright burst
+    auto s = generate(0.35f);
+    // Charging phase: rising low hum
+    addSweep(s, 60, 200, 0.1f, 0.3f, 0, 0.2f);
+    addSquare(s, 80, 0.05f, 0.15f, 0, 0.2f);
+    // Burst phase: bright explosion
+    addSweep(s, 400, 1200, 0.35f, 0.0f, 0.2f, 0.35f);
+    addNoise(s, 0.25f, 0.0f, 0.2f, 0.3f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::bossTeleport() {
+    // Fast downward sweep (vanish) + reverse sweep (appear)
+    auto s = generate(0.25f);
+    // Vanish: high to low
+    addSweep(s, 1000, 100, 0.25f, 0.0f, 0, 0.1f);
+    addNoise(s, 0.15f, 0.0f, 0, 0.08f);
+    // Brief silence gap, then appear: low to high
+    addSweep(s, 100, 800, 0.0f, 0.25f, 0.12f, 0.22f);
+    addSine(s, 600, 0.15f, 0.0f, 0.2f, 0.25f);
+    return toChunk(s);
+}
+
 // ---- Ambient music loops ----
 
 Mix_Chunk* SoundGenerator::ambientDimA() {

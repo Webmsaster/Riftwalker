@@ -131,7 +131,10 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
 
                 // Hit-freeze effect (brief pause for impact feel)
                 if (isPlayer) {
-                    m_pendingHitFreeze += 0.04f;
+                    m_pendingHitFreeze += isCrit ? 0.08f : 0.05f;
+                } else {
+                    // Enemy hitting player also gets brief freeze
+                    m_pendingHitFreeze += 0.06f;
                 }
 
                 // Particles

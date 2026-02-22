@@ -41,11 +41,11 @@ Entity& Enemy::createWalker(EntityManager& entities, Vec2 pos, int dimension) {
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 40.0f;
-    hp.currentHP = 40.0f;
+    hp.maxHP = 45.0f;
+    hp.currentHP = 45.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 15.0f;
+    combat.meleeAttack.damage = 12.0f;
     combat.meleeAttack.knockback = 200.0f;
     combat.meleeAttack.cooldown = 1.0f;
 
@@ -82,8 +82,8 @@ Entity& Enemy::createFlyer(EntityManager& entities, Vec2 pos, int dimension) {
     col.mask = LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 25.0f;
-    hp.currentHP = 25.0f;
+    hp.maxHP = 30.0f;
+    hp.currentHP = 30.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 12.0f;
@@ -128,7 +128,7 @@ Entity& Enemy::createTurret(EntityManager& entities, Vec2 pos, int dimension) {
     combat.rangedAttack.damage = 10.0f;
     combat.rangedAttack.range = 300.0f;
     combat.rangedAttack.knockback = 80.0f;
-    combat.rangedAttack.cooldown = 2.0f;
+    combat.rangedAttack.cooldown = 1.8f;
     combat.rangedAttack.type = AttackType::Ranged;
 
     auto& ai = e.addComponent<AIComponent>();
@@ -160,11 +160,11 @@ Entity& Enemy::createCharger(EntityManager& entities, Vec2 pos, int dimension) {
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 60.0f;
-    hp.currentHP = 60.0f;
+    hp.maxHP = 55.0f;
+    hp.currentHP = 55.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 25.0f;
+    combat.meleeAttack.damage = 22.0f;
     combat.meleeAttack.knockback = 350.0f;
     combat.meleeAttack.cooldown = 2.0f;
 
@@ -241,11 +241,11 @@ Entity& Enemy::createExploder(EntityManager& entities, Vec2 pos, int dimension) 
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 20.0f; // Low HP - blows up easy
-    hp.currentHP = 20.0f;
+    hp.maxHP = 15.0f; // Very fragile glass cannon
+    hp.currentHP = 15.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 35.0f; // High damage on contact
+    combat.meleeAttack.damage = 40.0f; // High damage on contact
     combat.meleeAttack.knockback = 400.0f;
     combat.meleeAttack.cooldown = 10.0f; // Only explodes once
 
@@ -298,7 +298,7 @@ Entity& Enemy::createShielder(EntityManager& entities, Vec2 pos, int dimension) 
     ai.detectRange = 180.0f;
     ai.attackRange = 40.0f;
     ai.patrolSpeed = 40.0f;
-    ai.chaseSpeed = 70.0f; // Slow but tanky
+    ai.chaseSpeed = 80.0f; // Slow but tanky
     ai.shieldUp = true;
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 120.0f, pos.y};
@@ -330,7 +330,7 @@ Entity& Enemy::createBoss(EntityManager& entities, Vec2 pos, int dimension, int 
     auto& hp = e.addComponent<HealthComponent>();
     hp.maxHP = 200.0f + difficulty * 80.0f;
     hp.currentHP = hp.maxHP;
-    hp.armor = 3.0f + difficulty * 2.0f;
+    hp.armor = 2.0f + difficulty * 2.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 25.0f + difficulty * 5.0f;

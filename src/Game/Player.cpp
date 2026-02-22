@@ -73,6 +73,17 @@ void Player::update(float dt, const InputManager& input) {
     auto& sprite = m_entity->getComponent<SpriteComponent>();
     sprite.animTimer += dt;
 
+    // Landing effect: was airborne, now on ground
+    if (phys.onGround && wasInAir) {
+        if (particles) {
+            auto& t = m_entity->getComponent<TransformComponent>();
+            Vec2 feetPos = {t.getCenter().x, t.position.y + t.height};
+            particles->burst(feetPos, 6, {180, 180, 200, 200}, 60.0f, 2.0f);
+        }
+        AudioManager::instance().play(SFX::PlayerLand);
+    }
+    wasInAir = !phys.onGround;
+
     // Reset jumps on ground
     if (phys.onGround) {
         jumpsRemaining = maxJumps;

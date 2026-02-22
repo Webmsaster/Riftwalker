@@ -107,9 +107,17 @@ private:
     bool m_waveActive = false;
     void updateSpawnWaves(float dt);
 
-    // Tutorial hints
+    // Tutorial hints (context-based)
     void renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font);
+    void renderKeyBox(SDL_Renderer* renderer, TTF_Font* font, const char* key, int x, int y, Uint8 alpha);
     float m_tutorialTimer = 0;
+    int m_tutorialHintIndex = 0;      // Current hint to show
+    float m_tutorialHintShowTimer = 0; // Time current hint has been visible
+    bool m_tutorialHintDone[8] = {};   // Track completed hints
+    bool m_hasMovedThisRun = false;
+    bool m_hasJumpedThisRun = false;
+    bool m_hasDashedThisRun = false;
+    bool m_hasAttackedThisRun = false;
 
     // Boss system
     bool m_isBossLevel = false;

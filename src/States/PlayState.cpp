@@ -10,6 +10,7 @@
 #include "Core/AudioManager.h"
 #include <cstdlib>
 #include <cmath>
+#include <cstring>
 #include <algorithm>
 
 void PlayState::enter() {
@@ -36,6 +37,14 @@ void PlayState::startNewRun() {
     roomsCleared = 0;
     shardsCollected = 0;
     m_collapsing = false;
+    m_tutorialTimer = 0;
+    m_tutorialHintIndex = 0;
+    m_tutorialHintShowTimer = 0;
+    std::memset(m_tutorialHintDone, 0, sizeof(m_tutorialHintDone));
+    m_hasMovedThisRun = false;
+    m_hasJumpedThisRun = false;
+    m_hasDashedThisRun = false;
+    m_hasAttackedThisRun = false;
 
     // Random theme pair
     auto themes = WorldTheme::getRandomPair(m_runSeed);
@@ -45,6 +54,7 @@ void PlayState::startNewRun() {
     m_dimManager = DimensionManager();
     m_dimManager.setDimColors(m_themeA.colors.background, m_themeB.colors.background);
     m_dimManager.particles = &m_particles;
+    AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
 
     m_entropy = SuitEntropy();
     m_combatSystem.setParticleSystem(&m_particles);
@@ -340,8 +350,17 @@ void PlayState::update(float dt) {
     // HUD flash update
     m_hud.updateFlash(dt);
 
-    // Tutorial timer
+    // Tutorial timer + action tracking
     m_tutorialTimer += dt;
+    if (m_player && m_player->getEntity()->hasComponent<PhysicsBody>()) {
+        auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+        if (std::abs(phys.velocity.x) > 10.0f) m_hasMovedThisRun = true;
+        if (!phys.onGround) m_hasJumpedThisRun = true;
+    }
+    if (m_player && m_player->isDashing) m_hasDashedThisRun = true;
+    if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+        if (m_player->getEntity()->getComponent<CombatComponent>().isAttacking) m_hasAttackedThisRun = true;
+    }
 
     // Entropy
     m_entropy.update(dt);
@@ -829,45 +848,124 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
     }
 }
 
+void PlayState::renderKeyBox(SDL_Renderer* renderer, TTF_Font* font,
+                              const char* key, int x, int y, Uint8 alpha) {
+    // Render a key label as a bordered box
+    SDL_Surface* surface = TTF_RenderText_Blended(font, key, {255, 255, 255, alpha});
+    if (!surface) return;
+    int pad = 4;
+    SDL_Rect box = {x - pad, y - 2, surface->w + pad * 2, surface->h + 4};
+    SDL_SetRenderDrawColor(renderer, 40, 50, 80, static_cast<Uint8>(alpha * 0.8f));
+    SDL_RenderFillRect(renderer, &box);
+    SDL_SetRenderDrawColor(renderer, 120, 160, 220, alpha);
+    SDL_RenderDrawRect(renderer, &box);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture) {
+        SDL_SetTextureAlphaMod(texture, alpha);
+        SDL_Rect dst = {x, y, surface->w, surface->h};
+        SDL_RenderCopy(renderer, texture, nullptr, &dst);
+        SDL_DestroyTexture(texture);
+    }
+    SDL_FreeSurface(surface);
+}
+
 void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
     if (!font || m_currentDifficulty > 3) return;
 
-    // Determine which hint to show based on level and timer
+    // Context-based hint system: show hints when conditions are met
     const char* hint = nullptr;
-    float fadeDuration = 6.0f; // Hint visible for 6 seconds
+    const char* keyLabel = nullptr;
+    bool conditionMet = false; // True = hint should be dismissed
 
     if (m_currentDifficulty == 1) {
-        if (m_tutorialTimer < fadeDuration) {
-            hint = "WASD to move, SPACE to jump, SHIFT to dash";
-        } else if (m_tutorialTimer < fadeDuration * 2) {
-            hint = "J for melee attack, K for ranged attack";
-        } else if (m_tutorialTimer < fadeDuration * 3) {
-            hint = "Press E to switch dimensions - some walls only exist in one!";
+        if (!m_tutorialHintDone[0]) {
+            // Show movement hint after 1.5s of inactivity
+            if (m_tutorialTimer > 1.5f && !m_hasMovedThisRun) {
+                hint = "to move";
+                keyLabel = "WASD";
+            }
+            if (m_hasMovedThisRun) conditionMet = true;
+        } else if (!m_tutorialHintDone[1]) {
+            hint = "to jump";
+            keyLabel = "SPACE";
+            if (m_hasJumpedThisRun) conditionMet = true;
+        } else if (!m_tutorialHintDone[2]) {
+            hint = "to dash through danger";
+            keyLabel = "SHIFT";
+            if (m_hasDashedThisRun) conditionMet = true;
+        } else if (!m_tutorialHintDone[3]) {
+            // Show attack hint when any enemy is nearby
+            bool enemyNear = false;
+            if (m_player) {
+                Vec2 pp = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                m_entities.forEach([&](Entity& e) {
+                    if (e.getTag().find("enemy") != std::string::npos &&
+                        e.hasComponent<TransformComponent>()) {
+                        Vec2 ep = e.getComponent<TransformComponent>().getCenter();
+                        float d = std::sqrt((pp.x-ep.x)*(pp.x-ep.x) + (pp.y-ep.y)*(pp.y-ep.y));
+                        if (d < 250.0f) enemyNear = true;
+                    }
+                });
+            }
+            if (enemyNear) {
+                hint = "melee attack    ";
+                keyLabel = "J";
+            }
+            if (m_hasAttackedThisRun) conditionMet = true;
+        } else if (!m_tutorialHintDone[4]) {
+            hint = "to switch dimensions - some walls only exist in one!";
+            keyLabel = "E";
+            if (m_dimManager.getSwitchCount() > 0) conditionMet = true;
         }
     } else if (m_currentDifficulty == 2) {
-        if (m_tutorialTimer < fadeDuration) {
-            hint = "Find glowing rifts and press F to repair them";
-        } else if (m_tutorialTimer < fadeDuration * 2) {
-            hint = "Watch your Entropy bar - too much and your suit crashes!";
+        if (!m_tutorialHintDone[5]) {
+            // Show rift hint when near a rift
+            if (m_nearRiftIndex >= 0) {
+                hint = "to repair the rift";
+                keyLabel = "F";
+            } else if (m_tutorialTimer > 5.0f) {
+                hint = "Find glowing rifts on the map";
+                keyLabel = nullptr;
+            }
+            if (riftsRepaired > 0) conditionMet = true;
+        } else if (!m_tutorialHintDone[6]) {
+            if (m_entropy.getPercent() > 0.4f) {
+                hint = "Watch your Entropy bar - too much and your suit crashes!";
+                keyLabel = nullptr;
+                m_tutorialHintShowTimer += 1.0f / 60.0f;
+                if (m_tutorialHintShowTimer > 5.0f) conditionMet = true;
+            }
         }
     } else if (m_currentDifficulty == 3) {
-        if (m_tutorialTimer < fadeDuration) {
+        if (!m_tutorialHintDone[7]) {
             hint = "Chain attacks for combos - more hits = more damage!";
-        } else if (m_tutorialTimer < fadeDuration * 2) {
-            hint = "Hit enemies from behind shields - Shielders block frontal attacks";
+            keyLabel = nullptr;
+            if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+                if (m_player->getEntity()->getComponent<CombatComponent>().comboCount >= 3)
+                    conditionMet = true;
+            }
+            m_tutorialHintShowTimer += 1.0f / 60.0f;
+            if (m_tutorialHintShowTimer > 8.0f) conditionMet = true;
+        }
+    }
+
+    // Mark completed hints
+    if (conditionMet) {
+        // Find current hint index and mark it
+        for (int i = 0; i < 8; i++) {
+            if (!m_tutorialHintDone[i]) {
+                m_tutorialHintDone[i] = true;
+                m_tutorialHintShowTimer = 0;
+                break;
+            }
         }
     }
 
     if (!hint) return;
 
-    // Calculate alpha for fade in/out
-    float localTime = std::fmod(m_tutorialTimer, fadeDuration);
-    float alpha = 1.0f;
-    if (localTime < 0.5f) {
-        alpha = localTime / 0.5f; // Fade in
-    } else if (localTime > fadeDuration - 1.0f) {
-        alpha = (fadeDuration - localTime) / 1.0f; // Fade out
-    }
+    // Fade in over 0.3s
+    m_tutorialHintShowTimer += 1.0f / 60.0f;
+    float alpha = std::min(1.0f, m_tutorialHintShowTimer / 0.3f);
     Uint8 a = static_cast<Uint8>(alpha * 200);
 
     // Semi-transparent background
@@ -876,18 +974,43 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_Rect bg = {240, 140, 800, 36};
     SDL_RenderFillRect(renderer, &bg);
 
-    // Hint text
-    SDL_Color color = {180, 220, 255, a};
-    SDL_Surface* surface = TTF_RenderText_Blended(font, hint, color);
-    if (surface) {
-        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-        if (texture) {
-            SDL_SetTextureAlphaMod(texture, a);
-            SDL_Rect dst = {640 - surface->w / 2, 148, surface->w, surface->h};
-            SDL_RenderCopy(renderer, texture, nullptr, &dst);
-            SDL_DestroyTexture(texture);
+    int textX = 640;
+    if (keyLabel) {
+        // Render key box + hint text side by side
+        SDL_Surface* hintSurf = TTF_RenderText_Blended(font, hint, {180, 220, 255, a});
+        SDL_Surface* keySurf = TTF_RenderText_Blended(font, keyLabel, {255, 255, 255, 255});
+        int totalW = (keySurf ? keySurf->w + 16 : 0) + (hintSurf ? hintSurf->w : 0);
+        int startX = 640 - totalW / 2;
+
+        if (keySurf) {
+            renderKeyBox(renderer, font, keyLabel, startX, 148, a);
+            startX += keySurf->w + 16;
+            SDL_FreeSurface(keySurf);
         }
-        SDL_FreeSurface(surface);
+        if (hintSurf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, hintSurf);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, a);
+                SDL_Rect dst = {startX, 148, hintSurf->w, hintSurf->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(hintSurf);
+        }
+    } else {
+        // Just hint text centered
+        SDL_Color color = {180, 220, 255, a};
+        SDL_Surface* surface = TTF_RenderText_Blended(font, hint, color);
+        if (surface) {
+            SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+            if (texture) {
+                SDL_SetTextureAlphaMod(texture, a);
+                SDL_Rect dst = {640 - surface->w / 2, 148, surface->w, surface->h};
+                SDL_RenderCopy(renderer, texture, nullptr, &dst);
+                SDL_DestroyTexture(texture);
+            }
+            SDL_FreeSurface(surface);
+        }
     }
 }
 
@@ -900,7 +1023,7 @@ void PlayState::spawnBoss() {
 
     int dim = m_dimManager.getCurrentDimension();
     int bossDiff = m_currentDifficulty;
-    if (g_selectedDifficulty == GameDifficulty::Hard) bossDiff += 2;
+    if (g_selectedDifficulty == GameDifficulty::Hard) bossDiff += 1;
     Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
 }
 

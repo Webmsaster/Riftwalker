@@ -44,6 +44,9 @@ void AudioManager::generateSounds() {
     m_sfx[static_cast<int>(SFX::CollapseWarning)] = SoundGenerator::collapseWarning();
     m_sfx[static_cast<int>(SFX::SuitEntropyCritical)] = SoundGenerator::suitEntropyCritical();
     m_sfx[static_cast<int>(SFX::SpikeDamage)]   = SoundGenerator::spikeDamage();
+    m_sfx[static_cast<int>(SFX::BossMultiShot)]    = SoundGenerator::bossMultiShot();
+    m_sfx[static_cast<int>(SFX::BossShieldBurst)]   = SoundGenerator::bossShieldBurst();
+    m_sfx[static_cast<int>(SFX::BossTeleport)]      = SoundGenerator::bossTeleport();
 }
 
 void AudioManager::shutdown() {

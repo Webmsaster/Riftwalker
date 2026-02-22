@@ -15,6 +15,7 @@ enum class SFX {
     LevelComplete,
     CollapseWarning, SuitEntropyCritical,
     SpikeDamage,
+    BossMultiShot, BossShieldBurst, BossTeleport,
     COUNT
 };
 

@@ -16,6 +16,7 @@ public:
     float getBlendAlpha() const { return m_blendAlpha; }
     bool isSwitching() const { return m_switching; }
     int getSwitchCount() const { return m_switchCount; }
+    float getCooldownTimer() const { return m_cooldownTimer; }
 
     // Colors per dimension
     SDL_Color getDimColorA() const { return m_dimColorA; }

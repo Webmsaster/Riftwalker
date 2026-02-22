@@ -34,6 +34,7 @@ public:
     float dashCooldownTimer = 0;
 
     ParticleSystem* particles = nullptr;
+    bool wasInAir = false;
 
 private:
     void handleMovement(float dt, const InputManager& input);

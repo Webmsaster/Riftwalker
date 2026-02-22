@@ -497,7 +497,8 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
             }
             // AoE knockback burst on shield end
             if (m_camera) m_camera->shake(12.0f, 0.3f);
-            AudioManager::instance().play(SFX::SpikeDamage);
+            if (m_combatSystem) m_combatSystem->addHitFreeze(0.06f);
+            AudioManager::instance().play(SFX::BossShieldBurst);
             if (m_particles) {
                 m_particles->burst(pos, 40, {100, 200, 255, 255}, 350.0f, 4.0f);
             }
@@ -586,7 +587,7 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
                         if (m_particles) {
                             m_particles->burst(pos, 20, {255, 100, 200, 255}, 200.0f, 3.0f);
                         }
-                        AudioManager::instance().play(SFX::RangedShot);
+                        AudioManager::instance().play(SFX::BossMultiShot);
                     } else {
                         ai.bossAttackTimer = 0.5f;
                     }
@@ -605,7 +606,7 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
                         if (m_particles) {
                             m_particles->burst(pos, 35, {100, 200, 255, 255}, 250.0f, 4.0f);
                         }
-                        AudioManager::instance().play(SFX::DimensionSwitch);
+                        AudioManager::instance().play(SFX::BossShieldBurst);
                     } else {
                         ai.bossAttackTimer = 0.5f;
                     }
@@ -640,7 +641,8 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
                         ai.bossTeleportTimer = 5.0f * phaseCooldownMult;
                         ai.bossAttackTimer = 0.8f;
                         if (m_camera) m_camera->shake(6.0f, 0.2f);
-                        AudioManager::instance().play(SFX::DimensionSwitch);
+                        if (m_combatSystem) m_combatSystem->addHitFreeze(0.05f);
+                        AudioManager::instance().play(SFX::BossTeleport);
                     } else {
                         // Fallback melee if teleport on cooldown
                         if (dist < ai.attackRange * 1.5f) {
