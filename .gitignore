@@ -1,0 +1,29 @@
+# Build output
+build/
+out/
+
+# Binaries
+*.exe
+*.dll
+*.obj
+*.pdb
+*.ilk
+*.lib
+*.exp
+
+# IDE
+.vs/
+.vscode/
+*.vcxproj.user
+CMakeSettings.json
+
+# Save data
+riftwalker_save.dat
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

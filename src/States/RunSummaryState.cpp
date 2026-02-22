@@ -1,0 +1,272 @@
+#include "RunSummaryState.h"
+#include "Core/Game.h"
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
+#include <algorithm>
+
+void RunSummaryState::enter() {
+    m_fadeIn = 0;
+    m_time = 0;
+    m_statsTimer = 0;
+
+    // Load stats from last run record
+    auto& upgrades = game->getUpgradeSystem();
+    auto& history = upgrades.getRunHistory();
+    if (!history.empty()) {
+        // Find the record matching current run (most recent addition)
+        // The history is sorted, so we search for matching data
+        for (auto& r : history) {
+            if (r.rooms == roomsCleared && r.enemies == enemiesKilled) {
+                shardsEarned = r.shards;
+                break;
+            }
+        }
+    }
+
+    // Check for new record (compare against previous best before updating)
+    int prevBest = upgrades.bestRoomReached;
+    isNewRecord = (roomsCleared > prevBest && roomsCleared > 0);
+    if (roomsCleared > upgrades.bestRoomReached) {
+        upgrades.bestRoomReached = roomsCleared;
+    }
+}
+
+void RunSummaryState::handleEvent(const SDL_Event& event) {
+    if (event.type == SDL_KEYDOWN && m_fadeIn >= 1.0f) {
+        if (event.key.keysym.scancode == SDL_SCANCODE_RETURN ||
+            event.key.keysym.scancode == SDL_SCANCODE_SPACE) {
+            game->changeState(StateID::Menu);
+        }
+    }
+}
+
+void RunSummaryState::update(float dt) {
+    m_time += dt;
+    if (m_fadeIn < 1.0f) {
+        m_fadeIn += dt * 0.8f;
+        if (m_fadeIn > 1.0f) m_fadeIn = 1.0f;
+    }
+    m_statsTimer += dt;
+}
+
+static const char* getGrade(int rooms, int enemies, int rifts) {
+    int score = rooms * 10 + enemies * 3 + rifts * 15;
+    if (score >= 80) return "S";
+    if (score >= 50) return "A";
+    if (score >= 30) return "B";
+    if (score >= 15) return "C";
+    return "D";
+}
+
+static SDL_Color getGradeColor(const char* grade) {
+    if (grade[0] == 'S') return {255, 220, 50, 255};
+    if (grade[0] == 'A') return {100, 255, 100, 255};
+    if (grade[0] == 'B') return {100, 180, 255, 255};
+    if (grade[0] == 'C') return {200, 180, 140, 255};
+    return {160, 120, 120, 255};
+}
+
+void RunSummaryState::render(SDL_Renderer* renderer) {
+    SDL_SetRenderDrawColor(renderer, 8, 5, 15, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Background particles drifting down
+    for (int i = 0; i < 40; i++) {
+        float x = static_cast<float>((i * 131 + 47) % 1280);
+        float baseY = static_cast<float>((i * 89 + 23) % 720);
+        float y = std::fmod(baseY + m_time * (15.0f + (i % 5) * 5.0f), 720.0f);
+        float twinkle = 0.5f + 0.5f * std::sin(m_time * 2.0f + i * 1.3f);
+        Uint8 a = static_cast<Uint8>(20 * twinkle);
+        Uint8 r = (i % 3 == 0) ? static_cast<Uint8>(80) : static_cast<Uint8>(40);
+        Uint8 b = (i % 3 != 0) ? static_cast<Uint8>(100) : static_cast<Uint8>(40);
+        SDL_SetRenderDrawColor(renderer, r, 20, b, a);
+        SDL_Rect p = {static_cast<int>(x), static_cast<int>(y), 2, 2};
+        SDL_RenderFillRect(renderer, &p);
+    }
+
+    TTF_Font* font = game->getFont();
+    if (!font) return;
+
+    Uint8 alpha = static_cast<Uint8>(255 * m_fadeIn);
+
+    // Title with glow
+    SDL_Surface* ts = TTF_RenderText_Blended(font, "R U N  E N D E D", {200, 80, 80, 255});
+    if (ts) {
+        SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
+        if (tt) {
+            int tw = ts->w * 2;
+            int th = ts->h * 2;
+            // Glow
+            SDL_SetTextureBlendMode(tt, SDL_BLENDMODE_ADD);
+            SDL_SetTextureAlphaMod(tt, static_cast<Uint8>(alpha * 0.15f));
+            SDL_Rect glowR = {640 - tw / 2 - 3, 67, tw + 6, th + 6};
+            SDL_RenderCopy(renderer, tt, nullptr, &glowR);
+            // Main
+            SDL_SetTextureBlendMode(tt, SDL_BLENDMODE_BLEND);
+            SDL_SetTextureAlphaMod(tt, alpha);
+            SDL_Rect tr = {640 - tw / 2, 70, tw, th};
+            SDL_RenderCopy(renderer, tt, nullptr, &tr);
+            SDL_DestroyTexture(tt);
+        }
+        SDL_FreeSurface(ts);
+    }
+
+    // Separator
+    SDL_SetRenderDrawColor(renderer, 140, 60, 60, static_cast<Uint8>(alpha * 0.4f));
+    SDL_RenderDrawLine(renderer, 350, 145, 930, 145);
+
+    // Grade
+    const char* grade = getGrade(roomsCleared, enemiesKilled, riftsRepaired);
+    SDL_Color gradeColor = getGradeColor(grade);
+    gradeColor.a = alpha;
+
+    if (m_statsTimer > 0.2f) {
+        char gradeText[16];
+        std::snprintf(gradeText, sizeof(gradeText), "Grade: %s", grade);
+        SDL_Surface* gs = TTF_RenderText_Blended(font, gradeText, gradeColor);
+        if (gs) {
+            SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
+            if (gt) {
+                SDL_SetTextureAlphaMod(gt, alpha);
+                // Render grade larger
+                SDL_Rect gr = {640 - gs->w, 160, gs->w * 2, gs->h * 2};
+                SDL_RenderCopy(renderer, gt, nullptr, &gr);
+                SDL_DestroyTexture(gt);
+            }
+            SDL_FreeSurface(gs);
+        }
+    }
+
+    // Stats (reveal one by one)
+    struct Stat { const char* label; int value; SDL_Color barColor; };
+    Stat stats[] = {
+        {"Rooms Cleared", roomsCleared, {100, 200, 255, 255}},
+        {"Enemies Defeated", enemiesKilled, {255, 100, 80, 255}},
+        {"Rifts Repaired", riftsRepaired, {180, 100, 255, 255}},
+        {"Shards Earned", shardsEarned, {255, 200, 80, 255}},
+        {"Total Runs", game->getUpgradeSystem().totalRuns, {150, 150, 180, 255}},
+    };
+
+    int statCount = 5;
+    int baseY = 240;
+    int statH = 45;
+    float revealDelay = 0.4f;
+
+    for (int i = 0; i < statCount; i++) {
+        float revealTime = 0.5f + i * revealDelay;
+        if (m_statsTimer < revealTime) continue;
+
+        float itemAlpha = std::min(1.0f, (m_statsTimer - revealTime) * 3.0f) * m_fadeIn;
+        Uint8 ia = static_cast<Uint8>(255 * itemAlpha);
+
+        int y = baseY + i * statH;
+
+        // Background bar
+        SDL_SetRenderDrawColor(renderer, 25, 20, 40, static_cast<Uint8>(ia * 0.6f));
+        SDL_Rect bg = {300, y, 680, statH - 6};
+        SDL_RenderFillRect(renderer, &bg);
+
+        // Left accent line
+        SDL_SetRenderDrawColor(renderer, stats[i].barColor.r, stats[i].barColor.g,
+                               stats[i].barColor.b, ia);
+        SDL_Rect accent = {300, y, 3, statH - 6};
+        SDL_RenderFillRect(renderer, &accent);
+
+        // Label
+        char text[64];
+        std::snprintf(text, sizeof(text), "%s", stats[i].label);
+        SDL_Color labelColor = {180, 175, 200, ia};
+        SDL_Surface* ls = TTF_RenderText_Blended(font, text, labelColor);
+        if (ls) {
+            SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
+            if (lt) {
+                SDL_SetTextureAlphaMod(lt, ia);
+                SDL_Rect lr = {320, y + 10, ls->w, ls->h};
+                SDL_RenderCopy(renderer, lt, nullptr, &lr);
+                SDL_DestroyTexture(lt);
+            }
+            SDL_FreeSurface(ls);
+        }
+
+        // Value (animate counting up)
+        float countProgress = std::min(1.0f, (m_statsTimer - revealTime) * 2.0f);
+        int displayVal = static_cast<int>(stats[i].value * countProgress);
+        char valText[32];
+        std::snprintf(valText, sizeof(valText), "%d", displayVal);
+        SDL_Color valColor = {stats[i].barColor.r, stats[i].barColor.g,
+                              stats[i].barColor.b, ia};
+        SDL_Surface* vs = TTF_RenderText_Blended(font, valText, valColor);
+        if (vs) {
+            SDL_Texture* vt = SDL_CreateTextureFromSurface(renderer, vs);
+            if (vt) {
+                SDL_SetTextureAlphaMod(vt, ia);
+                SDL_Rect vr = {930 - vs->w, y + 10, vs->w, vs->h};
+                SDL_RenderCopy(renderer, vt, nullptr, &vr);
+                SDL_DestroyTexture(vt);
+            }
+            SDL_FreeSurface(vs);
+        }
+    }
+
+    // NEW RECORD banner
+    if (isNewRecord && m_statsTimer > 2.5f) {
+        float recordAlpha = std::min(1.0f, (m_statsTimer - 2.5f) * 2.0f) * m_fadeIn;
+        float pulse = 0.7f + 0.3f * std::sin(m_time * 6.0f);
+        Uint8 ra = static_cast<Uint8>(255 * recordAlpha * pulse);
+
+        // Glowing background bar
+        SDL_SetRenderDrawColor(renderer, 255, 200, 50, static_cast<Uint8>(ra * 0.2f));
+        SDL_Rect recordBg = {300, 500, 680, 40};
+        SDL_RenderFillRect(renderer, &recordBg);
+
+        // Gold border
+        SDL_SetRenderDrawColor(renderer, 255, 220, 80, ra);
+        SDL_RenderDrawRect(renderer, &recordBg);
+
+        SDL_Color recordColor = {255, 220, 50, ra};
+        SDL_Surface* rs = TTF_RenderText_Blended(font, "NEW RECORD!", recordColor);
+        if (rs) {
+            SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
+            if (rt) {
+                SDL_SetTextureAlphaMod(rt, ra);
+                int rw = static_cast<int>(rs->w * 1.5f);
+                int rh = static_cast<int>(rs->h * 1.5f);
+                SDL_Rect rr = {640 - rw / 2, 505, rw, rh};
+                SDL_RenderCopy(renderer, rt, nullptr, &rr);
+                SDL_DestroyTexture(rt);
+            }
+            SDL_FreeSurface(rs);
+        }
+
+        // Sparkle particles around record text
+        for (int i = 0; i < 8; i++) {
+            float angle = m_time * 2.0f + i * (6.283185f / 8);
+            int sx = 640 + static_cast<int>(std::cos(angle) * 180);
+            int sy = 520 + static_cast<int>(std::sin(angle) * 12);
+            Uint8 sa = static_cast<Uint8>(ra * (0.5f + 0.5f * std::sin(m_time * 5.0f + i)));
+            SDL_SetRenderDrawColor(renderer, 255, 230, 100, sa);
+            SDL_Rect spark = {sx - 1, sy - 1, 3, 3};
+            SDL_RenderFillRect(renderer, &spark);
+        }
+    }
+
+    // Continue prompt
+    if (m_fadeIn >= 1.0f && m_statsTimer > 3.0f) {
+        float pulse = 0.5f + 0.5f * std::sin(m_time * 4.0f);
+        Uint8 pa = static_cast<Uint8>(200 * pulse);
+        SDL_Color c = {150, 130, 200, pa};
+        SDL_Surface* s = TTF_RenderText_Blended(font, "Press ENTER to continue", c);
+        if (s) {
+            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+            if (t) {
+                SDL_Rect r = {640 - s->w / 2, 620, s->w, s->h};
+                SDL_RenderCopy(renderer, t, nullptr, &r);
+                SDL_DestroyTexture(t);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+}

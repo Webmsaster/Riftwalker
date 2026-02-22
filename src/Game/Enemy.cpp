@@ -1,0 +1,359 @@
+#include "Enemy.h"
+#include "Components/TransformComponent.h"
+#include "Components/SpriteComponent.h"
+#include "Components/PhysicsBody.h"
+#include "Components/ColliderComponent.h"
+#include "Components/HealthComponent.h"
+#include "Components/CombatComponent.h"
+
+Entity& Enemy::createByType(EntityManager& entities, int type, Vec2 pos, int dimension) {
+    switch (static_cast<EnemyType>(type)) {
+        case EnemyType::Walker:  return createWalker(entities, pos, dimension);
+        case EnemyType::Flyer:   return createFlyer(entities, pos, dimension);
+        case EnemyType::Turret:  return createTurret(entities, pos, dimension);
+        case EnemyType::Charger: return createCharger(entities, pos, dimension);
+        case EnemyType::Phaser:   return createPhaser(entities, pos, dimension);
+        case EnemyType::Exploder: return createExploder(entities, pos, dimension);
+        case EnemyType::Shielder: return createShielder(entities, pos, dimension);
+        case EnemyType::Boss: return createBoss(entities, pos, dimension, 1);
+        default: return createWalker(entities, pos, dimension);
+    }
+}
+
+Entity& Enemy::createWalker(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_walker");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 28, 32);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(200, 60, 60);
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 800.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 24;
+    col.height = 30;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 40.0f;
+    hp.currentHP = 40.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 15.0f;
+    combat.meleeAttack.knockback = 200.0f;
+    combat.meleeAttack.cooldown = 1.0f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Walker;
+    ai.detectRange = 180.0f;
+    ai.attackRange = 40.0f;
+    ai.patrolSpeed = 60.0f;
+    ai.chaseSpeed = 100.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 150.0f, pos.y};
+
+    return e;
+}
+
+Entity& Enemy::createFlyer(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_flyer");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 24, 24);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(180, 80, 200);
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.useGravity = false;
+    phys.airResistance = 400.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 20;
+    col.height = 20;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 25.0f;
+    hp.currentHP = 25.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 12.0f;
+    combat.meleeAttack.knockback = 150.0f;
+    combat.meleeAttack.cooldown = 1.5f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Flyer;
+    ai.detectRange = 250.0f;
+    ai.attackRange = 30.0f;
+    ai.flyHeight = 80.0f;
+    ai.swoopSpeed = 250.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 100.0f, pos.y};
+
+    return e;
+}
+
+Entity& Enemy::createTurret(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_turret");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 28, 28);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(200, 200, 60);
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.useGravity = true;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 28;
+    col.height = 28;
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 50.0f;
+    hp.currentHP = 50.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.rangedAttack.damage = 10.0f;
+    combat.rangedAttack.range = 300.0f;
+    combat.rangedAttack.knockback = 80.0f;
+    combat.rangedAttack.cooldown = 2.0f;
+    combat.rangedAttack.type = AttackType::Ranged;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Turret;
+    ai.detectRange = 300.0f;
+    ai.attackRange = 280.0f;
+
+    return e;
+}
+
+Entity& Enemy::createCharger(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_charger");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 36, 28);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(220, 120, 40);
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 600.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 32;
+    col.height = 26;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 60.0f;
+    hp.currentHP = 60.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 25.0f;
+    combat.meleeAttack.knockback = 350.0f;
+    combat.meleeAttack.cooldown = 2.0f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Charger;
+    ai.detectRange = 200.0f;
+    ai.attackRange = 150.0f;
+    ai.chargeSpeed = 350.0f;
+    ai.chargeTime = 0.8f;
+    ai.chargeWindup = 0.5f;
+    ai.patrolSpeed = 50.0f;
+
+    return e;
+}
+
+Entity& Enemy::createPhaser(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_phaser");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 26, 40);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(100, 50, 200);
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 800.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 22;
+    col.height = 38;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 35.0f;
+    hp.currentHP = 35.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 18.0f;
+    combat.meleeAttack.knockback = 200.0f;
+    combat.meleeAttack.cooldown = 1.2f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Phaser;
+    ai.detectRange = 220.0f;
+    ai.attackRange = 45.0f;
+    ai.phaseCooldown = 3.0f;
+    ai.chaseSpeed = 110.0f;
+    ai.patrolSpeed = 70.0f;
+
+    return e;
+}
+
+Entity& Enemy::createExploder(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_exploder");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 22, 22);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(255, 80, 30); // Bright orange-red
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 600.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 20;
+    col.height = 20;
+    col.offset = {1, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 20.0f; // Low HP - blows up easy
+    hp.currentHP = 20.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 35.0f; // High damage on contact
+    combat.meleeAttack.knockback = 400.0f;
+    combat.meleeAttack.cooldown = 10.0f; // Only explodes once
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Exploder;
+    ai.detectRange = 200.0f;
+    ai.attackRange = 25.0f;
+    ai.chaseSpeed = 180.0f; // Fast runner
+    ai.patrolSpeed = 40.0f;
+    ai.explodeRadius = 80.0f;
+    ai.explodeDamage = 35.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 80.0f, pos.y};
+
+    return e;
+}
+
+Entity& Enemy::createShielder(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_shielder");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 32, 36);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(80, 180, 220); // Blue-cyan
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 900.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 28;
+    col.height = 34;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 80.0f; // Very tanky
+    hp.currentHP = 80.0f;
+    hp.armor = 5.0f; // Damage reduction
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 18.0f;
+    combat.meleeAttack.knockback = 280.0f;
+    combat.meleeAttack.cooldown = 1.5f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Shielder;
+    ai.detectRange = 180.0f;
+    ai.attackRange = 40.0f;
+    ai.patrolSpeed = 40.0f;
+    ai.chaseSpeed = 70.0f; // Slow but tanky
+    ai.shieldUp = true;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 120.0f, pos.y};
+
+    return e;
+}
+
+Entity& Enemy::createBoss(EntityManager& entities, Vec2 pos, int dimension, int difficulty) {
+    auto& e = entities.addEntity("enemy_boss");
+    e.dimension = dimension;
+
+    // Boss is large: 64x64
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 64, 64);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(200, 40, 180); // Dark magenta
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 500.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 56;
+    col.height = 60;
+    col.offset = {4, 4};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 200.0f + difficulty * 80.0f;
+    hp.currentHP = hp.maxHP;
+    hp.armor = 3.0f + difficulty * 2.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 25.0f + difficulty * 5.0f;
+    combat.meleeAttack.knockback = 400.0f;
+    combat.meleeAttack.cooldown = 1.2f;
+    combat.rangedAttack.damage = 15.0f + difficulty * 3.0f;
+    combat.rangedAttack.range = 400.0f;
+    combat.rangedAttack.knockback = 150.0f;
+    combat.rangedAttack.cooldown = 2.0f;
+    combat.rangedAttack.type = AttackType::Ranged;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Boss;
+    ai.detectRange = 500.0f; // Always aware
+    ai.attackRange = 60.0f;
+    ai.chaseSpeed = 100.0f + difficulty * 10.0f;
+    ai.patrolSpeed = 50.0f;
+    ai.bossPhase = 1;
+    ai.bossAttackTimer = 0;
+    ai.bossAttackPattern = 0;
+    ai.bossLeapTimer = 0;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 200.0f, pos.y};
+
+    return e;
+}
