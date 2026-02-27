@@ -33,6 +33,7 @@ public:
     float damageCostMultiplier = 0.2f; // Entropy per damage point
     float repairReduction = 15.0f;   // Entropy reduced per rift repair
     float entropyGainMultiplier = 1.0f; // Run buff: reduces entropy gain
+    float passiveGainModifier = 1.0f;   // Relic: Entropy Anchor modifier
 
 private:
     float m_entropy = 0;

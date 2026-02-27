@@ -2,6 +2,7 @@
 #include "Tile.h"
 #include "SecretRoom.h"
 #include "RandomEvent.h"
+#include "NPCSystem.h"
 #include "Core/Camera.h"
 #include <vector>
 #include <SDL2/SDL.h>
@@ -48,6 +49,13 @@ public:
     bool isInLaserBeam(float worldX, float worldY, int dimension) const;
     bool isOnConveyor(int tileX, int tileY, int dimension, int& direction) const;
 
+    // New tile type checks
+    bool isIceTile(int tileX, int tileY, int dimension) const;
+    bool isGravityWell(int tileX, int tileY, int dimension) const;
+    Vec2 getTeleporterDestination(int tileX, int tileY, int dimension) const;
+    void updateTiles(float dt);  // Update crumbling timers etc.
+    void triggerCrumble(int tileX, int tileY, int dimension);
+
     // Secret rooms
     std::vector<SecretRoom>& getSecretRooms() { return m_secretRooms; }
     const std::vector<SecretRoom>& getSecretRooms() const { return m_secretRooms; }
@@ -57,6 +65,11 @@ public:
     std::vector<RandomEvent>& getRandomEvents() { return m_randomEvents; }
     const std::vector<RandomEvent>& getRandomEvents() const { return m_randomEvents; }
     void addRandomEvent(const RandomEvent& event) { m_randomEvents.push_back(event); }
+
+    // NPCs
+    std::vector<NPCData>& getNPCs() { return m_npcs; }
+    const std::vector<NPCData>& getNPCs() const { return m_npcs; }
+    void addNPC(const NPCData& npc) { m_npcs.push_back(npc); }
 
     void clear();
 
@@ -70,6 +83,7 @@ private:
     std::vector<SpawnPoint> m_enemySpawns;
     std::vector<SecretRoom> m_secretRooms;
     std::vector<RandomEvent> m_randomEvents;
+    std::vector<NPCData> m_npcs;
 
     int index(int x, int y) const { return y * m_width + x; }
 
@@ -84,4 +98,8 @@ private:
     void renderLaserBeams(SDL_Renderer* renderer, const Camera& camera, int dim, Uint32 ticks) const;
     void renderRift(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const;
     void renderExit(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const;
+    void renderIceTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
+    void renderGravityWell(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
+    void renderTeleporter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
+    void renderCrumblingTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
 };

@@ -48,6 +48,45 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             continue;
         }
 
+        // Elite modifier updates
+        if (ai.isElite) {
+            ai.eliteGlowTimer += dt;
+
+            // Shielded: regenerate shield
+            if (ai.eliteMod == EliteModifier::Shielded) {
+                ai.eliteShieldRegenTimer -= dt;
+                if (ai.eliteShieldRegenTimer <= 0 && ai.eliteShieldHP < 30.0f) {
+                    ai.eliteShieldHP = 30.0f;
+                    ai.eliteShieldRegenTimer = 5.0f;
+                    if (m_particles) {
+                        auto& t = e->getComponent<TransformComponent>();
+                        m_particles->burst(t.getCenter(), 10, {80, 150, 255, 200}, 80.0f, 2.0f);
+                    }
+                }
+            }
+
+            // Teleporter: teleport behind player
+            if (ai.eliteMod == EliteModifier::Teleporter && e->hasComponent<TransformComponent>()) {
+                ai.eliteTeleportTimer -= dt;
+                if (ai.eliteTeleportTimer <= 0) {
+                    ai.eliteTeleportTimer = 3.0f;
+                    auto& t = e->getComponent<TransformComponent>();
+                    float dx = playerPos.x - t.getCenter().x;
+                    float behindX = playerPos.x + (dx > 0 ? -60.0f : 60.0f);
+                    if (m_particles) {
+                        m_particles->burst(t.getCenter(), 12, {150, 80, 220, 255}, 120.0f, 2.0f);
+                    }
+                    t.position.x = behindX;
+                    t.position.y = playerPos.y - t.height / 2;
+                    if (m_particles) {
+                        m_particles->burst(t.getCenter(), 12, {150, 80, 220, 255}, 120.0f, 2.0f);
+                    }
+                }
+            }
+
+            // Vampiric: heal percentage of damage dealt is handled in CombatSystem
+        }
+
         // Check if enemy is in the same dimension as player
         bool sameDim = (e->dimension == 0 || e->dimension == playerDimension);
 
@@ -64,7 +103,9 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             case EnemyType::Sniper:   updateSniper(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
             case EnemyType::Boss: {
                 int bt = e->getComponent<AIComponent>().bossType;
-                if (bt == 2)
+                if (bt == 3)
+                    updateTemporalWeaver(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities);
+                else if (bt == 2)
                     updateDimensionalArchitect(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities);
                 else if (bt == 1)
                     updateVoidWyrm(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities);
@@ -1487,6 +1528,142 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
             case 1: sprite.setColor(80, static_cast<Uint8>(150 + 40 * pulse), 255); break;
             case 2: sprite.setColor(static_cast<Uint8>(120 + 40 * pulse), 100, 255); break;
             case 3: sprite.setColor(static_cast<Uint8>(180 + 75 * pulse), static_cast<Uint8>(60 * pulse), 255); break;
+        }
+    }
+}
+
+void AISystem::updateTemporalWeaver(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& t = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    auto& hp = entity.getComponent<HealthComponent>();
+    Vec2 center = t.getCenter();
+
+    // Phase determination based on HP
+    float hpPct = hp.getPercent();
+    if (hpPct > 0.66f) ai.bossPhase = 1;
+    else if (hpPct > 0.33f) ai.bossPhase = 2;
+    else ai.bossPhase = 3;
+
+    // Hover motion (sine wave)
+    ai.twHoverY += dt;
+    float hoverOffset = std::sin(ai.twHoverY * 2.0f) * 15.0f;
+    phys.velocity.y = hoverOffset * 3.0f;
+
+    // Face player
+    ai.facingRight = playerPos.x > center.x;
+
+    // Move toward preferred range
+    float dist = distanceTo(center, playerPos);
+    float preferredDist = 200.0f;
+    if (dist > preferredDist + 50.0f) {
+        float dx = playerPos.x - center.x;
+        phys.velocity.x = (dx > 0 ? 1.0f : -1.0f) * ai.chaseSpeed;
+    } else if (dist < preferredDist - 50.0f) {
+        float dx = playerPos.x - center.x;
+        phys.velocity.x = (dx > 0 ? -1.0f : 1.0f) * ai.chaseSpeed * 0.7f;
+    } else {
+        phys.velocity.x *= 0.9f;
+    }
+
+    // Attack pattern timer
+    ai.bossAttackTimer += dt;
+
+    // Phase 1: Time Slow Zones + Clock Hand Sweep + Chrono Shards
+    ai.twSlowZoneTimer -= dt;
+    ai.twSweepTimer -= dt;
+
+    if (ai.twSlowZoneTimer <= 0) {
+        ai.twSlowZoneTimer = (ai.bossPhase >= 3) ? 3.0f : 5.0f;
+        // Spawn "slow zone" projectile at player position
+        if (m_combatSystem) {
+            Vec2 zonePos = playerPos;
+            for (int i = 0; i < 4; i++) {
+                float angle = i * 6.283185f / 4.0f;
+                Vec2 dir = {std::cos(angle), std::sin(angle)};
+                m_combatSystem->createProjectile(entities, zonePos, dir,
+                    ai.bossPhase >= 2 ? 12.0f : 8.0f, 150.0f, entity.dimension);
+            }
+        }
+        if (m_particles) {
+            m_particles->burst(playerPos, 15, {180, 160, 80, 200}, 100.0f, 3.0f);
+        }
+    }
+
+    // Clock Hand Sweep: beam attack
+    if (ai.twSweepTimer <= 0) {
+        ai.twSweepTimer = (ai.bossPhase >= 2) ? 4.0f : 6.0f;
+        // Sweep ranged attack
+        if (m_combatSystem) {
+            Vec2 dir = {playerPos.x - center.x, playerPos.y - center.y};
+            float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+            if (len > 0) dir = dir * (1.0f / len);
+            // Fan of projectiles
+            int shotCount = ai.bossPhase >= 3 ? 7 : (ai.bossPhase >= 2 ? 5 : 3);
+            float spread = 0.4f;
+            for (int i = 0; i < shotCount; i++) {
+                float angleOff = (i - shotCount / 2.0f + 0.5f) * spread;
+                Vec2 shotDir = {
+                    dir.x * std::cos(angleOff) - dir.y * std::sin(angleOff),
+                    dir.x * std::sin(angleOff) + dir.y * std::cos(angleOff)
+                };
+                m_combatSystem->createProjectile(entities, center, shotDir,
+                    entity.getComponent<CombatComponent>().rangedAttack.damage, 300.0f, entity.dimension);
+            }
+        }
+        AudioManager::instance().play(SFX::BossMultiShot);
+        if (m_particles) {
+            m_particles->burst(center, 20, {255, 200, 80, 255}, 180.0f, 3.0f);
+        }
+    }
+
+    // Phase 2+: Time Rewind (partial heal)
+    if (ai.bossPhase >= 2) {
+        ai.twRewindTimer -= dt;
+        if (ai.twRewindTimer <= 0) {
+            ai.twRewindTimer = 15.0f;
+            float healAmount = hp.maxHP * 0.08f;
+            hp.currentHP = std::min(hp.maxHP, hp.currentHP + healAmount);
+            AudioManager::instance().play(SFX::RiftShieldActivate);
+            if (m_particles) {
+                m_particles->burst(center, 25, {100, 200, 255, 255}, 200.0f, 4.0f);
+            }
+            if (m_camera) m_camera->shake(6.0f, 0.3f);
+        }
+    }
+
+    // Phase 3: Time Stop (freeze player briefly - represented by heavy slow projectiles)
+    if (ai.bossPhase >= 3) {
+        ai.twStopTimer -= dt;
+        if (ai.twStopTimer <= 0) {
+            ai.twStopTimer = 8.0f;
+            // Massive AoE burst
+            if (m_combatSystem) {
+                for (int i = 0; i < 12; i++) {
+                    float angle = i * 6.283185f / 12.0f;
+                    Vec2 dir = {std::cos(angle), std::sin(angle)};
+                    m_combatSystem->createProjectile(entities, center, dir,
+                        entity.getComponent<CombatComponent>().rangedAttack.damage * 1.5f,
+                        200.0f, entity.dimension);
+                }
+            }
+            AudioManager::instance().play(SFX::BossShieldBurst);
+            if (m_particles) {
+                m_particles->burst(center, 40, {255, 200, 50, 255}, 300.0f, 5.0f);
+            }
+            if (m_camera) m_camera->shake(12.0f, 0.4f);
+        }
+    }
+
+    // Visual: clockwork golden color with phase-based intensity
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        sprite.flipX = !ai.facingRight;
+        float pulse = (std::sin(SDL_GetTicks() * 0.004f * ai.bossPhase) + 1.0f) * 0.5f;
+        switch (ai.bossPhase) {
+            case 1: sprite.setColor(180, static_cast<Uint8>(160 + 40 * pulse), 80); break;
+            case 2: sprite.setColor(200, static_cast<Uint8>(140 + 60 * pulse), static_cast<Uint8>(60 + 40 * pulse)); break;
+            case 3: sprite.setColor(static_cast<Uint8>(220 + 35 * pulse), static_cast<Uint8>(100 * pulse), static_cast<Uint8>(40 * pulse)); break;
         }
     }
 }

@@ -26,7 +26,9 @@ enum class StateID {
     DifficultySelect,
     Keybindings,
     Achievements,
-    Shop
+    Shop,
+    ChallengeSelect,
+    Bestiary
 };
 
 // Global difficulty setting (shared between states)

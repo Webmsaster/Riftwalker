@@ -17,6 +17,11 @@
 #include "Game/WorldTheme.h"
 #include "Game/SecretRoom.h"
 #include "Game/RandomEvent.h"
+#include "Game/RelicSystem.h"
+#include "Game/ChallengeMode.h"
+#include "Game/Bestiary.h"
+#include "Game/NPCSystem.h"
+#include "Game/AscensionSystem.h"
 #include "UI/HUD.h"
 #include <memory>
 #include <vector>
@@ -141,4 +146,32 @@ private:
     void spawnBoss();
     void renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font);
     void endRun();
+
+    // Relic system
+    bool m_showRelicChoice = false;
+    std::vector<RelicID> m_relicChoices;
+    int m_relicChoiceSelected = 0;
+    void showRelicChoice();
+    void selectRelic(int index);
+    void renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font);
+    void renderRelicBar(SDL_Renderer* renderer, TTF_Font* font);
+
+    // Challenge mode
+    float m_challengeTimer = 0;       // Speedrun countdown
+    int m_endlessScore = 0;           // Endless mode score
+    float m_mutatorFluxTimer = 0;     // DimensionFlux auto-switch timer
+    void applyChallengeModifiers();   // Apply at run start
+    void renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font);
+
+    // NPC system
+    int m_nearNPCIndex = -1;
+    bool m_showNPCDialog = false;
+    int m_npcDialogChoice = 0;
+    void checkNPCInteraction();
+    void renderNPCs(SDL_Renderer* renderer, TTF_Font* font);
+    void renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font);
+    void handleNPCDialogChoice(int npcIndex, int choice);
+
+    // Ascension system
+    void applyAscensionModifiers();
 };

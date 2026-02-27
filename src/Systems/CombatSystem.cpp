@@ -7,9 +7,13 @@
 #include "Components/SpriteComponent.h"
 #include "Components/AIComponent.h"
 #include "Components/AbilityComponent.h"
+#include "Components/RelicComponent.h"
 #include "Core/AudioManager.h"
 #include "Game/ItemDrop.h"
 #include "Game/Player.h"
+#include "Game/RelicSystem.h"
+#include "Game/Enemy.h"
+#include "Game/Bestiary.h"
 #include <cmath>
 
 float CombatSystem::consumeHitFreeze() {
@@ -172,9 +176,28 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
         // Create projectile (only once at start of attack)
         if (combat.attackTimer >= atkData.duration - 0.02f) {
             Vec2 pos = transform.getCenter();
-            createProjectile(entities, pos, combat.attackDirection,
-                            atkData.damage, 400.0f, attacker.dimension);
-            AudioManager::instance().play(SFX::RangedShot);
+
+            // Weapon-specific ranged behavior (player only)
+            if (isPlayer && combat.currentRanged == WeaponID::RiftShotgun) {
+                // 5 pellets in a fan pattern
+                float baseAngle = std::atan2(combat.attackDirection.y, combat.attackDirection.x);
+                float spread = 0.4f; // ~23 degrees total
+                for (int i = 0; i < 5; i++) {
+                    float angle = baseAngle + (i - 2) * (spread / 4.0f);
+                    Vec2 dir = {std::cos(angle), std::sin(angle)};
+                    createProjectile(entities, pos, dir, atkData.damage, 350.0f, attacker.dimension);
+                }
+                AudioManager::instance().play(SFX::RangedShot);
+            } else if (isPlayer && combat.currentRanged == WeaponID::VoidBeam) {
+                // Continuous beam: create piercing projectile
+                createProjectile(entities, pos, combat.attackDirection,
+                                atkData.damage, 500.0f, attacker.dimension);
+                // No extra SFX each tick (too fast)
+            } else {
+                createProjectile(entities, pos, combat.attackDirection,
+                                atkData.damage, 400.0f, attacker.dimension);
+                AudioManager::instance().play(SFX::RangedShot);
+            }
         }
         return;
     }
@@ -310,6 +333,13 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             float comboMult = combat.comboCount * (0.15f + m_comboBonus);
             float damage = atkData.damage * (1.0f + comboMult);
 
+            // Relic damage multiplier (player attacks only)
+            if (isPlayer && attacker.hasComponent<RelicComponent>()) {
+                auto& relics = attacker.getComponent<RelicComponent>();
+                float hpPct = attacker.getComponent<HealthComponent>().getPercent();
+                damage *= RelicSystem::getDamageMultiplier(relics, hpPct);
+            }
+
             // Pogo bounce: downward attack bounces player up
             bool isDownwardAttack = isPlayer && combat.attackDirection.y > 0.5f;
             if (isDownwardAttack && attacker.hasComponent<PhysicsBody>()) {
@@ -321,6 +351,20 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             // Critical hit check (player only)
             bool isCrit = false;
             if (isPlayer) {
+                // Phase Daggers: every 5th melee hit is a guaranteed crit
+                if (combat.currentMelee == WeaponID::PhaseDaggers &&
+                    combat.currentAttack == AttackType::Melee) {
+                    combat.daggerHitCount++;
+                    if (combat.daggerHitCount >= 5) {
+                        combat.daggerHitCount = 0;
+                        damage *= 2.0f;
+                        isCrit = true;
+                        AudioManager::instance().play(SFX::CriticalHit);
+                        if (m_particles) {
+                            m_particles->burst(targetCenter, 12, {180, 100, 255, 255}, 180.0f, 3.0f);
+                        }
+                    }
+                }
                 // Parry success guarantees crit
                 bool guaranteedCrit = (combat.parrySuccessTimer > 0);
                 float roll = static_cast<float>(std::rand()) / RAND_MAX;
@@ -366,6 +410,23 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     bool attackFromRight = attackCenter.x > targetCenter.x;
                     if (attackFromRight == targetAI.facingRight) {
                         shieldBlocked = true;
+                    }
+                }
+            }
+
+            // Elite Shielded: shield absorbs damage before HP
+            if (isPlayer && target.hasComponent<AIComponent>()) {
+                auto& tAI = target.getComponent<AIComponent>();
+                if (tAI.isElite && tAI.eliteMod == EliteModifier::Shielded && tAI.eliteShieldHP > 0) {
+                    float absorbed = std::min(damage, tAI.eliteShieldHP);
+                    tAI.eliteShieldHP -= absorbed;
+                    damage -= absorbed;
+                    if (m_particles) {
+                        m_particles->burst(targetCenter, 6, {80, 150, 255, 255}, 80.0f, 1.5f);
+                    }
+                    if (damage <= 0) {
+                        m_damageEvents.push_back({targetCenter, absorbed, false, false});
+                        return; // Fully absorbed by shield
                     }
                 }
             }
@@ -520,6 +581,67 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
+            // Relic: ThornMail - reflect damage when player is hit
+            if (!isPlayer && target.getTag() == "player" && target.hasComponent<RelicComponent>()) {
+                auto& relics = target.getComponent<RelicComponent>();
+                float thornDmg = RelicSystem::getThornDamage(relics);
+                if (thornDmg > 0 && attacker.hasComponent<HealthComponent>()) {
+                    attacker.getComponent<HealthComponent>().takeDamage(thornDmg);
+                    m_damageEvents.push_back({transform.getCenter(), thornDmg, false, false});
+                    if (m_particles) {
+                        m_particles->burst(transform.getCenter(), 6, {200, 100, 50, 255}, 100.0f, 2.0f);
+                    }
+                }
+            }
+
+            // Relic: EchoStrike - 20% chance double hit (player attacks only)
+            if (isPlayer && attacker.hasComponent<RelicComponent>()) {
+                auto& relics = attacker.getComponent<RelicComponent>();
+                if (RelicSystem::rollEchoStrike(relics) && !shieldBlocked) {
+                    float echoDmg = damage * 0.5f;
+                    hp.takeDamage(echoDmg);
+                    m_damageEvents.push_back({targetCenter, echoDmg, false, false});
+                    if (m_particles) {
+                        m_particles->burst(targetCenter, 8, {120, 200, 255, 255}, 120.0f, 2.0f);
+                    }
+                }
+            }
+
+            // Relic: ChainLightning on kill
+            if (isPlayer && hp.currentHP <= 0 && attacker.hasComponent<RelicComponent>()) {
+                auto& relics = attacker.getComponent<RelicComponent>();
+                float chainDmg = RelicSystem::getChainLightningDamage(relics);
+                if (chainDmg > 0) {
+                    // Find nearest enemy and deal chain damage
+                    float nearestDist = 150.0f;
+                    Entity* nearestTarget = nullptr;
+                    entities.forEach([&](Entity& nearby) {
+                        if (&nearby == &target || !nearby.isAlive()) return;
+                        if (nearby.getTag().find("enemy") == std::string::npos) return;
+                        if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
+                        if (nearby.dimension != 0 && nearby.dimension != currentDim) return;
+                        auto& nt = nearby.getComponent<TransformComponent>();
+                        float dx2 = nt.getCenter().x - targetCenter.x;
+                        float dy2 = nt.getCenter().y - targetCenter.y;
+                        float dist2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
+                        if (dist2 < nearestDist) {
+                            nearestDist = dist2;
+                            nearestTarget = &nearby;
+                        }
+                    });
+                    if (nearestTarget) {
+                        nearestTarget->getComponent<HealthComponent>().takeDamage(chainDmg);
+                        auto& nt = nearestTarget->getComponent<TransformComponent>();
+                        m_damageEvents.push_back({nt.getCenter(), chainDmg, false, false});
+                        if (m_particles) {
+                            // Lightning bolt visual
+                            m_particles->burst(nt.getCenter(), 8, {255, 255, 80, 255}, 150.0f, 2.0f);
+                            m_particles->burst(targetCenter, 4, {255, 255, 120, 255}, 100.0f, 1.5f);
+                        }
+                    }
+                }
+            }
+
             // Element effects on hit (enemy hitting player)
             if (!isPlayer && target.getTag() == "player" && attacker.hasComponent<AIComponent>()) {
                 auto& ai = attacker.getComponent<AIComponent>();
@@ -589,16 +711,32 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
+            // Elite Vampiric: heal on dealing damage
+            if (!isPlayer && target.hasComponent<AIComponent>()) {
+                auto& tAI = target.getComponent<AIComponent>();
+                if (tAI.isElite && tAI.eliteMod == EliteModifier::Vampiric) {
+                    float healAmt = damage * 0.2f;
+                    if (attacker.hasComponent<HealthComponent>()) {
+                        auto& aHP = attacker.getComponent<HealthComponent>();
+                        aHP.currentHP = std::min(aHP.maxHP, aHP.currentHP + healAmt);
+                        if (m_particles) {
+                            m_particles->burst(transform.getCenter(), 4, {180, 20, 40, 255}, 60.0f, 1.5f);
+                        }
+                    }
+                }
+            }
+
             // Death (shared for both shield-blocked and normal hits)
             if (hp.currentHP <= 0) {
                 AudioManager::instance().play(isPlayer ? SFX::PlayerDeath : SFX::EnemyDeath);
 
-                // Track kills for achievements
+                // Track kills for achievements + bestiary
                 if (isPlayer && target.hasComponent<AIComponent>()) {
                     killCount++;
                     auto& tAI = target.getComponent<AIComponent>();
                     if (tAI.isMiniBoss) killedMiniBoss = true;
                     if (tAI.element != EnemyElement::None) killedElemental = true;
+                    Bestiary::onEnemyKill(tAI.enemyType);
 
                     // Run buff: DashRefresh - kill resets dash cooldown
                     if (m_dashRefreshOnKill && m_player) {
@@ -606,13 +744,86 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     }
                 }
 
-                // Drop items from enemies (mini-bosses drop 3x loot)
+                // Drop items from enemies (mini-bosses drop 3x, elites drop 2x loot)
                 if (isPlayer && target.getTag().find("enemy") != std::string::npos) {
                     int dropCount = 1;
-                    if (target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isMiniBoss) {
-                        dropCount = 3;
+                    if (target.hasComponent<AIComponent>()) {
+                        auto& tAI = target.getComponent<AIComponent>();
+                        if (tAI.isMiniBoss) dropCount = 3;
+                        else if (tAI.isElite) dropCount = 2;
                     }
                     ItemDrop::spawnRandomDrop(entities, targetCenter, target.dimension, dropCount, m_player);
+                }
+
+                // Elite on-death effects
+                if (isPlayer && target.hasComponent<AIComponent>()) {
+                    auto& tAI = target.getComponent<AIComponent>();
+                    if (tAI.isElite) {
+                        // Splitter: spawn 2 smaller copies
+                        if (tAI.eliteMod == EliteModifier::Splitter) {
+                            for (int split = 0; split < 2; split++) {
+                                float offX = (split == 0) ? -20.0f : 20.0f;
+                                Vec2 splitPos = {targetCenter.x + offX, targetCenter.y - 10.0f};
+                                auto& splitE = Enemy::createByType(entities, static_cast<int>(tAI.enemyType), splitPos, target.dimension);
+                                // Smaller + weaker split copy
+                                if (splitE.hasComponent<TransformComponent>()) {
+                                    auto& st = splitE.getComponent<TransformComponent>();
+                                    st.width *= 0.7f;
+                                    st.height *= 0.7f;
+                                }
+                                if (splitE.hasComponent<HealthComponent>()) {
+                                    auto& sh = splitE.getComponent<HealthComponent>();
+                                    sh.maxHP *= 0.4f;
+                                    sh.currentHP = sh.maxHP;
+                                }
+                                if (splitE.hasComponent<CombatComponent>()) {
+                                    splitE.getComponent<CombatComponent>().meleeAttack.damage *= 0.5f;
+                                }
+                                if (splitE.hasComponent<PhysicsBody>()) {
+                                    splitE.getComponent<PhysicsBody>().velocity.y = -150.0f;
+                                    splitE.getComponent<PhysicsBody>().velocity.x = offX * 5.0f;
+                                }
+                                if (splitE.hasComponent<SpriteComponent>()) {
+                                    splitE.getComponent<SpriteComponent>().setColor(60, 220, 80);
+                                }
+                            }
+                            if (m_particles) {
+                                m_particles->burst(targetCenter, 15, {60, 220, 80, 255}, 180.0f, 3.0f);
+                            }
+                        }
+                        // Explosive: AoE damage on death
+                        else if (tAI.eliteMod == EliteModifier::Explosive) {
+                            float explodeDmg = 40.0f;
+                            float explodeRadius = 80.0f;
+                            entities.forEach([&](Entity& nearby) {
+                                if (&nearby == &target || !nearby.isAlive()) return;
+                                if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
+                                if (nearby.dimension != 0 && nearby.dimension != currentDim) return;
+                                auto& nt = nearby.getComponent<TransformComponent>();
+                                float edx = nt.getCenter().x - targetCenter.x;
+                                float edy = nt.getCenter().y - targetCenter.y;
+                                float edist = std::sqrt(edx * edx + edy * edy);
+                                if (edist < explodeRadius) {
+                                    float falloff = 1.0f - (edist / explodeRadius) * 0.5f;
+                                    nearby.getComponent<HealthComponent>().takeDamage(explodeDmg * falloff);
+                                    m_damageEvents.push_back({nt.getCenter(), explodeDmg * falloff,
+                                        nearby.getTag() == "player", false});
+                                    if (nearby.hasComponent<PhysicsBody>()) {
+                                        Vec2 kb = {edx, edy - 80.0f};
+                                        float len = std::sqrt(kb.x * kb.x + kb.y * kb.y);
+                                        if (len > 0) kb = kb * (300.0f / len);
+                                        nearby.getComponent<PhysicsBody>().velocity += kb;
+                                    }
+                                }
+                            });
+                            if (m_particles) {
+                                m_particles->burst(targetCenter, 30, {255, 160, 30, 255}, 300.0f, 5.0f);
+                                m_particles->burst(targetCenter, 20, {255, 80, 20, 255}, 200.0f, 4.0f);
+                            }
+                            if (m_camera) m_camera->shake(14.0f, 0.4f);
+                            AudioManager::instance().play(SFX::BossShieldBurst);
+                        }
+                    }
                 }
 
                 // Electric chain damage on enemy death
@@ -648,10 +859,12 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     auto& sprite = target.getComponent<SpriteComponent>();
                     m_particles->burst(targetCenter, 25, sprite.color, 200.0f, 4.0f);
                 }
-                // Bigger shake on kill (extra for mini-bosses)
+                // Bigger shake on kill (extra for mini-bosses and elites)
                 if (m_camera && isPlayer) {
                     bool wasMB = target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isMiniBoss;
-                    m_camera->shake(wasMB ? 12.0f : 8.0f, wasMB ? 0.35f : 0.2f);
+                    bool wasElite = target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isElite;
+                    m_camera->shake(wasMB ? 12.0f : (wasElite ? 10.0f : 8.0f),
+                                    wasMB ? 0.35f : (wasElite ? 0.3f : 0.2f));
                 }
             }
         }

@@ -24,7 +24,8 @@ enum class EnemyType {
     Crawler,    // Wall/ceiling clinger, drops on player
     Summoner,   // Spawns minions from distance
     Sniper,     // Long-range telegraphed shots, keeps distance
-    Boss        // Level boss with multiple phases
+    Boss,       // Level boss with multiple phases
+    COUNT
 };
 
 enum class EnemyElement {
@@ -34,11 +35,30 @@ enum class EnemyElement {
     Electric    // Chain damage to nearby enemies on death, yellow tint
 };
 
+enum class EliteModifier {
+    None = 0,
+    Berserker,   // Red: +50% DMG, +30% Speed
+    Shielded,    // Blue: Regenerating shield (30 HP every 5s)
+    Teleporter,  // Purple: Teleports behind player every 3s
+    Splitter,    // Green: Splits into 2 smaller copies on death
+    Vampiric,    // DarkRed: Heals 20% of damage dealt
+    Explosive    // Orange: Explodes on death (40 DMG, 80px radius)
+};
+
 struct AIComponent : public Component {
     AIState state = AIState::Patrol;
     EnemyType enemyType = EnemyType::Walker;
     EnemyElement element = EnemyElement::None;
     bool isMiniBoss = false;
+
+    // Elite system
+    bool isElite = false;
+    EliteModifier eliteMod = EliteModifier::None;
+    float eliteGlowTimer = 0;
+    float eliteShieldHP = 0;       // Shielded: current shield HP
+    float eliteShieldRegenTimer = 0; // Shielded: regen cooldown
+    float eliteTeleportTimer = 0;  // Teleporter: teleport cooldown
+    float eliteVampHealAccum = 0;  // Vampiric: accumulated heal
 
     // Detection
     float detectRange = 200.0f;
@@ -134,6 +154,17 @@ struct AIComponent : public Component {
     float archBeamAngle = 0;         // construct beam direction
     float archHoverY = 0;            // hover offset (sine wave)
     int archSwapSize = 3;            // tile swap area size (grows per phase)
+
+    // Temporal Weaver boss specific
+    float twPhaseTimer = 0;          // Attack phase timer
+    float twSlowZoneTimer = 0;       // Time Slow Zone cooldown
+    float twSweepTimer = 0;          // Clock Hand Sweep cooldown
+    float twRewindTimer = 0;         // Time Rewind cooldown
+    float twStopTimer = 0;           // Time Stop cooldown
+    float twStormTimer = 0;          // Temporal Storm timer
+    bool twCloneActive = false;      // Temporal Clone spawned
+    int twCloneCount = 0;            // Number of active clones
+    float twHoverY = 0;              // Hover offset (sine wave)
 
     // Juggle state
     float juggleTimer = 0;

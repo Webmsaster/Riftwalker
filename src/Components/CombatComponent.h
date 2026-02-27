@@ -1,6 +1,7 @@
 #pragma once
 #include "ECS/Component.h"
 #include "Core/Camera.h"
+#include "Game/WeaponSystem.h"
 
 enum class AttackType {
     Melee,
@@ -41,6 +42,11 @@ struct CombatComponent : public Component {
     float parryWindow = 0.15f;
     float parryCooldown = 0;
     float parrySuccessTimer = 0; // >0 means next hit is guaranteed crit
+
+    // Weapon IDs
+    WeaponID currentMelee = WeaponID::RiftBlade;
+    WeaponID currentRanged = WeaponID::ShardPistol;
+    int daggerHitCount = 0;  // For Phase Daggers every-5th-hit crit
 
     // Charged attack
     bool isCharging = false;

@@ -653,6 +653,121 @@ Entity& Enemy::createBoss(EntityManager& entities, Vec2 pos, int dimension, int 
     return e;
 }
 
+void Enemy::makeElite(Entity& e, EliteModifier mod) {
+    auto& ai = e.getComponent<AIComponent>();
+    ai.isElite = true;
+    ai.eliteMod = mod;
+    ai.eliteGlowTimer = 0;
+
+    // Base elite stat boosts: +50% HP, +25% DMG, +30% shard drop
+    auto& hp = e.getComponent<HealthComponent>();
+    hp.maxHP *= 1.5f;
+    hp.currentHP = hp.maxHP;
+
+    auto& combat = e.getComponent<CombatComponent>();
+    combat.meleeAttack.damage *= 1.25f;
+    combat.rangedAttack.damage *= 1.25f;
+
+    auto& sprite = e.getComponent<SpriteComponent>();
+
+    switch (mod) {
+        case EliteModifier::Berserker:
+            combat.meleeAttack.damage *= 1.5f;
+            combat.rangedAttack.damage *= 1.5f;
+            ai.chaseSpeed *= 1.3f;
+            ai.patrolSpeed *= 1.3f;
+            sprite.color.r = std::min(255, sprite.color.r + 120);
+            sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.3f);
+            sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.3f);
+            break;
+        case EliteModifier::Shielded:
+            ai.eliteShieldHP = 30.0f;
+            ai.eliteShieldRegenTimer = 5.0f;
+            sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.4f);
+            sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.6f);
+            sprite.color.b = std::min(255, sprite.color.b + 120);
+            break;
+        case EliteModifier::Teleporter:
+            ai.eliteTeleportTimer = 3.0f;
+            sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + 60));
+            sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.4f);
+            sprite.color.b = std::min(255, sprite.color.b + 100);
+            break;
+        case EliteModifier::Splitter:
+            sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.5f);
+            sprite.color.g = std::min(255, sprite.color.g + 100);
+            sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.5f);
+            break;
+        case EliteModifier::Vampiric:
+            sprite.color.r = std::min(255, sprite.color.r + 80);
+            sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.2f);
+            sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.3f);
+            break;
+        case EliteModifier::Explosive:
+            sprite.color.r = std::min(255, sprite.color.r + 100);
+            sprite.color.g = static_cast<Uint8>(std::min(255, sprite.color.g + 60));
+            sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.2f);
+            break;
+        default: break;
+    }
+}
+
+Entity& Enemy::createTemporalWeaver(EntityManager& entities, Vec2 pos, int dimension, int difficulty) {
+    auto& e = entities.addEntity("enemy_boss");
+    e.dimension = dimension;
+
+    // Temporal Weaver: 52x52, floating clockwork entity
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 52, 52);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(180, 160, 80); // Golden clockwork
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.useGravity = false; // Floating boss
+    phys.airResistance = 250.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 44;
+    col.height = 44;
+    col.offset = {4, 4};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 280.0f + difficulty * 90.0f;
+    hp.currentHP = hp.maxHP;
+    hp.armor = 2.0f + difficulty * 1.5f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 20.0f + difficulty * 4.0f;
+    combat.meleeAttack.knockback = 350.0f;
+    combat.meleeAttack.cooldown = 1.2f;
+    combat.rangedAttack.damage = 14.0f + difficulty * 3.0f;
+    combat.rangedAttack.range = 380.0f;
+    combat.rangedAttack.knockback = 130.0f;
+    combat.rangedAttack.cooldown = 1.8f;
+    combat.rangedAttack.type = AttackType::Ranged;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Boss;
+    ai.bossType = 3; // Temporal Weaver
+    ai.detectRange = 600.0f;
+    ai.attackRange = 200.0f;
+    ai.chaseSpeed = 80.0f + difficulty * 10.0f;
+    ai.patrolSpeed = 50.0f;
+    ai.bossPhase = 1;
+    ai.bossAttackTimer = 0;
+    ai.bossAttackPattern = 0;
+    ai.twSlowZoneTimer = 4.0f;
+    ai.twSweepTimer = 6.0f;
+    ai.twRewindTimer = 12.0f;
+    ai.twStopTimer = 10.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 150.0f, pos.y - 60.0f};
+
+    return e;
+}
+
 Entity& Enemy::createDimensionalArchitect(EntityManager& entities, Vec2 pos, int dimension, int difficulty) {
     auto& e = entities.addEntity("enemy_boss");
     e.dimension = dimension;

@@ -114,6 +114,14 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
                 SDL_RenderFillRect(renderer, &inner);
                 SDL_SetRenderDrawColor(renderer, 220, 180, 255, static_cast<Uint8>(30 * glow));
                 SDL_RenderDrawRect(renderer, &sr);
+            } else if (tile.type == TileType::Ice) {
+                renderIceTile(renderer, sr, tile, ticks);
+            } else if (tile.type == TileType::GravityWell) {
+                renderGravityWell(renderer, sr, tile, ticks);
+            } else if (tile.type == TileType::Teleporter) {
+                renderTeleporter(renderer, sr, tile, ticks);
+            } else if (tile.type == TileType::Crumbling) {
+                renderCrumblingTile(renderer, sr, tile, ticks);
             } else if (tile.type == TileType::Decoration) {
                 // Subtle accent dot/cross
                 Uint8 da = tile.color.a;
@@ -595,4 +603,155 @@ void Level::clear() {
     std::fill(m_tilesB.begin(), m_tilesB.end(), Tile{});
     m_riftPositions.clear();
     m_enemySpawns.clear();
+    m_secretRooms.clear();
+    m_randomEvents.clear();
+    m_npcs.clear();
+}
+
+bool Level::isIceTile(int tileX, int tileY, int dimension) const {
+    if (!inBounds(tileX, tileY)) return false;
+    return getTile(tileX, tileY, dimension).type == TileType::Ice;
+}
+
+bool Level::isGravityWell(int tileX, int tileY, int dimension) const {
+    if (!inBounds(tileX, tileY)) return false;
+    return getTile(tileX, tileY, dimension).type == TileType::GravityWell;
+}
+
+Vec2 Level::getTeleporterDestination(int tileX, int tileY, int dimension) const {
+    if (!inBounds(tileX, tileY)) return {0, 0};
+    const Tile& src = getTile(tileX, tileY, dimension);
+    if (src.type != TileType::Teleporter) return {0, 0};
+    int pairID = src.variant;
+
+    // Find matching teleporter with same pair ID
+    auto& tiles = (dimension == 2) ? m_tilesB : m_tilesA;
+    for (int y = 0; y < m_height; y++) {
+        for (int x = 0; x < m_width; x++) {
+            if (x == tileX && y == tileY) continue;
+            const Tile& t = tiles[y * m_width + x];
+            if (t.type == TileType::Teleporter && t.variant == pairID) {
+                return {static_cast<float>(x * m_tileSize + m_tileSize / 2),
+                        static_cast<float>(y * m_tileSize)};
+            }
+        }
+    }
+    return {0, 0};
+}
+
+void Level::triggerCrumble(int tileX, int tileY, int dimension) {
+    if (!inBounds(tileX, tileY)) return;
+    Tile& tile = getTile(tileX, tileY, dimension);
+    if (tile.type != TileType::Crumbling || tile.crumbling || tile.crumbled) return;
+    tile.crumbling = true;
+    tile.crumbleTimer = 1.5f;
+}
+
+void Level::updateTiles(float dt) {
+    auto updateTileVec = [&](std::vector<Tile>& tiles) {
+        for (auto& tile : tiles) {
+            if (tile.type != TileType::Crumbling) continue;
+            if (tile.crumbling && !tile.crumbled) {
+                tile.crumbleTimer -= dt;
+                if (tile.crumbleTimer <= 0) {
+                    tile.crumbled = true;
+                    tile.crumbling = false;
+                    tile.respawnTimer = 5.0f;
+                }
+            }
+            if (tile.crumbled) {
+                tile.respawnTimer -= dt;
+                if (tile.respawnTimer <= 0) {
+                    tile.crumbled = false;
+                    tile.crumbleTimer = 0;
+                }
+            }
+        }
+    };
+    updateTileVec(m_tilesA);
+    updateTileVec(m_tilesB);
+}
+
+void Level::renderIceTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    // Icy blue surface
+    SDL_SetRenderDrawColor(renderer, 140, 200, 240, 220);
+    SDL_RenderFillRect(renderer, &sr);
+    // Frost pattern
+    float shimmer = 0.5f + 0.5f * std::sin(ticks * 0.003f);
+    SDL_SetRenderDrawColor(renderer, 200, 230, 255, static_cast<Uint8>(60 + 40 * shimmer));
+    SDL_Rect frost = {sr.x + 2, sr.y + 2, sr.w - 4, sr.h / 3};
+    SDL_RenderFillRect(renderer, &frost);
+    // Highlight line at top
+    SDL_SetRenderDrawColor(renderer, 220, 240, 255, 150);
+    SDL_RenderDrawLine(renderer, sr.x + 2, sr.y + 1, sr.x + sr.w - 2, sr.y + 1);
+}
+
+void Level::renderGravityWell(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    // Dark purple background
+    SDL_SetRenderDrawColor(renderer, 40, 20, 60, 200);
+    SDL_RenderFillRect(renderer, &sr);
+    // Swirling rings
+    int cx = sr.x + sr.w / 2;
+    int cy = sr.y + sr.h / 2;
+    float time = ticks * 0.004f;
+    for (int ring = 0; ring < 3; ring++) {
+        float r = 4.0f + ring * 4.0f + std::sin(time + ring) * 2.0f;
+        Uint8 ra = static_cast<Uint8>(120 - ring * 30);
+        for (int a = 0; a < 12; a++) {
+            float angle = time * (1.0f + ring * 0.3f) + a * (6.283185f / 12);
+            int px = cx + static_cast<int>(std::cos(angle) * r);
+            int py = cy + static_cast<int>(std::sin(angle) * r);
+            SDL_SetRenderDrawColor(renderer, 160, 80, 220, ra);
+            SDL_Rect dot = {px, py, 2, 2};
+            SDL_RenderFillRect(renderer, &dot);
+        }
+    }
+}
+
+void Level::renderTeleporter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    // Glowing portal
+    float time = ticks * 0.005f;
+    float pulse = 0.5f + 0.5f * std::sin(time);
+    // Base
+    SDL_SetRenderDrawColor(renderer, 30, 60, 30, 200);
+    SDL_RenderFillRect(renderer, &sr);
+    // Inner glow
+    Uint8 ga = static_cast<Uint8>(100 + 100 * pulse);
+    SDL_Rect inner = {sr.x + 4, sr.y + 4, sr.w - 8, sr.h - 8};
+    SDL_SetRenderDrawColor(renderer, 50, 220, 100, ga);
+    SDL_RenderFillRect(renderer, &inner);
+    // Center bright
+    SDL_Rect center = {sr.x + sr.w / 2 - 4, sr.y + sr.h / 2 - 4, 8, 8};
+    SDL_SetRenderDrawColor(renderer, 100, 255, 150, static_cast<Uint8>(180 + 60 * pulse));
+    SDL_RenderFillRect(renderer, &center);
+    // Border
+    SDL_SetRenderDrawColor(renderer, 80, 255, 120, static_cast<Uint8>(120 * pulse));
+    SDL_RenderDrawRect(renderer, &sr);
+}
+
+void Level::renderCrumblingTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    if (tile.crumbled) return; // Don't render broken tiles
+
+    // Base color with crumble shake
+    int offX = 0, offY = 0;
+    Uint8 alpha = 220;
+    if (tile.crumbling) {
+        float shake = (1.0f - tile.crumbleTimer / 1.5f);
+        offX = static_cast<int>((std::rand() % 3 - 1) * shake * 2);
+        offY = static_cast<int>((std::rand() % 3 - 1) * shake * 2);
+        alpha = static_cast<Uint8>(220 * (tile.crumbleTimer / 1.5f));
+    }
+    SDL_Rect shaken = {sr.x + offX, sr.y + offY, sr.w, sr.h};
+    SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, alpha);
+    SDL_RenderFillRect(renderer, &shaken);
+    // Crack pattern when crumbling
+    if (tile.crumbling) {
+        float t = 1.0f - tile.crumbleTimer / 1.5f;
+        Uint8 ca = static_cast<Uint8>(200 * t);
+        SDL_SetRenderDrawColor(renderer, 255, 200, 100, ca);
+        SDL_RenderDrawLine(renderer, shaken.x + 3, shaken.y + 3,
+                           shaken.x + shaken.w - 3, shaken.y + shaken.h - 3);
+        SDL_RenderDrawLine(renderer, shaken.x + shaken.w - 3, shaken.y + 3,
+                           shaken.x + 3, shaken.y + shaken.h - 3);
+    }
 }

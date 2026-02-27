@@ -19,6 +19,46 @@ void PhysicsSystem::update(EntityManager& entities, float dt, const Level* level
 
         if (level && e->hasComponent<ColliderComponent>()) {
             resolveTerrainCollision(*e, level, currentDimension);
+
+            // Ice tile: reduce friction (slippery surface)
+            auto& t = e->getComponent<TransformComponent>();
+            int tileX = static_cast<int>(t.getCenter().x) / level->getTileSize();
+            int tileY = static_cast<int>(t.position.y + t.height + 1) / level->getTileSize();
+            int dim = (e->dimension == 0) ? currentDimension : e->dimension;
+            if (phys.onGround && level->isIceTile(tileX, tileY, dim)) {
+                phys.velocity.x *= 0.98f; // Very low friction per frame
+            }
+
+            // Gravity Well: attract/repel entities
+            int centerTX = static_cast<int>(t.getCenter().x) / level->getTileSize();
+            int centerTY = static_cast<int>(t.getCenter().y) / level->getTileSize();
+            for (int dy = -2; dy <= 2; dy++) {
+                for (int dx = -2; dx <= 2; dx++) {
+                    int gx = centerTX + dx;
+                    int gy = centerTY + dy;
+                    if (level->isGravityWell(gx, gy, dim)) {
+                        float wellCX = (gx + 0.5f) * level->getTileSize();
+                        float wellCY = (gy + 0.5f) * level->getTileSize();
+                        float pullDX = wellCX - t.getCenter().x;
+                        float pullDY = wellCY - t.getCenter().y;
+                        float dist = std::sqrt(pullDX * pullDX + pullDY * pullDY);
+                        if (dist > 4.0f && dist < 96.0f) {
+                            float force = 200.0f / (dist + 10.0f);
+                            // Dimension 1: attract, Dimension 2: repel
+                            float sign = (dim == 1) ? 1.0f : -1.0f;
+                            phys.velocity.x += (pullDX / dist) * force * sign * dt;
+                            phys.velocity.y += (pullDY / dist) * force * sign * dt;
+                        }
+                    }
+                }
+            }
+
+            // Crumbling tile: trigger when entity stands on it
+            if (phys.onGround) {
+                int footTX = static_cast<int>(t.getCenter().x) / level->getTileSize();
+                int footTY = static_cast<int>(t.position.y + t.height + 1) / level->getTileSize();
+                const_cast<Level*>(level)->triggerCrumble(footTX, footTY, dim);
+            }
         }
 
         // Coyote time

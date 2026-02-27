@@ -10,9 +10,12 @@
 #include "Components/AbilityComponent.h"
 #include "Core/AudioManager.h"
 #include "Game/AchievementSystem.h"
+#include "Game/RelicSystem.h"
+#include "Components/RelicComponent.h"
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
+#include <cstdio>
 #include <algorithm>
 
 void PlayState::enter() {
@@ -49,6 +52,12 @@ void PlayState::startNewRun() {
     m_hasAttackedThisRun = false;
     m_dashCount = 0;
     m_pendingLevelGen = false;
+    m_showRelicChoice = false;
+    m_relicChoices.clear();
+    m_relicChoiceSelected = 0;
+    m_nearNPCIndex = -1;
+    m_showNPCDialog = false;
+    m_npcDialogChoice = 0;
 
     // Reset run buffs
     game->getRunBuffSystem().reset();
@@ -90,6 +99,7 @@ void PlayState::generateLevel() {
     m_player->entityManager = &m_entities;
     m_player->combatSystemRef = &m_combatSystem;
     applyUpgrades();
+    applyAscensionModifiers();
 
     auto& playerTransform = m_player->getEntity()->getComponent<TransformComponent>();
     playerTransform.position = m_level->getSpawnPoint();
@@ -163,6 +173,12 @@ void PlayState::spawnEnemies() {
                 EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
                 Enemy::applyElement(e, el);
             }
+            // Elite modifier: 15% chance per enemy at difficulty 3+
+            if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+                && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < 15) {
+                EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 6);
+                Enemy::makeElite(e, mod);
+            }
             // Mini-boss: promote first eligible enemy
             if (!miniBossSpawned && !m_isBossLevel && m_currentDifficulty >= 2
                 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
@@ -217,10 +233,61 @@ void PlayState::applyUpgrades() {
 void PlayState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
         if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+            if (m_showRelicChoice) {
+                // Can't escape relic choice
+                return;
+            }
             if (m_activePuzzle && m_activePuzzle->isActive()) {
                 m_activePuzzle.reset();
             } else {
                 game->pushState(StateID::Pause);
+            }
+            return;
+        }
+
+        // Relic choice input
+        if (m_showRelicChoice && !m_relicChoices.empty()) {
+            switch (event.key.keysym.scancode) {
+                case SDL_SCANCODE_A: case SDL_SCANCODE_LEFT:
+                    m_relicChoiceSelected = (m_relicChoiceSelected - 1 + static_cast<int>(m_relicChoices.size()))
+                                            % static_cast<int>(m_relicChoices.size());
+                    break;
+                case SDL_SCANCODE_D: case SDL_SCANCODE_RIGHT:
+                    m_relicChoiceSelected = (m_relicChoiceSelected + 1)
+                                            % static_cast<int>(m_relicChoices.size());
+                    break;
+                case SDL_SCANCODE_1: selectRelic(0); break;
+                case SDL_SCANCODE_2: if (m_relicChoices.size() > 1) selectRelic(1); break;
+                case SDL_SCANCODE_3: if (m_relicChoices.size() > 2) selectRelic(2); break;
+                case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
+                    selectRelic(m_relicChoiceSelected);
+                    break;
+                default: break;
+            }
+            return;
+        }
+
+        // NPC dialog input
+        if (m_showNPCDialog && m_nearNPCIndex >= 0) {
+            auto& npcs = m_level->getNPCs();
+            auto options = NPCSystem::getDialogOptions(npcs[m_nearNPCIndex].type);
+            int optCount = static_cast<int>(options.size());
+            switch (event.key.keysym.scancode) {
+                case SDL_SCANCODE_W: case SDL_SCANCODE_UP:
+                    m_npcDialogChoice = (m_npcDialogChoice - 1 + optCount) % optCount;
+                    AudioManager::instance().play(SFX::MenuSelect);
+                    break;
+                case SDL_SCANCODE_S: case SDL_SCANCODE_DOWN:
+                    m_npcDialogChoice = (m_npcDialogChoice + 1) % optCount;
+                    AudioManager::instance().play(SFX::MenuSelect);
+                    break;
+                case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
+                    handleNPCDialogChoice(m_nearNPCIndex, m_npcDialogChoice);
+                    break;
+                case SDL_SCANCODE_ESCAPE:
+                    m_showNPCDialog = false;
+                    break;
+                default: break;
             }
             return;
         }
@@ -255,6 +322,37 @@ void PlayState::update(float dt) {
         return;
     }
 
+    // Relic choice popup takes priority
+    if (m_showRelicChoice) {
+        return; // Wait for player to pick a relic
+    }
+
+    // NPC dialog takes priority
+    if (m_showNPCDialog) {
+        return;
+    }
+
+    // Challenge mode: speedrun timer
+    if (g_activeChallenge == ChallengeID::Speedrun && m_challengeTimer > 0) {
+        m_challengeTimer -= dt;
+        if (m_challengeTimer <= 0) {
+            endRun(); // Time's up
+            return;
+        }
+    }
+
+    // Mutator: DimensionFlux - auto switch every 15s
+    for (int i = 0; i < 2; i++) {
+        if (g_activeMutators[i] == MutatorID::DimensionFlux) {
+            m_mutatorFluxTimer += dt;
+            if (m_mutatorFluxTimer >= 15.0f) {
+                m_mutatorFluxTimer = 0;
+                m_dimManager.switchDimension();
+                m_camera.shake(6.0f, 0.2f);
+            }
+        }
+    }
+
     // Active puzzle takes priority
     if (m_activePuzzle && m_activePuzzle->isActive()) {
         m_activePuzzle->update(dt);
@@ -269,6 +367,11 @@ void PlayState::update(float dt) {
         m_entropy.onDimensionSwitch();
         AudioManager::instance().play(SFX::DimensionSwitch);
         AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+
+        // Relic: Phase Cloak - invisibility after dim switch
+        if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+            RelicSystem::onDimensionSwitch(m_player->getEntity()->getComponent<RelicComponent>());
+        }
 
         // Run buff: PhantomStep - invincible after dimension switch
         float phantomDur = game->getRunBuffSystem().getPhantomStepDuration();
@@ -298,6 +401,9 @@ void PlayState::update(float dt) {
 
     // Player update
     m_player->update(dt, input);
+
+    // Update tile timers (crumbling etc.)
+    if (m_level) m_level->updateTiles(dt);
 
     // Physics - pass current dimension so player (dimension=0) collides with correct tiles
     m_physics.update(m_entities, dt, m_level.get(), m_dimManager.getCurrentDimension());
@@ -404,6 +510,9 @@ void PlayState::update(float dt) {
             game->getAchievements().unlock("boss_slayer");
             int bossIdx = m_currentDifficulty / 3;
             if (bossIdx % 2 == 1) game->getAchievements().unlock("wyrm_hunter");
+
+            // Boss kill -> Relic choice (3 from pool)
+            showRelicChoice();
         }
     }
 
@@ -471,6 +580,28 @@ void PlayState::update(float dt) {
                 phys.velocity.x += convDir * 120.0f * dt;
             }
         }
+
+        // Teleporter: teleport player to paired tile
+        {
+            int centerTX = static_cast<int>(playerT.getCenter().x) / m_level->getTileSize();
+            int centerTY = static_cast<int>(playerT.getCenter().y) / m_level->getTileSize();
+            if (m_level->inBounds(centerTX, centerTY)) {
+                const auto& tile = m_level->getTile(centerTX, centerTY, dim);
+                if (tile.type == TileType::Teleporter) {
+                    static float teleportCooldown = 0;
+                    teleportCooldown -= dt;
+                    if (teleportCooldown <= 0) {
+                        Vec2 dest = m_level->getTeleporterDestination(centerTX, centerTY, dim);
+                        if (dest.x != 0 || dest.y != 0) {
+                            playerT.position = dest;
+                            teleportCooldown = 1.0f; // Prevent instant re-teleport
+                            m_particles.burst(playerT.getCenter(), 15, {50, 220, 100, 255}, 200.0f, 3.0f);
+                            AudioManager::instance().play(SFX::BossTeleport);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Status effect DoT damage
@@ -520,9 +651,48 @@ void PlayState::update(float dt) {
         return;
     }
 
+    // Relic timed effects update
+    if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+        auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+        RelicSystem::updateTimedEffects(relics, dt);
+
+        // Phase Cloak: invincibility during cloak
+        if (relics.phaseCloakTimer > 0) {
+            auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+            playerHP.invincibilityTimer = std::max(playerHP.invincibilityTimer, dt + 0.01f);
+        }
+
+        // Entropy Anchor: reduce entropy gain in boss fights
+        if (m_isBossLevel && !m_bossDefeated) {
+            float entropyMult = RelicSystem::getEntropyMultiplier(relics, true);
+            if (entropyMult < 1.0f) {
+                // Apply reduction by adjusting passive gain
+                m_entropy.passiveGainModifier = entropyMult;
+            }
+        } else {
+            m_entropy.passiveGainModifier = 1.0f;
+        }
+    }
+
     // Player death
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     if (hp.currentHP <= 0) {
+        // Check for Phoenix Feather relic first
+        if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+            auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+            if (RelicSystem::hasPhoenixFeather(relics)) {
+                RelicSystem::consumePhoenixFeather(relics);
+                hp.currentHP = hp.maxHP;
+                hp.invincibilityTimer = 3.0f;
+                AudioManager::instance().play(SFX::RiftShieldActivate);
+                m_camera.shake(12.0f, 0.5f);
+                Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                m_particles.burst(pPos, 50, {255, 180, 50, 255}, 350.0f, 6.0f);
+                m_particles.burst(pPos, 25, {255, 120, 30, 255}, 250.0f, 5.0f);
+                // Skip to buff check
+                goto skipDeath;
+            }
+        }
         // Check for Extra Life run buff
         auto& buffs = game->getRunBuffSystem();
         if (buffs.hasExtraLife()) {
@@ -540,6 +710,7 @@ void PlayState::update(float dt) {
             return;
         }
     }
+    skipDeath:
 
     // Check breakable walls (dash/charged attack destroys them)
     checkBreakableWalls();
@@ -549,6 +720,9 @@ void PlayState::update(float dt) {
 
     // Check random event interaction
     checkEventInteraction();
+
+    // Check NPC interaction
+    checkNPCInteraction();
 
     // Check rift interaction
     checkRiftInteraction();
@@ -623,6 +797,21 @@ void PlayState::update(float dt) {
     if (m_combatSystem.killCount > 0) {
         enemiesKilled += m_combatSystem.killCount;
         game->getUpgradeSystem().totalEnemiesKilled += m_combatSystem.killCount;
+
+        // Relic on-kill effects
+        if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
+            auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+            for (int k = 0; k < m_combatSystem.killCount; k++) {
+                // SoulSiphon: heal on kill
+                float killHeal = RelicSystem::getKillHeal(relics);
+                if (killHeal > 0) {
+                    auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+                    playerHP.heal(killHeal);
+                }
+                // VoidHunger: +1% DMG per kill
+                RelicSystem::onEnemyKill(relics);
+            }
+        }
     }
     if (m_combatSystem.killedMiniBoss) {
         game->getAchievements().unlock("mini_boss_hunter");
@@ -1017,6 +1206,14 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Random events (NPCs in world space)
     renderRandomEvents(renderer, game->getFont());
 
+    // NPCs
+    renderNPCs(renderer, game->getFont());
+
+    // NPC dialog overlay
+    if (m_showNPCDialog) {
+        renderNPCDialog(renderer, game->getFont());
+    }
+
     // Tutorial hints (first 3 levels only)
     renderTutorialHints(renderer, game->getFont());
 
@@ -1044,6 +1241,12 @@ void PlayState::render(SDL_Renderer* renderer) {
     // HUD (on top of everything)
     m_hud.render(renderer, game->getFont(), m_player.get(), &m_entropy, &m_dimManager,
                  1280, 720, game->getFPS(), game->getUpgradeSystem().getRiftShards());
+
+    // Relic bar (bottom left, below buffs)
+    renderRelicBar(renderer, game->getFont());
+
+    // Challenge HUD (left side, below main HUD)
+    renderChallengeHUD(renderer, game->getFont());
 
     // Minimap (bottom right corner)
     m_hud.renderMinimap(renderer, m_level.get(), m_player.get(), &m_dimManager, 1280, 720, &m_entities);
@@ -1090,6 +1293,215 @@ void PlayState::render(SDL_Renderer* renderer) {
             SDL_FreeSurface(ts);
         }
     }
+
+    // Relic choice overlay
+    if (m_showRelicChoice) {
+        renderRelicChoice(renderer, game->getFont());
+    }
+}
+
+void PlayState::showRelicChoice() {
+    if (!m_player || !m_player->getEntity()->hasComponent<RelicComponent>()) return;
+    auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+    m_relicChoices = RelicSystem::generateChoice(m_currentDifficulty, relics.relics);
+    if (m_relicChoices.empty()) return;
+    m_showRelicChoice = true;
+    m_relicChoiceSelected = 0;
+}
+
+void PlayState::selectRelic(int index) {
+    if (index < 0 || index >= static_cast<int>(m_relicChoices.size())) return;
+    if (!m_player || !m_player->getEntity()->hasComponent<RelicComponent>()) return;
+
+    RelicID choice = m_relicChoices[index];
+    auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+    relics.addRelic(choice);
+
+    // Apply stat effects
+    auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+    auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+    RelicSystem::applyStatEffects(relics, *m_player, hp, combat);
+
+    // Visual/audio feedback
+    AudioManager::instance().play(SFX::RiftRepair);
+    Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+    auto& data = RelicSystem::getRelicData(choice);
+    m_particles.burst(pPos, 30, data.glowColor, 200.0f, 4.0f);
+    m_particles.burst(pPos, 15, {255, 255, 255, 255}, 150.0f, 3.0f);
+
+    m_showRelicChoice = false;
+    m_relicChoices.clear();
+}
+
+void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font || m_relicChoices.empty()) return;
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Dark overlay
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 160);
+    SDL_Rect full = {0, 0, 1280, 720};
+    SDL_RenderFillRect(renderer, &full);
+
+    // Title
+    {
+        SDL_Color tc = {255, 215, 100, 255};
+        SDL_Surface* s = TTF_RenderText_Blended(font, "Choose a Relic", tc);
+        if (s) {
+            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+            if (t) {
+                SDL_Rect r = {640 - s->w / 2, 180, s->w, s->h};
+                SDL_RenderCopy(renderer, t, nullptr, &r);
+                SDL_DestroyTexture(t);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+
+    // Relic cards
+    int cardW = 200;
+    int cardH = 260;
+    int gap = 30;
+    int totalW = static_cast<int>(m_relicChoices.size()) * cardW + (static_cast<int>(m_relicChoices.size()) - 1) * gap;
+    int startX = 640 - totalW / 2;
+    int cardY = 230;
+
+    for (int i = 0; i < static_cast<int>(m_relicChoices.size()); i++) {
+        int cx = startX + i * (cardW + gap);
+        bool selected = (i == m_relicChoiceSelected);
+        auto& data = RelicSystem::getRelicData(m_relicChoices[i]);
+
+        // Card background
+        SDL_SetRenderDrawColor(renderer, 15, 15, 25, 220);
+        SDL_Rect cardBg = {cx, cardY, cardW, cardH};
+        SDL_RenderFillRect(renderer, &cardBg);
+
+        // Border (glow when selected)
+        Uint8 borderA = selected ? 255 : 100;
+        SDL_SetRenderDrawColor(renderer, data.glowColor.r, data.glowColor.g, data.glowColor.b, borderA);
+        SDL_RenderDrawRect(renderer, &cardBg);
+        if (selected) {
+            SDL_Rect outer = {cx - 2, cardY - 2, cardW + 4, cardH + 4};
+            SDL_RenderDrawRect(renderer, &outer);
+        }
+
+        // Relic icon (colored orb)
+        int orbX = cx + cardW / 2;
+        int orbY = cardY + 50;
+        int orbR = 24;
+        for (int oy = -orbR; oy <= orbR; oy++) {
+            for (int ox = -orbR; ox <= orbR; ox++) {
+                if (ox * ox + oy * oy <= orbR * orbR) {
+                    float dist = std::sqrt(static_cast<float>(ox * ox + oy * oy)) / orbR;
+                    Uint8 a = static_cast<Uint8>((1.0f - dist * 0.5f) * 255);
+                    SDL_SetRenderDrawColor(renderer, data.glowColor.r, data.glowColor.g, data.glowColor.b, a);
+                    SDL_RenderDrawPoint(renderer, orbX + ox, orbY + oy);
+                }
+            }
+        }
+
+        // Tier text
+        const char* tierText = "COMMON";
+        SDL_Color tierColor = {180, 180, 180, 255};
+        if (data.tier == RelicTier::Rare) { tierText = "RARE"; tierColor = {80, 180, 255, 255}; }
+        else if (data.tier == RelicTier::Legendary) { tierText = "LEGENDARY"; tierColor = {255, 200, 50, 255}; }
+        {
+            SDL_Surface* s = TTF_RenderText_Blended(font, tierText, tierColor);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 90, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+
+        // Name
+        {
+            SDL_Color nc = {255, 255, 255, 255};
+            SDL_Surface* s = TTF_RenderText_Blended(font, data.name, nc);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 120, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+
+        // Description
+        {
+            SDL_Color dc = {180, 180, 200, 220};
+            SDL_Surface* s = TTF_RenderText_Blended(font, data.description, dc);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 160, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+
+        // Key hint
+        char keyBuf[8];
+        std::snprintf(keyBuf, sizeof(keyBuf), "[%d]", i + 1);
+        {
+            SDL_Color kc = selected ? SDL_Color{255, 255, 255, 255} : SDL_Color{100, 100, 120, 180};
+            SDL_Surface* s = TTF_RenderText_Blended(font, keyBuf, kc);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + cardH - 35, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+    }
+}
+
+void PlayState::renderRelicBar(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!m_player || !m_player->getEntity()->hasComponent<RelicComponent>()) return;
+    auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+    if (relics.relics.empty()) return;
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    int iconSize = 20;
+    int gap = 4;
+    int startX = 15;
+    int startY = 720 - 50;
+
+    for (int i = 0; i < static_cast<int>(relics.relics.size()) && i < 12; i++) {
+        auto& data = RelicSystem::getRelicData(relics.relics[i].id);
+        int ix = startX + i * (iconSize + gap);
+
+        // Background
+        SDL_SetRenderDrawColor(renderer, 10, 10, 20, 180);
+        SDL_Rect bg = {ix, startY, iconSize, iconSize};
+        SDL_RenderFillRect(renderer, &bg);
+
+        // Colored orb
+        Uint8 r = data.glowColor.r, g = data.glowColor.g, b = data.glowColor.b;
+        if (relics.relics[i].consumed) { r /= 3; g /= 3; b /= 3; }
+        SDL_SetRenderDrawColor(renderer, r, g, b, 200);
+        SDL_Rect orb = {ix + 3, startY + 3, iconSize - 6, iconSize - 6};
+        SDL_RenderFillRect(renderer, &orb);
+
+        // Border
+        Uint8 borderTierA = 120;
+        if (data.tier == RelicTier::Rare) borderTierA = 180;
+        if (data.tier == RelicTier::Legendary) borderTierA = 255;
+        SDL_SetRenderDrawColor(renderer, r, g, b, borderTierA);
+        SDL_RenderDrawRect(renderer, &bg);
+    }
 }
 
 void PlayState::updateDamageNumbers(float dt) {
@@ -1123,6 +1535,12 @@ void PlayState::updateSpawnWaves(float dt) {
                 && std::rand() % 4 == 0) {
                 EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
                 Enemy::applyElement(e, el);
+            }
+            // Elite modifier in wave spawns
+            if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+                && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < 15) {
+                EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 6);
+                Enemy::makeElite(e, mod);
             }
         }
         m_currentWave++;
@@ -1362,10 +1780,12 @@ void PlayState::spawnBoss() {
     int bossDiff = m_currentDifficulty;
     if (g_selectedDifficulty == GameDifficulty::Hard) bossDiff += 1;
 
-    // Rotate 3 boss types: Guardian -> Wyrm -> Architect
+    // Rotate 4 boss types: Guardian -> Wyrm -> Architect -> Temporal Weaver
     int bossIndex = m_currentDifficulty / 3; // 0-based boss encounter index
-    int bossType = bossIndex % 3;
-    if (bossType == 2) {
+    int bossType = bossIndex % 4;
+    if (bossType == 3) {
+        Enemy::createTemporalWeaver(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+    } else if (bossType == 2) {
         Enemy::createDimensionalArchitect(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
     } else if (bossType == 1) {
         Enemy::createVoidWyrm(m_entities, {spawnPos.x, spawnPos.y - 40.0f}, dim, bossDiff);
@@ -1412,7 +1832,15 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     int bt = 0;
     if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
     Uint8 r, g, b;
-    if (bt == 2) {
+    if (bt == 3) {
+        // Temporal Weaver: golden/amber tones
+        switch (bossPhase) {
+            case 1: r = 200; g = 170; b = 60; break;
+            case 2: r = 230; g = 180; b = 40; break;
+            case 3: r = 255; g = 200; b = 30; break;
+            default: r = 200; g = 170; b = 60; break;
+        }
+    } else if (bt == 2) {
         // Dimensional Architect: blue/purple tones
         switch (bossPhase) {
             case 1: r = 80; g = 140; b = 255; break;
@@ -1450,8 +1878,8 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     if (font) {
         int bt = 0;
         if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
-        const char* bossName = (bt == 2) ? "DIMENSIONAL ARCHITECT" : (bt == 1) ? "VOID WYRM" : "RIFT GUARDIAN";
-        SDL_Color tc = (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
+        const char* bossName = (bt == 3) ? "TEMPORAL WEAVER" : (bt == 2) ? "DIMENSIONAL ARCHITECT" : (bt == 1) ? "VOID WYRM" : "RIFT GUARDIAN";
+        SDL_Color tc = (bt == 3) ? SDL_Color{220, 190, 100, 220} : (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
         SDL_Surface* ts = TTF_RenderText_Blended(font, bossName, tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
@@ -1876,5 +2304,502 @@ void PlayState::endRun() {
     upgrades.totalRuns++;
     upgrades.addRunRecord(roomsCleared, enemiesKilled, riftsRepaired,
                           shardsCollected, m_currentDifficulty);
+    // Save bestiary progress
+    Bestiary::save("bestiary_save.dat");
+
+    // Ascension: award Rift Cores based on difficulty and ascension level
+    int cores = m_currentDifficulty * (1 + AscensionSystem::currentLevel);
+    AscensionSystem::riftCores += cores;
+    AscensionSystem::save("ascension_save.dat");
+
     game->changeState(StateID::RunSummary);
+}
+
+void PlayState::applyChallengeModifiers() {
+    if (g_activeChallenge == ChallengeID::None) return;
+    const auto& cd = ChallengeMode::getChallengeData(g_activeChallenge);
+
+    if (cd.playerMaxHP > 0 && m_player) {
+        auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+        hp.maxHP = cd.playerMaxHP;
+        hp.currentHP = cd.playerMaxHP;
+    }
+    if (cd.timeLimit > 0) {
+        m_challengeTimer = cd.timeLimit;
+    }
+
+    // Apply mutators at run start
+    for (int i = 0; i < 2; i++) {
+        if (g_activeMutators[i] == MutatorID::LowGravity) {
+            // Reduce gravity for all entities (handled in physics)
+        }
+    }
+}
+
+void PlayState::renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font) {
+    if (g_activeChallenge == ChallengeID::None && g_activeMutators[0] == MutatorID::None) return;
+    if (!font) return;
+
+    int y = 90;
+    // Challenge name
+    if (g_activeChallenge != ChallengeID::None) {
+        const auto& cd = ChallengeMode::getChallengeData(g_activeChallenge);
+        SDL_Color cc = {255, 200, 60, 200};
+        SDL_Surface* s = TTF_RenderText_Blended(font, cd.name, cc);
+        if (s) {
+            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+            if (t) {
+                SDL_Rect r = {15, y, s->w, s->h};
+                SDL_RenderCopy(renderer, t, nullptr, &r);
+                SDL_DestroyTexture(t);
+            }
+            SDL_FreeSurface(s);
+        }
+        y += 20;
+
+        // Speedrun timer
+        if (g_activeChallenge == ChallengeID::Speedrun && m_challengeTimer > 0) {
+            int mins = static_cast<int>(m_challengeTimer) / 60;
+            int secs = static_cast<int>(m_challengeTimer) % 60;
+            char timerText[32];
+            std::snprintf(timerText, sizeof(timerText), "%d:%02d", mins, secs);
+            SDL_Color tc = (m_challengeTimer < 60) ? SDL_Color{255, 60, 60, 255} : SDL_Color{200, 200, 200, 220};
+            SDL_Surface* ts = TTF_RenderText_Blended(font, timerText, tc);
+            if (ts) {
+                SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
+                if (tt) {
+                    SDL_Rect tr = {15, y, ts->w, ts->h};
+                    SDL_RenderCopy(renderer, tt, nullptr, &tr);
+                    SDL_DestroyTexture(tt);
+                }
+                SDL_FreeSurface(ts);
+            }
+            y += 20;
+        }
+
+        // Endless score
+        if (g_activeChallenge == ChallengeID::EndlessRift) {
+            char scoreText[32];
+            std::snprintf(scoreText, sizeof(scoreText), "Score: %d", m_endlessScore);
+            SDL_Surface* ss = TTF_RenderText_Blended(font, scoreText, SDL_Color{200, 180, 255, 220});
+            if (ss) {
+                SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
+                if (st) {
+                    SDL_Rect sr = {15, y, ss->w, ss->h};
+                    SDL_RenderCopy(renderer, st, nullptr, &sr);
+                    SDL_DestroyTexture(st);
+                }
+                SDL_FreeSurface(ss);
+            }
+            y += 20;
+        }
+    }
+
+    // Active mutators
+    for (int i = 0; i < 2; i++) {
+        if (g_activeMutators[i] == MutatorID::None) continue;
+        const auto& md = ChallengeMode::getMutatorData(g_activeMutators[i]);
+        SDL_Surface* ms = TTF_RenderText_Blended(font, md.name, SDL_Color{180, 180, 220, 160});
+        if (ms) {
+            SDL_Texture* mt = SDL_CreateTextureFromSurface(renderer, ms);
+            if (mt) {
+                SDL_Rect mr = {15, y, ms->w, ms->h};
+                SDL_RenderCopy(renderer, mt, nullptr, &mr);
+                SDL_DestroyTexture(mt);
+            }
+            SDL_FreeSurface(ms);
+        }
+        y += 16;
+    }
+}
+
+// ============ NPC System ============
+
+void PlayState::checkNPCInteraction() {
+    if (!m_player || !m_level || m_showNPCDialog) return;
+
+    auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+    Vec2 playerCenter = pt.getCenter();
+    int currentDim = m_dimManager.getCurrentDimension();
+    const auto& input = game->getInput();
+
+    m_nearNPCIndex = -1;
+
+    auto& npcs = m_level->getNPCs();
+    for (int i = 0; i < static_cast<int>(npcs.size()); i++) {
+        auto& npc = npcs[i];
+        if (npc.interacted) continue;
+        if (npc.dimension != 0 && npc.dimension != currentDim) continue;
+
+        float dx = playerCenter.x - npc.position.x;
+        float dy = playerCenter.y - npc.position.y;
+        float dist = std::sqrt(dx * dx + dy * dy);
+
+        if (dist < 60.0f) {
+            m_nearNPCIndex = i;
+
+            if (input.isActionPressed(Action::Interact)) {
+                m_showNPCDialog = true;
+                m_npcDialogChoice = 0;
+                AudioManager::instance().play(SFX::MenuConfirm);
+            }
+            break;
+        }
+    }
+}
+
+void PlayState::renderNPCs(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!m_level) return;
+
+    Uint32 ticks = SDL_GetTicks();
+    int currentDim = m_dimManager.getCurrentDimension();
+    auto& npcs = m_level->getNPCs();
+
+    for (int i = 0; i < static_cast<int>(npcs.size()); i++) {
+        auto& npc = npcs[i];
+        if (npc.interacted) continue;
+        if (npc.dimension != 0 && npc.dimension != currentDim) continue;
+
+        SDL_FRect worldRect = {npc.position.x - 12, npc.position.y - 32, 24, 32};
+        SDL_Rect sr = m_camera.worldToScreen(worldRect);
+
+        if (sr.x + sr.w < 0 || sr.x > 1280 || sr.y + sr.h < 0 || sr.y > 720) continue;
+
+        float bob = std::sin(ticks * 0.003f + i * 3.0f) * 3.0f;
+        sr.y -= static_cast<int>(bob);
+
+        // NPC color by type
+        SDL_Color col;
+        switch (npc.type) {
+            case NPCType::RiftScholar:  col = {100, 180, 255, 255}; break; // Blue
+            case NPCType::DimRefugee:   col = {255, 180, 80, 255}; break;  // Orange
+            case NPCType::LostEngineer: col = {180, 255, 120, 255}; break; // Green
+            case NPCType::EchoOfSelf:   col = {220, 120, 255, 255}; break; // Purple
+            default:                    col = {200, 200, 200, 255}; break;
+        }
+
+        // Glow aura
+        float glow = 0.5f + 0.5f * std::sin(ticks * 0.004f + i * 2.0f);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, static_cast<Uint8>(35 * glow));
+        SDL_Rect glowR = {sr.x - 8, sr.y - 8, sr.w + 16, sr.h + 16};
+        SDL_RenderFillRect(renderer, &glowR);
+
+        // Body (hooded figure shape)
+        SDL_SetRenderDrawColor(renderer, col.r / 2, col.g / 2, col.b / 2, 220);
+        SDL_RenderFillRect(renderer, &sr); // Robe
+
+        // Head (smaller rect on top)
+        SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, 240);
+        SDL_Rect head = {sr.x + sr.w / 4, sr.y + 2, sr.w / 2, sr.h / 3};
+        SDL_RenderFillRect(renderer, &head);
+
+        // Eyes
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 220);
+        int eyeY = sr.y + sr.h / 5;
+        SDL_Rect leftEye = {sr.x + sr.w / 3 - 2, eyeY, 3, 3};
+        SDL_Rect rightEye = {sr.x + sr.w * 2 / 3 - 1, eyeY, 3, 3};
+        SDL_RenderFillRect(renderer, &leftEye);
+        SDL_RenderFillRect(renderer, &rightEye);
+
+        // Type-specific detail
+        switch (npc.type) {
+            case NPCType::RiftScholar: {
+                SDL_SetRenderDrawColor(renderer, 100, 180, 255, 160);
+                SDL_Rect book = {sr.x + sr.w / 2 - 4, sr.y - 12, 8, 6};
+                SDL_RenderFillRect(renderer, &book);
+                SDL_RenderDrawLine(renderer, sr.x + sr.w / 2, sr.y - 12, sr.x + sr.w / 2, sr.y - 6);
+                break;
+            }
+            case NPCType::DimRefugee: {
+                SDL_SetRenderDrawColor(renderer, 255, 200, 60, 180);
+                SDL_RenderDrawLine(renderer, sr.x + sr.w / 2, sr.y - 14, sr.x + sr.w / 2 + 5, sr.y - 8);
+                SDL_RenderDrawLine(renderer, sr.x + sr.w / 2 + 5, sr.y - 8, sr.x + sr.w / 2, sr.y - 2);
+                SDL_RenderDrawLine(renderer, sr.x + sr.w / 2, sr.y - 2, sr.x + sr.w / 2 - 5, sr.y - 8);
+                SDL_RenderDrawLine(renderer, sr.x + sr.w / 2 - 5, sr.y - 8, sr.x + sr.w / 2, sr.y - 14);
+                break;
+            }
+            case NPCType::LostEngineer: {
+                SDL_SetRenderDrawColor(renderer, 180, 255, 120, 180);
+                SDL_RenderDrawLine(renderer, sr.x + sr.w / 2 - 4, sr.y - 12, sr.x + sr.w / 2 + 4, sr.y - 4);
+                break;
+            }
+            case NPCType::EchoOfSelf: {
+                SDL_SetRenderDrawColor(renderer, 220, 120, 255, static_cast<Uint8>(100 * glow));
+                SDL_Rect mirrorR = {sr.x - 2, sr.y, sr.w + 4, sr.h};
+                SDL_RenderDrawRect(renderer, &mirrorR);
+                break;
+            }
+            default: break;
+        }
+
+        // Interaction hint
+        if (i == m_nearNPCIndex && font) {
+            float blink = 0.5f + 0.5f * std::sin(ticks * 0.008f);
+            SDL_Color hc = {255, 255, 255, static_cast<Uint8>(200 * blink)};
+            char hint[64];
+            std::snprintf(hint, sizeof(hint), "[F] %s", npc.name);
+            SDL_Surface* hs = TTF_RenderText_Blended(font, hint, hc);
+            if (hs) {
+                SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
+                if (ht) {
+                    SDL_Rect hr = {sr.x + sr.w / 2 - hs->w / 2, sr.y - 28, hs->w, hs->h};
+                    SDL_RenderCopy(renderer, ht, nullptr, &hr);
+                    SDL_DestroyTexture(ht);
+                }
+                SDL_FreeSurface(hs);
+            }
+        }
+    }
+}
+
+void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font || m_nearNPCIndex < 0 || !m_level) return;
+
+    auto& npcs = m_level->getNPCs();
+    if (m_nearNPCIndex >= static_cast<int>(npcs.size())) return;
+    auto& npc = npcs[m_nearNPCIndex];
+
+    // Semi-transparent overlay
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
+    SDL_Rect full = {0, 0, 1280, 720};
+    SDL_RenderFillRect(renderer, &full);
+
+    // Dialog box
+    int boxW = 500, boxH = 260;
+    int boxX = 640 - boxW / 2, boxY = 360 - boxH / 2;
+
+    SDL_SetRenderDrawColor(renderer, 20, 15, 35, 240);
+    SDL_Rect box = {boxX, boxY, boxW, boxH};
+    SDL_RenderFillRect(renderer, &box);
+
+    // Border
+    SDL_SetRenderDrawColor(renderer, 120, 80, 200, 200);
+    SDL_RenderDrawRect(renderer, &box);
+
+    // NPC name
+    SDL_Color nameColor = {180, 140, 255, 255};
+    SDL_Surface* ns = TTF_RenderText_Blended(font, npc.name, nameColor);
+    if (ns) {
+        SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
+        if (nt) {
+            SDL_Rect nr = {boxX + 20, boxY + 15, ns->w, ns->h};
+            SDL_RenderCopy(renderer, nt, nullptr, &nr);
+            SDL_DestroyTexture(nt);
+        }
+        SDL_FreeSurface(ns);
+    }
+
+    // Dialog text
+    SDL_Color textColor = {200, 200, 220, 255};
+    SDL_Surface* ds = TTF_RenderText_Blended(font, npc.greeting, textColor);
+    if (ds) {
+        SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
+        if (dt) {
+            SDL_Rect dr = {boxX + 20, boxY + 45, ds->w, ds->h};
+            SDL_RenderCopy(renderer, dt, nullptr, &dr);
+            SDL_DestroyTexture(dt);
+        }
+        SDL_FreeSurface(ds);
+    }
+
+    // Lore line
+    SDL_Surface* ls = TTF_RenderText_Blended(font, npc.dialogLine, SDL_Color{160, 160, 180, 200});
+    if (ls) {
+        SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
+        if (lt) {
+            SDL_Rect lr = {boxX + 20, boxY + 70, ls->w, ls->h};
+            SDL_RenderCopy(renderer, lt, nullptr, &lr);
+            SDL_DestroyTexture(lt);
+        }
+        SDL_FreeSurface(ls);
+    }
+
+    // Dialog options
+    auto options = NPCSystem::getDialogOptions(npc.type);
+    int optY = boxY + 110;
+    for (int i = 0; i < static_cast<int>(options.size()); i++) {
+        bool selected = (i == m_npcDialogChoice);
+        SDL_Color oc = selected ? SDL_Color{255, 220, 100, 255} : SDL_Color{180, 180, 200, 200};
+
+        if (selected) {
+            SDL_SetRenderDrawColor(renderer, 80, 60, 120, 100);
+            SDL_Rect selR = {boxX + 15, optY - 2, boxW - 30, 22};
+            SDL_RenderFillRect(renderer, &selR);
+
+            // Arrow
+            SDL_SetRenderDrawColor(renderer, 255, 220, 100, 255);
+            SDL_RenderDrawLine(renderer, boxX + 20, optY + 8, boxX + 28, optY + 4);
+            SDL_RenderDrawLine(renderer, boxX + 28, optY + 4, boxX + 20, optY);
+        }
+
+        SDL_Surface* os = TTF_RenderText_Blended(font, options[i], oc);
+        if (os) {
+            SDL_Texture* ot = SDL_CreateTextureFromSurface(renderer, os);
+            if (ot) {
+                SDL_Rect or_ = {boxX + 35, optY, os->w, os->h};
+                SDL_RenderCopy(renderer, ot, nullptr, &or_);
+                SDL_DestroyTexture(ot);
+            }
+            SDL_FreeSurface(os);
+        }
+        optY += 26;
+    }
+
+    // Controls hint
+    SDL_Surface* hs = TTF_RenderText_Blended(font, "[W/S] Navigate  [Enter] Select  [Esc] Close",
+                                              SDL_Color{120, 120, 140, 150});
+    if (hs) {
+        SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
+        if (ht) {
+            SDL_Rect hr = {boxX + boxW / 2 - hs->w / 2, boxY + boxH - 25, hs->w, hs->h};
+            SDL_RenderCopy(renderer, ht, nullptr, &hr);
+            SDL_DestroyTexture(ht);
+        }
+        SDL_FreeSurface(hs);
+    }
+}
+
+void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
+    if (!m_level || npcIndex < 0) return;
+    auto& npcs = m_level->getNPCs();
+    if (npcIndex >= static_cast<int>(npcs.size())) return;
+    auto& npc = npcs[npcIndex];
+    auto options = NPCSystem::getDialogOptions(npc.type);
+
+    // Last option is always [Leave]
+    if (choice == static_cast<int>(options.size()) - 1) {
+        m_showNPCDialog = false;
+        return;
+    }
+
+    auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+    auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+
+    switch (npc.type) {
+        case NPCType::RiftScholar:
+            // Give tip + small shard bonus
+            AudioManager::instance().play(SFX::Pickup);
+            game->getUpgradeSystem().addRiftShards(15);
+            shardsCollected += 15;
+            m_particles.burst(npc.position, 12, {100, 180, 255, 255}, 100.0f, 2.0f);
+            npc.interacted = true;
+            m_showNPCDialog = false;
+            break;
+
+        case NPCType::DimRefugee:
+            if (choice == 0) {
+                // Trade 20 HP for 50 Shards
+                if (hp.currentHP > 25) {
+                    hp.currentHP -= 20;
+                    game->getUpgradeSystem().addRiftShards(50);
+                    shardsCollected += 50;
+                    AudioManager::instance().play(SFX::Pickup);
+                    m_particles.burst(npc.position, 15, {255, 200, 60, 255}, 120.0f, 2.0f);
+                } else {
+                    AudioManager::instance().play(SFX::RiftFail);
+                    m_showNPCDialog = false;
+                    return;
+                }
+            } else if (choice == 1) {
+                // Swap random relic (just give bonus shards if no relics)
+                game->getUpgradeSystem().addRiftShards(30);
+                shardsCollected += 30;
+                AudioManager::instance().play(SFX::Pickup);
+            }
+            npc.interacted = true;
+            m_showNPCDialog = false;
+            break;
+
+        case NPCType::LostEngineer:
+            // Upgrade weapon (+30% damage temporarily)
+            combat.meleeAttack.damage *= 1.3f;
+            combat.rangedAttack.damage *= 1.3f;
+            AudioManager::instance().play(SFX::Pickup);
+            m_particles.burst(npc.position, 20, {180, 255, 120, 255}, 150.0f, 3.0f);
+            npc.interacted = true;
+            m_showNPCDialog = false;
+            break;
+
+        case NPCType::EchoOfSelf:
+            if (choice == 0) {
+                // Fight! Spawn a tough enemy as "mirror match"
+                Vec2 spawnPos = {npc.position.x + 60, npc.position.y};
+                auto& mirror = Enemy::createByType(m_entities, static_cast<int>(EnemyType::Charger),
+                                                   spawnPos, m_dimManager.getCurrentDimension());
+                auto& mirrorHP = mirror.getComponent<HealthComponent>();
+                mirrorHP.maxHP = hp.maxHP;
+                mirrorHP.currentHP = mirrorHP.maxHP;
+                auto& mirrorCombat = mirror.getComponent<CombatComponent>();
+                mirrorCombat.meleeAttack.damage = combat.meleeAttack.damage;
+                Enemy::makeElite(mirror, EliteModifier::Berserker);
+                AudioManager::instance().play(SFX::AnomalySpawn);
+                m_particles.burst(npc.position, 25, {220, 120, 255, 255}, 200.0f, 3.0f);
+            }
+            npc.interacted = true;
+            m_showNPCDialog = false;
+            break;
+
+        default:
+            m_showNPCDialog = false;
+            break;
+    }
+}
+
+// ============ Ascension System ============
+
+void PlayState::applyAscensionModifiers() {
+    if (AscensionSystem::currentLevel <= 0) return;
+
+    const auto& asc = AscensionSystem::getLevel(AscensionSystem::currentLevel);
+
+    if (!m_player) return;
+    auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+
+    // Bonus: start shards
+    if (asc.startShardBonus > 0) {
+        int bonus = static_cast<int>(asc.startShardBonus * 100);
+        game->getUpgradeSystem().addRiftShards(bonus);
+    }
+
+    // Bonus: shop discount (stored for later use in shop)
+    // Bonus: shard gain multiplier (applied in combat loot)
+    // Bonus: abilities start at 50% CD
+    if (asc.abilitiesStartHalfCD && m_player->getEntity()->hasComponent<AbilityComponent>()) {
+        auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
+        for (int i = 0; i < 3; i++) {
+            abil.abilities[i].cooldownTimer = abil.abilities[i].cooldown * 0.5f;
+        }
+    }
+
+    // Bonus: keep weapon upgrade from previous run (mark flag)
+    // (Would require meta-save, simplified: +10% damage)
+    if (asc.keepWeaponUpgrade) {
+        auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+        combat.meleeAttack.damage *= 1.1f;
+        combat.rangedAttack.damage *= 1.1f;
+    }
+
+    // Malus: enemies get buffs (applied per-entity in spawnEnemies isn't practical,
+    // so we scale globally via combat system multipliers)
+    // These are applied when enemies spawn - we modify the base stats in spawnEnemies
+    // For now, store on entropy system's passive modifier as a global scaling hint
+
+    // Malus: enemy HP/DMG/Speed scaling - applied to enemies after spawn
+    m_entities.forEach([&](Entity& e) {
+        if (!e.hasComponent<AIComponent>() || !e.hasComponent<HealthComponent>()) return;
+        auto& eHP = e.getComponent<HealthComponent>();
+        eHP.maxHP *= asc.enemyHPMult;
+        eHP.currentHP = eHP.maxHP;
+        if (e.hasComponent<CombatComponent>()) {
+            e.getComponent<CombatComponent>().meleeAttack.damage *= asc.enemyDMGMult;
+        }
+        if (e.hasComponent<PhysicsBody>()) {
+            // Speed scaling for chase/patrol
+            auto& ai = e.getComponent<AIComponent>();
+            ai.chaseSpeed *= asc.enemySpeedMult;
+            ai.patrolSpeed *= asc.enemySpeedMult;
+        }
+    });
 }

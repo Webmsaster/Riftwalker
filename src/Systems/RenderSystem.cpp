@@ -98,7 +98,8 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     } else if (tag == "enemy_boss") {
         int bt = 0;
         if (entity.hasComponent<AIComponent>()) bt = entity.getComponent<AIComponent>().bossType;
-        if (bt == 2) renderDimensionalArchitect(renderer, screenRect, entity, alpha);
+        if (bt == 3) renderTemporalWeaver(renderer, screenRect, entity, alpha);
+        else if (bt == 2) renderDimensionalArchitect(renderer, screenRect, entity, alpha);
         else if (bt == 1) renderVoidWyrm(renderer, screenRect, entity, alpha);
         else renderBoss(renderer, screenRect, entity, alpha);
     } else if (tag.find("pickup_") == 0) {
@@ -188,6 +189,53 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
                 fillRect(renderer, sx - 2, sy - 2, 4, 4, 255, 255, 100, sa);
                 fillRect(renderer, sx - 1, sy - 3, 2, 6, 255, 255, 200, sa);
                 fillRect(renderer, sx - 3, sy - 1, 6, 2, 255, 255, 200, sa);
+            }
+        }
+
+        // Elite modifier aura + HP bar
+        if (ai.isElite) {
+            float time = ai.eliteGlowTimer * 3.0f;
+            float pulse = 0.4f + 0.6f * std::abs(std::sin(time));
+            Uint8 elR = 255, elG = 255, elB = 255;
+            switch (ai.eliteMod) {
+                case EliteModifier::Berserker:  elR = 255; elG = 50;  elB = 30; break;
+                case EliteModifier::Shielded:   elR = 60;  elG = 140; elB = 255; break;
+                case EliteModifier::Teleporter:  elR = 160; elG = 60;  elB = 220; break;
+                case EliteModifier::Splitter:    elR = 60;  elG = 220; elB = 80; break;
+                case EliteModifier::Vampiric:    elR = 180; elG = 20;  elB = 40; break;
+                case EliteModifier::Explosive:   elR = 255; elG = 160; elB = 30; break;
+                default: break;
+            }
+            Uint8 eliteGlowA = static_cast<Uint8>(45 * pulse * alpha);
+            SDL_Rect elGlow = {screenRect.x - 4, screenRect.y - 4, screenRect.w + 8, screenRect.h + 8};
+            SDL_SetRenderDrawColor(renderer, elR, elG, elB, eliteGlowA);
+            SDL_RenderFillRect(renderer, &elGlow);
+            SDL_SetRenderDrawColor(renderer, elR, elG, elB, static_cast<Uint8>(100 * pulse * alpha));
+            SDL_RenderDrawRect(renderer, &elGlow);
+
+            // Shielded: draw shield bar below HP
+            if (ai.eliteMod == EliteModifier::Shielded && ai.eliteShieldHP > 0) {
+                int shBarW = screenRect.w + 8;
+                int shBarH = 3;
+                int shBarX = screenRect.x - 4;
+                int shBarY = screenRect.y - 6;
+                Uint8 shA = static_cast<Uint8>(200 * alpha);
+                fillRect(renderer, shBarX, shBarY, shBarW, shBarH, 20, 30, 60, shA);
+                int shFillW = static_cast<int>(shBarW * (ai.eliteShieldHP / 30.0f));
+                fillRect(renderer, shBarX, shBarY, shFillW, shBarH, 80, 150, 255, shA);
+            }
+
+            // Elite HP bar
+            if (entity.hasComponent<HealthComponent>()) {
+                auto& elHP = entity.getComponent<HealthComponent>();
+                int elBarW = screenRect.w + 8;
+                int elBarH = 4;
+                int elBarX = screenRect.x - 4;
+                int elBarY = screenRect.y - 10;
+                Uint8 barA = static_cast<Uint8>(200 * alpha);
+                fillRect(renderer, elBarX, elBarY, elBarW, elBarH, 25, 15, 10, barA);
+                int fillW = static_cast<int>(elBarW * elHP.getPercent());
+                fillRect(renderer, elBarX, elBarY, fillW, elBarH, elR, elG, elB, barA);
             }
         }
 
@@ -1462,6 +1510,188 @@ void RenderSystem::renderDimensionalArchitect(SDL_Renderer* renderer, SDL_Rect r
         int bY = y - 16;
         fillRect(renderer, bX, bY, barW, barH, 20, 20, 50, a);
         fillRect(renderer, bX, bY, static_cast<int>(barW * hpComp.getPercent()), barH, 100, 140, 255, a);
+        fillRect(renderer, bX + barW * 2 / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+        fillRect(renderer, bX + barW / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+    }
+}
+
+void RenderSystem::renderTemporalWeaver(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    float time = SDL_GetTicks() * 0.003f;
+
+    int bossPhase = 1;
+    if (entity.hasComponent<AIComponent>()) {
+        bossPhase = entity.getComponent<AIComponent>().bossPhase;
+    }
+
+    // Temporal distortion aura - sandy time particles
+    int auraR = w / 2 + 14 + bossPhase * 6;
+    Uint8 auraA = static_cast<Uint8>(a * (0.06f + 0.03f * bossPhase));
+    float auraPulse = 0.5f + 0.5f * std::sin(time * 0.8f);
+    for (int i = 0; i < 12 + bossPhase * 4; i++) {
+        float angle = time * 0.5f + i * (6.283185f / (12 + bossPhase * 4));
+        float r2 = auraR + std::sin(time * 2.0f + i * 0.7f) * 6.0f;
+        int px = x + w / 2 + static_cast<int>(std::cos(angle) * r2);
+        int py = y + h / 2 + static_cast<int>(std::sin(angle) * r2);
+        fillRect(renderer, px - 1, py - 1, 3, 3,
+                 220, 190, 120, static_cast<Uint8>(auraA * auraPulse));
+    }
+
+    // Outer gear ring (large rotating clockwork)
+    int gearR = w / 2 + 8;
+    int gearTeeth = 12;
+    float gearAngle = time * 0.7f;
+    for (int i = 0; i < gearTeeth; i++) {
+        float tAngle = gearAngle + i * (6.283185f / gearTeeth);
+        int innerR = gearR - 3;
+        int outerR = gearR + 3;
+        int ix = x + w / 2 + static_cast<int>(std::cos(tAngle) * innerR);
+        int iy = y + h / 2 + static_cast<int>(std::sin(tAngle) * innerR);
+        int ox = x + w / 2 + static_cast<int>(std::cos(tAngle) * outerR);
+        int oy = y + h / 2 + static_cast<int>(std::sin(tAngle) * outerR);
+        drawLine(renderer, ix, iy, ox, oy, 200, 170, 80, static_cast<Uint8>(a * 0.7f));
+        float nextAngle = tAngle + (6.283185f / gearTeeth) * 0.3f;
+        int nx = x + w / 2 + static_cast<int>(std::cos(nextAngle) * outerR);
+        int ny = y + h / 2 + static_cast<int>(std::sin(nextAngle) * outerR);
+        drawLine(renderer, ox, oy, nx, ny, 220, 190, 100, static_cast<Uint8>(a * 0.6f));
+    }
+    // Gear ring circle
+    for (int i = 0; i < 36; i++) {
+        float cAngle = i * (6.283185f / 36);
+        int cx1 = x + w / 2 + static_cast<int>(std::cos(cAngle) * (gearR - 2));
+        int cy1 = y + h / 2 + static_cast<int>(std::sin(cAngle) * (gearR - 2));
+        float cAngle2 = (i + 1) * (6.283185f / 36);
+        int cx2 = x + w / 2 + static_cast<int>(std::cos(cAngle2) * (gearR - 2));
+        int cy2 = y + h / 2 + static_cast<int>(std::sin(cAngle2) * (gearR - 2));
+        drawLine(renderer, cx1, cy1, cx2, cy2, 180, 160, 80, static_cast<Uint8>(a * 0.5f));
+    }
+
+    // Inner smaller gear (counter-rotating)
+    int innerGearR = w / 4 + 2;
+    int innerTeeth = 8;
+    float innerAngle = -time * 1.2f;
+    for (int i = 0; i < innerTeeth; i++) {
+        float tAngle = innerAngle + i * (6.283185f / innerTeeth);
+        int ir = innerGearR - 2;
+        int outerR2 = innerGearR + 2;
+        int ix2 = x + w / 2 + static_cast<int>(std::cos(tAngle) * ir);
+        int iy2 = y + h / 2 + static_cast<int>(std::sin(tAngle) * ir);
+        int ox2 = x + w / 2 + static_cast<int>(std::cos(tAngle) * outerR2);
+        int oy2 = y + h / 2 + static_cast<int>(std::sin(tAngle) * outerR2);
+        drawLine(renderer, ix2, iy2, ox2, oy2, 230, 200, 100, static_cast<Uint8>(a * 0.8f));
+    }
+
+    // Main body: clock face
+    int coreR = w / 3;
+    int coreX = x + w / 2;
+    int coreY = y + h / 2;
+    for (int dy2 = -coreR; dy2 <= coreR; dy2++) {
+        int halfW = static_cast<int>(std::sqrt(static_cast<float>(coreR * coreR - dy2 * dy2)));
+        fillRect(renderer, coreX - halfW, coreY + dy2, halfW * 2, 1,
+                 sprite.color.r, sprite.color.g, sprite.color.b, a);
+    }
+    // Clock face rim
+    for (int ca = 0; ca < 36; ca++) {
+        float cAngle3 = ca * (6.283185f / 36);
+        int rx2 = coreX + static_cast<int>(std::cos(cAngle3) * coreR);
+        int ry2 = coreY + static_cast<int>(std::sin(cAngle3) * coreR);
+        float cAngle4 = (ca + 1) * (6.283185f / 36);
+        int rx3 = coreX + static_cast<int>(std::cos(cAngle4) * coreR);
+        int ry3 = coreY + static_cast<int>(std::sin(cAngle4) * coreR);
+        drawLine(renderer, rx2, ry2, rx3, ry3, 255, 220, 130, a);
+    }
+
+    // Hour markers (12 marks)
+    for (int i = 0; i < 12; i++) {
+        float mAngle = i * (6.283185f / 12);
+        int m1 = coreR - 3;
+        int m2 = coreR - 1;
+        int mx1 = coreX + static_cast<int>(std::cos(mAngle) * m1);
+        int my1 = coreY + static_cast<int>(std::sin(mAngle) * m1);
+        int mx2 = coreX + static_cast<int>(std::cos(mAngle) * m2);
+        int my2 = coreY + static_cast<int>(std::sin(mAngle) * m2);
+        drawLine(renderer, mx1, my1, mx2, my2, 255, 240, 180, a);
+    }
+
+    // Clock hands
+    float hourAngle = time * 0.3f;
+    int hourLen = coreR - 6;
+    int hx2 = coreX + static_cast<int>(std::cos(hourAngle) * hourLen);
+    int hy2 = coreY + static_cast<int>(std::sin(hourAngle) * hourLen);
+    drawLine(renderer, coreX, coreY, hx2, hy2, 255, 220, 100, a);
+    drawLine(renderer, coreX + 1, coreY, hx2 + 1, hy2, 255, 220, 100, a);
+
+    float minuteAngle = time * 1.5f;
+    int minuteLen = coreR - 3;
+    int mhx = coreX + static_cast<int>(std::cos(minuteAngle) * minuteLen);
+    int mhy = coreY + static_cast<int>(std::sin(minuteAngle) * minuteLen);
+    drawLine(renderer, coreX, coreY, mhx, mhy, 255, 240, 160, static_cast<Uint8>(a * 0.9f));
+
+    // Center hub
+    fillRect(renderer, coreX - 2, coreY - 2, 4, 4, 255, 230, 120, a);
+
+    // Pendulum arms (swinging below body)
+    for (int p = 0; p < 2; p++) {
+        float pendAngle = std::sin(time * 2.5f + p * 3.14159f) * 0.6f;
+        int pendLen = 16 + bossPhase * 3;
+        int pendBaseX = x + w / 4 + p * w / 2;
+        int pendBaseY = y + h - 2;
+        int pendEndX = pendBaseX + static_cast<int>(std::sin(pendAngle) * pendLen);
+        int pendEndY = pendBaseY + static_cast<int>(std::cos(pendAngle) * pendLen);
+        drawLine(renderer, pendBaseX, pendBaseY, pendEndX, pendEndY,
+                 180, 160, 80, static_cast<Uint8>(a * 0.8f));
+        fillRect(renderer, pendEndX - 3, pendEndY - 3, 6, 6, 220, 190, 80, a);
+        fillRect(renderer, pendEndX - 2, pendEndY - 2, 4, 4, 255, 220, 120, a);
+    }
+
+    // Phase 2+: temporal echoes (shadow clones)
+    if (bossPhase >= 2) {
+        for (int c = 0; c < bossPhase - 1; c++) {
+            float echoAngle = time * 0.4f + c * (6.283185f / std::max(1, bossPhase - 1));
+            int echoOff = 18 + c * 8;
+            int ex = x + static_cast<int>(std::cos(echoAngle) * echoOff);
+            int ey = y + static_cast<int>(std::sin(echoAngle) * echoOff * 0.5f);
+            Uint8 echoA = static_cast<Uint8>(a * 0.25f);
+            fillRect(renderer, ex + w / 3, ey + h / 3, w / 3, h / 3,
+                     sprite.color.r, sprite.color.g, sprite.color.b, echoA);
+            for (int t = 0; t < 6; t++) {
+                float tA = echoAngle + t * (6.283185f / 6);
+                int etx = ex + w / 2 + static_cast<int>(std::cos(tA) * (w / 4));
+                int ety = ey + h / 2 + static_cast<int>(std::sin(tA) * (w / 4));
+                fillRect(renderer, etx - 1, ety - 1, 2, 2, 200, 180, 80, echoA);
+            }
+        }
+    }
+
+    // Phase 3: time distortion rings
+    if (bossPhase >= 3) {
+        for (int ring = 0; ring < 3; ring++) {
+            float ringTime = std::fmod(time * 1.5f + ring * 0.7f, 3.0f);
+            float ringR2 = w * 0.5f + ringTime * 25.0f;
+            Uint8 ringA = static_cast<Uint8>(a * 0.2f * (1.0f - ringTime / 3.0f));
+            for (int seg = 0; seg < 24; seg++) {
+                float segAngle = seg * (6.283185f / 24);
+                float nextSeg = (seg + 1) * (6.283185f / 24);
+                int sx1 = coreX + static_cast<int>(std::cos(segAngle) * ringR2);
+                int sy1 = coreY + static_cast<int>(std::sin(segAngle) * ringR2);
+                int sx2 = coreX + static_cast<int>(std::cos(nextSeg) * ringR2);
+                int sy2 = coreY + static_cast<int>(std::sin(nextSeg) * ringR2);
+                drawLine(renderer, sx1, sy1, sx2, sy2, 255, 200, 80, ringA);
+            }
+        }
+    }
+
+    // HP bar
+    if (entity.hasComponent<HealthComponent>()) {
+        auto& hpComp = entity.getComponent<HealthComponent>();
+        int barW = w + 24;
+        int barH = 5;
+        int bX = x - 12;
+        int bY = y - 16;
+        fillRect(renderer, bX, bY, barW, barH, 30, 25, 10, a);
+        fillRect(renderer, bX, bY, static_cast<int>(barW * hpComp.getPercent()), barH, 220, 190, 80, a);
         fillRect(renderer, bX + barW * 2 / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
         fillRect(renderer, bX + barW / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
     }

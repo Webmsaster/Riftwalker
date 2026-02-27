@@ -4,6 +4,7 @@
 #include "Core/Camera.h"
 #include "Systems/ParticleSystem.h"
 #include "Components/AbilityComponent.h"
+#include "Components/RelicComponent.h"
 
 class Player {
 public:
@@ -64,6 +65,12 @@ public:
     bool isBurning() const { return burnTimer > 0; }
     bool isFrozen() const { return freezeTimer > 0; }
     bool isPoisoned() const { return poisonTimer > 0; }
+
+    // Weapon switching
+    void switchMelee();   // Cycle melee weapon (Q)
+    void switchRanged();  // Cycle ranged weapon (E)
+    void applyWeaponStats();
+    float weaponSwitchCooldown = 0;
 
     // Entity manager reference for Phase Strike targeting
     class EntityManager* entityManager = nullptr;

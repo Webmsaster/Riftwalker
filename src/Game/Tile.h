@@ -16,7 +16,11 @@ enum class TileType {
     Fire,         // Fire pit - damage over time
     Conveyor,     // Conveyor belt - pushes player left/right
     Breakable,    // Destructible wall - broken by dash/charged attack
-    ShrineBase    // Shrine interaction point
+    ShrineBase,   // Shrine interaction point
+    Ice,          // Reduced friction, sliding
+    GravityWell,  // Attracts/repels entities, switches per dimension
+    Teleporter,   // Pair tiles, teleports on contact (variant = pair ID)
+    Crumbling     // Breaks 1.5s after stepping on, respawns after 5s
 };
 
 struct Tile {
@@ -25,9 +29,16 @@ struct Tile {
     int textureIndex = -1;
     bool visited = false; // for generation
     int variant = 0;      // direction/subtype: laser=0 right,1 left,2 down,3 up; conveyor=0 right,1 left
+    float crumbleTimer = 0;  // Crumbling: time until break (1.5s)
+    float respawnTimer = 0;  // Crumbling: time until respawn (5s)
+    bool crumbling = false;  // Crumbling: actively breaking
+    bool crumbled = false;   // Crumbling: currently broken
 
     bool isSolid() const {
-        return type == TileType::Solid || type == TileType::LaserEmitter || type == TileType::Breakable;
+        if (type == TileType::Crumbling && crumbled) return false;
+        return type == TileType::Solid || type == TileType::LaserEmitter ||
+               type == TileType::Breakable || type == TileType::Ice ||
+               type == TileType::Crumbling;
     }
 
     bool isOneWay() const {

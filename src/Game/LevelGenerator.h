@@ -35,6 +35,7 @@ private:
     RoomTemplate getRandomRoom(int difficulty);
     void placeSecretRooms(Level& level, const std::vector<struct LGRoom>& rooms, int difficulty);
     void placeRandomEvents(Level& level, const std::vector<struct LGRoom>& rooms, int difficulty);
+    void placeNPCs(Level& level, const std::vector<struct LGRoom>& rooms, int difficulty);
 
     WorldTheme m_themeA;
     WorldTheme m_themeB;

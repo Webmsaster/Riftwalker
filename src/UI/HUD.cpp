@@ -8,6 +8,7 @@
 #include "Components/CombatComponent.h"
 #include "Components/TransformComponent.h"
 #include "Components/AbilityComponent.h"
+#include "Game/WeaponSystem.h"
 #include <cstdio>
 #include <cmath>
 
@@ -551,6 +552,48 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
+    // Weapon display (bottom center)
+    if (player && player->getEntity()->hasComponent<CombatComponent>()) {
+        auto& combat = player->getEntity()->getComponent<CombatComponent>();
+        int wpnY = screenH - 50;
+        int wpnX = screenW / 2 - 100;
+
+        // Background
+        SDL_Rect wpnBg = {wpnX, wpnY, 200, 36};
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);
+        SDL_RenderFillRect(renderer, &wpnBg);
+        SDL_SetRenderDrawColor(renderer, 80, 80, 100, 80);
+        SDL_RenderDrawRect(renderer, &wpnBg);
+
+        // Melee weapon (left side)
+        SDL_Rect meleeBg = {wpnX + 2, wpnY + 2, 96, 32};
+        SDL_SetRenderDrawColor(renderer, 180, 60, 60, 60);
+        SDL_RenderFillRect(renderer, &meleeBg);
+        // Sword icon
+        SDL_SetRenderDrawColor(renderer, 220, 180, 100, 200);
+        SDL_RenderDrawLine(renderer, wpnX + 8, wpnY + 26, wpnX + 22, wpnY + 8);
+        SDL_RenderDrawLine(renderer, wpnX + 18, wpnY + 14, wpnX + 26, wpnY + 14);
+
+        // Ranged weapon (right side)
+        SDL_Rect rangedBg = {wpnX + 102, wpnY + 2, 96, 32};
+        SDL_SetRenderDrawColor(renderer, 60, 60, 180, 60);
+        SDL_RenderFillRect(renderer, &rangedBg);
+        // Gun icon
+        SDL_SetRenderDrawColor(renderer, 100, 180, 220, 200);
+        SDL_Rect gunBody = {wpnX + 110, wpnY + 12, 14, 8};
+        SDL_RenderFillRect(renderer, &gunBody);
+        SDL_RenderDrawLine(renderer, wpnX + 124, wpnY + 15, wpnX + 130, wpnY + 15);
+
+        if (font) {
+            const char* mName = WeaponSystem::getWeaponName(combat.currentMelee);
+            const char* rName = WeaponSystem::getWeaponName(combat.currentRanged);
+            renderText(renderer, font, mName, wpnX + 30, wpnY + 8, {220, 180, 100, 220});
+            renderText(renderer, font, rName, wpnX + 134, wpnY + 8, {100, 180, 220, 220});
+            renderText(renderer, font, "[Q]", wpnX + 2, wpnY - 14, {150, 150, 160, 120});
+            renderText(renderer, font, "[E]", wpnX + 172, wpnY - 14, {150, 150, 160, 120});
+        }
+    }
+
     // FPS counter (bottom right, above minimap)
     if (font) {
         char fpsText[16];
@@ -561,7 +604,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Controls hint (bottom left)
     if (font) {
         renderText(renderer, font,
-                   "WASD Move  SPACE Jump  SHIFT Dash  J Melee  K Ranged  E Dim  F Interact  1/2/3 Abilities",
+                   "WASD Move  SPACE Jump  SHIFT Dash  J/K Attack  Q/E Weapon  F Interact  1/2/3 Abilities",
                    15, screenH - 22, {60, 60, 80, 100});
     }
 }

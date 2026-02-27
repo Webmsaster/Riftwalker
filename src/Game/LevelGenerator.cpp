@@ -1,4 +1,5 @@
 #include "LevelGenerator.h"
+#include "NPCSystem.h"
 #include <algorithm>
 #include <cmath>
 
@@ -208,6 +209,9 @@ Level LevelGenerator::generate(int difficulty, int seed) {
 
     // Random events (merchant, shrine, anomaly, etc.)
     placeRandomEvents(level, rooms, difficulty);
+
+    // NPC encounters
+    placeNPCs(level, rooms, difficulty);
 
     // Add rifts (puzzles)
     int riftCount = 2 + difficulty;
@@ -962,4 +966,53 @@ const std::vector<RoomTemplate>& LevelGenerator::getRoomTemplates() {
         }},
     };
     return templates;
+}
+
+void LevelGenerator::placeNPCs(Level& level, const std::vector<LGRoom>& rooms, int difficulty) {
+    if (rooms.size() < 4) return;
+
+    // 1-2 NPCs per level
+    int npcCount = 1 + (difficulty >= 3 ? 1 : 0);
+
+    NPCType npcTypes[] = {
+        NPCType::RiftScholar,
+        NPCType::DimRefugee,
+        NPCType::LostEngineer,
+        NPCType::EchoOfSelf
+    };
+
+    // Pick rooms (skip first 2 and last)
+    std::vector<int> availableRooms;
+    for (int i = 2; i + 1 < static_cast<int>(rooms.size()); i++) {
+        availableRooms.push_back(i);
+    }
+    for (int i = static_cast<int>(availableRooms.size()) - 1; i > 0; i--) {
+        int j = m_rng() % (i + 1);
+        std::swap(availableRooms[i], availableRooms[j]);
+    }
+
+    for (int n = 0; n < npcCount && n < static_cast<int>(availableRooms.size()); n++) {
+        auto& room = rooms[availableRooms[n]];
+
+        // Echo of Self only at difficulty 4+
+        NPCType type = npcTypes[m_rng() % 4];
+        if (type == NPCType::EchoOfSelf && difficulty < 4) {
+            type = NPCType::RiftScholar;
+        }
+
+        // Find open floor position
+        int nx = room.x + 2 + m_rng() % std::max(1, room.w - 4);
+        int ny = room.y + room.h - 3;
+        int dim = (m_rng() % 2 == 0) ? 1 : 2;
+
+        for (int attempt = 0; attempt < 10; attempt++) {
+            if (!level.isSolid(nx, ny, dim) && level.isSolid(nx, ny + 1, dim)) break;
+            nx = room.x + 2 + m_rng() % std::max(1, room.w - 4);
+            ny = room.y + 2 + m_rng() % std::max(1, room.h - 4);
+        }
+
+        Vec2 pos = {static_cast<float>(nx * 32), static_cast<float>(ny * 32)};
+        NPCData npc = NPCSystem::createNPC(type, pos, dim);
+        level.addNPC(npc);
+    }
 }

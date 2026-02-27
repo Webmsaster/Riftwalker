@@ -67,6 +67,7 @@ Player::Player(EntityManager& entities) {
 
     m_entity->addComponent<AnimationComponent>();
     m_entity->addComponent<AbilityComponent>();
+    m_entity->addComponent<RelicComponent>();
     m_entity->dimension = 0; // Player exists in both dimensions
 }
 
@@ -86,6 +87,11 @@ void Player::update(float dt, const InputManager& input) {
     handleAttack(input);
     handleAbilities(dt, input);
     updateAnimation();
+
+    // Weapon switch: Q = melee, E = ranged
+    if (weaponSwitchCooldown > 0) weaponSwitchCooldown -= dt;
+    if (input.isKeyPressed(SDL_SCANCODE_Q)) switchMelee();
+    if (input.isKeyPressed(SDL_SCANCODE_E)) switchRanged();
 
     // Advance animation timer
     auto& sprite = m_entity->getComponent<SpriteComponent>();
@@ -673,5 +679,48 @@ void Player::handleAbilities(float dt, const InputManager& input) {
                 combatSystemRef->addHitFreeze(0.08f);
             }
         }
+    }
+}
+
+void Player::switchMelee() {
+    if (weaponSwitchCooldown > 0) return;
+    auto& combat = m_entity->getComponent<CombatComponent>();
+    combat.currentMelee = WeaponSystem::nextMelee(combat.currentMelee);
+    applyWeaponStats();
+    weaponSwitchCooldown = 0.3f;
+    AudioManager::instance().play(SFX::MenuSelect);
+}
+
+void Player::switchRanged() {
+    if (weaponSwitchCooldown > 0) return;
+    auto& combat = m_entity->getComponent<CombatComponent>();
+    combat.currentRanged = WeaponSystem::nextRanged(combat.currentRanged);
+    applyWeaponStats();
+    weaponSwitchCooldown = 0.3f;
+    AudioManager::instance().play(SFX::MenuSelect);
+}
+
+void Player::applyWeaponStats() {
+    auto& combat = m_entity->getComponent<CombatComponent>();
+
+    // Apply melee weapon stats
+    const auto& melee = WeaponSystem::getWeaponData(combat.currentMelee);
+    combat.meleeAttack.damage = melee.damage;
+    combat.meleeAttack.cooldown = melee.cooldown;
+    combat.meleeAttack.range = melee.range;
+    combat.meleeAttack.knockback = melee.knockback;
+    combat.meleeAttack.duration = melee.duration;
+
+    // Apply ranged weapon stats
+    const auto& ranged = WeaponSystem::getWeaponData(combat.currentRanged);
+    combat.rangedAttack.damage = ranged.damage;
+    combat.rangedAttack.cooldown = ranged.cooldown;
+    combat.rangedAttack.knockback = ranged.knockback;
+    combat.rangedAttack.duration = ranged.duration;
+
+    // Phase Daggers speed bonus
+    moveSpeed = 250.0f;
+    if (combat.currentMelee == WeaponID::PhaseDaggers) {
+        moveSpeed *= (1.0f + melee.speedModifier);
     }
 }

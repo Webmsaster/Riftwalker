@@ -1,12 +1,18 @@
 #include "MenuState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Game/AscensionSystem.h"
+#include "Game/Bestiary.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 
 void MenuState::enter() {
+    // Load persistent data
+    AscensionSystem::load("ascension_save.dat");
+    Bestiary::load("bestiary_save.dat");
+
     int cx = 640;
     int startY = 420;
     int btnW = 260;
@@ -287,6 +293,42 @@ void MenuState::render(SDL_Renderer* renderer) {
                 SDL_DestroyTexture(st);
             }
             SDL_FreeSurface(ss);
+        }
+    }
+
+    // Ascension level display (above buttons)
+    if (font && AscensionSystem::currentLevel > 0) {
+        char ascText[64];
+        std::snprintf(ascText, sizeof(ascText), "Ascension %d", AscensionSystem::currentLevel);
+        float pulse = 0.7f + 0.3f * std::sin(m_time * 2.0f);
+        Uint8 aa = static_cast<Uint8>(220 * pulse * m_fadeIn);
+        SDL_Color ascColor = {255, 180, 60, aa};
+        int ascTextH = 16; // fallback
+        SDL_Surface* as = TTF_RenderText_Blended(font, ascText, ascColor);
+        if (as) {
+            ascTextH = as->h;
+            SDL_Texture* at = SDL_CreateTextureFromSurface(renderer, as);
+            if (at) {
+                SDL_SetTextureAlphaMod(at, aa);
+                SDL_Rect ar = {640 - as->w / 2, 400, as->w, as->h};
+                SDL_RenderCopy(renderer, at, nullptr, &ar);
+                SDL_DestroyTexture(at);
+            }
+            SDL_FreeSurface(as);
+        }
+
+        // Rift Cores display
+        char coreText[64];
+        std::snprintf(coreText, sizeof(coreText), "Rift Cores: %d", AscensionSystem::riftCores);
+        SDL_Surface* cs = TTF_RenderText_Blended(font, coreText, SDL_Color{200, 150, 255, static_cast<Uint8>(180 * m_fadeIn)});
+        if (cs) {
+            SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
+            if (ct) {
+                SDL_Rect cr = {640 - cs->w / 2, 405 + ascTextH, cs->w, cs->h};
+                SDL_RenderCopy(renderer, ct, nullptr, &cr);
+                SDL_DestroyTexture(ct);
+            }
+            SDL_FreeSurface(cs);
         }
     }
 

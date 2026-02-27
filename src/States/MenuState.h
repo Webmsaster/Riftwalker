@@ -1,5 +1,6 @@
 #pragma once
 #include "GameState.h"
+#include "Game/AscensionSystem.h"
 #include "UI/Button.h"
 #include <vector>
 

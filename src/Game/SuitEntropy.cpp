@@ -6,8 +6,8 @@
 SuitEntropy::SuitEntropy() {}
 
 void SuitEntropy::update(float dt) {
-    // Passive entropy gain
-    m_entropy += m_passiveGain * dt;
+    // Passive entropy gain (modified by relics)
+    m_entropy += m_passiveGain * passiveGainModifier * dt;
 
     // Passive decay (upgradeable)
     if (passiveDecay > 0) {
