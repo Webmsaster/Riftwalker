@@ -118,6 +118,7 @@ private:
     bool m_hasJumpedThisRun = false;
     bool m_hasDashedThisRun = false;
     bool m_hasAttackedThisRun = false;
+    int m_dashCount = 0; // for dash master achievement
 
     // Boss system
     bool m_isBossLevel = false;

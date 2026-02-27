@@ -24,7 +24,8 @@ enum class StateID {
     GameOver,
     Options,
     DifficultySelect,
-    Keybindings
+    Keybindings,
+    Achievements
 };
 
 // Global difficulty setting (shared between states)

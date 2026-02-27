@@ -16,13 +16,15 @@ void MenuState::enter() {
     m_buttons.clear();
     m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, "New Run");
     m_buttons.emplace_back(cx - btnW / 2, startY + btnH + gap, btnW, btnH, "Upgrades");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Options");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Quit");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Achievements");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Options");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, "Quit");
 
     m_buttons[0].onClick = [this]() { game->changeState(StateID::DifficultySelect); };
     m_buttons[1].onClick = [this]() { game->changeState(StateID::Upgrade); };
-    m_buttons[2].onClick = [this]() { game->changeState(StateID::Options); };
-    m_buttons[3].onClick = [this]() { game->quit(); };
+    m_buttons[2].onClick = [this]() { game->pushState(StateID::Achievements); };
+    m_buttons[3].onClick = [this]() { game->changeState(StateID::Options); };
+    m_buttons[4].onClick = [this]() { game->quit(); };
 
     m_selectedButton = 0;
     m_buttons[0].setSelected(true);

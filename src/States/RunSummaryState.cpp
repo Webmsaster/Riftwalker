@@ -1,5 +1,6 @@
 #include "RunSummaryState.h"
 #include "Core/Game.h"
+#include "Game/AchievementSystem.h"
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
@@ -122,6 +123,11 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
     const char* grade = getGrade(roomsCleared, enemiesKilled, riftsRepaired);
     SDL_Color gradeColor = getGradeColor(grade);
     gradeColor.a = alpha;
+
+    // S-grade achievement
+    if (grade[0] == 'S') {
+        game->getAchievements().unlock("grade_s");
+    }
 
     if (m_statsTimer > 0.2f) {
         char gradeText[16];

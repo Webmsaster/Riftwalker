@@ -213,6 +213,15 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             // Death (shared for both shield-blocked and normal hits)
             if (hp.currentHP <= 0) {
                 AudioManager::instance().play(isPlayer ? SFX::PlayerDeath : SFX::EnemyDeath);
+
+                // Track kills for achievements
+                if (isPlayer && target.hasComponent<AIComponent>()) {
+                    killCount++;
+                    auto& tAI = target.getComponent<AIComponent>();
+                    if (tAI.isMiniBoss) killedMiniBoss = true;
+                    if (tAI.element != EnemyElement::None) killedElemental = true;
+                }
+
                 // Drop items from enemies (mini-bosses drop 3x loot)
                 if (isPlayer && target.getTag().find("enemy") != std::string::npos) {
                     int dropCount = 1;

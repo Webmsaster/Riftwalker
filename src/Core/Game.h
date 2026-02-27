@@ -6,6 +6,7 @@
 #include "ResourceManager.h"
 #include "States/GameState.h"
 #include "Game/UpgradeSystem.h"
+#include "Game/AchievementSystem.h"
 #include <SDL2/SDL_ttf.h>
 #include <memory>
 #include <unordered_map>
@@ -30,6 +31,7 @@ public:
     const InputManager& getInput() const { return m_input; }
     InputManager& getInputMutable() { return m_input; }
     UpgradeSystem& getUpgradeSystem() { return m_upgrades; }
+    AchievementSystem& getAchievements() { return m_achievements; }
     TTF_Font* getFont() const { return m_font; }
     int getFPS() const { return m_timer.getFPS(); }
     SDL_Renderer* getRenderer() const { return m_window ? m_window->getSDLRenderer() : nullptr; }
@@ -49,6 +51,7 @@ private:
     Timer m_timer;
     InputManager m_input;
     UpgradeSystem m_upgrades;
+    AchievementSystem m_achievements;
     TTF_Font* m_font = nullptr;
 
     // State stack

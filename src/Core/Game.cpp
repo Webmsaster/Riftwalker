@@ -8,6 +8,7 @@
 #include "States/OptionsState.h"
 #include "States/DifficultySelectState.h"
 #include "States/KeybindingsState.h"
+#include "States/AchievementsState.h"
 #include <SDL2/SDL_image.h>
 #include <fstream>
 #include <sstream>
@@ -66,6 +67,7 @@ bool Game::init() {
     m_states[StateID::Options] = std::make_unique<OptionsState>();
     m_states[StateID::DifficultySelect] = std::make_unique<DifficultySelectState>();
     m_states[StateID::Keybindings] = std::make_unique<KeybindingsState>();
+    m_states[StateID::Achievements] = std::make_unique<AchievementsState>();
 
     for (auto& [id, state] : m_states) {
         state->game = this;
@@ -73,6 +75,10 @@ bool Game::init() {
 
     // Load save data
     loadSaveData();
+
+    // Load achievements
+    m_achievements.init();
+    m_achievements.load("riftwalker_achievements.dat");
 
     // Load custom keybindings (falls back to defaults if file missing)
     m_input.loadBindings("riftwalker_bindings.cfg");
@@ -288,6 +294,7 @@ void Game::saveSaveData() {
 
 void Game::shutdown() {
     m_input.saveBindings("riftwalker_bindings.cfg");
+    m_achievements.save("riftwalker_achievements.dat");
     saveSaveData();
 
     if (m_font) {

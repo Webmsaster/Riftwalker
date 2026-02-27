@@ -34,6 +34,11 @@ public:
     void createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
                           float damage, float speed, int dimension);
 
+    // Kill tracking flags (consumed each frame by PlayState for achievements)
+    bool killedMiniBoss = false;
+    bool killedElemental = false;
+    int killCount = 0;
+
 private:
     void processAttack(Entity& attacker, EntityManager& entities, int currentDim);
 

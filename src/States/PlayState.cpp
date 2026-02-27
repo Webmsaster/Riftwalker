@@ -8,6 +8,7 @@
 #include "Game/Tile.h"
 #include "Components/AIComponent.h"
 #include "Core/AudioManager.h"
+#include "Game/AchievementSystem.h"
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
@@ -45,6 +46,7 @@ void PlayState::startNewRun() {
     m_hasJumpedThisRun = false;
     m_hasDashedThisRun = false;
     m_hasAttackedThisRun = false;
+    m_dashCount = 0;
 
     // Random theme pair
     auto themes = WorldTheme::getRandomPair(m_runSeed);
@@ -278,7 +280,7 @@ void PlayState::update(float dt) {
     // Combat
     m_combatSystem.update(m_entities, dt, m_dimManager.getCurrentDimension());
 
-    // Consume damage events for floating numbers
+    // Consume damage events for floating numbers + achievement tracking
     auto dmgEvents = m_combatSystem.consumeDamageEvents();
     for (auto& evt : dmgEvents) {
         FloatingDamageNumber num;
@@ -289,6 +291,11 @@ void PlayState::update(float dt) {
         num.lifetime = evt.isCritical ? 1.2f : 0.8f;
         num.maxLifetime = num.lifetime;
         m_damageNumbers.push_back(num);
+
+        // Track enemy hits from player for achievements
+        if (!evt.isPlayerDamage) {
+            game->getAchievements().unlock("first_blood");
+        }
     }
     updateDamageNumbers(dt);
 
@@ -335,6 +342,11 @@ void PlayState::update(float dt) {
             m_camera.shake(15.0f, 0.5f);
             Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
             m_particles.burst(playerPos, 60, {255, 200, 100, 255}, 350.0f, 6.0f);
+
+            // Boss achievements
+            game->getAchievements().unlock("boss_slayer");
+            int bossIdx = m_currentDifficulty / 3;
+            if (bossIdx % 2 == 1) game->getAchievements().unlock("wyrm_hunter");
         }
     }
 
@@ -510,6 +522,50 @@ void PlayState::update(float dt) {
         }
     }
 
+    // Track dash count for achievement
+    if (m_player && m_player->isDashing && m_player->dashTimer >= m_player->dashDuration - 0.02f) {
+        m_dashCount++;
+    }
+
+    // Consume kill tracking from combat system
+    if (m_combatSystem.killCount > 0) {
+        enemiesKilled += m_combatSystem.killCount;
+        game->getUpgradeSystem().totalEnemiesKilled += m_combatSystem.killCount;
+    }
+    if (m_combatSystem.killedMiniBoss) {
+        game->getAchievements().unlock("mini_boss_hunter");
+        m_combatSystem.killedMiniBoss = false;
+    }
+    if (m_combatSystem.killedElemental) {
+        game->getAchievements().unlock("elemental_slayer");
+        m_combatSystem.killedElemental = false;
+    }
+    m_combatSystem.killCount = 0;
+
+    // Achievement checks
+    auto& ach = game->getAchievements();
+    ach.update(dt);
+
+    if (roomsCleared >= 10) ach.unlock("room_clearer");
+    if (roomsCleared >= 20) ach.unlock("survivor");
+    if (m_currentDifficulty >= 5) ach.unlock("unstoppable");
+    if (m_dashCount >= 100) ach.unlock("dash_master");
+    if (m_dimManager.getSwitchCount() >= 50) ach.unlock("dimension_hopper");
+    if (game->getUpgradeSystem().getRiftShards() >= 1000) ach.unlock("shard_hoarder");
+
+    // Combo check
+    if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+        auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+        if (combat.comboCount >= 10) ach.unlock("combo_king");
+    }
+
+    // Full upgrade check
+    for (auto& u : game->getUpgradeSystem().getUpgrades()) {
+        if (u.currentLevel >= u.maxLevel) {
+            ach.unlock("full_upgrade");
+            break;
+        }
+    }
 }
 
 void PlayState::checkRiftInteraction() {
@@ -550,6 +606,7 @@ void PlayState::checkRiftInteraction() {
                 AudioManager::instance().play(SFX::RiftRepair);
                 riftsRepaired++;
                 m_entropy.onRiftRepaired();
+                game->getAchievements().unlock("rift_walker");
                 shardsCollected += 10 + m_currentDifficulty * 5;
                 game->getUpgradeSystem().addRiftShards(10 + m_currentDifficulty * 5);
                 game->getUpgradeSystem().totalRiftsRepaired++;
@@ -883,6 +940,49 @@ void PlayState::render(SDL_Renderer* renderer) {
 
     // Minimap (bottom right corner)
     m_hud.renderMinimap(renderer, m_level.get(), m_player.get(), &m_dimManager, 1280, 720, &m_entities);
+
+    // Achievement notification popup
+    auto* notif = game->getAchievements().getActiveNotification();
+    TTF_Font* achFont = game->getFont();
+    if (notif && achFont) {
+        float t = notif->timer / notif->duration;
+        float slideIn = std::min(1.0f, (1.0f - t) * 5.0f); // fast slide in
+        float fadeOut = std::min(1.0f, t * 3.0f); // fade out at end
+        float alpha = slideIn * fadeOut;
+        Uint8 a = static_cast<Uint8>(alpha * 220);
+
+        int popW = 300, popH = 40;
+        int popX = 640 - popW / 2;
+        int popY = 660 - static_cast<int>(slideIn * 20);
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 20, 40, 25, a);
+        SDL_Rect bg = {popX, popY, popW, popH};
+        SDL_RenderFillRect(renderer, &bg);
+        SDL_SetRenderDrawColor(renderer, 100, 220, 120, a);
+        SDL_RenderDrawRect(renderer, &bg);
+
+        // Trophy icon
+        SDL_SetRenderDrawColor(renderer, 255, 200, 50, a);
+        SDL_Rect trophy = {popX + 10, popY + 10, 16, 16};
+        SDL_RenderFillRect(renderer, &trophy);
+
+        // Text
+        char achText[128];
+        snprintf(achText, sizeof(achText), "Achievement: %s", notif->name.c_str());
+        SDL_Color tc = {200, 255, 210, a};
+        SDL_Surface* ts = TTF_RenderText_Blended(achFont, achText, tc);
+        if (ts) {
+            SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
+            if (tt) {
+                SDL_SetTextureAlphaMod(tt, a);
+                SDL_Rect tr = {popX + 34, popY + (popH - ts->h) / 2, ts->w, ts->h};
+                SDL_RenderCopy(renderer, tt, nullptr, &tr);
+                SDL_DestroyTexture(tt);
+            }
+            SDL_FreeSurface(ts);
+        }
+    }
 }
 
 void PlayState::updateDamageNumbers(float dt) {
