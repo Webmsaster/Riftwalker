@@ -213,9 +213,13 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             // Death (shared for both shield-blocked and normal hits)
             if (hp.currentHP <= 0) {
                 AudioManager::instance().play(isPlayer ? SFX::PlayerDeath : SFX::EnemyDeath);
-                // Drop items from enemies
+                // Drop items from enemies (mini-bosses drop 3x loot)
                 if (isPlayer && target.getTag().find("enemy") != std::string::npos) {
-                    ItemDrop::spawnRandomDrop(entities, targetCenter, target.dimension, 1, m_player);
+                    int dropCount = 1;
+                    if (target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isMiniBoss) {
+                        dropCount = 3;
+                    }
+                    ItemDrop::spawnRandomDrop(entities, targetCenter, target.dimension, dropCount, m_player);
                 }
 
                 // Electric chain damage on enemy death
@@ -250,9 +254,10 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     auto& sprite = target.getComponent<SpriteComponent>();
                     m_particles->burst(targetCenter, 25, sprite.color, 200.0f, 4.0f);
                 }
-                // Bigger shake on kill
+                // Bigger shake on kill (extra for mini-bosses)
                 if (m_camera && isPlayer) {
-                    m_camera->shake(8.0f, 0.2f);
+                    bool wasMB = target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isMiniBoss;
+                    m_camera->shake(wasMB ? 12.0f : 8.0f, wasMB ? 0.35f : 0.2f);
                 }
             }
         }

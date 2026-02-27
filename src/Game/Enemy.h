@@ -21,4 +21,5 @@ public:
     static Entity& createVoidWyrm(EntityManager& entities, Vec2 pos, int dimension, int difficulty);
     static Entity& createByType(EntityManager& entities, int type, Vec2 pos, int dimension);
     static void applyElement(Entity& e, EnemyElement element);
+    static void makeMiniBoss(Entity& e);
 };

@@ -37,6 +37,7 @@ struct AIComponent : public Component {
     AIState state = AIState::Patrol;
     EnemyType enemyType = EnemyType::Walker;
     EnemyElement element = EnemyElement::None;
+    bool isMiniBoss = false;
 
     // Detection
     float detectRange = 200.0f;

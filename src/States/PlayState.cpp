@@ -141,6 +141,9 @@ void PlayState::spawnEnemies() {
     if (!wave.empty()) m_spawnWaves.push_back(wave);
 
     // Spawn first wave immediately
+    // Mini-boss: one per level at difficulty 2+, 15% chance (not on boss levels)
+    bool miniBossSpawned = false;
+
     if (!m_spawnWaves.empty()) {
         for (auto& sp : m_spawnWaves[0]) {
             auto& e = Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
@@ -149,6 +152,13 @@ void PlayState::spawnEnemies() {
                 && std::rand() % 4 == 0) {
                 EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
                 Enemy::applyElement(e, el);
+            }
+            // Mini-boss: promote first eligible enemy
+            if (!miniBossSpawned && !m_isBossLevel && m_currentDifficulty >= 2
+                && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+                && std::rand() % 100 < 15) {
+                Enemy::makeMiniBoss(e);
+                miniBossSpawned = true;
             }
         }
         m_currentWave = 1;

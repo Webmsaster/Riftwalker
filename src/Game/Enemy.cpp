@@ -6,6 +6,37 @@
 #include "Components/HealthComponent.h"
 #include "Components/CombatComponent.h"
 
+void Enemy::makeMiniBoss(Entity& e) {
+    auto& ai = e.getComponent<AIComponent>();
+    ai.isMiniBoss = true;
+
+    // Scale up stats
+    auto& hp = e.getComponent<HealthComponent>();
+    hp.maxHP *= 3.0f;
+    hp.currentHP = hp.maxHP;
+    hp.armor += 3.0f;
+
+    auto& combat = e.getComponent<CombatComponent>();
+    combat.meleeAttack.damage *= 1.5f;
+    combat.meleeAttack.knockback *= 1.3f;
+    combat.rangedAttack.damage *= 1.5f;
+
+    // Scale up size
+    auto& t = e.getComponent<TransformComponent>();
+    float scaleX = t.width * 0.4f;
+    float scaleY = t.height * 0.4f;
+    t.width += static_cast<int>(scaleX);
+    t.height += static_cast<int>(scaleY);
+
+    auto& col = e.getComponent<ColliderComponent>();
+    col.width += static_cast<int>(scaleX * 0.8f);
+    col.height += static_cast<int>(scaleY * 0.8f);
+
+    // Boost detection/chase
+    ai.detectRange *= 1.3f;
+    ai.chaseSpeed *= 1.15f;
+}
+
 void Enemy::applyElement(Entity& e, EnemyElement element) {
     if (element == EnemyElement::None) return;
     auto& ai = e.getComponent<AIComponent>();

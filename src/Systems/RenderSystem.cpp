@@ -144,6 +144,31 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
             SDL_SetRenderDrawColor(renderer, r, g, b, static_cast<Uint8>(80 * pulse * alpha));
             SDL_RenderDrawRect(renderer, &glow);
         }
+
+        // Mini-boss golden aura + HP bar
+        if (ai.isMiniBoss) {
+            float time = SDL_GetTicks() * 0.003f;
+            float pulse = 0.5f + 0.5f * std::sin(time * 2.0f);
+            Uint8 auraA = static_cast<Uint8>(50 * pulse * alpha);
+            SDL_Rect mbGlow = {screenRect.x - 5, screenRect.y - 5, screenRect.w + 10, screenRect.h + 10};
+            SDL_SetRenderDrawColor(renderer, 255, 200, 50, auraA);
+            SDL_RenderFillRect(renderer, &mbGlow);
+            SDL_SetRenderDrawColor(renderer, 255, 220, 80, static_cast<Uint8>(120 * pulse * alpha));
+            SDL_RenderDrawRect(renderer, &mbGlow);
+
+            // Mini-boss HP bar above entity
+            if (entity.hasComponent<HealthComponent>()) {
+                auto& mbHP = entity.getComponent<HealthComponent>();
+                int mbBarW = screenRect.w + 10;
+                int mbBarH = 4;
+                int mbBarX = screenRect.x - 5;
+                int mbBarY = screenRect.y - 10;
+                Uint8 barA = static_cast<Uint8>(200 * alpha);
+                fillRect(renderer, mbBarX, mbBarY, mbBarW, mbBarH, 30, 20, 10, barA);
+                int fillW = static_cast<int>(mbBarW * mbHP.getPercent());
+                fillRect(renderer, mbBarX, mbBarY, fillW, mbBarH, 255, 200, 50, barA);
+            }
+        }
     }
 }
 
