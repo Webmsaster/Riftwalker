@@ -26,9 +26,17 @@ enum class EnemyType {
     Boss        // Level boss with multiple phases
 };
 
+enum class EnemyElement {
+    None = 0,   // No element
+    Fire,       // Extra burn damage, orange tint
+    Ice,        // Slows player on hit, blue tint
+    Electric    // Chain damage to nearby enemies on death, yellow tint
+};
+
 struct AIComponent : public Component {
     AIState state = AIState::Patrol;
     EnemyType enemyType = EnemyType::Walker;
+    EnemyElement element = EnemyElement::None;
 
     // Detection
     float detectRange = 200.0f;

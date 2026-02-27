@@ -19,4 +19,5 @@ public:
     static Entity& createMinion(EntityManager& entities, Vec2 pos, int dimension);
     static Entity& createBoss(EntityManager& entities, Vec2 pos, int dimension, int difficulty);
     static Entity& createByType(EntityManager& entities, int type, Vec2 pos, int dimension);
+    static void applyElement(Entity& e, EnemyElement element);
 };

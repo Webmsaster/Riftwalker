@@ -189,6 +189,25 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
+            // Element effects on hit (enemy hitting player)
+            if (!isPlayer && target.getTag() == "player" && attacker.hasComponent<AIComponent>()) {
+                auto& ai = attacker.getComponent<AIComponent>();
+                if (ai.element == EnemyElement::Ice && target.hasComponent<PhysicsBody>()) {
+                    // Slow player for 1.5 seconds (reduce speed via friction boost)
+                    auto& phys = target.getComponent<PhysicsBody>();
+                    phys.velocity.x *= 0.3f;
+                    if (m_particles) {
+                        m_particles->burst(targetCenter, 10, {100, 180, 255, 255}, 80.0f, 2.0f);
+                    }
+                } else if (ai.element == EnemyElement::Fire) {
+                    // Extra burn damage
+                    hp.takeDamage(damage * 0.3f);
+                    if (m_particles) {
+                        m_particles->burst(targetCenter, 8, {255, 150, 30, 255}, 100.0f, 2.5f);
+                    }
+                }
+            }
+
             // Death (shared for both shield-blocked and normal hits)
             if (hp.currentHP <= 0) {
                 AudioManager::instance().play(isPlayer ? SFX::PlayerDeath : SFX::EnemyDeath);
@@ -196,6 +215,33 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 if (isPlayer && target.getTag().find("enemy") != std::string::npos) {
                     ItemDrop::spawnRandomDrop(entities, targetCenter, target.dimension, 1, m_player);
                 }
+
+                // Electric chain damage on enemy death
+                if (isPlayer && target.hasComponent<AIComponent>()) {
+                    auto& targetAI = target.getComponent<AIComponent>();
+                    if (targetAI.element == EnemyElement::Electric) {
+                        float chainDmg = damage * 0.5f;
+                        float chainRadius = 100.0f;
+                        entities.forEach([&](Entity& nearby) {
+                            if (&nearby == &target || !nearby.isAlive()) return;
+                            if (nearby.getTag().find("enemy") == std::string::npos) return;
+                            if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
+                            auto& nt = nearby.getComponent<TransformComponent>();
+                            float cdx = nt.getCenter().x - targetCenter.x;
+                            float cdy = nt.getCenter().y - targetCenter.y;
+                            if (cdx * cdx + cdy * cdy < chainRadius * chainRadius) {
+                                nearby.getComponent<HealthComponent>().takeDamage(chainDmg);
+                                if (m_particles) {
+                                    m_particles->burst(nt.getCenter(), 6, {255, 255, 80, 255}, 150.0f, 1.5f);
+                                }
+                            }
+                        });
+                        if (m_particles) {
+                            m_particles->burst(targetCenter, 15, {255, 255, 100, 255}, 200.0f, 3.0f);
+                        }
+                    }
+                }
+
                 // Exploder death explosion is handled by AISystem
                 target.destroy();
                 if (m_particles) {

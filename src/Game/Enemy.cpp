@@ -6,21 +6,57 @@
 #include "Components/HealthComponent.h"
 #include "Components/CombatComponent.h"
 
-Entity& Enemy::createByType(EntityManager& entities, int type, Vec2 pos, int dimension) {
-    switch (static_cast<EnemyType>(type)) {
-        case EnemyType::Walker:  return createWalker(entities, pos, dimension);
-        case EnemyType::Flyer:   return createFlyer(entities, pos, dimension);
-        case EnemyType::Turret:  return createTurret(entities, pos, dimension);
-        case EnemyType::Charger: return createCharger(entities, pos, dimension);
-        case EnemyType::Phaser:   return createPhaser(entities, pos, dimension);
-        case EnemyType::Exploder: return createExploder(entities, pos, dimension);
-        case EnemyType::Shielder: return createShielder(entities, pos, dimension);
-        case EnemyType::Crawler:  return createCrawler(entities, pos, dimension);
-        case EnemyType::Summoner: return createSummoner(entities, pos, dimension);
-        case EnemyType::Sniper:   return createSniper(entities, pos, dimension);
-        case EnemyType::Boss: return createBoss(entities, pos, dimension, 1);
-        default: return createWalker(entities, pos, dimension);
+void Enemy::applyElement(Entity& e, EnemyElement element) {
+    if (element == EnemyElement::None) return;
+    auto& ai = e.getComponent<AIComponent>();
+    ai.element = element;
+    auto& sprite = e.getComponent<SpriteComponent>();
+    auto& hp = e.getComponent<HealthComponent>();
+    auto& combat = e.getComponent<CombatComponent>();
+
+    switch (element) {
+        case EnemyElement::Fire:
+            sprite.color.r = std::min(255, sprite.color.r + 80);
+            sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.6f);
+            sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.3f);
+            combat.meleeAttack.damage *= 1.2f;
+            break;
+        case EnemyElement::Ice:
+            sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.4f);
+            sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.7f);
+            sprite.color.b = std::min(255, sprite.color.b + 100);
+            hp.maxHP *= 1.15f;
+            hp.currentHP = hp.maxHP;
+            break;
+        case EnemyElement::Electric:
+            sprite.color.r = std::min(255, sprite.color.r + 60);
+            sprite.color.g = std::min(255, sprite.color.g + 80);
+            sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.4f);
+            combat.meleeAttack.damage *= 1.1f;
+            hp.maxHP *= 1.1f;
+            hp.currentHP = hp.maxHP;
+            break;
+        default: break;
     }
+}
+
+Entity& Enemy::createByType(EntityManager& entities, int type, Vec2 pos, int dimension) {
+    Entity* e = nullptr;
+    switch (static_cast<EnemyType>(type)) {
+        case EnemyType::Walker:  e = &createWalker(entities, pos, dimension); break;
+        case EnemyType::Flyer:   e = &createFlyer(entities, pos, dimension); break;
+        case EnemyType::Turret:  e = &createTurret(entities, pos, dimension); break;
+        case EnemyType::Charger: e = &createCharger(entities, pos, dimension); break;
+        case EnemyType::Phaser:   e = &createPhaser(entities, pos, dimension); break;
+        case EnemyType::Exploder: e = &createExploder(entities, pos, dimension); break;
+        case EnemyType::Shielder: e = &createShielder(entities, pos, dimension); break;
+        case EnemyType::Crawler:  e = &createCrawler(entities, pos, dimension); break;
+        case EnemyType::Summoner: e = &createSummoner(entities, pos, dimension); break;
+        case EnemyType::Sniper:   e = &createSniper(entities, pos, dimension); break;
+        case EnemyType::Boss: e = &createBoss(entities, pos, dimension, 1); break;
+        default: e = &createWalker(entities, pos, dimension); break;
+    }
+    return *e;
 }
 
 Entity& Enemy::createWalker(EntityManager& entities, Vec2 pos, int dimension) {

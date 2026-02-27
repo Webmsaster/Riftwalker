@@ -120,6 +120,28 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
                      255, 255, 255, fa);
         }
     }
+
+    // Element aura for elemental enemies
+    if (tag.find("enemy") != std::string::npos && entity.hasComponent<AIComponent>()) {
+        auto& ai = entity.getComponent<AIComponent>();
+        if (ai.element != EnemyElement::None) {
+            float time = SDL_GetTicks() * 0.004f;
+            float pulse = 0.4f + 0.6f * std::abs(std::sin(time));
+            Uint8 glowA = static_cast<Uint8>(40 * pulse * alpha);
+            Uint8 r = 0, g = 0, b = 0;
+            switch (ai.element) {
+                case EnemyElement::Fire: r = 255; g = 100; b = 20; break;
+                case EnemyElement::Ice: r = 80; g = 160; b = 255; break;
+                case EnemyElement::Electric: r = 255; g = 255; b = 60; break;
+                default: break;
+            }
+            SDL_Rect glow = {screenRect.x - 3, screenRect.y - 3, screenRect.w + 6, screenRect.h + 6};
+            SDL_SetRenderDrawColor(renderer, r, g, b, glowA);
+            SDL_RenderFillRect(renderer, &glow);
+            SDL_SetRenderDrawColor(renderer, r, g, b, static_cast<Uint8>(80 * pulse * alpha));
+            SDL_RenderDrawRect(renderer, &glow);
+        }
+    }
 }
 
 void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {

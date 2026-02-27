@@ -143,7 +143,13 @@ void PlayState::spawnEnemies() {
     // Spawn first wave immediately
     if (!m_spawnWaves.empty()) {
         for (auto& sp : m_spawnWaves[0]) {
-            Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
+            auto& e = Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
+            // Elemental variant chance: 25% at difficulty 3+, type based on RNG
+            if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+                && std::rand() % 4 == 0) {
+                EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
+                Enemy::applyElement(e, el);
+            }
         }
         m_currentWave = 1;
         m_waveActive = true;
@@ -871,7 +877,12 @@ void PlayState::updateSpawnWaves(float dt) {
     if (aliveEnemies <= 1 || m_waveTimer <= 0) {
         // Spawn next wave
         for (auto& sp : m_spawnWaves[m_currentWave]) {
-            Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
+            auto& e = Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
+            if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+                && std::rand() % 4 == 0) {
+                EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
+                Enemy::applyElement(e, el);
+            }
         }
         m_currentWave++;
         m_waveTimer = m_waveDelay;
