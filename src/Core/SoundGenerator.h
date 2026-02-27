@@ -48,6 +48,11 @@ public:
     static Mix_Chunk* fireBurn();
     static Mix_Chunk* laserHit();
 
+    // Void Wyrm boss sounds
+    static Mix_Chunk* wyrmDive();
+    static Mix_Chunk* wyrmPoison();
+    static Mix_Chunk* wyrmBarrage();
+
     // Ambient music loops (~4 seconds each)
     static Mix_Chunk* ambientDimA(); // Cool, ethereal drone
     static Mix_Chunk* ambientDimB(); // Warm, ominous drone

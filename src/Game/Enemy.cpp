@@ -517,6 +517,59 @@ Entity& Enemy::createMinion(EntityManager& entities, Vec2 pos, int dimension) {
     return e;
 }
 
+Entity& Enemy::createVoidWyrm(EntityManager& entities, Vec2 pos, int dimension, int difficulty) {
+    auto& e = entities.addEntity("enemy_boss");
+    e.dimension = dimension;
+
+    // Wyrm is 48x48, more agile than Rift Guardian
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 48, 48);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(40, 180, 120); // Deep teal-green
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.useGravity = false; // Flying boss
+    phys.airResistance = 300.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 40;
+    col.height = 44;
+    col.offset = {4, 4};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 180.0f + difficulty * 70.0f;
+    hp.currentHP = hp.maxHP;
+    hp.armor = 1.0f + difficulty * 1.5f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 20.0f + difficulty * 4.0f;
+    combat.meleeAttack.knockback = 350.0f;
+    combat.meleeAttack.cooldown = 1.0f;
+    combat.rangedAttack.damage = 12.0f + difficulty * 3.0f;
+    combat.rangedAttack.range = 350.0f;
+    combat.rangedAttack.knockback = 120.0f;
+    combat.rangedAttack.cooldown = 1.5f;
+    combat.rangedAttack.type = AttackType::Ranged;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Boss;
+    ai.bossType = 1; // Void Wyrm
+    ai.detectRange = 500.0f;
+    ai.attackRange = 40.0f;
+    ai.chaseSpeed = 130.0f + difficulty * 15.0f;
+    ai.patrolSpeed = 80.0f;
+    ai.bossPhase = 1;
+    ai.bossAttackTimer = 0;
+    ai.bossAttackPattern = 0;
+    ai.wyrmOrbitRadius = 140.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 200.0f, pos.y - 100.0f};
+
+    return e;
+}
+
 Entity& Enemy::createBoss(EntityManager& entities, Vec2 pos, int dimension, int difficulty) {
     auto& e = entities.addEntity("enemy_boss");
     e.dimension = dimension;

@@ -1144,7 +1144,14 @@ void PlayState::spawnBoss() {
     int dim = m_dimManager.getCurrentDimension();
     int bossDiff = m_currentDifficulty;
     if (g_selectedDifficulty == GameDifficulty::Hard) bossDiff += 1;
-    Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
+
+    // Alternate boss types: Rift Guardian on first boss level, then alternate
+    int bossIndex = m_currentDifficulty / 3; // 0-based boss encounter index
+    if (bossIndex % 2 == 1) {
+        Enemy::createVoidWyrm(m_entities, {spawnPos.x, spawnPos.y - 40.0f}, dim, bossDiff);
+    } else {
+        Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
+    }
 }
 
 void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
@@ -1179,15 +1186,28 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_Rect bg = {barX, barY, barW, barH};
     SDL_RenderFillRect(renderer, &bg);
 
-    // HP fill (color changes per phase)
+    // HP fill (color changes per phase and boss type)
     float pct = hp.getPercent();
     int fillW = static_cast<int>(barW * pct);
+    int bt = 0;
+    if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
     Uint8 r, g, b;
-    switch (bossPhase) {
-        case 1: r = 200; g = 50; b = 180; break;
-        case 2: r = 220; g = 120; b = 40; break;
-        case 3: r = 255; g = 40; b = 40; break;
-        default: r = 200; g = 50; b = 180; break;
+    if (bt == 1) {
+        // Void Wyrm: green tones
+        switch (bossPhase) {
+            case 1: r = 40; g = 180; b = 120; break;
+            case 2: r = 60; g = 220; b = 80; break;
+            case 3: r = 120; g = 255; b = 40; break;
+            default: r = 40; g = 180; b = 120; break;
+        }
+    } else {
+        // Rift Guardian: purple/orange/red tones
+        switch (bossPhase) {
+            case 1: r = 200; g = 50; b = 180; break;
+            case 2: r = 220; g = 120; b = 40; break;
+            case 3: r = 255; g = 40; b = 40; break;
+            default: r = 200; g = 50; b = 180; break;
+        }
     }
     SDL_SetRenderDrawColor(renderer, r, g, b, 240);
     SDL_Rect fill = {barX, barY, fillW, barH};
@@ -1198,10 +1218,12 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_RenderDrawLine(renderer, barX + barW * 2 / 3, barY, barX + barW * 2 / 3, barY + barH);
     SDL_RenderDrawLine(renderer, barX + barW / 3, barY, barX + barW / 3, barY + barH);
 
-    // Boss name
+    // Boss name (dynamic based on boss type)
     if (font) {
-        const char* bossName = "RIFT GUARDIAN";
-        SDL_Color tc = {220, 180, 255, 220};
+        int bt = 0;
+        if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
+        const char* bossName = (bt == 1) ? "VOID WYRM" : "RIFT GUARDIAN";
+        SDL_Color tc = (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
         SDL_Surface* ts = TTF_RenderText_Blended(font, bossName, tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);

@@ -25,6 +25,7 @@ private:
     void updateSummoner(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
+    void updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
 
     void explode(Entity& entity, EntityManager& entities);
 

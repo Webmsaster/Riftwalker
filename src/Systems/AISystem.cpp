@@ -45,7 +45,14 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             case EnemyType::Crawler:  updateCrawler(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
             case EnemyType::Summoner: updateSummoner(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
             case EnemyType::Sniper:   updateSniper(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
-            case EnemyType::Boss: updateBoss(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
+            case EnemyType::Boss: {
+                int bt = e->getComponent<AIComponent>().bossType;
+                if (bt == 1)
+                    updateVoidWyrm(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities);
+                else
+                    updateBoss(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities);
+                break;
+            }
         }
     }
 }
@@ -983,6 +990,265 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
             case 1: sprite.setColor(200, static_cast<Uint8>(40 + 40 * pulse), 180); break;
             case 2: sprite.setColor(220, static_cast<Uint8>(100 * pulse), 100); break;
             case 3: sprite.setColor(255, static_cast<Uint8>(40 * pulse), static_cast<Uint8>(40 * pulse)); break;
+        }
+    }
+}
+
+void AISystem::updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& transform = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    Vec2 pos = transform.getCenter();
+    float dist = distanceTo(pos, playerPos);
+
+    // Phase transitions based on HP
+    if (entity.hasComponent<HealthComponent>()) {
+        auto& hp = entity.getComponent<HealthComponent>();
+        float hpPct = hp.getPercent();
+        if (hpPct < 0.33f && ai.bossPhase < 3) {
+            ai.bossPhase = 3;
+            ai.bossEnraged = true;
+            if (m_camera) m_camera->shake(15.0f, 0.5f);
+            if (m_particles) m_particles->burst(pos, 50, {80, 255, 150, 255}, 300.0f, 5.0f);
+            AudioManager::instance().play(SFX::SuitEntropyCritical);
+        } else if (hpPct < 0.66f && ai.bossPhase < 2) {
+            ai.bossPhase = 2;
+            if (m_camera) m_camera->shake(10.0f, 0.3f);
+            if (m_particles) m_particles->burst(pos, 30, {60, 220, 100, 255}, 250.0f, 4.0f);
+            AudioManager::instance().play(SFX::CollapseWarning);
+        }
+    }
+
+    float phaseSpeedMult = 1.0f + (ai.bossPhase - 1) * 0.3f;
+    float phaseCooldownMult = 1.0f - (ai.bossPhase - 1) * 0.2f;
+
+    ai.facingRight = playerPos.x > pos.x;
+    ai.bossAttackTimer -= dt;
+    ai.wyrmDiveTimer -= dt;
+    ai.wyrmPoisonTimer -= dt;
+    ai.wyrmBarrageTimer -= dt;
+
+    if (dist < ai.detectRange) {
+        // Handle active divebomb
+        if (ai.wyrmDiving) {
+            Vec2 dir = (ai.wyrmDiveTarget - pos).normalized();
+            phys.velocity = dir * 450.0f * phaseSpeedMult;
+
+            // Check if reached target or passed it
+            if (distanceTo(pos, ai.wyrmDiveTarget) < 30.0f || pos.y > ai.wyrmDiveTarget.y + 50.0f) {
+                ai.wyrmDiving = false;
+                // Impact AoE
+                if (m_camera) m_camera->shake(10.0f, 0.25f);
+                if (m_particles) {
+                    m_particles->burst(pos, 25, {80, 255, 120, 255}, 250.0f, 4.0f);
+                }
+                AudioManager::instance().play(SFX::SpikeDamage);
+                // Damage nearby player
+                entities.forEach([&](Entity& target) {
+                    if (target.getTag() != "player") return;
+                    if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
+                    Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
+                    float d = distanceTo(pos, tPos);
+                    if (d < 80.0f) {
+                        float falloff = 1.0f - (d / 80.0f);
+                        target.getComponent<HealthComponent>().takeDamage(18.0f * falloff);
+                        if (target.hasComponent<PhysicsBody>()) {
+                            Vec2 knockDir = (tPos - pos).normalized();
+                            knockDir.y = -0.5f;
+                            target.getComponent<PhysicsBody>().velocity += knockDir * 350.0f * falloff;
+                        }
+                    }
+                });
+                // Return to orbit
+                phys.velocity.y = -200.0f;
+            }
+        }
+        // Handle active barrage
+        else if (ai.wyrmBarrageCount > 0) {
+            // Hover in place while barraging
+            phys.velocity.x *= 0.85f;
+            phys.velocity.y *= 0.85f;
+            ai.wyrmBarrageTimer -= dt;
+            if (ai.wyrmBarrageTimer <= 0 && m_combatSystem) {
+                Vec2 dir = (playerPos - pos).normalized();
+                // Slight spread
+                float spread = (std::rand() % 100 - 50) * 0.005f;
+                Vec2 shotDir = {dir.x * std::cos(spread) - dir.y * std::sin(spread),
+                                dir.x * std::sin(spread) + dir.y * std::cos(spread)};
+                float projDmg = entity.getComponent<CombatComponent>().rangedAttack.damage * 0.7f;
+                m_combatSystem->createProjectile(entities, pos, shotDir, projDmg, 350.0f, entity.dimension);
+                ai.wyrmBarrageCount--;
+                ai.wyrmBarrageTimer = 0.15f;
+                AudioManager::instance().play(SFX::RangedShot);
+            }
+            if (ai.wyrmBarrageCount <= 0) {
+                ai.bossAttackTimer = 1.5f * phaseCooldownMult;
+            }
+        }
+        // Normal orbit behavior
+        else {
+            // Orbit around player
+            ai.wyrmOrbitAngle += dt * 1.8f * phaseSpeedMult;
+            float targetX = playerPos.x + std::cos(ai.wyrmOrbitAngle) * ai.wyrmOrbitRadius;
+            float targetY = playerPos.y - 80.0f + std::sin(ai.wyrmOrbitAngle * 0.7f) * 40.0f;
+            Vec2 target = {targetX, targetY};
+            Vec2 dir = (target - pos).normalized();
+            float speed = ai.chaseSpeed * phaseSpeedMult;
+            phys.velocity = dir * speed;
+
+            // Attack patterns
+            if (ai.bossAttackTimer <= 0) {
+                ai.bossAttackPattern = (ai.bossAttackPattern + 1) % (ai.bossPhase + 4);
+
+                switch (ai.bossAttackPattern) {
+                    case 0:
+                    case 1: {
+                        // Ranged shot toward player
+                        auto& combat = entity.getComponent<CombatComponent>();
+                        Vec2 shotDir = (playerPos - pos).normalized();
+                        combat.startAttack(AttackType::Ranged, shotDir);
+                        ai.bossAttackTimer = 1.5f * phaseCooldownMult;
+                        break;
+                    }
+                    case 2: {
+                        // Divebomb
+                        if (ai.wyrmDiveTimer <= 0) {
+                            ai.wyrmDiving = true;
+                            ai.wyrmDiveTarget = playerPos;
+                            ai.wyrmDiveTimer = 4.0f * phaseCooldownMult;
+                            ai.bossAttackTimer = 1.0f;
+                            AudioManager::instance().play(SFX::WyrmDive);
+                            if (m_particles) {
+                                m_particles->burst(pos, 15, {40, 255, 140, 255}, 200.0f, 3.0f);
+                            }
+                        } else {
+                            ai.bossAttackTimer = 0.5f;
+                        }
+                        break;
+                    }
+                    case 3: {
+                        // Poison cloud at player position
+                        if (ai.wyrmPoisonTimer <= 0 && m_combatSystem) {
+                            ai.wyrmPoisonTimer = 5.0f * phaseCooldownMult;
+                            ai.bossAttackTimer = 2.0f * phaseCooldownMult;
+                            AudioManager::instance().play(SFX::WyrmPoison);
+                            if (m_particles) {
+                                m_particles->burst(playerPos, 30, {100, 220, 60, 180}, 120.0f, 5.0f);
+                            }
+                            if (m_camera) m_camera->shake(4.0f, 0.15f);
+                            // Damage + poison in area
+                            entities.forEach([&](Entity& target) {
+                                if (target.getTag() != "player") return;
+                                if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
+                                Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
+                                if (distanceTo(playerPos, tPos) < 100.0f) {
+                                    target.getComponent<HealthComponent>().takeDamage(8.0f);
+                                }
+                            });
+                        } else {
+                            ai.bossAttackTimer = 0.5f;
+                        }
+                        break;
+                    }
+                    case 4: {
+                        // Spiral projectile ring
+                        if (m_combatSystem) {
+                            int projCount = 5 + ai.bossPhase * 2;
+                            float projDmg = entity.getComponent<CombatComponent>().rangedAttack.damage;
+                            for (int p = 0; p < projCount; p++) {
+                                float angle = (6.283185f / projCount) * p + ai.wyrmOrbitAngle;
+                                Vec2 shotDir = {std::cos(angle), std::sin(angle)};
+                                m_combatSystem->createProjectile(entities, pos, shotDir, projDmg, 280.0f, entity.dimension);
+                            }
+                            ai.bossAttackTimer = 2.5f * phaseCooldownMult;
+                            AudioManager::instance().play(SFX::BossMultiShot);
+                            if (m_particles) {
+                                m_particles->burst(pos, 20, {60, 255, 180, 255}, 200.0f, 3.0f);
+                            }
+                        } else {
+                            ai.bossAttackTimer = 0.5f;
+                        }
+                        break;
+                    }
+                    case 5: {
+                        // Rapid barrage (Phase 2+)
+                        if (ai.bossPhase >= 2) {
+                            ai.wyrmBarrageCount = 5 + ai.bossPhase * 2;
+                            ai.wyrmBarrageTimer = 0;
+                            AudioManager::instance().play(SFX::WyrmBarrage);
+                        } else {
+                            ai.bossAttackTimer = 0.5f;
+                        }
+                        break;
+                    }
+                    case 6: {
+                        // Summon poison minions (Phase 3)
+                        if (ai.bossPhase >= 3) {
+                            for (int i = 0; i < 2; i++) {
+                                float offsetX = (i == 0 ? -60.0f : 60.0f);
+                                Vec2 spawnPos = {pos.x + offsetX, pos.y + 30.0f};
+                                auto& minion = entities.addEntity("enemy_minion");
+                                minion.dimension = entity.dimension;
+                                minion.addComponent<TransformComponent>(spawnPos.x, spawnPos.y, 16, 16);
+                                auto& ms = minion.addComponent<SpriteComponent>();
+                                ms.setColor(80, 200, 100);
+                                ms.renderLayer = 2;
+                                auto& mp = minion.addComponent<PhysicsBody>();
+                                mp.gravity = 980.0f;
+                                mp.friction = 600.0f;
+                                auto& mc = minion.addComponent<ColliderComponent>();
+                                mc.width = 14; mc.height = 14; mc.offset = {1, 1};
+                                mc.layer = LAYER_ENEMY;
+                                mc.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+                                auto& mh = minion.addComponent<HealthComponent>();
+                                mh.maxHP = 12.0f; mh.currentHP = 12.0f;
+                                auto& mcb = minion.addComponent<CombatComponent>();
+                                mcb.meleeAttack.damage = 10.0f;
+                                mcb.meleeAttack.knockback = 120.0f;
+                                mcb.meleeAttack.cooldown = 1.5f;
+                                auto& mai = minion.addComponent<AIComponent>();
+                                mai.enemyType = EnemyType::Walker;
+                                mai.detectRange = 150.0f;
+                                mai.attackRange = 20.0f;
+                                mai.chaseSpeed = 140.0f;
+                                mai.patrolSpeed = 70.0f;
+                                mai.patrolStart = spawnPos;
+                                mai.patrolEnd = {spawnPos.x + 60.0f, spawnPos.y};
+                                if (m_particles) {
+                                    m_particles->burst(spawnPos, 10, {80, 220, 100, 200}, 80.0f, 4.0f);
+                                }
+                            }
+                            AudioManager::instance().play(SFX::SummonerSummon);
+                            ai.bossAttackTimer = 4.0f * phaseCooldownMult;
+                        } else {
+                            ai.bossAttackTimer = 0.5f;
+                        }
+                        break;
+                    }
+                    default:
+                        ai.bossAttackTimer = 0.5f;
+                        break;
+                }
+            }
+        }
+    } else {
+        // Out of range: figure-8 patrol
+        ai.wyrmOrbitAngle += dt * 1.2f;
+        float targetX = ai.patrolStart.x + std::cos(ai.wyrmOrbitAngle) * 100.0f;
+        float targetY = ai.patrolStart.y + std::sin(ai.wyrmOrbitAngle * 2.0f) * 40.0f;
+        Vec2 dir = (Vec2{targetX, targetY} - pos).normalized();
+        phys.velocity = dir * ai.patrolSpeed;
+    }
+
+    // Visual color
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        sprite.flipX = !ai.facingRight;
+        float pulse = (std::sin(SDL_GetTicks() * 0.006f * ai.bossPhase) + 1.0f) * 0.5f;
+        switch (ai.bossPhase) {
+            case 1: sprite.setColor(40, static_cast<Uint8>(160 + 40 * pulse), 120); break;
+            case 2: sprite.setColor(60, static_cast<Uint8>(200 + 55 * pulse), 80); break;
+            case 3: sprite.setColor(static_cast<Uint8>(100 + 80 * pulse), 255, static_cast<Uint8>(60 * pulse)); break;
         }
     }
 }

@@ -52,6 +52,9 @@ void AudioManager::generateSounds() {
     m_sfx[static_cast<int>(SFX::SniperTelegraph)]    = SoundGenerator::sniperTelegraph();
     m_sfx[static_cast<int>(SFX::FireBurn)]             = SoundGenerator::fireBurn();
     m_sfx[static_cast<int>(SFX::LaserHit)]             = SoundGenerator::laserHit();
+    m_sfx[static_cast<int>(SFX::WyrmDive)]             = SoundGenerator::wyrmDive();
+    m_sfx[static_cast<int>(SFX::WyrmPoison)]           = SoundGenerator::wyrmPoison();
+    m_sfx[static_cast<int>(SFX::WyrmBarrage)]          = SoundGenerator::wyrmBarrage();
 }
 
 void AudioManager::shutdown() {

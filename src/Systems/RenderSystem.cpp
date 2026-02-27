@@ -95,7 +95,10 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         // Minions use walker renderer but smaller
         renderWalker(renderer, screenRect, entity, alpha);
     } else if (tag == "enemy_boss") {
-        renderBoss(renderer, screenRect, entity, alpha);
+        int bt = 0;
+        if (entity.hasComponent<AIComponent>()) bt = entity.getComponent<AIComponent>().bossType;
+        if (bt == 1) renderVoidWyrm(renderer, screenRect, entity, alpha);
+        else renderBoss(renderer, screenRect, entity, alpha);
     } else if (tag.find("pickup_") == 0) {
         renderPickup(renderer, screenRect, entity, alpha);
     } else if (tag == "projectile") {
@@ -963,5 +966,138 @@ void RenderSystem::renderBoss(SDL_Renderer* renderer, SDL_Rect rect, Entity& ent
         // Phase markers
         fillRect(renderer, barX + barW * 2 / 3, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
         fillRect(renderer, barX + barW / 3, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+    }
+}
+
+void RenderSystem::renderVoidWyrm(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    bool flipped = sprite.flipX;
+    float time = SDL_GetTicks() * 0.004f;
+
+    int bossPhase = 1;
+    bool diving = false;
+    if (entity.hasComponent<AIComponent>()) {
+        auto& ai = entity.getComponent<AIComponent>();
+        bossPhase = ai.bossPhase;
+        diving = ai.wyrmDiving;
+    }
+
+    // Poison mist aura (larger than Rift Guardian's)
+    int auraSize = 6 + bossPhase * 4;
+    Uint8 auraA = static_cast<Uint8>(a * (0.1f + 0.08f * bossPhase));
+    float auraPulse = 0.6f + 0.4f * std::sin(time * 1.5f * bossPhase);
+    fillRect(renderer, x - auraSize, y - auraSize,
+             w + auraSize * 2, h + auraSize * 2,
+             60, 220, 100, static_cast<Uint8>(auraA * auraPulse));
+
+    // Serpentine body segments (3 trailing segments)
+    for (int seg = 2; seg >= 0; seg--) {
+        float segOffset = (seg + 1) * 12.0f;
+        float segAngle = time * 2.0f + seg * 0.8f;
+        int sx = x + w / 2 + static_cast<int>(std::sin(segAngle) * 6.0f) - (flipped ? -1 : 1) * static_cast<int>(segOffset);
+        int sy = y + h / 2 + static_cast<int>(std::cos(segAngle * 0.7f) * 4.0f);
+        int segW = w / 3 - seg * 2;
+        int segH = h / 3 - seg * 2;
+        Uint8 segA = static_cast<Uint8>(a * (0.7f - seg * 0.15f));
+        fillRect(renderer, sx - segW / 2, sy - segH / 2, segW, segH,
+                 static_cast<Uint8>(sprite.color.r * 0.8f),
+                 static_cast<Uint8>(sprite.color.g * 0.8f),
+                 static_cast<Uint8>(sprite.color.b * 0.8f), segA);
+    }
+
+    // Main body (elongated oval shape via stacked rects)
+    int bodyW = w * 3 / 4;
+    int bodyH = h * 3 / 5;
+    int bodyX = x + (w - bodyW) / 2;
+    int bodyY = y + h / 4;
+    fillRect(renderer, bodyX, bodyY, bodyW, bodyH, sprite.color.r, sprite.color.g, sprite.color.b, a);
+    // Belly stripe
+    fillRect(renderer, bodyX + 3, bodyY + bodyH / 2, bodyW - 6, bodyH / 3,
+             static_cast<Uint8>(std::min(255, sprite.color.r + 40)),
+             static_cast<Uint8>(std::min(255, sprite.color.g + 30)),
+             static_cast<Uint8>(sprite.color.b * 0.7f),
+             static_cast<Uint8>(a * 0.6f));
+
+    // Venom core (chest glow)
+    int coreX = x + w / 2;
+    int coreY = bodyY + bodyH / 2;
+    int coreR = 4 + bossPhase;
+    float corePulse = 0.5f + 0.5f * std::sin(time * 4.0f);
+    Uint8 coreA = static_cast<Uint8>(180 + 75 * corePulse);
+    fillRect(renderer, coreX - coreR, coreY - coreR, coreR * 2, coreR * 2, 120, 255, 80, coreA);
+    fillRect(renderer, coreX - coreR + 2, coreY - coreR + 2, coreR * 2 - 4, coreR * 2 - 4,
+             200, 255, 200, static_cast<Uint8>(coreA * 0.5f));
+
+    // Head (angular, serpent-like)
+    int headH = h / 3;
+    int headW = w * 3 / 5;
+    int headX = x + (w - headW) / 2;
+    fillRect(renderer, headX, y, headW, headH, sprite.color.r, sprite.color.g, sprite.color.b, a);
+    // Fangs
+    int fangH = 6 + bossPhase;
+    if (!flipped) {
+        fillRect(renderer, headX + headW - 3, y + headH - 2, 2, fangH, 220, 255, 180, a);
+        fillRect(renderer, headX + headW - 8, y + headH - 2, 2, fangH - 2, 220, 255, 180, a);
+    } else {
+        fillRect(renderer, headX + 1, y + headH - 2, 2, fangH, 220, 255, 180, a);
+        fillRect(renderer, headX + 6, y + headH - 2, 2, fangH - 2, 220, 255, 180, a);
+    }
+
+    // Eyes (slit-like, green glow)
+    int eyeY = y + headH / 3;
+    Uint8 eyeGlow = static_cast<Uint8>(200 + 55 * std::sin(time * 3.0f));
+    int eyeW = 4, eyeH = 5;
+    fillRect(renderer, headX + headW / 4, eyeY, eyeW, eyeH, eyeGlow, 255, 80, a);
+    fillRect(renderer, headX + 3 * headW / 4 - eyeW, eyeY, eyeW, eyeH, eyeGlow, 255, 80, a);
+    // Slit pupils
+    fillRect(renderer, headX + headW / 4 + 1, eyeY + 1, 2, eyeH - 2, 20, 60, 20, a);
+    fillRect(renderer, headX + 3 * headW / 4 - eyeW + 1, eyeY + 1, 2, eyeH - 2, 20, 60, 20, a);
+
+    // Wings (small, vestigial)
+    float wingFlap = std::sin(time * 4.0f) * 5.0f;
+    int wingY = bodyY + 2;
+    int wingW = 14 + bossPhase * 2;
+    int wingH = 8 + static_cast<int>(wingFlap);
+    fillRect(renderer, x - wingW + 4, wingY, wingW, wingH,
+             static_cast<Uint8>(sprite.color.r * 0.6f), static_cast<Uint8>(sprite.color.g * 0.7f),
+             sprite.color.b, static_cast<Uint8>(a * 0.7f));
+    fillRect(renderer, x + w - 4, wingY, wingW, wingH,
+             static_cast<Uint8>(sprite.color.r * 0.6f), static_cast<Uint8>(sprite.color.g * 0.7f),
+             sprite.color.b, static_cast<Uint8>(a * 0.7f));
+
+    // Dive trail
+    if (diving) {
+        for (int i = 0; i < 5; i++) {
+            int tx = x + w / 2 + static_cast<int>(std::sin(time * 3.0f + i) * 8.0f);
+            int ty = y - 10 * (i + 1);
+            Uint8 ta = static_cast<Uint8>(a * (0.4f - i * 0.07f));
+            fillRect(renderer, tx - 3, ty, 6, 6, 80, 255, 120, ta);
+        }
+    }
+
+    // Phase 2+: orbiting poison orbs
+    if (bossPhase >= 2) {
+        for (int i = 0; i < bossPhase * 2; i++) {
+            float angle = time * 2.0f + i * (6.283185f / (bossPhase * 2));
+            int ox = x + w / 2 + static_cast<int>(std::cos(angle) * (w / 2 + 14));
+            int oy = y + h / 2 + static_cast<int>(std::sin(angle) * (h / 2 + 8));
+            Uint8 oa = static_cast<Uint8>(a * 0.6f);
+            fillRect(renderer, ox - 3, oy - 3, 6, 6, 100, 255, 60, oa);
+        }
+    }
+
+    // HP bar
+    if (entity.hasComponent<HealthComponent>()) {
+        auto& hp = entity.getComponent<HealthComponent>();
+        int barW = w + 20;
+        int barH = 5;
+        int bX = x - 10;
+        int bY = y - 14;
+        fillRect(renderer, bX, bY, barW, barH, 20, 40, 20, a);
+        fillRect(renderer, bX, bY, static_cast<int>(barW * hp.getPercent()), barH, 40, 200, 100, a);
+        fillRect(renderer, bX + barW * 2 / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+        fillRect(renderer, bX + barW / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
     }
 }

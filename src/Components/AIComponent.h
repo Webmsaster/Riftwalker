@@ -103,6 +103,7 @@ struct AIComponent : public Component {
     float preferredRange = 300.0f;
 
     // Boss specific
+    int bossType = 0;          // 0=Rift Guardian, 1=Void Wyrm
     int bossPhase = 1;         // 1=normal, 2=enraged, 3=desperate
     float bossAttackTimer = 0; // timer for boss attack patterns
     int bossAttackPattern = 0; // current attack pattern index
@@ -111,6 +112,16 @@ struct AIComponent : public Component {
     float bossShieldTimer = 0;      // shield burst cooldown
     float bossShieldActiveTimer = 0; // remaining shield duration
     float bossTeleportTimer = 0;    // teleport cooldown
+
+    // Void Wyrm specific
+    float wyrmOrbitAngle = 0;       // current orbit angle around player
+    float wyrmOrbitRadius = 150.0f; // orbit distance
+    float wyrmDiveTimer = 0;        // divebomb cooldown
+    bool wyrmDiving = false;        // currently diving
+    Vec2 wyrmDiveTarget;            // dive target position
+    float wyrmPoisonTimer = 0;      // poison cloud cooldown
+    float wyrmBarrageTimer = 0;     // barrage cooldown
+    int wyrmBarrageCount = 0;       // shots remaining in barrage
 
     Vec2 targetPosition;
     bool facingRight = true;

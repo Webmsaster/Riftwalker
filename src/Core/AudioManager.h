@@ -18,6 +18,7 @@ enum class SFX {
     BossMultiShot, BossShieldBurst, BossTeleport,
     CrawlerDrop, SummonerSummon, SniperTelegraph,
     FireBurn, LaserHit,
+    WyrmDive, WyrmPoison, WyrmBarrage,
     COUNT
 };
 

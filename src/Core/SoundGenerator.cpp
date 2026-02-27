@@ -353,6 +353,39 @@ Mix_Chunk* SoundGenerator::laserHit() {
     return toChunk(s);
 }
 
+// ---- Void Wyrm boss sounds ----
+
+Mix_Chunk* SoundGenerator::wyrmDive() {
+    // Descending screech + whoosh
+    auto s = generate(0.3f);
+    addSweep(s, 1200, 300, 0.25f, 0.15f, 0, 0.2f);
+    addNoise(s, 0.1f, 0.2f, 0, 0.15f);
+    addNoise(s, 0.2f, 0.0f, 0.15f, 0.3f);
+    addSine(s, 200, 0.1f, 0.0f, 0.1f, 0.3f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::wyrmPoison() {
+    // Bubbly, hissing gas release
+    auto s = generate(0.35f);
+    addNoise(s, 0.08f, 0.15f, 0, 0.1f);
+    addNoise(s, 0.15f, 0.0f, 0.1f, 0.35f);
+    addSine(s, 150, 0.1f, 0.05f, 0, 0.2f);
+    addSine(s, 90, 0.08f, 0.0f, 0.1f, 0.35f);
+    addSquare(s, 60, 0.05f, 0.0f, 0.15f, 0.3f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::wyrmBarrage() {
+    // Rapid charging up sound
+    auto s = generate(0.25f);
+    addSweep(s, 200, 800, 0.1f, 0.2f, 0, 0.15f);
+    addSweep(s, 400, 1200, 0.05f, 0.15f, 0.05f, 0.2f);
+    addNoise(s, 0.05f, 0.1f, 0, 0.15f);
+    addSine(s, 600, 0.15f, 0.0f, 0.15f, 0.25f);
+    return toChunk(s);
+}
+
 // ---- Ambient music loops ----
 
 Mix_Chunk* SoundGenerator::ambientDimA() {
