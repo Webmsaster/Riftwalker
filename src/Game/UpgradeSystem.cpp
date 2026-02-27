@@ -23,6 +23,9 @@ void UpgradeSystem::init() {
         {UpgradeID::WallSlide, "Grip Enhancer", "Better Wall Slide Control", 50, 2},
         {UpgradeID::CritChance, "Rift Resonance", "+10% Critical Chance", 75, 3},
         {UpgradeID::ShardMagnet, "Shard Magnet", "+Pickup Range", 35, 3},
+        {UpgradeID::AbilityCooldown, "Temporal Flux", "-15% Ability Cooldowns", 80, 3},
+        {UpgradeID::AbilityPower, "Rift Amplifier", "+20% Ability Damage", 90, 3},
+        {UpgradeID::ShieldCapacity, "Barrier Core", "+1 Shield Capacity", 100, 2},
     };
 }
 
@@ -67,6 +70,9 @@ float UpgradeSystem::getArmorBonus() const { return getUpgradeLevel(UpgradeID::A
 float UpgradeSystem::getComboBonus() const { return getUpgradeLevel(UpgradeID::ComboMaster) * 0.1f; }
 float UpgradeSystem::getCritChance() const { return getUpgradeLevel(UpgradeID::CritChance) * 0.1f; }
 float UpgradeSystem::getShardMagnetRange() const { return 14.0f + getUpgradeLevel(UpgradeID::ShardMagnet) * 30.0f; }
+float UpgradeSystem::getAbilityCooldownMultiplier() const { return 1.0f - getUpgradeLevel(UpgradeID::AbilityCooldown) * 0.15f; }
+float UpgradeSystem::getAbilityPowerMultiplier() const { return 1.0f + getUpgradeLevel(UpgradeID::AbilityPower) * 0.2f; }
+int UpgradeSystem::getShieldCapacityBonus() const { return getUpgradeLevel(UpgradeID::ShieldCapacity); }
 
 void UpgradeSystem::addRunRecord(int rooms, int enemies, int rifts, int shards, int difficulty) {
     RunRecord record{rooms, enemies, rifts, shards, difficulty};

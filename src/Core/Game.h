@@ -7,6 +7,7 @@
 #include "States/GameState.h"
 #include "Game/UpgradeSystem.h"
 #include "Game/AchievementSystem.h"
+#include "Game/RunBuffSystem.h"
 #include <SDL2/SDL_ttf.h>
 #include <memory>
 #include <unordered_map>
@@ -32,6 +33,9 @@ public:
     InputManager& getInputMutable() { return m_input; }
     UpgradeSystem& getUpgradeSystem() { return m_upgrades; }
     AchievementSystem& getAchievements() { return m_achievements; }
+    RunBuffSystem& getRunBuffSystem() { return m_runBuffs; }
+    void setShopDifficulty(int d) { m_shopDifficulty = d; }
+    int getShopDifficulty() const { return m_shopDifficulty; }
     TTF_Font* getFont() const { return m_font; }
     int getFPS() const { return m_timer.getFPS(); }
     SDL_Renderer* getRenderer() const { return m_window ? m_window->getSDLRenderer() : nullptr; }
@@ -52,6 +56,8 @@ private:
     InputManager m_input;
     UpgradeSystem m_upgrades;
     AchievementSystem m_achievements;
+    RunBuffSystem m_runBuffs;
+    int m_shopDifficulty = 1;
     TTF_Font* m_font = nullptr;
 
     // State stack

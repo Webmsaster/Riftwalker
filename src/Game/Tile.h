@@ -14,7 +14,9 @@ enum class TileType {
     Decoration, // Visual only
     LaserEmitter, // Emits horizontal/vertical laser beam
     Fire,         // Fire pit - damage over time
-    Conveyor      // Conveyor belt - pushes player left/right
+    Conveyor,     // Conveyor belt - pushes player left/right
+    Breakable,    // Destructible wall - broken by dash/charged attack
+    ShrineBase    // Shrine interaction point
 };
 
 struct Tile {
@@ -25,7 +27,7 @@ struct Tile {
     int variant = 0;      // direction/subtype: laser=0 right,1 left,2 down,3 up; conveyor=0 right,1 left
 
     bool isSolid() const {
-        return type == TileType::Solid || type == TileType::LaserEmitter;
+        return type == TileType::Solid || type == TileType::LaserEmitter || type == TileType::Breakable;
     }
 
     bool isOneWay() const {

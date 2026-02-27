@@ -32,6 +32,7 @@ public:
     float switchCost = 5.0f;         // Entropy per dimension switch
     float damageCostMultiplier = 0.2f; // Entropy per damage point
     float repairReduction = 15.0f;   // Entropy reduced per rift repair
+    float entropyGainMultiplier = 1.0f; // Run buff: reduces entropy gain
 
 private:
     float m_entropy = 0;

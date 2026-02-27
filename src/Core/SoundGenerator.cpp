@@ -386,6 +386,286 @@ Mix_Chunk* SoundGenerator::wyrmBarrage() {
     return toChunk(s);
 }
 
+// ---- Combat enhancement sounds ----
+
+Mix_Chunk* SoundGenerator::iceFreeze() {
+    // Crystalline freeze: high shimmer descending into crackle
+    auto s = generate(0.25f);
+    addSweep(s, 1500, 600, 0.2f, 0.1f, 0, 0.12f);
+    addSine(s, 800, 0.15f, 0.0f, 0.05f, 0.2f);
+    addNoise(s, 0.1f, 0.0f, 0.1f, 0.25f);
+    addSquare(s, 300, 0.08f, 0.0f, 0.15f, 0.25f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::electricChain() {
+    // Rapid electric arcs jumping between targets
+    auto s = generate(0.3f);
+    for (int i = 0; i < 5; i++) {
+        float t0 = i * 0.05f;
+        float t1 = t0 + 0.04f;
+        addSweep(s, 800 + i * 200, 400 + i * 100, 0.2f, 0.05f, t0, t1);
+        addNoise(s, 0.12f, 0.0f, t0, t0 + 0.02f);
+    }
+    addSquare(s, 500, 0.1f, 0.0f, 0, 0.15f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::parry() {
+    // Sharp metallic clang - bright impact
+    auto s = generate(0.15f);
+    addSine(s, 1200, 0.35f, 0.0f, 0, 0.08f);
+    addSine(s, 900, 0.25f, 0.0f, 0, 0.12f);
+    addNoise(s, 0.2f, 0.0f, 0, 0.04f);
+    addSquare(s, 600, 0.1f, 0.0f, 0.02f, 0.1f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::parryCounter() {
+    // Parry clang + ascending power tone
+    auto s = generate(0.25f);
+    addSine(s, 1200, 0.3f, 0.0f, 0, 0.08f);
+    addNoise(s, 0.15f, 0.0f, 0, 0.04f);
+    addSweep(s, 400, 1000, 0.1f, 0.25f, 0.06f, 0.2f);
+    addSine(s, 800, 0.2f, 0.0f, 0.15f, 0.25f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::chargedAttackRelease() {
+    // Deep charge burst: bass thump + bright sweep + impact
+    auto s = generate(0.3f);
+    addSine(s, 60, 0.3f, 0.0f, 0, 0.15f);
+    addSweep(s, 200, 1200, 0.15f, 0.3f, 0, 0.15f);
+    addNoise(s, 0.25f, 0.0f, 0.1f, 0.2f);
+    addSine(s, 400, 0.2f, 0.0f, 0.15f, 0.3f);
+    addSquare(s, 150, 0.15f, 0.0f, 0.05f, 0.2f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::criticalHit() {
+    // Punchy impact with bright ring
+    auto s = generate(0.2f);
+    addNoise(s, 0.35f, 0.0f, 0, 0.05f);
+    addSine(s, 1000, 0.25f, 0.0f, 0, 0.15f);
+    addSine(s, 600, 0.2f, 0.0f, 0.02f, 0.18f);
+    addSquare(s, 200, 0.15f, 0.0f, 0, 0.1f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::comboMilestone() {
+    // Triumphant ascending chime
+    auto s = generate(0.3f);
+    addSine(s, 600, 0.2f, 0.1f, 0, 0.1f);
+    addSine(s, 800, 0.25f, 0.1f, 0.08f, 0.18f);
+    addSine(s, 1000, 0.25f, 0.1f, 0.15f, 0.25f);
+    addSine(s, 1200, 0.2f, 0.0f, 0.22f, 0.3f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::airJuggleLaunch() {
+    // Upward whoosh with impact
+    auto s = generate(0.2f);
+    addSweep(s, 200, 900, 0.25f, 0.1f, 0, 0.12f);
+    addNoise(s, 0.15f, 0.0f, 0, 0.06f);
+    addSine(s, 500, 0.15f, 0.0f, 0.08f, 0.2f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::enemyStun() {
+    // Dizzy wobble tone
+    auto s = generate(0.25f);
+    addSine(s, 400, 0.15f, 0.1f, 0, 0.1f);
+    addSine(s, 350, 0.15f, 0.1f, 0.05f, 0.15f);
+    addSine(s, 450, 0.1f, 0.0f, 0.1f, 0.25f);
+    addSquare(s, 200, 0.08f, 0.0f, 0.05f, 0.2f);
+    return toChunk(s);
+}
+
+// ---- Player ability sounds ----
+
+Mix_Chunk* SoundGenerator::groundSlam() {
+    // Heavy impact: bass thump + earth shake rumble + shockwave whoosh
+    auto s = generate(0.4f);
+    addSine(s, 40, 0.4f, 0.0f, 0, 0.2f);         // Deep bass impact
+    addSweep(s, 200, 40, 0.3f, 0.0f, 0, 0.15f);   // Shockwave
+    addNoise(s, 0.25f, 0.0f, 0, 0.1f);             // Impact crack
+    addSquare(s, 60, 0.15f, 0.0f, 0.05f, 0.3f);    // Rumble
+    addSweep(s, 100, 30, 0.1f, 0.0f, 0.15f, 0.4f); // Sustained rumble
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::riftShieldActivate() {
+    // Dimensional hum + crystalline shell forming
+    auto s = generate(0.3f);
+    addSweep(s, 200, 600, 0.1f, 0.25f, 0, 0.15f);   // Rising activation
+    addSine(s, 400, 0.2f, 0.15f, 0.1f, 0.3f);        // Sustained hum
+    addSine(s, 600, 0.1f, 0.08f, 0.12f, 0.28f);      // Harmonic shimmer
+    addSquare(s, 300, 0.05f, 0.08f, 0.05f, 0.25f);    // Buzzy undertone
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::riftShieldAbsorb() {
+    // Soft bassy thud absorbed into shield
+    auto s = generate(0.2f);
+    addSine(s, 150, 0.3f, 0.0f, 0, 0.1f);           // Impact absorbed
+    addSweep(s, 300, 500, 0.15f, 0.0f, 0.05f, 0.2f); // Energy conversion
+    addNoise(s, 0.1f, 0.0f, 0, 0.05f);               // Soft crackle
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::riftShieldReflect() {
+    // Bright metallic ping + whoosh back
+    auto s = generate(0.2f);
+    addSine(s, 1000, 0.3f, 0.0f, 0, 0.1f);           // Bright ping
+    addSine(s, 800, 0.2f, 0.0f, 0.02f, 0.12f);       // Harmonic
+    addSweep(s, 600, 1200, 0.15f, 0.0f, 0.05f, 0.18f); // Reflect whoosh
+    addNoise(s, 0.1f, 0.0f, 0, 0.04f);                // Impact snap
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::riftShieldBurst() {
+    // Shield overload: charge up + bright explosion
+    auto s = generate(0.35f);
+    addSweep(s, 100, 400, 0.1f, 0.3f, 0, 0.15f);    // Charge up
+    addSweep(s, 400, 1500, 0.3f, 0.0f, 0.15f, 0.3f); // Burst release
+    addNoise(s, 0.25f, 0.0f, 0.15f, 0.25f);           // Explosion noise
+    addSine(s, 800, 0.2f, 0.0f, 0.2f, 0.35f);        // Ring-out
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::phaseStrikeTeleport() {
+    // Fast dimensional blink: down-sweep + up-sweep
+    auto s = generate(0.2f);
+    addSweep(s, 800, 100, 0.25f, 0.0f, 0, 0.08f);   // Vanish
+    addNoise(s, 0.15f, 0.0f, 0, 0.05f);               // Static
+    addSweep(s, 100, 900, 0.0f, 0.25f, 0.1f, 0.18f); // Appear
+    addSine(s, 500, 0.15f, 0.0f, 0.15f, 0.2f);       // Arrive tone
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::phaseStrikeHit() {
+    // Backstab critical: sharp blade + dimensional echo
+    auto s = generate(0.25f);
+    addNoise(s, 0.35f, 0.0f, 0, 0.04f);               // Sharp impact
+    addSweep(s, 500, 100, 0.3f, 0.0f, 0, 0.1f);      // Blade whoosh
+    addSine(s, 1200, 0.25f, 0.0f, 0, 0.08f);          // Critical ring
+    addSine(s, 800, 0.2f, 0.0f, 0.05f, 0.2f);        // Echo
+    addSquare(s, 300, 0.1f, 0.0f, 0.08f, 0.2f);      // Dimensional buzz
+    return toChunk(s);
+}
+
+// ---- Secret room & event sounds ----
+
+Mix_Chunk* SoundGenerator::breakableWall() {
+    auto s = generate(0.4f);
+    addNoise(s, 0.4f, 0.0f, 0, 0.06f);
+    addSweep(s, 200, 50, 0.3f, 0.0f, 0, 0.15f);
+    addNoise(s, 0.1f, 0.0f, 0.05f, 0.3f);
+    addSine(s, 80, 0.2f, 0.0f, 0, 0.2f);
+    addSquare(s, 60, 0.15f, 0.0f, 0.1f, 0.35f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::secretRoomDiscover() {
+    auto s = generate(0.6f);
+    addSine(s, 400, 0.0f, 0.2f, 0, 0.1f);
+    addSine(s, 600, 0.2f, 0.25f, 0.08f, 0.2f);
+    addSine(s, 900, 0.25f, 0.0f, 0.15f, 0.45f);
+    addSine(s, 1200, 0.15f, 0.0f, 0.25f, 0.55f);
+    addNoise(s, 0.05f, 0.0f, 0.1f, 0.5f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::shrineActivate() {
+    auto s = generate(0.5f);
+    addSine(s, 300, 0.3f, 0.0f, 0, 0.4f);
+    addSine(s, 600, 0.2f, 0.0f, 0, 0.3f);
+    addSweep(s, 200, 400, 0.15f, 0.0f, 0.1f, 0.5f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::shrineBlessing() {
+    auto s = generate(0.5f);
+    addSine(s, 500, 0.25f, 0.0f, 0, 0.4f);
+    addSine(s, 630, 0.2f, 0.0f, 0.05f, 0.4f);
+    addSine(s, 750, 0.2f, 0.0f, 0.1f, 0.45f);
+    addSine(s, 1000, 0.15f, 0.0f, 0.15f, 0.5f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::shrineCurse() {
+    auto s = generate(0.5f);
+    addSweep(s, 500, 100, 0.3f, 0.0f, 0, 0.4f);
+    addSine(s, 150, 0.2f, 0.0f, 0.05f, 0.4f);
+    addSquare(s, 80, 0.15f, 0.0f, 0.1f, 0.45f);
+    addNoise(s, 0.1f, 0.0f, 0.1f, 0.35f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::merchantGreet() {
+    auto s = generate(0.3f);
+    addSine(s, 700, 0.2f, 0.0f, 0, 0.12f);
+    addSine(s, 900, 0.25f, 0.0f, 0.1f, 0.25f);
+    addSine(s, 1400, 0.1f, 0.0f, 0.1f, 0.25f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::anomalySpawn() {
+    auto s = generate(0.4f);
+    addSweep(s, 200, 800, 0.2f, 0.0f, 0, 0.2f);
+    addSweep(s, 800, 200, 0.15f, 0.0f, 0.15f, 0.35f);
+    addNoise(s, 0.15f, 0.0f, 0, 0.15f);
+    addSquare(s, 150, 0.1f, 0.0f, 0.1f, 0.35f);
+    return toChunk(s);
+}
+
+// ---- Dimensional Architect boss sounds ----
+
+Mix_Chunk* SoundGenerator::archTileSwap() {
+    auto s = generate(0.3f);
+    addNoise(s, 0.2f, 0.0f, 0, 0.05f);
+    addSweep(s, 400, 200, 0.25f, 0.0f, 0, 0.2f);
+    addSquare(s, 150, 0.15f, 0.0f, 0.05f, 0.25f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::archConstruct() {
+    auto s = generate(0.5f);
+    addSweep(s, 100, 600, 0.2f, 0.0f, 0, 0.3f);
+    addSine(s, 800, 0.15f, 0.0f, 0.15f, 0.45f);
+    addSquare(s, 200, 0.1f, 0.0f, 0.1f, 0.4f);
+    addNoise(s, 0.08f, 0.0f, 0.2f, 0.5f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::archRiftOpen() {
+    auto s = generate(0.6f);
+    addSweep(s, 600, 100, 0.3f, 0.0f, 0, 0.3f);
+    addSweep(s, 100, 500, 0.2f, 0.0f, 0.2f, 0.5f);
+    addNoise(s, 0.15f, 0.0f, 0, 0.2f);
+    addSine(s, 250, 0.2f, 0.0f, 0.3f, 0.6f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::archCollapse() {
+    auto s = generate(0.8f);
+    addNoise(s, 0.4f, 0.0f, 0, 0.1f);
+    addSweep(s, 300, 30, 0.35f, 0.0f, 0, 0.5f);
+    addSine(s, 50, 0.3f, 0.0f, 0, 0.6f);
+    addNoise(s, 0.15f, 0.0f, 0.2f, 0.7f);
+    addSquare(s, 40, 0.2f, 0.0f, 0.3f, 0.8f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::archBeam() {
+    auto s = generate(0.4f);
+    addSine(s, 500, 0.25f, 0.1f, 0, 0.35f);
+    addSine(s, 750, 0.15f, 0.0f, 0.05f, 0.3f);
+    addSquare(s, 300, 0.1f, 0.0f, 0, 0.2f);
+    addSweep(s, 500, 800, 0.1f, 0.0f, 0.1f, 0.35f);
+    return toChunk(s);
+}
+
 // ---- Ambient music loops ----
 
 Mix_Chunk* SoundGenerator::ambientDimA() {

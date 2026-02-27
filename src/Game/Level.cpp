@@ -85,6 +85,35 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
                 renderConveyorTile(renderer, sr, tile, ticks);
             } else if (tile.type == TileType::LaserEmitter) {
                 renderLaserEmitter(renderer, sr, tile, ticks);
+            } else if (tile.type == TileType::Breakable) {
+                // Solid base with crack lines as hint
+                SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, tile.color.a);
+                SDL_RenderFillRect(renderer, &sr);
+                // Subtle crack lines
+                Uint8 cr = static_cast<Uint8>(std::min(255, tile.color.r + 40));
+                Uint8 cg = static_cast<Uint8>(std::min(255, tile.color.g + 30));
+                Uint8 cb = static_cast<Uint8>(std::min(255, tile.color.b + 20));
+                SDL_SetRenderDrawColor(renderer, cr, cg, cb, 80);
+                // Diagonal cracks
+                SDL_RenderDrawLine(renderer, sr.x + 3, sr.y + 2, sr.x + sr.w / 2, sr.y + sr.h / 2);
+                SDL_RenderDrawLine(renderer, sr.x + sr.w / 2, sr.y + sr.h / 2, sr.x + sr.w - 4, sr.y + sr.h - 3);
+                SDL_RenderDrawLine(renderer, sr.x + sr.w - 5, sr.y + 4, sr.x + sr.w / 3, sr.y + sr.h - 5);
+                // Subtle shimmer
+                float shimmer = 0.3f + 0.2f * std::sin(ticks * 0.004f + x * 2.1f + y * 3.7f);
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, static_cast<Uint8>(15 * shimmer));
+                SDL_Rect shimmerRect = {sr.x + 2, sr.y + 2, sr.w - 4, sr.h - 4};
+                SDL_RenderFillRect(renderer, &shimmerRect);
+            } else if (tile.type == TileType::ShrineBase) {
+                // Shrine base: glowing pedestal
+                SDL_SetRenderDrawColor(renderer, 60, 40, 80, 200);
+                SDL_RenderFillRect(renderer, &sr);
+                float glow = 0.5f + 0.5f * std::sin(ticks * 0.003f + x);
+                Uint8 ga = static_cast<Uint8>(60 + 40 * glow);
+                SDL_SetRenderDrawColor(renderer, 180, 120, 255, ga);
+                SDL_Rect inner = {sr.x + 4, sr.y + 4, sr.w - 8, sr.h - 8};
+                SDL_RenderFillRect(renderer, &inner);
+                SDL_SetRenderDrawColor(renderer, 220, 180, 255, static_cast<Uint8>(30 * glow));
+                SDL_RenderDrawRect(renderer, &sr);
             } else if (tile.type == TileType::Decoration) {
                 // Subtle accent dot/cross
                 Uint8 da = tile.color.a;

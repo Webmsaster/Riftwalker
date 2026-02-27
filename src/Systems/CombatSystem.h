@@ -19,6 +19,9 @@ public:
     void setCritChance(float chance) { m_critChance = chance; }
     void setComboBonus(float bonus) { m_comboBonus = bonus; }
     void setPlayer(class Player* p) { m_player = p; }
+    void setLifesteal(float pct) { m_lifesteal = pct; }
+    void setElementWeapon(int type) { m_elementWeapon = type; } // 0=none 1=fire 2=ice 3=electric
+    void setDashRefreshOnKill(bool v) { m_dashRefreshOnKill = v; }
 
     // Hit-freeze: returns accumulated freeze time and resets
     float consumeHitFreeze();
@@ -47,6 +50,9 @@ private:
     float m_pendingHitFreeze = 0;
     float m_critChance = 0;
     float m_comboBonus = 0;
+    float m_lifesteal = 0;
+    int m_elementWeapon = 0;   // 0=none 1=fire 2=ice 3=electric
+    bool m_dashRefreshOnKill = false;
     class Player* m_player = nullptr;
     std::vector<DamageEvent> m_damageEvents;
 };

@@ -55,6 +55,34 @@ void AudioManager::generateSounds() {
     m_sfx[static_cast<int>(SFX::WyrmDive)]             = SoundGenerator::wyrmDive();
     m_sfx[static_cast<int>(SFX::WyrmPoison)]           = SoundGenerator::wyrmPoison();
     m_sfx[static_cast<int>(SFX::WyrmBarrage)]          = SoundGenerator::wyrmBarrage();
+    m_sfx[static_cast<int>(SFX::IceFreeze)]            = SoundGenerator::iceFreeze();
+    m_sfx[static_cast<int>(SFX::ElectricChain)]        = SoundGenerator::electricChain();
+    m_sfx[static_cast<int>(SFX::Parry)]                = SoundGenerator::parry();
+    m_sfx[static_cast<int>(SFX::ParryCounter)]         = SoundGenerator::parryCounter();
+    m_sfx[static_cast<int>(SFX::ChargedAttackRelease)] = SoundGenerator::chargedAttackRelease();
+    m_sfx[static_cast<int>(SFX::CriticalHit)]          = SoundGenerator::criticalHit();
+    m_sfx[static_cast<int>(SFX::ComboMilestone)]       = SoundGenerator::comboMilestone();
+    m_sfx[static_cast<int>(SFX::AirJuggleLaunch)]      = SoundGenerator::airJuggleLaunch();
+    m_sfx[static_cast<int>(SFX::EnemyStun)]            = SoundGenerator::enemyStun();
+    m_sfx[static_cast<int>(SFX::GroundSlam)]           = SoundGenerator::groundSlam();
+    m_sfx[static_cast<int>(SFX::RiftShieldActivate)]   = SoundGenerator::riftShieldActivate();
+    m_sfx[static_cast<int>(SFX::RiftShieldAbsorb)]     = SoundGenerator::riftShieldAbsorb();
+    m_sfx[static_cast<int>(SFX::RiftShieldReflect)]    = SoundGenerator::riftShieldReflect();
+    m_sfx[static_cast<int>(SFX::RiftShieldBurst)]      = SoundGenerator::riftShieldBurst();
+    m_sfx[static_cast<int>(SFX::PhaseStrikeTeleport)]  = SoundGenerator::phaseStrikeTeleport();
+    m_sfx[static_cast<int>(SFX::PhaseStrikeHit)]       = SoundGenerator::phaseStrikeHit();
+    m_sfx[static_cast<int>(SFX::BreakableWall)]        = SoundGenerator::breakableWall();
+    m_sfx[static_cast<int>(SFX::SecretRoomDiscover)]   = SoundGenerator::secretRoomDiscover();
+    m_sfx[static_cast<int>(SFX::ShrineActivate)]       = SoundGenerator::shrineActivate();
+    m_sfx[static_cast<int>(SFX::ShrineBlessing)]       = SoundGenerator::shrineBlessing();
+    m_sfx[static_cast<int>(SFX::ShrineCurse)]          = SoundGenerator::shrineCurse();
+    m_sfx[static_cast<int>(SFX::MerchantGreet)]        = SoundGenerator::merchantGreet();
+    m_sfx[static_cast<int>(SFX::AnomalySpawn)]         = SoundGenerator::anomalySpawn();
+    m_sfx[static_cast<int>(SFX::ArchTileSwap)]         = SoundGenerator::archTileSwap();
+    m_sfx[static_cast<int>(SFX::ArchConstruct)]        = SoundGenerator::archConstruct();
+    m_sfx[static_cast<int>(SFX::ArchRiftOpen)]         = SoundGenerator::archRiftOpen();
+    m_sfx[static_cast<int>(SFX::ArchCollapse)]         = SoundGenerator::archCollapse();
+    m_sfx[static_cast<int>(SFX::ArchBeam)]             = SoundGenerator::archBeam();
 }
 
 void AudioManager::shutdown() {

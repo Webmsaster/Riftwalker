@@ -12,6 +12,7 @@ public:
     void setParticleSystem(ParticleSystem* ps) { m_particles = ps; }
     void setCamera(Camera* cam) { m_camera = cam; }
     void setCombatSystem(CombatSystem* cs) { m_combatSystem = cs; }
+    void setLevel(class Level* lvl) { m_level = lvl; }
 
 private:
     void updateWalker(Entity& entity, float dt, Vec2 playerPos);
@@ -26,6 +27,7 @@ private:
     void updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
+    void updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
 
     void explode(Entity& entity, EntityManager& entities);
 
@@ -34,4 +36,5 @@ private:
     ParticleSystem* m_particles = nullptr;
     Camera* m_camera = nullptr;
     CombatSystem* m_combatSystem = nullptr;
+    class Level* m_level = nullptr;
 };

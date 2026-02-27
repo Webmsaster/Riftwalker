@@ -7,6 +7,7 @@ class SuitEntropy;
 class DimensionManager;
 class Level;
 class EntityManager;
+struct AbilityComponent;
 
 class HUD {
 public:

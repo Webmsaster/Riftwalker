@@ -18,7 +18,10 @@ enum class UpgradeID {
     ComboMaster,        // +combo damage bonus
     WallSlide,          // Improved wall slide
     CritChance,         // +10% crit chance
-    ShardMagnet         // Increased shard pickup range
+    ShardMagnet,        // Increased shard pickup range
+    AbilityCooldown,    // -15% ability cooldowns
+    AbilityPower,       // +20% ability damage
+    ShieldCapacity      // +1 shield hit capacity
 };
 
 struct Upgrade {
@@ -68,6 +71,9 @@ public:
     float getComboBonus() const;
     float getCritChance() const;
     float getShardMagnetRange() const;
+    float getAbilityCooldownMultiplier() const;
+    float getAbilityPowerMultiplier() const;
+    int getShieldCapacityBonus() const;
 
     // Persistence
     std::string serialize() const;

@@ -1,5 +1,7 @@
 #pragma once
 #include "Tile.h"
+#include "SecretRoom.h"
+#include "RandomEvent.h"
 #include "Core/Camera.h"
 #include <vector>
 #include <SDL2/SDL.h>
@@ -46,6 +48,16 @@ public:
     bool isInLaserBeam(float worldX, float worldY, int dimension) const;
     bool isOnConveyor(int tileX, int tileY, int dimension, int& direction) const;
 
+    // Secret rooms
+    std::vector<SecretRoom>& getSecretRooms() { return m_secretRooms; }
+    const std::vector<SecretRoom>& getSecretRooms() const { return m_secretRooms; }
+    void addSecretRoom(const SecretRoom& room) { m_secretRooms.push_back(room); }
+
+    // Random events
+    std::vector<RandomEvent>& getRandomEvents() { return m_randomEvents; }
+    const std::vector<RandomEvent>& getRandomEvents() const { return m_randomEvents; }
+    void addRandomEvent(const RandomEvent& event) { m_randomEvents.push_back(event); }
+
     void clear();
 
 private:
@@ -56,6 +68,8 @@ private:
     Vec2 m_exitPoint;
     std::vector<Vec2> m_riftPositions;
     std::vector<SpawnPoint> m_enemySpawns;
+    std::vector<SecretRoom> m_secretRooms;
+    std::vector<RandomEvent> m_randomEvents;
 
     int index(int x, int y) const { return y * m_width + x; }
 

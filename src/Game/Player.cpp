@@ -7,7 +7,9 @@
 #include "Components/HealthComponent.h"
 #include "Components/CombatComponent.h"
 #include "Components/AnimationComponent.h"
+#include "Components/AIComponent.h"
 #include "Core/AudioManager.h"
+#include "Systems/CombatSystem.h"
 #include <cmath>
 
 Player::Player(EntityManager& entities) {
@@ -49,7 +51,22 @@ Player::Player(EntityManager& entities) {
     combat.rangedAttack.duration = 0.1f;
     combat.rangedAttack.type = AttackType::Ranged;
 
+    combat.dashAttack.damage = 30.0f;
+    combat.dashAttack.range = 64.0f;
+    combat.dashAttack.knockback = 400.0f;
+    combat.dashAttack.cooldown = 0.0f; // uses dash cooldown instead
+    combat.dashAttack.duration = 0.2f;
+    combat.dashAttack.type = AttackType::Dash;
+
+    combat.chargedAttack.damage = 50.0f;
+    combat.chargedAttack.range = 72.0f;
+    combat.chargedAttack.knockback = 500.0f;
+    combat.chargedAttack.cooldown = 0.6f;
+    combat.chargedAttack.duration = 0.25f;
+    combat.chargedAttack.type = AttackType::Charged;
+
     m_entity->addComponent<AnimationComponent>();
+    m_entity->addComponent<AbilityComponent>();
     m_entity->dimension = 0; // Player exists in both dimensions
 }
 
@@ -67,6 +84,7 @@ void Player::update(float dt, const InputManager& input) {
     }
 
     handleAttack(input);
+    handleAbilities(dt, input);
     updateAnimation();
 
     // Advance animation timer
@@ -75,12 +93,21 @@ void Player::update(float dt, const InputManager& input) {
 
     // Landing effect: was airborne, now on ground
     if (phys.onGround && wasInAir) {
+        auto& combat = m_entity->getComponent<CombatComponent>();
+        bool slamLanding = combat.isAttacking && combat.attackDirection.y > 0.5f;
+
         if (particles) {
             auto& t = m_entity->getComponent<TransformComponent>();
             Vec2 feetPos = {t.getCenter().x, t.position.y + t.height};
-            particles->burst(feetPos, 6, {180, 180, 200, 200}, 60.0f, 2.0f);
+            if (slamLanding) {
+                // Groundpound shockwave
+                particles->burst(feetPos, 20, {255, 200, 80, 255}, 180.0f, 4.0f);
+                particles->burst(feetPos, 12, {255, 150, 50, 255}, 100.0f, 3.0f);
+            } else {
+                particles->burst(feetPos, 6, {180, 180, 200, 200}, 60.0f, 2.0f);
+            }
         }
-        AudioManager::instance().play(SFX::PlayerLand);
+        AudioManager::instance().play(slamLanding ? SFX::MeleeHit : SFX::PlayerLand);
     }
     wasInAir = !phys.onGround;
 
@@ -88,6 +115,61 @@ void Player::update(float dt, const InputManager& input) {
     if (phys.onGround) {
         jumpsRemaining = maxJumps;
         isWallSliding = false;
+    }
+
+    // Update ability cooldowns
+    if (m_entity->hasComponent<AbilityComponent>()) {
+        auto& abil = m_entity->getComponent<AbilityComponent>();
+        abil.update(dt);
+
+        // Ground Slam: fast fall in progress
+        if (abil.slamFalling) {
+            auto& phys = m_entity->getComponent<PhysicsBody>();
+            phys.velocity.y = 800.0f; // Fast slam fall
+            phys.velocity.x *= 0.3f;  // Reduce horizontal movement
+
+            if (phys.onGround) {
+                // Slam landed!
+                abil.slamFalling = false;
+                auto& t = m_entity->getComponent<TransformComponent>();
+                float fallDist = t.position.y - slamFallStartY;
+                float fallBonus = std::min(fallDist / 200.0f, 1.5f); // Up to 1.5x bonus
+
+                AudioManager::instance().play(SFX::GroundSlam);
+
+                if (particles) {
+                    Vec2 feetPos = {t.getCenter().x, t.position.y + t.height};
+                    int pCount = 25 + static_cast<int>(fallBonus * 15);
+                    particles->burst(feetPos, pCount, {255, 180, 60, 255}, 250.0f, 5.0f);
+                    particles->burst(feetPos, pCount / 2, {255, 120, 30, 255}, 180.0f, 3.0f);
+                    // Ground shockwave ring
+                    for (int i = 0; i < 16; i++) {
+                        float angle = i * 6.283185f / 16.0f;
+                        Vec2 ringDir = {std::cos(angle) * 120.0f, std::sin(angle) * 40.0f - 30.0f};
+                        particles->burst({feetPos.x + ringDir.x * 0.3f, feetPos.y + ringDir.y * 0.3f},
+                                        2, {255, 200, 80, 200}, 100.0f, 2.0f);
+                    }
+                }
+
+                // AoE damage is handled by CombatSystem check in PlayState
+                // Store slam data for combat system to process
+                abil.abilities[0].active = true;
+                abil.abilities[0].duration = 0.05f; // brief window for combat to detect
+                abil.abilities[0].maxDuration = 0.05f;
+            }
+        }
+
+        // Rift Shield duration
+        if (abil.abilities[1].active && abil.shieldHitsRemaining <= 0) {
+            abil.abilities[1].active = false;
+            abil.abilities[1].duration = 0;
+        }
+    }
+
+    // Phase tint decay
+    if (phaseTintTimer > 0) {
+        phaseTintTimer -= dt;
+        if (phaseTintTimer <= 0) isPhaseStriking = false;
     }
 
     // Update buff timers
@@ -100,10 +182,34 @@ void Player::update(float dt, const InputManager& input) {
         if (damageBoostTimer <= 0) damageBoostTimer = 0;
     }
 
-    // Status effect timers
-    if (burnTimer > 0) burnTimer -= dt;
+    // Status effect DOT damage
+    if (burnTimer > 0) {
+        burnTimer -= dt;
+        burnDmgTimer -= dt;
+        if (burnDmgTimer <= 0) {
+            burnDmgTimer = 0.3f;
+            auto& hp = m_entity->getComponent<HealthComponent>();
+            hp.takeDamage(5.0f);
+            if (particles) {
+                auto& t = m_entity->getComponent<TransformComponent>();
+                particles->burst(t.getCenter(), 4, {255, 120, 30, 255}, 60.0f, 1.5f);
+            }
+        }
+    }
     if (freezeTimer > 0) freezeTimer -= dt;
-    if (poisonTimer > 0) poisonTimer -= dt;
+    if (poisonTimer > 0) {
+        poisonTimer -= dt;
+        poisonDmgTimer -= dt;
+        if (poisonDmgTimer <= 0) {
+            poisonDmgTimer = 0.5f;
+            auto& hp = m_entity->getComponent<HealthComponent>();
+            hp.takeDamage(3.0f);
+            if (particles) {
+                auto& t = m_entity->getComponent<TransformComponent>();
+                particles->burst(t.getCenter(), 3, {80, 220, 60, 255}, 40.0f, 1.5f);
+            }
+        }
+    }
     if (hasShield) {
         shieldTimer -= dt;
         auto& hp = m_entity->getComponent<HealthComponent>();
@@ -238,16 +344,95 @@ void Player::handleWallSlide(float dt) {
 void Player::handleAttack(const InputManager& input) {
     auto& combat = m_entity->getComponent<CombatComponent>();
 
-    Vec2 dir = {facingRight ? 1.0f : -1.0f, 0.0f};
+    // Directional attack: check vertical input
+    float hDir = facingRight ? 1.0f : -1.0f;
+    float vAxis = 0;
+    if (input.isActionDown(Action::MoveUp)) vAxis = -1.0f;
+    else if (input.isActionDown(Action::MoveDown)) vAxis = 1.0f;
+
+    Vec2 dir;
+    if (vAxis != 0 && !m_entity->getComponent<PhysicsBody>().onGround && vAxis > 0) {
+        // Downward attack (air only)
+        dir = {0.0f, 1.0f};
+    } else if (vAxis < 0) {
+        // Upward attack
+        dir = {0.0f, -1.0f};
+    } else {
+        dir = {hDir, 0.0f};
+    }
+
+    // Charged attack: release detection
+    if (isChargingAttack && combat.isCharging) {
+        if (input.isActionReleased(Action::Attack)) {
+            float chargePercent = combat.getChargePercent();
+            if (combat.chargeTimer >= combat.minChargeTime) {
+                // Scale damage with charge
+                combat.chargedAttack.damage = 50.0f * (0.5f + 0.5f * chargePercent);
+                combat.chargedAttack.knockback = 500.0f * (0.5f + 0.5f * chargePercent);
+                combat.releaseCharged(dir);
+                AudioManager::instance().play(SFX::ChargedAttackRelease);
+                if (particles) {
+                    auto& t = m_entity->getComponent<TransformComponent>();
+                    Vec2 attackPos = t.getCenter() + dir * 40.0f;
+                    int pCount = 15 + static_cast<int>(chargePercent * 20);
+                    particles->burst(attackPos, pCount, {255, 200, 50, 255}, 250.0f, 5.0f);
+                    particles->burst(attackPos, pCount / 2, {255, 255, 150, 255}, 180.0f, 3.0f);
+                }
+            } else {
+                combat.isCharging = false;
+            }
+            isChargingAttack = false;
+            return;
+        }
+        // Charge particles while holding
+        if (particles && combat.chargeTimer >= combat.minChargeTime) {
+            auto& t = m_entity->getComponent<TransformComponent>();
+            float cp = combat.getChargePercent();
+            Uint8 g = static_cast<Uint8>(200 * (1.0f - cp * 0.5f));
+            particles->burst(t.getCenter(), 1, {255, g, 50, 200}, 30.0f + cp * 60.0f, 1.5f);
+        }
+        return;
+    }
 
     if (input.isActionPressed(Action::Attack)) {
-        AudioManager::instance().play(SFX::MeleeSwing);
-        combat.startAttack(AttackType::Melee, dir);
-        if (particles) {
-            auto& t = m_entity->getComponent<TransformComponent>();
-            Vec2 attackPos = t.getCenter() + dir * 32.0f;
-            particles->burst(attackPos, 8, {255, 255, 200, 255}, 100.0f, 3.0f);
+        // Parry window: opens on attack press
+        combat.startParry();
+
+        if (isDashing) {
+            // Dash attack: cancel dash into a powerful hit
+            isDashing = false;
+            auto& phys = m_entity->getComponent<PhysicsBody>();
+            phys.useGravity = true;
+            phys.velocity.x *= 0.5f;
+
+            // Brief invincibility during dash attack
+            auto& hp = m_entity->getComponent<HealthComponent>();
+            hp.invincibilityTimer = 0.25f;
+
+            Vec2 dashDir = {facingRight ? 1.0f : -1.0f, -0.3f};
+            combat.startAttack(AttackType::Dash, dashDir);
+            AudioManager::instance().play(SFX::MeleeSwing);
+            if (particles) {
+                auto& t = m_entity->getComponent<TransformComponent>();
+                Vec2 attackPos = t.getCenter() + dashDir * 40.0f;
+                particles->burst(attackPos, 18, {100, 200, 255, 255}, 180.0f, 4.0f);
+            }
+        } else {
+            AudioManager::instance().play(SFX::MeleeSwing);
+            combat.startAttack(AttackType::Melee, dir);
+            if (particles) {
+                auto& t = m_entity->getComponent<TransformComponent>();
+                Vec2 attackPos = t.getCenter() + dir * 32.0f;
+                particles->burst(attackPos, 8, {255, 255, 200, 255}, 100.0f, 3.0f);
+            }
         }
+    }
+
+    // Charged attack: start charging if attack held after melee ends
+    if (input.isActionDown(Action::Attack) && !combat.isAttacking && !combat.isCharging
+        && combat.cooldownTimer <= 0 && !isDashing) {
+        combat.startCharging();
+        isChargingAttack = true;
     }
 
     if (input.isActionPressed(Action::RangedAttack)) {
@@ -318,5 +503,175 @@ void Player::updateAnimation() {
     if (poisonTimer > 0) {
         sprite.color.g = std::min(255, sprite.color.g + 60);
         sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.7f);
+    }
+
+    // Ability tinting
+    if (m_entity->hasComponent<AbilityComponent>()) {
+        auto& abil = m_entity->getComponent<AbilityComponent>();
+        // Ground Slam falling: orange glow
+        if (abil.slamFalling) {
+            float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.015f);
+            sprite.color.r = static_cast<Uint8>(std::min(255.0f, sprite.color.r + 120 * pulse));
+            sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g * 0.7f + 80 * pulse));
+            sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.4f);
+        }
+        // Rift Shield active: cyan shimmer
+        if (abil.abilities[1].active) {
+            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.01f);
+            sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.5f);
+            sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g * 0.8f + 100 * pulse));
+            sprite.color.b = static_cast<Uint8>(std::min(255.0f, sprite.color.b + 120 * pulse));
+        }
+        // Phase Strike tint: purple flash
+        if (phaseTintTimer > 0) {
+            float t = phaseTintTimer / 0.3f;
+            sprite.color.r = static_cast<Uint8>(std::min(255.0f, sprite.color.r + 100 * t));
+            sprite.color.g = static_cast<Uint8>(sprite.color.g * (1.0f - 0.5f * t));
+            sprite.color.b = static_cast<Uint8>(std::min(255.0f, sprite.color.b + 120 * t));
+        }
+    }
+}
+
+void Player::handleAbilities(float dt, const InputManager& input) {
+    if (!m_entity->hasComponent<AbilityComponent>()) return;
+    auto& abil = m_entity->getComponent<AbilityComponent>();
+    auto& phys = m_entity->getComponent<PhysicsBody>();
+    auto& t = m_entity->getComponent<TransformComponent>();
+
+    // Ability 1: Ground Slam (must be in air)
+    if (input.isActionPressed(Action::Ability1) && abil.abilities[0].isReady()) {
+        if (!phys.onGround) {
+            abil.slamFalling = true;
+            slamFallStartY = t.position.y;
+            abil.slamFallStart = t.position.y; // Sync to component for CombatSystem
+            abil.activate(0);
+            // Brief upward pause before slam
+            phys.velocity.y = -50.0f;
+            phys.velocity.x *= 0.2f;
+
+            if (particles) {
+                particles->burst(t.getCenter(), 10, {255, 180, 60, 255}, 80.0f, 2.0f);
+            }
+        }
+    }
+
+    // Ability 2: Rift Shield
+    if (input.isActionPressed(Action::Ability2) && abil.abilities[1].isReady()) {
+        abil.activate(1);
+        abil.shieldHitsRemaining = abil.shieldMaxHits;
+        abil.shieldAbsorbedDamage = 0;
+        abil.shieldBurst = false;
+        AudioManager::instance().play(SFX::RiftShieldActivate);
+
+        if (particles) {
+            // Shield activation burst
+            for (int i = 0; i < 12; i++) {
+                float angle = i * 6.283185f / 12.0f;
+                Vec2 pos = {t.getCenter().x + std::cos(angle) * 30.0f,
+                           t.getCenter().y + std::sin(angle) * 30.0f};
+                particles->burst(pos, 2, {80, 220, 255, 200}, 40.0f, 2.0f);
+            }
+        }
+    }
+
+    // Ability 3: Phase Strike (teleport behind nearest enemy)
+    if (input.isActionPressed(Action::Ability3) && abil.abilities[2].isReady() && entityManager) {
+        // Find nearest enemy within range
+        Entity* nearestEnemy = nullptr;
+        float nearestDist = abil.phaseStrikeRange;
+        Vec2 playerPos = t.getCenter();
+
+        entityManager->forEach([&](Entity& e) {
+            if (e.getTag().find("enemy") == std::string::npos) return;
+            if (!e.isAlive() || !e.hasComponent<TransformComponent>()) return;
+            if (!e.hasComponent<HealthComponent>()) return;
+            auto& hp = e.getComponent<HealthComponent>();
+            if (hp.currentHP <= 0) return;
+
+            auto& et = e.getComponent<TransformComponent>();
+            float dx = et.getCenter().x - playerPos.x;
+            float dy = et.getCenter().y - playerPos.y;
+            float dist = std::sqrt(dx * dx + dy * dy);
+
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearestEnemy = &e;
+            }
+        });
+
+        if (nearestEnemy) {
+            abil.activate(2);
+            auto& et = nearestEnemy->getComponent<TransformComponent>();
+            Vec2 enemyCenter = et.getCenter();
+
+            // Teleport behind enemy (opposite of player's approach direction)
+            float dx = enemyCenter.x - playerPos.x;
+            float behindDir = (dx > 0) ? 1.0f : -1.0f; // go past them
+            float teleportX = enemyCenter.x + behindDir * 40.0f;
+            float teleportY = enemyCenter.y - (t.height - et.height) * 0.5f;
+
+            // Vanish particles at old position
+            AudioManager::instance().play(SFX::PhaseStrikeTeleport);
+            if (particles) {
+                particles->burst(playerPos, 15, {180, 80, 255, 255}, 150.0f, 3.0f);
+            }
+
+            // Teleport
+            t.position.x = teleportX - t.width * 0.5f;
+            t.position.y = teleportY;
+            phys.velocity = {0, 0};
+            facingRight = (dx > 0) ? false : true; // face toward enemy (behind them)
+            m_entity->getComponent<SpriteComponent>().flipX = !facingRight;
+
+            // Appear particles
+            if (particles) {
+                particles->burst(t.getCenter(), 15, {180, 80, 255, 255}, 150.0f, 3.0f);
+            }
+
+            // Guaranteed backstab crit hit
+            auto& combat = m_entity->getComponent<CombatComponent>();
+            float hDir = facingRight ? 1.0f : -1.0f;
+            Vec2 strikeDir = {hDir, 0.0f};
+
+            // Apply damage directly
+            auto& enemyHP = nearestEnemy->getComponent<HealthComponent>();
+            float damage = combat.meleeAttack.damage * abil.phaseStrikeDamageMult;
+            enemyHP.takeDamage(damage);
+            AudioManager::instance().play(SFX::PhaseStrikeHit);
+
+            // Knockback
+            if (nearestEnemy->hasComponent<PhysicsBody>()) {
+                auto& ePhys = nearestEnemy->getComponent<PhysicsBody>();
+                ePhys.velocity += strikeDir * 400.0f + Vec2{0, -200.0f};
+            }
+
+            // Stun
+            if (nearestEnemy->hasComponent<AIComponent>()) {
+                nearestEnemy->getComponent<AIComponent>().stun(0.8f);
+            }
+
+            // Crit particles
+            if (particles) {
+                Vec2 hitPos = et.getCenter();
+                particles->burst(hitPos, 20, {255, 80, 255, 255}, 200.0f, 4.0f);
+                particles->burst(hitPos, 10, {255, 255, 200, 255}, 150.0f, 3.0f);
+            }
+
+            phaseTintTimer = 0.3f;
+            isPhaseStriking = true;
+
+            // Kill check for CD refund
+            if (enemyHP.currentHP <= 0) {
+                abil.reduceCooldown(2, abil.phaseStrikeCDRefund);
+                if (particles) {
+                    particles->burst(et.getCenter(), 30, {200, 100, 255, 255}, 250.0f, 5.0f);
+                }
+            }
+
+            // Report damage event to combat system
+            if (combatSystemRef) {
+                combatSystemRef->addHitFreeze(0.08f);
+            }
+        }
     }
 }

@@ -2,6 +2,9 @@
 #include <algorithm>
 #include <cmath>
 
+// Room data shared between generate() and helper methods
+struct LGRoom { int x, y, w, h; };
+
 LevelGenerator::LevelGenerator() : m_rng(42) {}
 
 void LevelGenerator::setThemes(const WorldTheme& themeA, const WorldTheme& themeB) {
@@ -26,8 +29,7 @@ Level LevelGenerator::generate(int difficulty, int seed) {
     placeBorders(level, 2, m_themeB);
 
     // Generate rooms along a path
-    struct Room { int x, y, w, h; };
-    std::vector<Room> rooms;
+    std::vector<LGRoom> rooms;
 
     int curX = 3;
     int curY = levelH / 2;
@@ -201,81 +203,11 @@ Level LevelGenerator::generate(int difficulty, int seed) {
         }
     }
 
-    // Secret rooms: 10% chance per regular room, hidden behind breakable walls
-    // Only in dimension that differs from the other (visible as ghost)
-    for (size_t i = 1; i + 1 < rooms.size(); i++) {
-        if (m_rng() % 10 != 0) continue; // 10% chance
+    // Secret rooms with breakable wall entrances
+    placeSecretRooms(level, rooms, difficulty);
 
-        auto& room = rooms[i];
-        int secretW = 6;
-        int secretH = 5;
-
-        // Place above or below the room
-        bool placeAbove = (m_rng() % 2 == 0) && (room.y - secretH - 1 > 1);
-        int sx = room.x + 1 + m_rng() % std::max(1, room.w - secretW - 2);
-        int sy = placeAbove ? (room.y - secretH - 1) : (room.y + room.h + 1);
-
-        if (sy < 2 || sy + secretH >= levelH - 1) continue;
-        if (sx + secretW >= levelW - 1) continue;
-
-        // Build the secret room in both dimensions
-        for (int dim = 1; dim <= 2; dim++) {
-            auto& theme = (dim == 1) ? m_themeA : m_themeB;
-
-            // Walls
-            for (int ry = 0; ry < secretH; ry++) {
-                for (int rx = 0; rx < secretW; rx++) {
-                    bool isWall = (ry == 0 || ry == secretH - 1 || rx == 0 || rx == secretW - 1);
-                    Tile t;
-                    if (isWall) {
-                        t.type = TileType::Solid;
-                        t.color = theme.colors.solid;
-                    } else {
-                        t.type = TileType::Empty;
-                    }
-                    level.setTile(sx + rx, sy + ry, dim, t);
-                }
-            }
-
-            // Accent color on walls to make it look special
-            for (int rx = 1; rx < secretW - 1; rx++) {
-                Tile accent;
-                accent.type = TileType::Solid;
-                accent.color = theme.colors.accent;
-                level.setTile(sx + rx, sy, dim, accent);
-            }
-
-            // One-tile connection to main room (hidden passage)
-            int passX = sx + secretW / 2;
-            int passY = placeAbove ? sy + secretH - 1 : sy;
-            Tile empty;
-            empty.type = TileType::Empty;
-            level.setTile(passX, passY, dim, empty);
-            // Short vertical corridor
-            int corridorDir = placeAbove ? 1 : -1;
-            for (int cy = 1; cy <= 2; cy++) {
-                int tileY = passY + cy * corridorDir;
-                if (level.inBounds(passX, tileY)) {
-                    level.setTile(passX, tileY, dim, empty);
-                }
-            }
-
-            // Reward: extra pickup spawns and a rift shard bonus area
-            for (int rx = 2; rx < secretW - 2; rx++) {
-                Tile deco;
-                deco.type = TileType::Decoration;
-                deco.color = theme.colors.accent;
-                deco.color.a = 100;
-                level.setTile(sx + rx, sy + secretH / 2, dim, deco);
-            }
-        }
-
-        // Add enemy spawns with better loot (dimension 0 = both)
-        level.addEnemySpawn(
-            {static_cast<float>((sx + 2) * 32), static_cast<float>((sy + 2) * 32)},
-            m_rng() % 5, 0
-        );
-    }
+    // Random events (merchant, shrine, anomaly, etc.)
+    placeRandomEvents(level, rooms, difficulty);
 
     // Add rifts (puzzles)
     int riftCount = 2 + difficulty;
@@ -641,6 +573,250 @@ void LevelGenerator::placeBorders(Level& level, int dim, const WorldTheme& theme
         level.setTile(1, y, dim, border);
         level.setTile(w - 1, y, dim, border);
         level.setTile(w - 2, y, dim, border);
+    }
+}
+
+void LevelGenerator::placeSecretRooms(Level& level, const std::vector<LGRoom>& rooms, int difficulty) {
+    int levelW = level.getWidth();
+    int levelH = level.getHeight();
+
+    // Secret room types cycle through based on RNG
+    SecretRoomType secretTypes[] = {
+        SecretRoomType::TreasureVault,
+        SecretRoomType::ChallengeRoom,
+        SecretRoomType::ShrineRoom,
+        SecretRoomType::DimensionCache,
+        SecretRoomType::AncientWeapon
+    };
+
+    for (size_t i = 1; i + 1 < rooms.size(); i++) {
+        // 15% chance per room (up from 10%)
+        if (m_rng() % 7 != 0) continue;
+
+        auto& room = rooms[i];
+        int secretW = 6 + m_rng() % 3; // 6-8 wide
+        int secretH = 5 + m_rng() % 2; // 5-6 tall
+
+        // Place above or below the room
+        bool placeAbove = (m_rng() % 2 == 0) && (room.y - secretH - 1 > 1);
+        int sx = room.x + 1 + m_rng() % std::max(1, room.w - secretW - 2);
+        int sy = placeAbove ? (room.y - secretH - 1) : (room.y + room.h + 1);
+
+        if (sy < 2 || sy + secretH >= levelH - 1) continue;
+        if (sx < 2 || sx + secretW >= levelW - 1) continue;
+
+        SecretRoomType sType = secretTypes[m_rng() % 5];
+
+        // Build the secret room in both dimensions
+        for (int dim = 1; dim <= 2; dim++) {
+            auto& theme = (dim == 1) ? m_themeA : m_themeB;
+
+            // Walls
+            for (int ry = 0; ry < secretH; ry++) {
+                for (int rx = 0; rx < secretW; rx++) {
+                    bool isWall = (ry == 0 || ry == secretH - 1 || rx == 0 || rx == secretW - 1);
+                    Tile t;
+                    if (isWall) {
+                        t.type = TileType::Solid;
+                        t.color = theme.colors.accent;
+                    } else {
+                        t.type = TileType::Empty;
+                    }
+                    level.setTile(sx + rx, sy + ry, dim, t);
+                }
+            }
+
+            // Accent ceiling
+            for (int rx = 1; rx < secretW - 1; rx++) {
+                Tile accent;
+                accent.type = TileType::Solid;
+                accent.color = theme.colors.accent;
+                level.setTile(sx + rx, sy, dim, accent);
+            }
+
+            // BREAKABLE WALL entrance (replaces open passage)
+            int passX = sx + secretW / 2;
+            int passY = placeAbove ? sy + secretH - 1 : sy;
+            Tile breakable;
+            breakable.type = TileType::Breakable;
+            breakable.color = theme.colors.solid;
+            level.setTile(passX, passY, dim, breakable);
+            // Second breakable tile for wider entrance
+            if (level.inBounds(passX + 1, passY)) {
+                level.setTile(passX + 1, passY, dim, breakable);
+            }
+
+            // Clear corridor behind breakable wall
+            int corridorDir = placeAbove ? 1 : -1;
+            Tile empty;
+            empty.type = TileType::Empty;
+            for (int cy = 1; cy <= 2; cy++) {
+                int tileY = passY + cy * corridorDir;
+                if (level.inBounds(passX, tileY)) {
+                    level.setTile(passX, tileY, dim, empty);
+                }
+                if (level.inBounds(passX + 1, tileY)) {
+                    level.setTile(passX + 1, tileY, dim, empty);
+                }
+            }
+
+            // Type-specific interior
+            switch (sType) {
+                case SecretRoomType::TreasureVault:
+                    // Gold-accented decorations
+                    for (int rx = 2; rx < secretW - 2; rx++) {
+                        Tile deco;
+                        deco.type = TileType::Decoration;
+                        deco.color = {255, 215, 60, 120};
+                        level.setTile(sx + rx, sy + secretH / 2, dim, deco);
+                    }
+                    break;
+
+                case SecretRoomType::ChallengeRoom:
+                    // Spike border inside
+                    for (int rx = 1; rx < secretW - 1; rx++) {
+                        Tile spike;
+                        spike.type = TileType::Spike;
+                        spike.color = theme.colors.spike;
+                        level.setTile(sx + rx, sy + secretH - 2, dim, spike);
+                    }
+                    break;
+
+                case SecretRoomType::ShrineRoom: {
+                    // Shrine base in center
+                    int shrineX = sx + secretW / 2;
+                    int shrineY = sy + secretH - 2;
+                    Tile shrine;
+                    shrine.type = TileType::ShrineBase;
+                    shrine.color = {180, 120, 255, 255};
+                    level.setTile(shrineX, shrineY, dim, shrine);
+                    break;
+                }
+
+                case SecretRoomType::DimensionCache:
+                    // Extra decorations only in one dimension
+                    if (dim == 1) {
+                        for (int rx = 2; rx < secretW - 2; rx++) {
+                            Tile deco;
+                            deco.type = TileType::Decoration;
+                            deco.color = {100, 200, 255, 150};
+                            level.setTile(sx + rx, sy + 2, dim, deco);
+                        }
+                    }
+                    break;
+
+                case SecretRoomType::AncientWeapon: {
+                    // Pedestal
+                    Tile pedestal;
+                    pedestal.type = TileType::ShrineBase;
+                    pedestal.color = {255, 180, 60, 255};
+                    level.setTile(sx + secretW / 2, sy + secretH - 2, dim, pedestal);
+                    break;
+                }
+            }
+        }
+
+        // Register secret room
+        SecretRoom sr;
+        sr.type = sType;
+        sr.tileX = sx;
+        sr.tileY = sy;
+        sr.width = secretW;
+        sr.height = secretH;
+        sr.shardReward = 15 + difficulty * 10;
+        sr.hpReward = (sType == SecretRoomType::TreasureVault) ? 20.0f : 0.0f;
+        level.addSecretRoom(sr);
+
+        // Challenge rooms get extra enemies
+        if (sType == SecretRoomType::ChallengeRoom) {
+            int enemyCount = 2 + difficulty;
+            for (int e = 0; e < enemyCount; e++) {
+                int ex = sx + 2 + m_rng() % std::max(1, secretW - 4);
+                int ey = sy + 2;
+                int spawnDim = 1 + (m_rng() % 2); // Dimension 1 or 2
+                level.addEnemySpawn(
+                    {static_cast<float>(ex * 32), static_cast<float>(ey * 32)},
+                    m_rng() % std::min(10, 3 + difficulty), spawnDim
+                );
+            }
+        }
+    }
+}
+
+void LevelGenerator::placeRandomEvents(Level& level, const std::vector<LGRoom>& rooms, int difficulty) {
+    if (rooms.size() < 3) return;
+
+    // Place 2-4 events per level
+    int eventCount = 2 + (difficulty >= 3 ? 1 : 0) + (difficulty >= 5 ? 1 : 0);
+
+    RandomEventType eventTypes[] = {
+        RandomEventType::Merchant,
+        RandomEventType::Shrine,
+        RandomEventType::DimensionalAnomaly,
+        RandomEventType::RiftEcho,
+        RandomEventType::SuitRepairStation,
+        RandomEventType::GamblingRift
+    };
+
+    // Distribute events across rooms (skip first and last)
+    std::vector<int> availableRooms;
+    for (int i = 1; i + 1 < static_cast<int>(rooms.size()); i++) {
+        availableRooms.push_back(i);
+    }
+
+    // Shuffle available rooms
+    for (int i = static_cast<int>(availableRooms.size()) - 1; i > 0; i--) {
+        int j = m_rng() % (i + 1);
+        std::swap(availableRooms[i], availableRooms[j]);
+    }
+
+    for (int e = 0; e < eventCount && e < static_cast<int>(availableRooms.size()); e++) {
+        auto& room = rooms[availableRooms[e]];
+
+        RandomEventType eType = eventTypes[m_rng() % 6];
+
+        // Repair station only at difficulty 3+
+        if (eType == RandomEventType::SuitRepairStation && difficulty < 3) {
+            eType = RandomEventType::RiftEcho;
+        }
+        // Gambling only at difficulty 2+
+        if (eType == RandomEventType::GamblingRift && difficulty < 2) {
+            eType = RandomEventType::Merchant;
+        }
+
+        // Place in an open area of the room
+        int ex = room.x + 2 + m_rng() % std::max(1, room.w - 4);
+        int ey = room.y + room.h - 3; // near floor
+
+        // Find open space
+        int dim = (m_rng() % 2 == 0) ? 1 : 2;
+        for (int attempt = 0; attempt < 10; attempt++) {
+            if (!level.isSolid(ex, ey, dim) && level.isSolid(ex, ey + 1, dim)) break;
+            ex = room.x + 2 + m_rng() % std::max(1, room.w - 4);
+            ey = room.y + 2 + m_rng() % std::max(1, room.h - 4);
+        }
+
+        RandomEvent event;
+        event.type = eType;
+        event.position = {static_cast<float>(ex * 32), static_cast<float>(ey * 32)};
+        event.dimension = dim;
+
+        switch (eType) {
+            case RandomEventType::Merchant:
+                event.cost = 20 + difficulty * 5; // Cheaper than shop
+                break;
+            case RandomEventType::RiftEcho:
+                event.reward = 10 + difficulty * 5;
+                break;
+            case RandomEventType::GamblingRift:
+                event.cost = 15 + difficulty * 3;
+                event.reward = 30 + difficulty * 10; // Potential high reward
+                break;
+            default:
+                break;
+        }
+
+        level.addRandomEvent(event);
     }
 }
 

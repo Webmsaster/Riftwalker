@@ -32,6 +32,8 @@ InputManager::~InputManager() {
 void InputManager::setupDefaultBindings() {
     m_keyBindings[Action::MoveLeft] = SDL_SCANCODE_A;
     m_keyBindings[Action::MoveRight] = SDL_SCANCODE_D;
+    m_keyBindings[Action::MoveUp] = SDL_SCANCODE_W;
+    m_keyBindings[Action::MoveDown] = SDL_SCANCODE_S;
     m_keyBindings[Action::Jump] = SDL_SCANCODE_SPACE;
     m_keyBindings[Action::Dash] = SDL_SCANCODE_LSHIFT;
     m_keyBindings[Action::Attack] = SDL_SCANCODE_J;
@@ -41,10 +43,10 @@ void InputManager::setupDefaultBindings() {
     m_keyBindings[Action::Pause] = SDL_SCANCODE_ESCAPE;
     m_keyBindings[Action::Confirm] = SDL_SCANCODE_RETURN;
     m_keyBindings[Action::Cancel] = SDL_SCANCODE_ESCAPE;
-    m_keyBindings[Action::MenuUp] = SDL_SCANCODE_W;
-    m_keyBindings[Action::MenuDown] = SDL_SCANCODE_S;
-    m_keyBindings[Action::MenuLeft] = SDL_SCANCODE_A;
-    m_keyBindings[Action::MenuRight] = SDL_SCANCODE_D;
+    m_keyBindings[Action::MenuUp] = SDL_SCANCODE_UP;
+    m_keyBindings[Action::MenuDown] = SDL_SCANCODE_DOWN;
+    m_keyBindings[Action::MenuLeft] = SDL_SCANCODE_LEFT;
+    m_keyBindings[Action::MenuRight] = SDL_SCANCODE_RIGHT;
 
     m_padBindings[Action::Jump] = SDL_CONTROLLER_BUTTON_A;
     m_padBindings[Action::Dash] = SDL_CONTROLLER_BUTTON_B;
@@ -59,6 +61,11 @@ void InputManager::setupDefaultBindings() {
     m_padBindings[Action::MenuDown] = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
     m_padBindings[Action::MenuLeft] = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
     m_padBindings[Action::MenuRight] = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+
+    // Ability keys
+    m_keyBindings[Action::Ability1] = SDL_SCANCODE_1;
+    m_keyBindings[Action::Ability2] = SDL_SCANCODE_2;
+    m_keyBindings[Action::Ability3] = SDL_SCANCODE_3;
 }
 
 void InputManager::update() {
@@ -189,6 +196,8 @@ std::string InputManager::getActionName(Action action) {
     switch (action) {
         case Action::MoveLeft:        return "Move Left";
         case Action::MoveRight:       return "Move Right";
+        case Action::MoveUp:          return "Look Up";
+        case Action::MoveDown:        return "Look Down";
         case Action::Jump:            return "Jump";
         case Action::Dash:            return "Dash";
         case Action::Attack:          return "Melee Attack";
@@ -196,15 +205,20 @@ std::string InputManager::getActionName(Action action) {
         case Action::DimensionSwitch: return "Dimension Switch";
         case Action::Interact:        return "Interact";
         case Action::Pause:           return "Pause";
+        case Action::Ability1:        return "Ground Slam";
+        case Action::Ability2:        return "Rift Shield";
+        case Action::Ability3:        return "Phase Strike";
         default:                      return "Unknown";
     }
 }
 
 const std::vector<Action>& InputManager::getBindableActions() {
     static const std::vector<Action> actions = {
-        Action::MoveLeft, Action::MoveRight, Action::Jump, Action::Dash,
+        Action::MoveLeft, Action::MoveRight, Action::MoveUp, Action::MoveDown,
+        Action::Jump, Action::Dash,
         Action::Attack, Action::RangedAttack, Action::DimensionSwitch,
-        Action::Interact, Action::Pause
+        Action::Interact, Action::Pause,
+        Action::Ability1, Action::Ability2, Action::Ability3
     };
     return actions;
 }

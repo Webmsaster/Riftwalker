@@ -53,6 +53,42 @@ public:
     static Mix_Chunk* wyrmPoison();
     static Mix_Chunk* wyrmBarrage();
 
+    // Combat enhancement sounds
+    static Mix_Chunk* iceFreeze();
+    static Mix_Chunk* electricChain();
+    static Mix_Chunk* parry();
+    static Mix_Chunk* parryCounter();
+    static Mix_Chunk* chargedAttackRelease();
+    static Mix_Chunk* criticalHit();
+    static Mix_Chunk* comboMilestone();
+    static Mix_Chunk* airJuggleLaunch();
+    static Mix_Chunk* enemyStun();
+
+    // Player ability sounds
+    static Mix_Chunk* groundSlam();
+    static Mix_Chunk* riftShieldActivate();
+    static Mix_Chunk* riftShieldAbsorb();
+    static Mix_Chunk* riftShieldReflect();
+    static Mix_Chunk* riftShieldBurst();
+    static Mix_Chunk* phaseStrikeTeleport();
+    static Mix_Chunk* phaseStrikeHit();
+
+    // Secret room & event sounds
+    static Mix_Chunk* breakableWall();
+    static Mix_Chunk* secretRoomDiscover();
+    static Mix_Chunk* shrineActivate();
+    static Mix_Chunk* shrineBlessing();
+    static Mix_Chunk* shrineCurse();
+    static Mix_Chunk* merchantGreet();
+    static Mix_Chunk* anomalySpawn();
+
+    // Dimensional Architect boss sounds
+    static Mix_Chunk* archTileSwap();
+    static Mix_Chunk* archConstruct();
+    static Mix_Chunk* archRiftOpen();
+    static Mix_Chunk* archCollapse();
+    static Mix_Chunk* archBeam();
+
     // Ambient music loops (~4 seconds each)
     static Mix_Chunk* ambientDimA(); // Cool, ethereal drone
     static Mix_Chunk* ambientDimB(); // Warm, ominous drone

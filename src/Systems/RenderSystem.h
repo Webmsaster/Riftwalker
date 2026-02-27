@@ -27,6 +27,7 @@ private:
     void renderSniper(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderBoss(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderVoidWyrm(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderDimensionalArchitect(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderProjectile(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
 

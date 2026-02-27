@@ -19,6 +19,17 @@ enum class SFX {
     CrawlerDrop, SummonerSummon, SniperTelegraph,
     FireBurn, LaserHit,
     WyrmDive, WyrmPoison, WyrmBarrage,
+    IceFreeze, ElectricChain,
+    Parry, ParryCounter, ChargedAttackRelease,
+    CriticalHit, ComboMilestone,
+    AirJuggleLaunch, EnemyStun,
+    GroundSlam,
+    RiftShieldActivate, RiftShieldAbsorb, RiftShieldReflect, RiftShieldBurst,
+    PhaseStrikeTeleport, PhaseStrikeHit,
+    BreakableWall, SecretRoomDiscover,
+    ShrineActivate, ShrineBlessing, ShrineCurse,
+    MerchantGreet, AnomalySpawn,
+    ArchTileSwap, ArchConstruct, ArchRiftOpen, ArchCollapse, ArchBeam,
     COUNT
 };
 

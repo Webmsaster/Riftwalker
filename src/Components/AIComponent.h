@@ -9,6 +9,7 @@ enum class AIState {
     Attack,
     Flee,
     Stunned,
+    Juggled,
     Dead
 };
 
@@ -124,11 +125,36 @@ struct AIComponent : public Component {
     float wyrmBarrageTimer = 0;     // barrage cooldown
     int wyrmBarrageCount = 0;       // shots remaining in barrage
 
+    // Dimensional Architect boss specific
+    float archSwapTimer = 0;         // tile-swap cooldown
+    float archRiftTimer = 0;         // rift-zone cooldown
+    float archConstructTimer = 0;    // construct beam cooldown
+    float archCollapseTimer = 0;     // arena collapse cooldown
+    bool archConstructing = false;   // beam active
+    float archBeamAngle = 0;         // construct beam direction
+    float archHoverY = 0;            // hover offset (sine wave)
+    int archSwapSize = 3;            // tile swap area size (grows per phase)
+
+    // Juggle state
+    float juggleTimer = 0;
+    int juggleHitCount = 0;
+    float juggleDamageBonus = 0.15f; // +15% per juggle hit
+
+    // Element weapon debuffs (applied by player's weapon buffs)
+    float burnTimer = 0;       // fire weapon DoT remaining
+    float burnDmgTick = 0;     // burn damage tick timer
+
     Vec2 targetPosition;
     bool facingRight = true;
 
     void stun(float duration) {
         state = AIState::Stunned;
         stunTimer = duration > 0 ? duration : stunDuration;
+    }
+
+    void launch() {
+        state = AIState::Juggled;
+        juggleTimer = 3.0f; // max 3s airtime
+        juggleHitCount = 0;
     }
 };

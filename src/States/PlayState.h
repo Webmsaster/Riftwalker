@@ -15,6 +15,8 @@
 #include "Game/SuitEntropy.h"
 #include "Game/RiftPuzzle.h"
 #include "Game/WorldTheme.h"
+#include "Game/SecretRoom.h"
+#include "Game/RandomEvent.h"
 #include "UI/HUD.h"
 #include <memory>
 #include <vector>
@@ -93,6 +95,8 @@ private:
     // Combat feel
     float m_hitFreezeTimer = 0;
     float m_spikeDmgCooldown = 0;
+    int m_lastComboMilestone = 0;
+    float m_comboMilestoneFlash = 0;
 
     // Floating damage numbers
     std::vector<FloatingDamageNumber> m_damageNumbers;
@@ -119,6 +123,17 @@ private:
     bool m_hasDashedThisRun = false;
     bool m_hasAttackedThisRun = false;
     int m_dashCount = 0; // for dash master achievement
+
+    // Shop / Run buffs
+    bool m_pendingLevelGen = false;
+    void applyRunBuffs();
+
+    // Secret rooms & events
+    void checkBreakableWalls();
+    void checkSecretRoomDiscovery();
+    void checkEventInteraction();
+    void renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font);
+    int m_nearEventIndex = -1;
 
     // Boss system
     bool m_isBossLevel = false;

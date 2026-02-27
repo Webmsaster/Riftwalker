@@ -5,10 +5,11 @@
 #include <vector>
 
 enum class Action {
-    MoveLeft, MoveRight, Jump, Dash,
+    MoveLeft, MoveRight, MoveUp, MoveDown, Jump, Dash,
     Attack, RangedAttack, DimensionSwitch,
     Interact, Pause, Confirm, Cancel,
-    MenuUp, MenuDown, MenuLeft, MenuRight
+    MenuUp, MenuDown, MenuLeft, MenuRight,
+    Ability1, Ability2, Ability3
 };
 
 class InputManager {

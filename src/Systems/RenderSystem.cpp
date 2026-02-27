@@ -6,6 +6,7 @@
 #include "Components/CombatComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/AIComponent.h"
+#include "Components/AbilityComponent.h"
 #include <algorithm>
 #include <cmath>
 
@@ -97,7 +98,8 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     } else if (tag == "enemy_boss") {
         int bt = 0;
         if (entity.hasComponent<AIComponent>()) bt = entity.getComponent<AIComponent>().bossType;
-        if (bt == 1) renderVoidWyrm(renderer, screenRect, entity, alpha);
+        if (bt == 2) renderDimensionalArchitect(renderer, screenRect, entity, alpha);
+        else if (bt == 1) renderVoidWyrm(renderer, screenRect, entity, alpha);
         else renderBoss(renderer, screenRect, entity, alpha);
     } else if (tag.find("pickup_") == 0) {
         renderPickup(renderer, screenRect, entity, alpha);
@@ -143,6 +145,50 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
             SDL_RenderFillRect(renderer, &glow);
             SDL_SetRenderDrawColor(renderer, r, g, b, static_cast<Uint8>(80 * pulse * alpha));
             SDL_RenderDrawRect(renderer, &glow);
+        }
+
+        // Juggle visual: ascending arrows + hit count dots
+        if (ai.state == AIState::Juggled) {
+            float time = SDL_GetTicks() * 0.006f;
+            int centerX = screenRect.x + screenRect.w / 2;
+            int topY = screenRect.y - 6;
+            Uint8 ja = static_cast<Uint8>(200 * alpha);
+
+            // Ascending arrow indicators (three moving upward)
+            for (int i = 0; i < 3; i++) {
+                float offset = std::fmod(time + i * 0.7f, 2.0f);
+                int arrowY = topY - static_cast<int>(offset * 10);
+                int arrowX = centerX - 6 + i * 6;
+                Uint8 arrowA = static_cast<Uint8>(ja * (1.0f - offset / 2.0f));
+                drawLine(renderer, arrowX, arrowY + 3, arrowX + 2, arrowY, 180, 140, 255, arrowA);
+                drawLine(renderer, arrowX + 4, arrowY + 3, arrowX + 2, arrowY, 180, 140, 255, arrowA);
+            }
+
+            // Hit count dots
+            int hits = ai.juggleHitCount;
+            for (int i = 0; i < hits && i < 8; i++) {
+                int dotX = centerX - hits * 2 + i * 4;
+                int dotY = topY - 14;
+                fillRect(renderer, dotX, dotY, 3, 3, 255, 200, 255, ja);
+            }
+        }
+
+        // Stun visual: rotating stars above stunned enemies
+        if (ai.state == AIState::Stunned) {
+            float time = SDL_GetTicks() * 0.005f;
+            int starCount = 3;
+            int orbitR = screenRect.w / 2 + 4;
+            int centerX = screenRect.x + screenRect.w / 2;
+            int starY = screenRect.y - 8;
+            for (int i = 0; i < starCount; i++) {
+                float angle = time + i * (2.0f * 3.14159f / starCount);
+                int sx = centerX + static_cast<int>(orbitR * std::cos(angle));
+                int sy = starY + static_cast<int>(4 * std::sin(angle * 2.0f));
+                Uint8 sa = static_cast<Uint8>(220 * alpha);
+                fillRect(renderer, sx - 2, sy - 2, 4, 4, 255, 255, 100, sa);
+                fillRect(renderer, sx - 1, sy - 3, 2, 6, 255, 255, 200, sa);
+                fillRect(renderer, sx - 3, sy - 1, 6, 2, 255, 255, 200, sa);
+            }
         }
 
         // Mini-boss golden aura + HP bar
@@ -298,45 +344,86 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     fillRect(renderer, visorX, visorY, visorW, visorH, 100, 220, 255, a);
     fillRect(renderer, visorX + 1, visorY + 1, visorW - 2, visorH - 2, 180, 240, 255, a);
 
-    // Arm with weapon (combo-stage visual variation)
+    // Arm with weapon (combo-stage & directional visual variation)
     int comboStage = 0;
+    Vec2 atkDir = {flipped ? -1.0f : 1.0f, 0.0f};
+    bool isDashAtk = false;
     if (entity.hasComponent<CombatComponent>()) {
         auto& cb = entity.getComponent<CombatComponent>();
         if (cb.comboCount > 0) comboStage = (cb.comboCount - 1) % 3;
+        if (attacking) atkDir = cb.attackDirection;
+        isDashAtk = attacking && cb.currentAttack == AttackType::Dash;
     }
+
+    bool atkUp = attacking && atkDir.y < -0.5f;
+    bool atkDown = attacking && atkDir.y > 0.5f;
+
     int armBaseY = bodyY + bodyH / 4;
     int armY = armBaseY;
     int armLen = attacking ? w : w / 2;
 
-    // Vary arm position by combo stage when attacking
-    if (attacking) {
-        switch (comboStage) {
-            case 0: break; // Normal horizontal
-            case 1: armY = armBaseY - 4; break; // Diagonal up
-            case 2: armY = armBaseY - 8; armLen = w + 4; break; // Uppercut (higher, longer)
-        }
-    }
-
-    if (!flipped) {
-        fillRect(renderer, x + w - 2, armY, armLen, 4, bodyR, bodyG, bodyB, a);
-        if (attacking) {
-            // Weapon glow color by combo stage
-            Uint8 wR = 255, wG = 255, wB = 200;
-            if (comboStage == 1) { wR = 255; wG = 200; wB = 80; }
-            if (comboStage == 2) { wR = 255; wG = 100; wB = 50; }
-            int weapH = 12 + comboStage * 4;
-            fillRect(renderer, x + w + armLen - 6, armY - weapH / 3, 4, weapH, wR, wG, wB, a);
-            fillRect(renderer, x + w + armLen - 4, armY - weapH / 3 - 2, 2, weapH + 4, 255, 255, 255, static_cast<Uint8>(a * 0.7f));
+    if (atkUp) {
+        // Upward attack: arm points straight up
+        int armX = x + w / 2 - 2;
+        int weapLen = w + 6;
+        fillRect(renderer, armX, y - weapLen + 4, 4, weapLen, bodyR, bodyG, bodyB, a);
+        // Weapon tip glow
+        fillRect(renderer, armX - 4, y - weapLen, 12, 6, 100, 220, 255, a);
+        fillRect(renderer, armX - 2, y - weapLen - 2, 8, 4, 200, 255, 255, static_cast<Uint8>(a * 0.8f));
+    } else if (atkDown) {
+        // Downward attack: arm points straight down
+        int armX = x + w / 2 - 2;
+        int weapLen = w + 6;
+        fillRect(renderer, armX, y + h - 4, 4, weapLen, bodyR, bodyG, bodyB, a);
+        // Weapon tip glow
+        fillRect(renderer, armX - 4, y + h + weapLen - 6, 12, 6, 255, 150, 50, a);
+        fillRect(renderer, armX - 2, y + h + weapLen - 4, 8, 4, 255, 255, 150, static_cast<Uint8>(a * 0.8f));
+    } else if (isDashAtk) {
+        // Dash attack: wide horizontal slash
+        int slashLen = w + 12;
+        if (!flipped) {
+            fillRect(renderer, x + w - 2, armBaseY - 2, slashLen, 6, bodyR, bodyG, bodyB, a);
+            // Cyan energy blade
+            fillRect(renderer, x + w + slashLen - 10, armBaseY - 6, 8, 14, 80, 200, 255, a);
+            fillRect(renderer, x + w + slashLen - 8, armBaseY - 8, 4, 18, 180, 240, 255, static_cast<Uint8>(a * 0.7f));
+            // Motion trail
+            fillRect(renderer, x + w, armBaseY, slashLen - 10, 2, 100, 200, 255, static_cast<Uint8>(a * 0.4f));
+        } else {
+            fillRect(renderer, x - slashLen + 2, armBaseY - 2, slashLen, 6, bodyR, bodyG, bodyB, a);
+            fillRect(renderer, x - slashLen + 2, armBaseY - 6, 8, 14, 80, 200, 255, a);
+            fillRect(renderer, x - slashLen + 4, armBaseY - 8, 4, 18, 180, 240, 255, static_cast<Uint8>(a * 0.7f));
+            fillRect(renderer, x - slashLen + 10, armBaseY, slashLen - 10, 2, 100, 200, 255, static_cast<Uint8>(a * 0.4f));
         }
     } else {
-        fillRect(renderer, x - armLen + 2, armY, armLen, 4, bodyR, bodyG, bodyB, a);
+        // Normal horizontal melee (with combo variation)
         if (attacking) {
-            Uint8 wR = 255, wG = 255, wB = 200;
-            if (comboStage == 1) { wR = 255; wG = 200; wB = 80; }
-            if (comboStage == 2) { wR = 255; wG = 100; wB = 50; }
-            int weapH = 12 + comboStage * 4;
-            fillRect(renderer, x - armLen + 2, armY - weapH / 3, 4, weapH, wR, wG, wB, a);
-            fillRect(renderer, x - armLen + 2, armY - weapH / 3 - 2, 2, weapH + 4, 255, 255, 255, static_cast<Uint8>(a * 0.7f));
+            switch (comboStage) {
+                case 0: break;
+                case 1: armY = armBaseY - 4; break;
+                case 2: armY = armBaseY - 8; armLen = w + 4; break;
+            }
+        }
+
+        if (!flipped) {
+            fillRect(renderer, x + w - 2, armY, armLen, 4, bodyR, bodyG, bodyB, a);
+            if (attacking) {
+                Uint8 wR = 255, wG = 255, wB = 200;
+                if (comboStage == 1) { wR = 255; wG = 200; wB = 80; }
+                if (comboStage == 2) { wR = 255; wG = 100; wB = 50; }
+                int weapH = 12 + comboStage * 4;
+                fillRect(renderer, x + w + armLen - 6, armY - weapH / 3, 4, weapH, wR, wG, wB, a);
+                fillRect(renderer, x + w + armLen - 4, armY - weapH / 3 - 2, 2, weapH + 4, 255, 255, 255, static_cast<Uint8>(a * 0.7f));
+            }
+        } else {
+            fillRect(renderer, x - armLen + 2, armY, armLen, 4, bodyR, bodyG, bodyB, a);
+            if (attacking) {
+                Uint8 wR = 255, wG = 255, wB = 200;
+                if (comboStage == 1) { wR = 255; wG = 200; wB = 80; }
+                if (comboStage == 2) { wR = 255; wG = 100; wB = 50; }
+                int weapH = 12 + comboStage * 4;
+                fillRect(renderer, x - armLen + 2, armY - weapH / 3, 4, weapH, wR, wG, wB, a);
+                fillRect(renderer, x - armLen + 2, armY - weapH / 3 - 2, 2, weapH + 4, 255, 255, 255, static_cast<Uint8>(a * 0.7f));
+            }
         }
     }
 
@@ -348,6 +435,100 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         fillRect(renderer, x + 3 * w / 4 - 2, y + h, 4, flameH, 255, 180, 50, static_cast<Uint8>(a * 0.8f));
         fillRect(renderer, x + w / 4 - 1, y + h, 2, flameH - 1, 255, 255, 150, static_cast<Uint8>(a * 0.6f));
         fillRect(renderer, x + 3 * w / 4 - 1, y + h, 2, flameH - 1, 255, 255, 150, static_cast<Uint8>(a * 0.6f));
+    }
+
+    // Charge glow: golden aura intensifies with charge
+    if (entity.hasComponent<CombatComponent>()) {
+        auto& cb = entity.getComponent<CombatComponent>();
+        if (cb.isCharging && cb.chargeTimer >= cb.minChargeTime) {
+            float cp = cb.getChargePercent();
+            Uint8 glowA = static_cast<Uint8>(40 + 120 * cp);
+            int glowR = static_cast<int>(4 + 8 * cp);
+            SDL_Rect glow = {x - glowR, y - glowR, w + glowR * 2, h + glowR * 2};
+            SDL_SetRenderDrawColor(renderer, 255, 200, 50, static_cast<Uint8>(glowA * alpha));
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_RenderFillRect(renderer, &glow);
+            // Brighter inner glow
+            SDL_Rect innerGlow = {x - glowR / 2, y - glowR / 2, w + glowR, h + glowR};
+            SDL_SetRenderDrawColor(renderer, 255, 255, 150, static_cast<Uint8>(glowA * 0.5f * alpha));
+            SDL_RenderFillRect(renderer, &innerGlow);
+        }
+
+        // Parry success aura: golden rim when next hit is guaranteed crit
+        if (cb.parrySuccessTimer > 0) {
+            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.008f);
+            Uint8 rimA = static_cast<Uint8>((80 + 80 * pulse) * alpha);
+            SDL_Rect rim = {x - 3, y - 3, w + 6, h + 6};
+            SDL_SetRenderDrawColor(renderer, 255, 215, 0, rimA);
+            SDL_RenderDrawRect(renderer, &rim);
+            SDL_Rect rim2 = {x - 2, y - 2, w + 4, h + 4};
+            SDL_SetRenderDrawColor(renderer, 255, 255, 100, static_cast<Uint8>(rimA * 0.7f));
+            SDL_RenderDrawRect(renderer, &rim2);
+        }
+    }
+
+    // Rift Shield hexagonal barrier
+    if (entity.hasComponent<AbilityComponent>()) {
+        auto& abil = entity.getComponent<AbilityComponent>();
+        if (abil.abilities[1].active) {
+            float shieldPulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.008f);
+            float shieldAlpha = (0.4f + 0.3f * shieldPulse) * alpha;
+            Uint8 sa = static_cast<Uint8>(255 * shieldAlpha);
+
+            int shieldCX = x + w / 2;
+            int shieldCY = y + h / 2;
+            int shieldR = std::max(w, h) / 2 + 12;
+
+            // Draw hexagon shield
+            int hexPoints = 6;
+            float rotSpeed = SDL_GetTicks() * 0.002f;
+            for (int i = 0; i < hexPoints; i++) {
+                float a1 = rotSpeed + i * 6.283185f / hexPoints;
+                float a2 = rotSpeed + (i + 1) * 6.283185f / hexPoints;
+                int x1 = shieldCX + static_cast<int>(std::cos(a1) * shieldR);
+                int y1 = shieldCY + static_cast<int>(std::sin(a1) * shieldR);
+                int x2 = shieldCX + static_cast<int>(std::cos(a2) * shieldR);
+                int y2 = shieldCY + static_cast<int>(std::sin(a2) * shieldR);
+
+                // Outer hex
+                drawLine(renderer, x1, y1, x2, y2, 80, 200, 255, sa);
+                // Inner hex
+                int ix1 = shieldCX + static_cast<int>(std::cos(a1) * (shieldR - 3));
+                int iy1 = shieldCY + static_cast<int>(std::sin(a1) * (shieldR - 3));
+                int ix2 = shieldCX + static_cast<int>(std::cos(a2) * (shieldR - 3));
+                int iy2 = shieldCY + static_cast<int>(std::sin(a2) * (shieldR - 3));
+                drawLine(renderer, ix1, iy1, ix2, iy2, 120, 230, 255, static_cast<Uint8>(sa * 0.6f));
+            }
+
+            // Shield hit indicator dots
+            for (int i = 0; i < abil.shieldHitsRemaining; i++) {
+                float da = rotSpeed + i * 6.283185f / abil.shieldMaxHits;
+                int dx = shieldCX + static_cast<int>(std::cos(da) * (shieldR + 5));
+                int dy = shieldCY + static_cast<int>(std::sin(da) * (shieldR + 5));
+                fillRect(renderer, dx - 2, dy - 2, 4, 4, 100, 255, 220, sa);
+            }
+        }
+
+        // Ground Slam charge glow (while falling)
+        if (abil.slamFalling) {
+            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.015f);
+            Uint8 glowA = static_cast<Uint8>((120 + 80 * pulse) * alpha);
+
+            // Glow ring around player
+            SDL_Rect glow1 = {x - 4, y - 4, w + 8, h + 8};
+            SDL_SetRenderDrawColor(renderer, 255, 180, 60, glowA);
+            SDL_RenderDrawRect(renderer, &glow1);
+            SDL_Rect glow2 = {x - 6, y - 6, w + 12, h + 12};
+            SDL_SetRenderDrawColor(renderer, 255, 120, 30, static_cast<Uint8>(glowA * 0.5f));
+            SDL_RenderDrawRect(renderer, &glow2);
+
+            // Downward speed lines
+            for (int i = 0; i < 4; i++) {
+                int lx = x + (i + 1) * w / 5;
+                int lineLen = 8 + static_cast<int>(pulse * 6);
+                drawLine(renderer, lx, y + h, lx, y + h + lineLen, 255, 200, 80, glowA);
+            }
+        }
     }
 }
 
@@ -1122,6 +1303,165 @@ void RenderSystem::renderVoidWyrm(SDL_Renderer* renderer, SDL_Rect rect, Entity&
         int bY = y - 14;
         fillRect(renderer, bX, bY, barW, barH, 20, 40, 20, a);
         fillRect(renderer, bX, bY, static_cast<int>(barW * hp.getPercent()), barH, 40, 200, 100, a);
+        fillRect(renderer, bX + barW * 2 / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+        fillRect(renderer, bX + barW / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+    }
+}
+
+void RenderSystem::renderDimensionalArchitect(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    float time = SDL_GetTicks() * 0.004f;
+
+    int bossPhase = 1;
+    float beamAngle = 0;
+    bool constructing = false;
+    if (entity.hasComponent<AIComponent>()) {
+        auto& ai = entity.getComponent<AIComponent>();
+        bossPhase = ai.bossPhase;
+        beamAngle = ai.archBeamAngle;
+        constructing = ai.archConstructing;
+    }
+
+    // Geometric grid aura
+    int auraSize = 10 + bossPhase * 6;
+    Uint8 auraA = static_cast<Uint8>(a * (0.08f + 0.05f * bossPhase));
+    float auraPulse = 0.5f + 0.5f * std::sin(time * 1.2f);
+    for (int i = -auraSize; i <= auraSize; i += 8) {
+        drawLine(renderer, x + w / 2 + i, y - auraSize, x + w / 2 + i, y + h + auraSize,
+                 100, 150, 255, static_cast<Uint8>(auraA * auraPulse));
+        drawLine(renderer, x - auraSize, y + h / 2 + i, x + w + auraSize, y + h / 2 + i,
+                 100, 150, 255, static_cast<Uint8>(auraA * auraPulse));
+    }
+
+    // 4 orbital plates
+    for (int i = 0; i < 4; i++) {
+        float angle = beamAngle + i * (3.14159f / 2.0f);
+        int radius = w / 2 + 12 + bossPhase * 4;
+        int px = x + w / 2 + static_cast<int>(std::cos(angle) * radius);
+        int py = y + h / 2 + static_cast<int>(std::sin(angle) * radius * 0.6f);
+        int plateW = 10 + bossPhase;
+        int plateH = 6 + bossPhase;
+        Uint8 plateA = static_cast<Uint8>(a * 0.8f);
+        fillRect(renderer, px - plateW / 2, py - plateH / 2, plateW, plateH,
+                 static_cast<Uint8>(sprite.color.r * 0.7f),
+                 static_cast<Uint8>(sprite.color.g * 0.7f),
+                 sprite.color.b, plateA);
+        // Plate inner glow
+        fillRect(renderer, px - plateW / 4, py - plateH / 4, plateW / 2, plateH / 2,
+                 180, 220, 255, static_cast<Uint8>(plateA * 0.6f));
+    }
+
+    // Two floating hands
+    float handBob = std::sin(time * 2.0f) * 4.0f;
+    int handSize = 8 + bossPhase;
+    // Left hand
+    int lhx = x - 14 - bossPhase * 2;
+    int lhy = y + h / 2 + static_cast<int>(handBob);
+    fillRect(renderer, lhx, lhy, handSize, handSize + 2,
+             sprite.color.r, sprite.color.g, sprite.color.b, a);
+    // Fingers
+    fillRect(renderer, lhx - 2, lhy - 3, 3, 4, sprite.color.r, sprite.color.g, 255, a);
+    fillRect(renderer, lhx + handSize - 1, lhy - 3, 3, 4, sprite.color.r, sprite.color.g, 255, a);
+    // Right hand
+    int rhx = x + w + 6 + bossPhase * 2;
+    int rhy = y + h / 2 - static_cast<int>(handBob);
+    fillRect(renderer, rhx, rhy, handSize, handSize + 2,
+             sprite.color.r, sprite.color.g, sprite.color.b, a);
+    fillRect(renderer, rhx - 2, rhy - 3, 3, 4, sprite.color.r, sprite.color.g, 255, a);
+    fillRect(renderer, rhx + handSize - 1, rhy - 3, 3, 4, sprite.color.r, sprite.color.g, 255, a);
+
+    // Constructing effect: energy lines between hands
+    if (constructing) {
+        for (int i = 0; i < 3; i++) {
+            float off = std::sin(time * 5.0f + i * 1.5f) * 6.0f;
+            drawLine(renderer, lhx + handSize / 2, lhy + handSize / 2,
+                     rhx + handSize / 2, rhy + handSize / 2 + static_cast<int>(off),
+                     200, 150, 255, static_cast<Uint8>(a * (0.5f + 0.2f * i)));
+        }
+    }
+
+    // Main body: cube-like core
+    int coreW = w * 2 / 3;
+    int coreH = h * 2 / 3;
+    int coreX = x + (w - coreW) / 2;
+    int coreY = y + (h - coreH) / 2;
+    // Outer shell
+    fillRect(renderer, coreX, coreY, coreW, coreH, sprite.color.r, sprite.color.g, sprite.color.b, a);
+    // Inner lighter cube
+    fillRect(renderer, coreX + 4, coreY + 4, coreW - 8, coreH - 8,
+             static_cast<Uint8>(std::min(255, sprite.color.r + 60)),
+             static_cast<Uint8>(std::min(255, sprite.color.g + 40)),
+             255, static_cast<Uint8>(a * 0.7f));
+    // Rotating inner diamond
+    float diamondAngle = time * 1.5f;
+    int dSize = 6 + bossPhase * 2;
+    int dcx = coreX + coreW / 2;
+    int dcy = coreY + coreH / 2;
+    int dx0 = dcx + static_cast<int>(std::cos(diamondAngle) * dSize);
+    int dy0 = dcy + static_cast<int>(std::sin(diamondAngle) * dSize);
+    int dx1 = dcx + static_cast<int>(std::cos(diamondAngle + 1.57f) * dSize);
+    int dy1 = dcy + static_cast<int>(std::sin(diamondAngle + 1.57f) * dSize);
+    int dx2 = dcx + static_cast<int>(std::cos(diamondAngle + 3.14f) * dSize);
+    int dy2 = dcy + static_cast<int>(std::sin(diamondAngle + 3.14f) * dSize);
+    int dx3 = dcx + static_cast<int>(std::cos(diamondAngle + 4.71f) * dSize);
+    int dy3 = dcy + static_cast<int>(std::sin(diamondAngle + 4.71f) * dSize);
+    Uint8 dAlpha = static_cast<Uint8>(a * 0.9f);
+    drawLine(renderer, dx0, dy0, dx1, dy1, 220, 200, 255, dAlpha);
+    drawLine(renderer, dx1, dy1, dx2, dy2, 220, 200, 255, dAlpha);
+    drawLine(renderer, dx2, dy2, dx3, dy3, 220, 200, 255, dAlpha);
+    drawLine(renderer, dx3, dy3, dx0, dy0, 220, 200, 255, dAlpha);
+
+    // Big eye in center
+    int eyeR = 5 + bossPhase;
+    float eyePulse = 0.6f + 0.4f * std::sin(time * 3.0f);
+    // Eye white
+    fillRect(renderer, dcx - eyeR, dcy - eyeR / 2, eyeR * 2, eyeR,
+             220, 220, 255, static_cast<Uint8>(a * eyePulse));
+    // Pupil
+    int pupilR = eyeR / 2;
+    fillRect(renderer, dcx - pupilR, dcy - pupilR / 2, pupilR * 2, pupilR,
+             40, 20, 80, a);
+    // Eye glow
+    fillRect(renderer, dcx - 1, dcy - 1, 3, 2,
+             255, 200, 255, static_cast<Uint8>(200 + 55 * eyePulse));
+
+    // Phase 2+: rift energy sparks
+    if (bossPhase >= 2) {
+        for (int i = 0; i < bossPhase * 3; i++) {
+            float sparkAngle = time * 3.0f + i * (6.283185f / (bossPhase * 3));
+            int sr = w / 2 + 20 + static_cast<int>(std::sin(time * 2.0f + i) * 8.0f);
+            int sx = x + w / 2 + static_cast<int>(std::cos(sparkAngle) * sr);
+            int sy = y + h / 2 + static_cast<int>(std::sin(sparkAngle) * sr);
+            fillRect(renderer, sx - 2, sy - 2, 4, 4,
+                     static_cast<Uint8>(180 + 75 * std::sin(time + i)), 100, 255,
+                     static_cast<Uint8>(a * 0.5f));
+        }
+    }
+
+    // Phase 3: collapse warning ring
+    if (bossPhase >= 3) {
+        float ringPulse = (std::sin(time * 4.0f) + 1.0f) * 0.5f;
+        int ringR = w + 10 + static_cast<int>(ringPulse * 20.0f);
+        Uint8 ringA = static_cast<Uint8>(a * 0.15f * ringPulse);
+        for (int angle = 0; angle < 360; angle += 10) {
+            float rad = angle * 3.14159f / 180.0f;
+            int rx = x + w / 2 + static_cast<int>(std::cos(rad) * ringR);
+            int ry = y + h / 2 + static_cast<int>(std::sin(rad) * ringR);
+            fillRect(renderer, rx - 1, ry - 1, 3, 3, 255, 60, 180, ringA);
+        }
+    }
+
+    // HP bar
+    if (entity.hasComponent<HealthComponent>()) {
+        auto& hpComp = entity.getComponent<HealthComponent>();
+        int barW = w + 24;
+        int barH = 5;
+        int bX = x - 12;
+        int bY = y - 16;
+        fillRect(renderer, bX, bY, barW, barH, 20, 20, 50, a);
+        fillRect(renderer, bX, bY, static_cast<int>(barW * hpComp.getPercent()), barH, 100, 140, 255, a);
         fillRect(renderer, bX + barW * 2 / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
         fillRect(renderer, bX + barW / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
     }

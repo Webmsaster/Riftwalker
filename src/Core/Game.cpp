@@ -9,6 +9,7 @@
 #include "States/DifficultySelectState.h"
 #include "States/KeybindingsState.h"
 #include "States/AchievementsState.h"
+#include "States/ShopState.h"
 #include <SDL2/SDL_image.h>
 #include <fstream>
 #include <sstream>
@@ -68,6 +69,7 @@ bool Game::init() {
     m_states[StateID::DifficultySelect] = std::make_unique<DifficultySelectState>();
     m_states[StateID::Keybindings] = std::make_unique<KeybindingsState>();
     m_states[StateID::Achievements] = std::make_unique<AchievementsState>();
+    m_states[StateID::Shop] = std::make_unique<ShopState>();
 
     for (auto& [id, state] : m_states) {
         state->game = this;

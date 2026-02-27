@@ -652,3 +652,60 @@ Entity& Enemy::createBoss(EntityManager& entities, Vec2 pos, int dimension, int 
 
     return e;
 }
+
+Entity& Enemy::createDimensionalArchitect(EntityManager& entities, Vec2 pos, int dimension, int difficulty) {
+    auto& e = entities.addEntity("enemy_boss");
+    e.dimension = dimension;
+
+    // Architect: 56x56, floating geometric entity
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 56, 56);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(120, 80, 200); // Deep purple
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.useGravity = false; // Floating boss
+    phys.airResistance = 200.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 48;
+    col.height = 48;
+    col.offset = {4, 4};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 250.0f + difficulty * 80.0f;
+    hp.currentHP = hp.maxHP;
+    hp.armor = 2.0f + difficulty * 2.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 18.0f + difficulty * 3.0f;
+    combat.meleeAttack.knockback = 300.0f;
+    combat.meleeAttack.cooldown = 1.5f;
+    combat.rangedAttack.damage = 12.0f + difficulty * 2.0f;
+    combat.rangedAttack.range = 400.0f;
+    combat.rangedAttack.knockback = 100.0f;
+    combat.rangedAttack.cooldown = 2.0f;
+    combat.rangedAttack.type = AttackType::Ranged;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Boss;
+    ai.bossType = 2; // Dimensional Architect
+    ai.detectRange = 600.0f;
+    ai.attackRange = 300.0f; // Long range
+    ai.chaseSpeed = 60.0f + difficulty * 8.0f; // Slow but powerful
+    ai.patrolSpeed = 40.0f;
+    ai.bossPhase = 1;
+    ai.bossAttackTimer = 0;
+    ai.bossAttackPattern = 0;
+    ai.archSwapTimer = 3.0f;
+    ai.archRiftTimer = 8.0f;
+    ai.archConstructTimer = 5.0f;
+    ai.archCollapseTimer = 15.0f;
+    ai.archSwapSize = 3;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 150.0f, pos.y - 80.0f};
+
+    return e;
+}

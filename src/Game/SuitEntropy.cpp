@@ -113,7 +113,7 @@ void SuitEntropy::applyVisualEffects(SDL_Renderer* renderer, int screenW, int sc
 }
 
 void SuitEntropy::addEntropy(float amount) {
-    m_entropy = std::min(m_entropy + amount, m_maxEntropy);
+    m_entropy = std::min(m_entropy + amount * entropyGainMultiplier, m_maxEntropy);
 }
 
 void SuitEntropy::reduceEntropy(float amount) {

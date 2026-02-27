@@ -1,5 +1,7 @@
 #pragma once
 #include "Level.h"
+#include "SecretRoom.h"
+#include "RandomEvent.h"
 #include "WorldTheme.h"
 #include <random>
 
@@ -31,6 +33,8 @@ private:
     void addRifts(Level& level, int count);
     void placeBorders(Level& level, int dim, const WorldTheme& theme);
     RoomTemplate getRandomRoom(int difficulty);
+    void placeSecretRooms(Level& level, const std::vector<struct LGRoom>& rooms, int difficulty);
+    void placeRandomEvents(Level& level, const std::vector<struct LGRoom>& rooms, int difficulty);
 
     WorldTheme m_themeA;
     WorldTheme m_themeB;

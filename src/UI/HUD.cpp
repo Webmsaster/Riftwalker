@@ -7,6 +7,7 @@
 #include "Components/HealthComponent.h"
 #include "Components/CombatComponent.h"
 #include "Components/TransformComponent.h"
+#include "Components/AbilityComponent.h"
 #include <cstdio>
 #include <cmath>
 
@@ -389,6 +390,98 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
+    // Ability icons (below active buffs)
+    if (player && player->getEntity()->hasComponent<AbilityComponent>()) {
+        auto& abil = player->getEntity()->getComponent<AbilityComponent>();
+        int abStartY = margin + (barH + 6) * 3 + 58;
+        int abIconSize = 26;
+        int abIconGap = 6;
+
+        struct AbilityIconInfo {
+            const char* label;
+            SDL_Color color;
+            float cdPct;
+            bool active;
+        };
+
+        AbilityIconInfo abIcons[3] = {
+            {"1", {255, 180, 60, 255}, abil.abilities[0].getCooldownPercent(), abil.abilities[0].active || abil.slamFalling},
+            {"2", {80, 220, 255, 255}, abil.abilities[1].getCooldownPercent(), abil.abilities[1].active},
+            {"3", {180, 80, 255, 255}, abil.abilities[2].getCooldownPercent(), abil.abilities[2].active}
+        };
+
+        for (int i = 0; i < 3; i++) {
+            int ix = margin + i * (abIconSize + abIconGap);
+            bool ready = abIcons[i].cdPct >= 1.0f;
+            bool active = abIcons[i].active;
+            SDL_Color c = active ? SDL_Color{255, 255, 255, 255} :
+                         (ready ? abIcons[i].color : SDL_Color{40, 40, 50, 200});
+
+            // Background
+            SDL_SetRenderDrawColor(renderer, 10, 10, 20, 200);
+            SDL_Rect bg = {ix, abStartY, abIconSize, abIconSize};
+            SDL_RenderFillRect(renderer, &bg);
+
+            // Procedural ability icon
+            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+            int acx = ix + abIconSize / 2;
+            int acy = abStartY + abIconSize / 2;
+
+            switch (i) {
+                case 0: // Ground Slam: down arrow with impact lines
+                    SDL_RenderDrawLine(renderer, acx, acy - 6, acx, acy + 4);
+                    SDL_RenderDrawLine(renderer, acx, acy + 4, acx - 4, acy);
+                    SDL_RenderDrawLine(renderer, acx, acy + 4, acx + 4, acy);
+                    SDL_RenderDrawLine(renderer, acx - 6, acy + 6, acx - 3, acy + 4);
+                    SDL_RenderDrawLine(renderer, acx + 6, acy + 6, acx + 3, acy + 4);
+                    break;
+                case 1: // Rift Shield: hexagon
+                    for (int h = 0; h < 6; h++) {
+                        float a1 = h * 6.283185f / 6.0f - 1.5708f;
+                        float a2 = (h + 1) * 6.283185f / 6.0f - 1.5708f;
+                        SDL_RenderDrawLine(renderer,
+                            acx + static_cast<int>(std::cos(a1) * 8),
+                            acy + static_cast<int>(std::sin(a1) * 8),
+                            acx + static_cast<int>(std::cos(a2) * 8),
+                            acy + static_cast<int>(std::sin(a2) * 8));
+                    }
+                    break;
+                case 2: // Phase Strike: lightning bolt / teleport
+                    SDL_RenderDrawLine(renderer, acx - 2, acy - 7, acx + 2, acy - 2);
+                    SDL_RenderDrawLine(renderer, acx + 2, acy - 2, acx - 3, acy - 1);
+                    SDL_RenderDrawLine(renderer, acx - 3, acy - 1, acx + 2, acy + 7);
+                    break;
+            }
+
+            // Cooldown sweep overlay
+            if (!ready && !active) {
+                int coverH = static_cast<int>(abIconSize * (1.0f - abIcons[i].cdPct));
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 160);
+                SDL_Rect cover = {ix, abStartY, abIconSize, coverH};
+                SDL_RenderFillRect(renderer, &cover);
+            }
+
+            // Active glow
+            if (active) {
+                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.01f);
+                Uint8 gA = static_cast<Uint8>(100 + 80 * pulse);
+                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, gA);
+                SDL_Rect glow = {ix - 2, abStartY - 2, abIconSize + 4, abIconSize + 4};
+                SDL_RenderDrawRect(renderer, &glow);
+            }
+
+            // Border
+            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(ready || active ? 200 : 60));
+            SDL_RenderDrawRect(renderer, &bg);
+
+            // Key label
+            if (font) {
+                renderText(renderer, font, abIcons[i].label, ix + 9, abStartY + abIconSize + 1,
+                           {c.r, c.g, c.b, static_cast<Uint8>(ready ? 200 : 80)});
+            }
+        }
+    }
+
     // Combo counter (center top, only when combo > 1)
     if (player && player->getEntity()->hasComponent<CombatComponent>() && font) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();
@@ -468,7 +561,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Controls hint (bottom left)
     if (font) {
         renderText(renderer, font,
-                   "WASD Move  SPACE Jump  SHIFT Dash  J Melee  K Ranged  E Dimension  F Interact",
+                   "WASD Move  SPACE Jump  SHIFT Dash  J Melee  K Ranged  E Dim  F Interact  1/2/3 Abilities",
                    15, screenH - 22, {60, 60, 80, 100});
     }
 }

@@ -7,6 +7,7 @@
 #include "Components/PhysicsBody.h"
 #include "Game/Tile.h"
 #include "Components/AIComponent.h"
+#include "Components/AbilityComponent.h"
 #include "Core/AudioManager.h"
 #include "Game/AchievementSystem.h"
 #include <cstdlib>
@@ -47,6 +48,10 @@ void PlayState::startNewRun() {
     m_hasDashedThisRun = false;
     m_hasAttackedThisRun = false;
     m_dashCount = 0;
+    m_pendingLevelGen = false;
+
+    // Reset run buffs
+    game->getRunBuffSystem().reset();
 
     // Random theme pair
     auto themes = WorldTheme::getRandomPair(m_runSeed);
@@ -69,6 +74,7 @@ void PlayState::startNewRun() {
     m_spikeDmgCooldown = 0;
 
     generateLevel();
+    m_aiSystem.setLevel(m_level.get());
 }
 
 void PlayState::generateLevel() {
@@ -81,6 +87,8 @@ void PlayState::generateLevel() {
     // Create player
     m_player = std::make_unique<Player>(m_entities);
     m_player->particles = &m_particles;
+    m_player->entityManager = &m_entities;
+    m_player->combatSystemRef = &m_combatSystem;
     applyUpgrades();
 
     auto& playerTransform = m_player->getEntity()->getComponent<TransformComponent>();
@@ -191,6 +199,19 @@ void PlayState::applyUpgrades() {
     m_entropy.passiveDecay = upgrades.getEntropyDecay();
     m_combatSystem.setCritChance(upgrades.getCritChance());
     m_combatSystem.setComboBonus(upgrades.getComboBonus());
+
+    // Ability upgrades
+    if (m_player->getEntity()->hasComponent<AbilityComponent>()) {
+        auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
+        float cdMult = upgrades.getAbilityCooldownMultiplier();
+        float pwrMult = upgrades.getAbilityPowerMultiplier();
+        abil.abilities[0].cooldown = 6.0f * cdMult;
+        abil.abilities[1].cooldown = 10.0f * cdMult;
+        abil.abilities[2].cooldown = 8.0f * cdMult;
+        abil.slamDamage = 60.0f * pwrMult;
+        abil.shieldBurstDamage = 25.0f * pwrMult;
+        abil.shieldMaxHits = 3 + upgrades.getShieldCapacityBonus();
+    }
 }
 
 void PlayState::handleEvent(const SDL_Event& event) {
@@ -248,6 +269,17 @@ void PlayState::update(float dt) {
         m_entropy.onDimensionSwitch();
         AudioManager::instance().play(SFX::DimensionSwitch);
         AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+
+        // Run buff: PhantomStep - invincible after dimension switch
+        float phantomDur = game->getRunBuffSystem().getPhantomStepDuration();
+        if (phantomDur > 0 && m_player) {
+            auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+            hp.invincibilityTimer = std::max(hp.invincibilityTimer, phantomDur);
+            if (m_player->particles) {
+                Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                m_player->particles->burst(pPos, 15, {180, 150, 255, 200}, 120.0f, 2.0f);
+            }
+        }
     }
 
     // Forced dimension switch from entropy
@@ -299,6 +331,31 @@ void PlayState::update(float dt) {
     }
     updateDamageNumbers(dt);
 
+    // Combo milestone check (3x, 5x, 7x, 10x)
+    if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+        auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+        int combo = combat.comboCount;
+        int milestone = 0;
+        if (combo >= 10) milestone = 10;
+        else if (combo >= 7) milestone = 7;
+        else if (combo >= 5) milestone = 5;
+        else if (combo >= 3) milestone = 3;
+
+        if (milestone > 0 && milestone != m_lastComboMilestone) {
+            m_lastComboMilestone = milestone;
+            m_comboMilestoneFlash = 0.4f;
+            AudioManager::instance().play(SFX::ComboMilestone);
+            if (m_player->particles) {
+                Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                // Golden burst for milestone
+                m_player->particles->burst(pPos, 20 + milestone * 2, {255, 215, 0, 255}, 180.0f, 4.0f);
+                m_player->particles->burst(pPos, 10, {255, 255, 180, 255}, 120.0f, 3.0f);
+            }
+        }
+        if (combo == 0) m_lastComboMilestone = 0;
+    }
+    if (m_comboMilestoneFlash > 0) m_comboMilestoneFlash -= dt;
+
     // Shard magnet: attract pickups toward player
     float magnetRange = game->getUpgradeSystem().getShardMagnetRange();
     if (magnetRange > 14.0f) { // Only if upgrade purchased (base is 14)
@@ -335,7 +392,7 @@ void PlayState::update(float dt) {
         if (!bossAlive) {
             m_bossDefeated = true;
             // Boss kill rewards
-            int bossShards = 50 + m_currentDifficulty * 20;
+            int bossShards = static_cast<int>((50 + m_currentDifficulty * 20) * game->getRunBuffSystem().getShardMultiplier());
             shardsCollected += bossShards;
             game->getUpgradeSystem().addRiftShards(bossShards);
             AudioManager::instance().play(SFX::LevelComplete);
@@ -466,10 +523,32 @@ void PlayState::update(float dt) {
     // Player death
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     if (hp.currentHP <= 0) {
-        AudioManager::instance().play(SFX::PlayerDeath);
-        endRun();
-        return;
+        // Check for Extra Life run buff
+        auto& buffs = game->getRunBuffSystem();
+        if (buffs.hasExtraLife()) {
+            buffs.consumeExtraLife();
+            hp.currentHP = hp.maxHP * 0.5f;
+            hp.invincibilityTimer = 2.0f;
+            AudioManager::instance().play(SFX::RiftShieldActivate);
+            m_camera.shake(10.0f, 0.4f);
+            Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+            m_particles.burst(pPos, 40, {255, 255, 200, 255}, 300.0f, 5.0f);
+            m_particles.burst(pPos, 20, {200, 150, 255, 255}, 200.0f, 4.0f);
+        } else {
+            AudioManager::instance().play(SFX::PlayerDeath);
+            endRun();
+            return;
+        }
     }
+
+    // Check breakable walls (dash/charged attack destroys them)
+    checkBreakableWalls();
+
+    // Check secret room discovery
+    checkSecretRoomDiscovery();
+
+    // Check random event interaction
+    checkEventInteraction();
 
     // Check rift interaction
     checkRiftInteraction();
@@ -506,8 +585,21 @@ void PlayState::update(float dt) {
                 m_dimManager.setDimColors(m_themeA.colors.background, m_themeB.colors.background);
             }
 
-            generateLevel();
+            // Open shop between levels (every level except first)
+            game->setShopDifficulty(m_currentDifficulty);
+            m_levelComplete = false;
+            m_levelCompleteTimer = 0;
+            m_pendingLevelGen = true;
+            game->pushState(StateID::Shop);
+            return; // Don't process further this frame; resume after shop closes
         }
+    }
+
+    // Generate level after returning from shop
+    if (m_pendingLevelGen) {
+        m_pendingLevelGen = false;
+        applyRunBuffs();
+        generateLevel();
     }
 
     // Collapse mechanic
@@ -607,8 +699,9 @@ void PlayState::checkRiftInteraction() {
                 riftsRepaired++;
                 m_entropy.onRiftRepaired();
                 game->getAchievements().unlock("rift_walker");
-                shardsCollected += 10 + m_currentDifficulty * 5;
-                game->getUpgradeSystem().addRiftShards(10 + m_currentDifficulty * 5);
+                int riftShards = static_cast<int>((10 + m_currentDifficulty * 5) * game->getRunBuffSystem().getShardMultiplier());
+                shardsCollected += riftShards;
+                game->getUpgradeSystem().addRiftShards(riftShards);
                 game->getUpgradeSystem().totalRiftsRepaired++;
 
                 m_particles.burst(m_dimManager.playerPos, 40,
@@ -648,6 +741,7 @@ void PlayState::checkExitReached() {
         AudioManager::instance().play(SFX::LevelComplete);
         float shardMult = (g_selectedDifficulty == GameDifficulty::Easy) ? 1.5f :
                           (g_selectedDifficulty == GameDifficulty::Hard) ? 0.75f : 1.0f;
+        shardMult *= game->getRunBuffSystem().getShardMultiplier();
         int shards = static_cast<int>((20 + m_currentDifficulty * 10) * shardMult);
         shardsCollected += shards;
         game->getUpgradeSystem().addRiftShards(shards);
@@ -920,6 +1014,9 @@ void PlayState::render(SDL_Renderer* renderer) {
         }
     }
 
+    // Random events (NPCs in world space)
+    renderRandomEvents(renderer, game->getFont());
+
     // Tutorial hints (first 3 levels only)
     renderTutorialHints(renderer, game->getFont());
 
@@ -929,6 +1026,16 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Boss HP bar at top of screen
     if (m_isBossLevel && !m_bossDefeated) {
         renderBossHealthBar(renderer, game->getFont());
+    }
+
+    // Combo milestone golden flash overlay
+    if (m_comboMilestoneFlash > 0) {
+        float alpha = m_comboMilestoneFlash / 0.4f;
+        Uint8 a = static_cast<Uint8>(alpha * 60);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 255, 215, 0, a);
+        SDL_Rect fullScreen = {0, 0, 1280, 720};
+        SDL_RenderFillRect(renderer, &fullScreen);
     }
 
     // Damage flash overlay
@@ -1255,9 +1362,12 @@ void PlayState::spawnBoss() {
     int bossDiff = m_currentDifficulty;
     if (g_selectedDifficulty == GameDifficulty::Hard) bossDiff += 1;
 
-    // Alternate boss types: Rift Guardian on first boss level, then alternate
+    // Rotate 3 boss types: Guardian -> Wyrm -> Architect
     int bossIndex = m_currentDifficulty / 3; // 0-based boss encounter index
-    if (bossIndex % 2 == 1) {
+    int bossType = bossIndex % 3;
+    if (bossType == 2) {
+        Enemy::createDimensionalArchitect(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+    } else if (bossType == 1) {
         Enemy::createVoidWyrm(m_entities, {spawnPos.x, spawnPos.y - 40.0f}, dim, bossDiff);
     } else {
         Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
@@ -1302,7 +1412,15 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     int bt = 0;
     if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
     Uint8 r, g, b;
-    if (bt == 1) {
+    if (bt == 2) {
+        // Dimensional Architect: blue/purple tones
+        switch (bossPhase) {
+            case 1: r = 80; g = 140; b = 255; break;
+            case 2: r = 140; g = 100; b = 255; break;
+            case 3: r = 200; g = 60; b = 255; break;
+            default: r = 80; g = 140; b = 255; break;
+        }
+    } else if (bt == 1) {
         // Void Wyrm: green tones
         switch (bossPhase) {
             case 1: r = 40; g = 180; b = 120; break;
@@ -1332,8 +1450,8 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     if (font) {
         int bt = 0;
         if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
-        const char* bossName = (bt == 1) ? "VOID WYRM" : "RIFT GUARDIAN";
-        SDL_Color tc = (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
+        const char* bossName = (bt == 2) ? "DIMENSIONAL ARCHITECT" : (bt == 1) ? "VOID WYRM" : "RIFT GUARDIAN";
+        SDL_Color tc = (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
         SDL_Surface* ts = TTF_RenderText_Blended(font, bossName, tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
@@ -1343,6 +1461,412 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
                 SDL_DestroyTexture(tt);
             }
             SDL_FreeSurface(ts);
+        }
+    }
+}
+
+void PlayState::applyRunBuffs() {
+    if (!m_player) return;
+    auto& buffs = game->getRunBuffSystem();
+
+    // HP boost
+    if (buffs.hasBuff(RunBuffID::MaxHPBoost)) {
+        auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+        hp.maxHP += buffs.getMaxHPBoost();
+        hp.currentHP = hp.maxHP;
+    }
+
+    // Crit bonus
+    float extraCrit = buffs.getCritBonus();
+    if (extraCrit > 0) {
+        m_combatSystem.setCritChance(game->getUpgradeSystem().getCritChance() + extraCrit);
+    }
+
+    // Ability cooldown reduction
+    if (buffs.hasBuff(RunBuffID::CooldownReduction) && m_player->getEntity()->hasComponent<AbilityComponent>()) {
+        auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
+        float mult = buffs.getAbilityCDMultiplier();
+        abil.abilities[0].cooldown *= mult;
+        abil.abilities[1].cooldown *= mult;
+        abil.abilities[2].cooldown *= mult;
+    }
+
+    // Lifesteal
+    m_combatSystem.setLifesteal(buffs.getLifesteal());
+
+    // Element weapon (0=none, 1=fire, 2=ice, 3=electric)
+    int elemType = 0;
+    if (buffs.hasFireWeapon()) elemType = 1;
+    else if (buffs.hasIceWeapon()) elemType = 2;
+    else if (buffs.hasElectricWeapon()) elemType = 3;
+    m_combatSystem.setElementWeapon(elemType);
+
+    // Dash refresh on kill
+    m_combatSystem.setDashRefreshOnKill(buffs.hasDashRefresh());
+
+    // Entropy shield: reduce entropy gain
+    m_entropy.entropyGainMultiplier = buffs.getEntropyGainMultiplier();
+}
+
+void PlayState::checkBreakableWalls() {
+    if (!m_player || !m_level) return;
+
+    // Only break walls during dash or charged attack
+    bool canBreak = m_player->isDashing || m_player->isChargingAttack;
+    if (!canBreak) return;
+
+    auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+    int tileSize = m_level->getTileSize();
+    int currentDim = m_dimManager.getCurrentDimension();
+
+    // Check tiles around player
+    int cx = static_cast<int>(pt.getCenter().x) / tileSize;
+    int cy = static_cast<int>(pt.getCenter().y) / tileSize;
+
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            int tx = cx + dx;
+            int ty = cy + dy;
+            if (!m_level->inBounds(tx, ty)) continue;
+
+            auto& tile = m_level->getTile(tx, ty, currentDim);
+            if (tile.type == TileType::Breakable) {
+                // Destroy the breakable wall
+                Tile empty;
+                empty.type = TileType::Empty;
+                m_level->setTile(tx, ty, currentDim, empty);
+                // Also break in other dimension
+                int otherDim = (currentDim == 1) ? 2 : 1;
+                auto& otherTile = m_level->getTile(tx, ty, otherDim);
+                if (otherTile.type == TileType::Breakable) {
+                    m_level->setTile(tx, ty, otherDim, empty);
+                }
+
+                AudioManager::instance().play(SFX::BreakableWall);
+                m_camera.shake(6.0f, 0.2f);
+
+                // Debris particles
+                Vec2 breakPos = {static_cast<float>(tx * tileSize + tileSize / 2),
+                                 static_cast<float>(ty * tileSize + tileSize / 2)};
+                m_particles.burst(breakPos, 20, tile.color, 200.0f, 3.0f);
+                m_particles.burst(breakPos, 10, {200, 180, 160, 255}, 150.0f, 2.0f);
+            }
+        }
+    }
+}
+
+void PlayState::checkSecretRoomDiscovery() {
+    if (!m_player || !m_level) return;
+
+    auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+    int tileSize = m_level->getTileSize();
+    int px = static_cast<int>(pt.getCenter().x) / tileSize;
+    int py = static_cast<int>(pt.getCenter().y) / tileSize;
+
+    for (auto& sr : m_level->getSecretRooms()) {
+        if (sr.discovered) continue;
+
+        // Check if player is inside the secret room bounds
+        if (px >= sr.tileX && px < sr.tileX + sr.width &&
+            py >= sr.tileY && py < sr.tileY + sr.height) {
+            sr.discovered = true;
+            AudioManager::instance().play(SFX::SecretRoomDiscover);
+            m_camera.shake(4.0f, 0.15f);
+
+            Vec2 roomCenter = {
+                static_cast<float>((sr.tileX + sr.width / 2) * tileSize),
+                static_cast<float>((sr.tileY + sr.height / 2) * tileSize)
+            };
+            m_particles.burst(roomCenter, 30, {255, 215, 60, 255}, 200.0f, 4.0f);
+            m_particles.burst(roomCenter, 15, {180, 150, 255, 255}, 150.0f, 3.0f);
+
+            // Apply rewards based on type
+            if (!sr.completed) {
+                sr.completed = true;
+                auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+
+                switch (sr.type) {
+                    case SecretRoomType::TreasureVault: {
+                        int shards = sr.shardReward;
+                        shards = static_cast<int>(shards * game->getRunBuffSystem().getShardMultiplier());
+                        shardsCollected += shards;
+                        game->getUpgradeSystem().addRiftShards(shards);
+                        hp.currentHP = std::min(hp.maxHP, hp.currentHP + sr.hpReward);
+                        break;
+                    }
+                    case SecretRoomType::ShrineRoom: {
+                        // 50/50 buff or curse
+                        AudioManager::instance().play(SFX::ShrineActivate);
+                        if (std::rand() % 2 == 0) {
+                            // Blessing: +20 max HP
+                            AudioManager::instance().play(SFX::ShrineBlessing);
+                            hp.maxHP += 20;
+                            hp.currentHP = std::min(hp.maxHP, hp.currentHP + 20);
+                            m_particles.burst(roomCenter, 20, {100, 255, 100, 255}, 150.0f, 3.0f);
+                        } else {
+                            // Curse: +15% entropy
+                            AudioManager::instance().play(SFX::ShrineCurse);
+                            m_entropy.addEntropy(15.0f);
+                            m_particles.burst(roomCenter, 20, {200, 50, 50, 255}, 150.0f, 3.0f);
+                        }
+                        break;
+                    }
+                    case SecretRoomType::DimensionCache: {
+                        int shards = sr.shardReward * 2; // Double reward
+                        shards = static_cast<int>(shards * game->getRunBuffSystem().getShardMultiplier());
+                        shardsCollected += shards;
+                        game->getUpgradeSystem().addRiftShards(shards);
+                        break;
+                    }
+                    case SecretRoomType::AncientWeapon:
+                        // Temporary damage boost
+                        m_player->damageBoostTimer = 30.0f; // 30 seconds
+                        m_player->damageBoostMultiplier = 2.0f;
+                        break;
+                    case SecretRoomType::ChallengeRoom:
+                        // Reward given after clearing enemies (checked by wave system)
+                        break;
+                }
+            }
+        }
+    }
+}
+
+void PlayState::checkEventInteraction() {
+    if (!m_player || !m_level) return;
+
+    auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+    Vec2 playerCenter = pt.getCenter();
+    int currentDim = m_dimManager.getCurrentDimension();
+    const auto& input = game->getInput();
+
+    m_nearEventIndex = -1;
+
+    auto& events = m_level->getRandomEvents();
+    for (int i = 0; i < static_cast<int>(events.size()); i++) {
+        auto& event = events[i];
+        if (!event.active || event.used) continue;
+        if (event.dimension != 0 && event.dimension != currentDim) continue;
+
+        float dx = playerCenter.x - event.position.x;
+        float dy = playerCenter.y - event.position.y;
+        float dist = std::sqrt(dx * dx + dy * dy);
+
+        if (dist < 60.0f) {
+            m_nearEventIndex = i;
+
+            // Interact with Up/W
+            if (input.isActionPressed(Action::Jump) || input.isActionPressed(Action::MoveUp)) {
+                // Not jump - use a dedicated check. Just use E key via event
+            }
+
+            // Interact with Enter or E (check raw key)
+            if (input.isActionPressed(Action::Interact)) {
+                event.used = true;
+                auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+                auto& buffs = game->getRunBuffSystem();
+
+                switch (event.type) {
+                    case RandomEventType::Merchant:
+                        AudioManager::instance().play(SFX::MerchantGreet);
+                        // Buy a random available buff (cheaper)
+                        {
+                            auto offerings = buffs.generateShopOffering(m_currentDifficulty);
+                            if (!offerings.empty()) {
+                                auto& pick = offerings[0];
+                                int shards = game->getUpgradeSystem().getRiftShards();
+                                int discountCost = pick.cost * 3 / 4; // 25% cheaper
+                                if (shards >= discountCost) {
+                                    game->getUpgradeSystem().addRiftShards(-discountCost);
+                                    // Bypass purchase() shard deduction - pass dummy with enough
+                                    int dummy = pick.cost;
+                                    buffs.purchase(pick.id, dummy);
+                                    AudioManager::instance().play(SFX::Pickup);
+                                    m_particles.burst(event.position, 15, {255, 215, 60, 255}, 120.0f, 2.0f);
+                                } else {
+                                    AudioManager::instance().play(SFX::RiftFail);
+                                    event.used = false; // Can try again
+                                }
+                            }
+                        }
+                        break;
+
+                    case RandomEventType::Shrine:
+                        AudioManager::instance().play(SFX::ShrineActivate);
+                        if (std::rand() % 2 == 0) {
+                            AudioManager::instance().play(SFX::ShrineBlessing);
+                            hp.maxHP += 15;
+                            hp.currentHP = std::min(hp.maxHP, hp.currentHP + 15);
+                            m_particles.burst(event.position, 20, {100, 255, 150, 255}, 150.0f, 3.0f);
+                        } else {
+                            AudioManager::instance().play(SFX::ShrineCurse);
+                            m_entropy.addEntropy(10.0f);
+                            hp.currentHP = std::max(1.0f, hp.currentHP - 10);
+                            m_particles.burst(event.position, 15, {200, 50, 50, 255}, 150.0f, 3.0f);
+                        }
+                        break;
+
+                    case RandomEventType::DimensionalAnomaly:
+                        AudioManager::instance().play(SFX::AnomalySpawn);
+                        // Spawn bonus enemies
+                        for (int e = 0; e < 3 + m_currentDifficulty; e++) {
+                            float sx = event.position.x + (std::rand() % 200 - 100);
+                            float sy = event.position.y - 50 - (std::rand() % 100);
+                            m_level->addEnemySpawn({sx, sy}, std::rand() % std::min(10, 3 + m_currentDifficulty), currentDim);
+                        }
+                        spawnEnemies(); // Re-spawn with new points
+                        m_particles.burst(event.position, 25, {180, 100, 255, 255}, 200.0f, 4.0f);
+                        break;
+
+                    case RandomEventType::RiftEcho: {
+                        int shards = event.reward;
+                        shards = static_cast<int>(shards * buffs.getShardMultiplier());
+                        shardsCollected += shards;
+                        game->getUpgradeSystem().addRiftShards(shards);
+                        AudioManager::instance().play(SFX::Pickup);
+                        m_particles.burst(event.position, 20, {200, 150, 255, 255}, 180.0f, 3.0f);
+                        break;
+                    }
+
+                    case RandomEventType::SuitRepairStation:
+                        hp.currentHP = hp.maxHP;
+                        m_entropy.reduceEntropy(30.0f);
+                        AudioManager::instance().play(SFX::RiftRepair);
+                        m_particles.burst(event.position, 25, {100, 255, 100, 255}, 150.0f, 3.0f);
+                        break;
+
+                    case RandomEventType::GamblingRift: {
+                        int cost = event.cost;
+                        int shards = game->getUpgradeSystem().getRiftShards();
+                        if (shards >= cost) {
+                            game->getUpgradeSystem().addRiftShards(-cost);
+                            // Random reward: 0x (40%), 2x (35%), 4x (25%)
+                            int roll = std::rand() % 100;
+                            int reward = 0;
+                            if (roll < 40) {
+                                reward = 0;
+                                AudioManager::instance().play(SFX::RiftFail);
+                                m_particles.burst(event.position, 10, {100, 100, 100, 255}, 80.0f, 2.0f);
+                            } else if (roll < 75) {
+                                reward = cost * 2;
+                                AudioManager::instance().play(SFX::Pickup);
+                                m_particles.burst(event.position, 15, {200, 170, 255, 255}, 120.0f, 3.0f);
+                            } else {
+                                reward = cost * 4;
+                                AudioManager::instance().play(SFX::LevelComplete);
+                                m_particles.burst(event.position, 30, {255, 215, 60, 255}, 200.0f, 4.0f);
+                            }
+                            reward = static_cast<int>(reward * buffs.getShardMultiplier());
+                            shardsCollected += reward;
+                            game->getUpgradeSystem().addRiftShards(reward);
+                        } else {
+                            AudioManager::instance().play(SFX::RiftFail);
+                            event.used = false;
+                        }
+                        break;
+                    }
+                }
+            }
+            break; // Only interact with nearest event
+        }
+    }
+}
+
+void PlayState::renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!m_level) return;
+
+    Uint32 ticks = SDL_GetTicks();
+    int currentDim = m_dimManager.getCurrentDimension();
+    auto& events = m_level->getRandomEvents();
+
+    for (int i = 0; i < static_cast<int>(events.size()); i++) {
+        auto& event = events[i];
+        if (!event.active || event.used) continue;
+        if (event.dimension != 0 && event.dimension != currentDim) continue;
+
+        SDL_FRect worldRect = {event.position.x - 16, event.position.y - 32, 32, 32};
+        SDL_Rect sr = m_camera.worldToScreen(worldRect);
+
+        // Skip if off screen
+        if (sr.x + sr.w < 0 || sr.x > 1280 || sr.y + sr.h < 0 || sr.y > 720) continue;
+
+        float bob = std::sin(ticks * 0.003f + i * 2.0f) * 3.0f;
+        sr.y -= static_cast<int>(bob);
+
+        // NPC body
+        SDL_Color npcColor;
+        switch (event.type) {
+            case RandomEventType::Merchant:           npcColor = {80, 200, 80, 255}; break;
+            case RandomEventType::Shrine:             npcColor = {180, 120, 255, 255}; break;
+            case RandomEventType::DimensionalAnomaly: npcColor = {200, 50, 200, 255}; break;
+            case RandomEventType::RiftEcho:           npcColor = {150, 150, 255, 255}; break;
+            case RandomEventType::SuitRepairStation:  npcColor = {100, 255, 150, 255}; break;
+            case RandomEventType::GamblingRift:       npcColor = {255, 200, 50, 255}; break;
+        }
+
+        // Glow
+        float glow = 0.5f + 0.5f * std::sin(ticks * 0.004f + i);
+        Uint8 ga = static_cast<Uint8>(40 * glow);
+        SDL_SetRenderDrawColor(renderer, npcColor.r, npcColor.g, npcColor.b, ga);
+        SDL_Rect glowRect = {sr.x - 6, sr.y - 6, sr.w + 12, sr.h + 12};
+        SDL_RenderFillRect(renderer, &glowRect);
+
+        // Body
+        SDL_SetRenderDrawColor(renderer, npcColor.r, npcColor.g, npcColor.b, 220);
+        SDL_RenderFillRect(renderer, &sr);
+
+        // Eye
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 200);
+        SDL_Rect eye = {sr.x + sr.w / 2 - 2, sr.y + 8, 4, 4};
+        SDL_RenderFillRect(renderer, &eye);
+
+        // Icon on top based on type
+        int iconY = sr.y - 6;
+        int iconX = sr.x + sr.w / 2;
+        SDL_SetRenderDrawColor(renderer, npcColor.r, npcColor.g, npcColor.b, 180);
+        switch (event.type) {
+            case RandomEventType::Merchant:
+                // Coin
+                SDL_RenderDrawLine(renderer, iconX - 4, iconY, iconX + 4, iconY);
+                SDL_RenderDrawLine(renderer, iconX, iconY - 4, iconX, iconY + 4);
+                break;
+            case RandomEventType::Shrine:
+                // Diamond
+                SDL_RenderDrawLine(renderer, iconX, iconY - 5, iconX + 5, iconY);
+                SDL_RenderDrawLine(renderer, iconX + 5, iconY, iconX, iconY + 5);
+                SDL_RenderDrawLine(renderer, iconX, iconY + 5, iconX - 5, iconY);
+                SDL_RenderDrawLine(renderer, iconX - 5, iconY, iconX, iconY - 5);
+                break;
+            case RandomEventType::DimensionalAnomaly: {
+                // Exclamation
+                SDL_RenderDrawLine(renderer, iconX, iconY - 5, iconX, iconY + 1);
+                SDL_Rect dot = {iconX - 1, iconY + 3, 2, 2};
+                SDL_RenderFillRect(renderer, &dot);
+                break;
+            }
+            default:
+                // Star
+                SDL_RenderDrawLine(renderer, iconX, iconY - 5, iconX, iconY + 5);
+                SDL_RenderDrawLine(renderer, iconX - 5, iconY, iconX + 5, iconY);
+                break;
+        }
+
+        // Interaction hint when near
+        if (i == m_nearEventIndex && font) {
+            float blink = 0.5f + 0.5f * std::sin(ticks * 0.008f);
+            SDL_Color hc = {255, 255, 255, static_cast<Uint8>(200 * blink)};
+            char hint[64];
+            std::snprintf(hint, sizeof(hint), "[F] %s", event.getName());
+            SDL_Surface* hs = TTF_RenderText_Blended(font, hint, hc);
+            if (hs) {
+                SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
+                if (ht) {
+                    SDL_Rect hr = {sr.x + sr.w / 2 - hs->w / 2, sr.y - 24, hs->w, hs->h};
+                    SDL_RenderCopy(renderer, ht, nullptr, &hr);
+                    SDL_DestroyTexture(ht);
+                }
+                SDL_FreeSurface(hs);
+            }
         }
     }
 }
