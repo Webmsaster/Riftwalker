@@ -29,6 +29,7 @@ private:
     void updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateTemporalWeaver(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
+    void updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
 
     void explode(Entity& entity, EntityManager& entities);
 

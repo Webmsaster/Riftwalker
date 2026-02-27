@@ -10,6 +10,11 @@
 #include "States/KeybindingsState.h"
 #include "States/AchievementsState.h"
 #include "States/ShopState.h"
+#include "States/ClassSelectState.h"
+#include "States/ChallengeSelectState.h"
+#include "States/BestiaryState.h"
+#include "States/LoreState.h"
+#include "States/EndingState.h"
 #include <SDL2/SDL_image.h>
 #include <fstream>
 #include <sstream>
@@ -70,6 +75,11 @@ bool Game::init() {
     m_states[StateID::Keybindings] = std::make_unique<KeybindingsState>();
     m_states[StateID::Achievements] = std::make_unique<AchievementsState>();
     m_states[StateID::Shop] = std::make_unique<ShopState>();
+    m_states[StateID::ClassSelect] = std::make_unique<ClassSelectState>();
+    m_states[StateID::ChallengeSelect] = std::make_unique<ChallengeSelectState>();
+    m_states[StateID::Bestiary] = std::make_unique<BestiaryState>();
+    m_states[StateID::Lore] = std::make_unique<LoreState>();
+    m_states[StateID::Ending] = std::make_unique<EndingState>();
 
     for (auto& [id, state] : m_states) {
         state->game = this;
@@ -81,6 +91,10 @@ bool Game::init() {
     // Load achievements
     m_achievements.init();
     m_achievements.load("riftwalker_achievements.dat");
+
+    // Init and load lore
+    m_lore.init();
+    m_lore.load("riftwalker_lore.dat");
 
     // Load custom keybindings (falls back to defaults if file missing)
     m_input.loadBindings("riftwalker_bindings.cfg");
@@ -297,6 +311,7 @@ void Game::saveSaveData() {
 void Game::shutdown() {
     m_input.saveBindings("riftwalker_bindings.cfg");
     m_achievements.save("riftwalker_achievements.dat");
+    m_lore.save("riftwalker_lore.dat");
     saveSaveData();
 
     if (m_font) {

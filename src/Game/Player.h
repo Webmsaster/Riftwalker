@@ -5,6 +5,7 @@
 #include "Systems/ParticleSystem.h"
 #include "Components/AbilityComponent.h"
 #include "Components/RelicComponent.h"
+#include "Game/ClassSystem.h"
 
 class Player {
 public:
@@ -12,6 +13,16 @@ public:
 
     void update(float dt, const InputManager& input);
     Entity* getEntity() const { return m_entity; }
+
+    // Class system
+    PlayerClass playerClass = PlayerClass::Voidwalker;
+    void applyClassStats();
+    bool isBloodRageActive() const;
+    float getClassDamageMultiplier() const;
+    float getClassAttackSpeedMultiplier() const;
+
+    // Phantom: post-dash invisibility
+    float postDashInvisTimer = 0;
 
     // Stats
     float moveSpeed = 250.0f;

@@ -14,6 +14,7 @@
 #include "Game/RelicSystem.h"
 #include "Game/Enemy.h"
 #include "Game/Bestiary.h"
+#include "Game/ClassSystem.h"
 #include <cmath>
 
 float CombatSystem::consumeHitFreeze() {
@@ -252,6 +253,12 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         AudioManager::instance().play(SFX::RiftShieldAbsorb);
                     }
 
+                    // Phantom class: speed boost on shield absorb
+                    if (m_player && m_player->playerClass == PlayerClass::Phantom) {
+                        m_player->speedBoostTimer = 1.5f;
+                        m_player->speedBoostMultiplier = 1.3f;
+                    }
+
                     if (m_particles) {
                         auto& targetT = target.getComponent<TransformComponent>();
                         Vec2 shieldPos = targetT.getCenter();
@@ -338,6 +345,11 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 auto& relics = attacker.getComponent<RelicComponent>();
                 float hpPct = attacker.getComponent<HealthComponent>().getPercent();
                 damage *= RelicSystem::getDamageMultiplier(relics, hpPct);
+            }
+
+            // Class damage multiplier (Berserker Blood Rage)
+            if (isPlayer && m_player) {
+                damage *= m_player->getClassDamageMultiplier();
             }
 
             // Pogo bounce: downward attack bounces player up

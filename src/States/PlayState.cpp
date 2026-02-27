@@ -11,6 +11,10 @@
 #include "Core/AudioManager.h"
 #include "Game/AchievementSystem.h"
 #include "Game/RelicSystem.h"
+#include "Game/ClassSystem.h"
+#include "Game/LoreSystem.h"
+#include "Game/DailyRun.h"
+#include "States/EndingState.h"
 #include "Components/RelicComponent.h"
 #include <cstdlib>
 #include <cmath>
@@ -36,7 +40,9 @@ void PlayState::startNewRun() {
     m_particles.clear();
 
     m_currentDifficulty = 1;
-    m_runSeed = std::rand();
+    m_isDailyRun = g_dailyRunActive;
+    m_runSeed = m_isDailyRun ? DailyRun::getTodaySeed() : std::rand();
+    g_dailyRunActive = false; // Reset flag
     enemiesKilled = 0;
     riftsRepaired = 0;
     roomsCleared = 0;
@@ -55,6 +61,10 @@ void PlayState::startNewRun() {
     m_showRelicChoice = false;
     m_relicChoices.clear();
     m_relicChoiceSelected = 0;
+    m_voidSovereignDefeated = false;
+    m_trails.clear();
+    m_moveTrailTimer = 0.0f;
+    m_runTime = 0.0f;
     m_nearNPCIndex = -1;
     m_showNPCDialog = false;
     m_npcDialogChoice = 0;
@@ -75,7 +85,6 @@ void PlayState::startNewRun() {
     m_entropy = SuitEntropy();
     m_combatSystem.setParticleSystem(&m_particles);
     m_combatSystem.setCamera(&m_camera);
-    m_combatSystem.setPlayer(m_player.get());
     m_aiSystem.setParticleSystem(&m_particles);
     m_aiSystem.setCamera(&m_camera);
     m_aiSystem.setCombatSystem(&m_combatSystem);
@@ -83,6 +92,7 @@ void PlayState::startNewRun() {
     m_spikeDmgCooldown = 0;
 
     generateLevel();
+    m_combatSystem.setPlayer(m_player.get());
     m_aiSystem.setLevel(m_level.get());
 }
 
@@ -93,13 +103,20 @@ void PlayState::generateLevel() {
     m_levelGen.setThemes(m_themeA, m_themeB);
     m_level = std::make_unique<Level>(m_levelGen.generate(m_currentDifficulty, m_runSeed + m_currentDifficulty));
 
-    // Create player
+    // Create player with selected class
     m_player = std::make_unique<Player>(m_entities);
     m_player->particles = &m_particles;
     m_player->entityManager = &m_entities;
     m_player->combatSystemRef = &m_combatSystem;
+    m_player->playerClass = g_selectedClass;
+    m_player->applyClassStats();
     applyUpgrades();
     applyAscensionModifiers();
+
+    // Voidwalker: reduced switch cooldown
+    if (g_selectedClass == PlayerClass::Voidwalker) {
+        m_dimManager.switchCooldown = 0.5f * ClassSystem::getData(PlayerClass::Voidwalker).switchCDReduction;
+    }
 
     auto& playerTransform = m_player->getEntity()->getComponent<TransformComponent>();
     playerTransform.position = m_level->getSpawnPoint();
@@ -363,14 +380,45 @@ void PlayState::update(float dt) {
 
     // Dimension switch
     if (input.isActionPressed(Action::DimensionSwitch)) {
+        // Check if dimension is locked by Void Sovereign
+        bool dimLocked = false;
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag() == "enemy_boss" && e.hasComponent<AIComponent>()) {
+                auto& bossAi = e.getComponent<AIComponent>();
+                if (bossAi.bossType == 4 && bossAi.vsDimLockActive > 0) dimLocked = true;
+            }
+        });
+        if (dimLocked) {
+            m_camera.shake(3.0f, 0.1f); // Feedback: can't switch
+        } else {
         m_dimManager.switchDimension();
         m_entropy.onDimensionSwitch();
         AudioManager::instance().play(SFX::DimensionSwitch);
         AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+        m_screenEffects.triggerDimensionRipple();
 
         // Relic: Phase Cloak - invisibility after dim switch
         if (m_player->getEntity()->hasComponent<RelicComponent>()) {
             RelicSystem::onDimensionSwitch(m_player->getEntity()->getComponent<RelicComponent>());
+        }
+
+        // Voidwalker passive: Rift Affinity - heal on dim-switch
+        if (m_player && m_player->playerClass == PlayerClass::Voidwalker) {
+            const auto& voidData = ClassSystem::getData(PlayerClass::Voidwalker);
+            auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+            hp.heal(voidData.switchHeal);
+            if (m_player->particles) {
+                Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                m_player->particles->burst(pPos, 8, {60, 200, 255, 200}, 60.0f, 2.0f);
+            }
+        }
+
+        // Lore: Echoes of Origin - first dimension switch
+        if (auto* lore = game->getLoreSystem()) {
+            if (!lore->isDiscovered(LoreID::DimensionOrigin)) {
+                lore->discover(LoreID::DimensionOrigin);
+                AudioManager::instance().play(SFX::LoreDiscover);
+            }
         }
 
         // Run buff: PhantomStep - invincible after dimension switch
@@ -383,6 +431,7 @@ void PlayState::update(float dt) {
                 m_player->particles->burst(pPos, 15, {180, 150, 255, 200}, 120.0f, 2.0f);
             }
         }
+        } // end else (not dimLocked)
     }
 
     // Forced dimension switch from entropy
@@ -399,6 +448,57 @@ void PlayState::update(float dt) {
     // Update input distortion from entropy
     game->getInputMutable().setInputDistortion(m_entropy.getInputDistortion());
 
+    // Trail system
+    m_trails.update(dt);
+
+    // Move trail (subtle)
+    m_moveTrailTimer -= dt;
+    if (m_moveTrailTimer <= 0 && m_player) {
+        auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+        auto& classData = ClassSystem::getData(m_player->playerClass);
+        m_trails.emit(pt.getCenter().x, pt.getCenter().y + pt.height * 0.3f,
+                      2.0f, classData.color.r, classData.color.g, classData.color.b, 50, 0.2f);
+        m_moveTrailTimer = 0.05f;
+    }
+
+    // Screen effects
+    if (m_player && m_player->getEntity()->hasComponent<HealthComponent>()) {
+        float hp = m_player->getEntity()->getComponent<HealthComponent>().getPercent();
+        m_screenEffects.setHP(hp);
+    }
+    m_screenEffects.setEntropy(m_entropy.getEntropy());
+    // Check if Void Storm is active
+    bool stormActive = false;
+    m_entities.forEach([&](Entity& e) {
+        if (e.getTag() == "enemy_boss" && e.hasComponent<AIComponent>()) {
+            auto& bossAi = e.getComponent<AIComponent>();
+            if (bossAi.bossType == 4 && bossAi.vsStormActive > 0) stormActive = true;
+        }
+    });
+    m_screenEffects.setVoidStorm(stormActive);
+    m_screenEffects.update(dt);
+
+    // Music system
+    {
+        int nearEnemies = 0;
+        bool bossActive = false;
+        Vec2 pPos = m_player ? m_player->getEntity()->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag().substr(0, 5) == "enemy") {
+                if (e.getTag() == "enemy_boss") bossActive = true;
+                auto& et = e.getComponent<TransformComponent>();
+                float dx = et.getCenter().x - pPos.x;
+                float dy = et.getCenter().y - pPos.y;
+                if (dx * dx + dy * dy < 400.0f * 400.0f) nearEnemies++;
+            }
+        });
+        float hp = m_player ? m_player->getEntity()->getComponent<HealthComponent>().getPercent() : 1.0f;
+        m_musicSystem.update(dt, nearEnemies, bossActive, hp, m_entropy.getEntropy());
+    }
+
+    // Run time tracking
+    m_runTime += dt;
+
     // Player update
     m_player->update(dt, input);
 
@@ -411,6 +511,20 @@ void PlayState::update(float dt) {
     // AI
     Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
     m_aiSystem.update(m_entities, dt, playerPos, m_dimManager.getCurrentDimension());
+
+    // Void Sovereign Phase 3: auto dimension switch
+    m_entities.forEach([&](Entity& e) {
+        if (e.getTag() != "enemy_boss") return;
+        if (!e.hasComponent<AIComponent>()) return;
+        auto& bossAi = e.getComponent<AIComponent>();
+        if (bossAi.bossType == 4 && bossAi.vsForceDimSwitch) {
+            bossAi.vsForceDimSwitch = false;
+            m_dimManager.switchDimension();
+            m_camera.shake(6.0f, 0.2f);
+            AudioManager::instance().play(SFX::DimensionSwitch);
+            m_screenEffects.triggerDimensionRipple();
+        }
+    });
 
     // Collision
     m_collision.update(m_entities, m_dimManager.getCurrentDimension());
@@ -510,6 +624,31 @@ void PlayState::update(float dt) {
             game->getAchievements().unlock("boss_slayer");
             int bossIdx = m_currentDifficulty / 3;
             if (bossIdx % 2 == 1) game->getAchievements().unlock("wyrm_hunter");
+
+            // Lore triggers on boss kill
+            {
+                auto* lore = game->getLoreSystem();
+                if (lore) {
+                    int bossTypeForLore = bossIdx % 4;
+                    if (m_currentDifficulty >= 10 && bossIdx >= 4) {
+                        // Void Sovereign killed
+                        lore->discover(LoreID::SovereignTruth);
+                        Bestiary::onBossKill(4);
+                        AudioManager::instance().play(SFX::LoreDiscover);
+                    } else {
+                        Bestiary::onBossKill(bossTypeForLore);
+                        if (bossTypeForLore == 0) lore->discover(LoreID::BossMemory1);
+                        else if (bossTypeForLore == 1) lore->discover(LoreID::BossMemory2);
+                        else if (bossTypeForLore == 2) lore->discover(LoreID::BossMemory3);
+                        else if (bossTypeForLore == 3) lore->discover(LoreID::BossMemory4);
+                    }
+                }
+            }
+
+            // Track Void Sovereign defeat for ending sequence
+            if (m_currentDifficulty >= 10 && bossIdx >= 4) {
+                m_voidSovereignDefeated = true;
+            }
 
             // Boss kill -> Relic choice (3 from pool)
             showRelicChoice();
@@ -785,6 +924,7 @@ void PlayState::update(float dt) {
         }
         if (m_collapseTimer >= m_collapseMaxTime) {
             endRun();
+            return;
         }
     }
 
@@ -797,6 +937,7 @@ void PlayState::update(float dt) {
     if (m_combatSystem.killCount > 0) {
         enemiesKilled += m_combatSystem.killCount;
         game->getUpgradeSystem().totalEnemiesKilled += m_combatSystem.killCount;
+        m_screenEffects.triggerKillFlash();
 
         // Relic on-kill effects
         if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
@@ -813,6 +954,26 @@ void PlayState::update(float dt) {
             }
         }
     }
+    // Lore: Walker Scourge - 50+ kills
+    if (enemiesKilled >= 50) {
+        if (auto* lore = game->getLoreSystem()) {
+            if (!lore->isDiscovered(LoreID::WalkerScourge)) {
+                lore->discover(LoreID::WalkerScourge);
+                AudioManager::instance().play(SFX::LoreDiscover);
+            }
+        }
+    }
+
+    // Lore: Void Hunger - survive entropy > 90%
+    if (m_entropy.getEntropy() > 90.0f) {
+        if (auto* lore = game->getLoreSystem()) {
+            if (!lore->isDiscovered(LoreID::VoidHunger)) {
+                lore->discover(LoreID::VoidHunger);
+                AudioManager::instance().play(SFX::LoreDiscover);
+            }
+        }
+    }
+
     if (m_combatSystem.killedMiniBoss) {
         game->getAchievements().unlock("mini_boss_hunter");
         m_combatSystem.killedMiniBoss = false;
@@ -1034,6 +1195,9 @@ void PlayState::render(SDL_Renderer* renderer) {
                        m_dimManager.getCurrentDimension(),
                        m_dimManager.getBlendAlpha());
 
+    // Trails (before particles)
+    m_trails.render(renderer);
+
     // Particles
     m_particles.render(renderer, m_camera);
 
@@ -1234,6 +1398,9 @@ void PlayState::render(SDL_Renderer* renderer) {
         SDL_Rect fullScreen = {0, 0, 1280, 720};
         SDL_RenderFillRect(renderer, &fullScreen);
     }
+
+    // Screen effects (vignette, low-HP pulse, kill flash, boss intro, ripple, glitch)
+    m_screenEffects.render(renderer, 1280, 720);
 
     // Damage flash overlay
     m_hud.renderFlash(renderer, 1280, 720);
@@ -1780,17 +1947,28 @@ void PlayState::spawnBoss() {
     int bossDiff = m_currentDifficulty;
     if (g_selectedDifficulty == GameDifficulty::Hard) bossDiff += 1;
 
-    // Rotate 4 boss types: Guardian -> Wyrm -> Architect -> Temporal Weaver
+    // Void Sovereign at difficulty 10+ (after completing all 4 boss rotations)
     int bossIndex = m_currentDifficulty / 3; // 0-based boss encounter index
-    int bossType = bossIndex % 4;
-    if (bossType == 3) {
-        Enemy::createTemporalWeaver(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-    } else if (bossType == 2) {
-        Enemy::createDimensionalArchitect(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-    } else if (bossType == 1) {
-        Enemy::createVoidWyrm(m_entities, {spawnPos.x, spawnPos.y - 40.0f}, dim, bossDiff);
+    if (m_currentDifficulty >= 10 && bossIndex >= 4) {
+        // Spawn Void Sovereign as final boss
+        Enemy::createVoidSovereign(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+        m_screenEffects.triggerBossIntro("VOID SOVEREIGN");
     } else {
-        Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
+        // Rotate 4 boss types: Guardian -> Wyrm -> Architect -> Temporal Weaver
+        int bossType = (bossIndex - 1) % 4;
+        if (bossType == 3) {
+            Enemy::createTemporalWeaver(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+            m_screenEffects.triggerBossIntro("TEMPORAL WEAVER");
+        } else if (bossType == 2) {
+            Enemy::createDimensionalArchitect(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+            m_screenEffects.triggerBossIntro("DIMENSIONAL ARCHITECT");
+        } else if (bossType == 1) {
+            Enemy::createVoidWyrm(m_entities, {spawnPos.x, spawnPos.y - 40.0f}, dim, bossDiff);
+            m_screenEffects.triggerBossIntro("VOID WYRM");
+        } else {
+            Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
+            m_screenEffects.triggerBossIntro("RIFT GUARDIAN");
+        }
     }
 }
 
@@ -1832,7 +2010,15 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     int bt = 0;
     if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
     Uint8 r, g, b;
-    if (bt == 3) {
+    if (bt == 4) {
+        // Void Sovereign: dark purple/magenta tones
+        switch (bossPhase) {
+            case 1: r = 120; g = 0; b = 180; break;
+            case 2: r = 180; g = 0; b = 150; break;
+            case 3: r = 255; g = 0; b = 120; break;
+            default: r = 120; g = 0; b = 180; break;
+        }
+    } else if (bt == 3) {
         // Temporal Weaver: golden/amber tones
         switch (bossPhase) {
             case 1: r = 200; g = 170; b = 60; break;
@@ -1878,8 +2064,8 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     if (font) {
         int bt = 0;
         if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
-        const char* bossName = (bt == 3) ? "TEMPORAL WEAVER" : (bt == 2) ? "DIMENSIONAL ARCHITECT" : (bt == 1) ? "VOID WYRM" : "RIFT GUARDIAN";
-        SDL_Color tc = (bt == 3) ? SDL_Color{220, 190, 100, 220} : (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
+        const char* bossName = (bt == 4) ? "VOID SOVEREIGN" : (bt == 3) ? "TEMPORAL WEAVER" : (bt == 2) ? "DIMENSIONAL ARCHITECT" : (bt == 1) ? "VOID WYRM" : "RIFT GUARDIAN";
+        SDL_Color tc = (bt == 4) ? SDL_Color{180, 80, 255, 220} : (bt == 3) ? SDL_Color{220, 190, 100, 220} : (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
         SDL_Surface* ts = TTF_RenderText_Blended(font, bossName, tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
@@ -1999,6 +2185,13 @@ void PlayState::checkSecretRoomDiscovery() {
             py >= sr.tileY && py < sr.tileY + sr.height) {
             sr.discovered = true;
             AudioManager::instance().play(SFX::SecretRoomDiscover);
+            // Lore: The Rift - discovered via secret room
+            if (auto* lore = game->getLoreSystem()) {
+                if (!lore->isDiscovered(LoreID::TheRift)) {
+                    lore->discover(LoreID::TheRift);
+                    AudioManager::instance().play(SFX::LoreDiscover);
+                }
+            }
             m_camera.shake(4.0f, 0.15f);
 
             Vec2 roomCenter = {
@@ -2307,12 +2500,38 @@ void PlayState::endRun() {
     // Save bestiary progress
     Bestiary::save("bestiary_save.dat");
 
+    // Save lore progress
+    if (auto* lore = game->getLoreSystem()) {
+        lore->save("riftwalker_lore.dat");
+    }
+
     // Ascension: award Rift Cores based on difficulty and ascension level
     int cores = m_currentDifficulty * (1 + AscensionSystem::currentLevel);
     AscensionSystem::riftCores += cores;
     AscensionSystem::save("ascension_save.dat");
 
-    game->changeState(StateID::RunSummary);
+    // Void Sovereign defeated -> Ending sequence
+    if (m_voidSovereignDefeated) {
+        if (auto* lore = game->getLoreSystem()) {
+            lore->discover(LoreID::FinalRevelation);
+            lore->save("riftwalker_lore.dat");
+        }
+        // Set ending stats
+        if (auto* ending = dynamic_cast<EndingState*>(game->getState(StateID::Ending))) {
+            ending->finalScore = enemiesKilled * 10 + roomsCleared * 50 + riftsRepaired * 100;
+            ending->totalKills = enemiesKilled;
+            ending->maxDifficulty = m_currentDifficulty;
+            int relicCount = 0;
+            if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
+                relicCount = static_cast<int>(m_player->getEntity()->getComponent<RelicComponent>().relics.size());
+            }
+            ending->relicsCollected = relicCount;
+            ending->totalTime = m_runTime;
+        }
+        game->changeState(StateID::Ending);
+    } else {
+        game->changeState(StateID::RunSummary);
+    }
 }
 
 void PlayState::applyChallengeModifiers() {
@@ -2677,6 +2896,14 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
 
+    // Lore: Forgotten Craft - NPC interaction
+    if (auto* lore = game->getLoreSystem()) {
+        if (!lore->isDiscovered(LoreID::ForgottenCraft)) {
+            lore->discover(LoreID::ForgottenCraft);
+            AudioManager::instance().play(SFX::LoreDiscover);
+        }
+    }
+
     switch (npc.type) {
         case NPCType::RiftScholar:
             // Give tip + small shard bonus
@@ -2751,6 +2978,13 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
 
 void PlayState::applyAscensionModifiers() {
     if (AscensionSystem::currentLevel <= 0) return;
+
+    // Lore: The Ascended - triggered on first ascended run
+    if (auto* lore = game->getLoreSystem()) {
+        if (!lore->isDiscovered(LoreID::AscendedOnes)) {
+            lore->discover(LoreID::AscendedOnes);
+        }
+    }
 
     const auto& asc = AscensionSystem::getLevel(AscensionSystem::currentLevel);
 

@@ -22,6 +22,9 @@
 #include "Game/Bestiary.h"
 #include "Game/NPCSystem.h"
 #include "Game/AscensionSystem.h"
+#include "Game/TrailEmitter.h"
+#include "Game/ScreenEffects.h"
+#include "Core/MusicSystem.h"
 #include "UI/HUD.h"
 #include <memory>
 #include <vector>
@@ -143,6 +146,7 @@ private:
     // Boss system
     bool m_isBossLevel = false;
     bool m_bossDefeated = false;
+    bool m_voidSovereignDefeated = false;
     void spawnBoss();
     void renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font);
     void endRun();
@@ -174,4 +178,12 @@ private:
 
     // Ascension system
     void applyAscensionModifiers();
+
+    // Visual polish (Stufe 4)
+    TrailSystem m_trails;
+    ScreenEffects m_screenEffects;
+    MusicSystem m_musicSystem;
+    float m_moveTrailTimer = 0.0f;
+    float m_runTime = 0.0f; // Total run time
+    bool m_isDailyRun = false;
 };

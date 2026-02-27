@@ -1,7 +1,9 @@
 #include "DifficultySelectState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Game/ClassSystem.h"
 #include <cmath>
+#include <cstdio>
 
 void DifficultySelectState::enter() {
     m_selected = static_cast<int>(g_selectedDifficulty);
@@ -49,6 +51,23 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
 
     TTF_Font* font = game->getFont();
     if (!font) return;
+
+    // Class indicator at top
+    {
+        const auto& classData = ClassSystem::getData(g_selectedClass);
+        char classText[64];
+        std::snprintf(classText, sizeof(classText), "Class: %s", classData.name);
+        SDL_Surface* cs = TTF_RenderText_Blended(font, classText, classData.color);
+        if (cs) {
+            SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
+            if (ct) {
+                SDL_Rect cr = {640 - cs->w / 2, 60, cs->w, cs->h};
+                SDL_RenderCopy(renderer, ct, nullptr, &cr);
+                SDL_DestroyTexture(ct);
+            }
+            SDL_FreeSurface(cs);
+        }
+    }
 
     // Title
     {

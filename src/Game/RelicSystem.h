@@ -69,4 +69,16 @@ public:
 
     // On dimension switch: trigger PhaseCloak
     static void onDimensionSwitch(RelicComponent& relics);
+
+    // Cursed relic queries
+    static bool isCursed(RelicID id);
+    static float getCursedMeleeMult(const RelicComponent& relics);
+    static float getCursedRangedMult(const RelicComponent& relics);
+    static float getDamageTakenMult(const RelicComponent& relics);
+    static float getAbilityCDMultCursed(const RelicComponent& relics);
+    static float getAbilityHPCost(const RelicComponent& relics);
+    static bool hasNoPassiveEntropy(const RelicComponent& relics);
+    static float getKillEntropyGain(const RelicComponent& relics);
+    static float getVoidPactHeal(const RelicComponent& relics);
+    static float getVoidPactMaxHPPercent(const RelicComponent& relics);
 };

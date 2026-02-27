@@ -8,6 +8,7 @@
 #include "Game/UpgradeSystem.h"
 #include "Game/AchievementSystem.h"
 #include "Game/RunBuffSystem.h"
+#include "Game/LoreSystem.h"
 #include <SDL2/SDL_ttf.h>
 #include <memory>
 #include <unordered_map>
@@ -34,6 +35,8 @@ public:
     UpgradeSystem& getUpgradeSystem() { return m_upgrades; }
     AchievementSystem& getAchievements() { return m_achievements; }
     RunBuffSystem& getRunBuffSystem() { return m_runBuffs; }
+    LoreSystem* getLoreSystem() { return &m_lore; }
+    GameState* getState(StateID id) { auto it = m_states.find(id); return it != m_states.end() ? it->second.get() : nullptr; }
     void setShopDifficulty(int d) { m_shopDifficulty = d; }
     int getShopDifficulty() const { return m_shopDifficulty; }
     TTF_Font* getFont() const { return m_font; }
@@ -57,6 +60,7 @@ private:
     UpgradeSystem m_upgrades;
     AchievementSystem m_achievements;
     RunBuffSystem m_runBuffs;
+    LoreSystem m_lore;
     int m_shopDifficulty = 1;
     TTF_Font* m_font = nullptr;
 

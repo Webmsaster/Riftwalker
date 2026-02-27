@@ -9,6 +9,7 @@
 #include "Components/TransformComponent.h"
 #include "Components/AbilityComponent.h"
 #include "Game/WeaponSystem.h"
+#include "Game/ClassSystem.h"
 #include <cstdio>
 #include <cmath>
 
@@ -171,6 +172,36 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     SDL_SetRenderDrawColor(renderer, 80, 80, 100, 60);
     SDL_RenderDrawRect(renderer, &hudBg);
 
+    // Class icon (small colored square with class initial)
+    if (player) {
+        const auto& classData = ClassSystem::getData(player->playerClass);
+        int iconSize = 20;
+        int iconX = margin;
+        int iconY = margin - 2;
+
+        // Icon background
+        SDL_SetRenderDrawColor(renderer, classData.color.r, classData.color.g, classData.color.b, 200);
+        SDL_Rect iconRect = {iconX, iconY, iconSize, iconSize};
+        SDL_RenderFillRect(renderer, &iconRect);
+
+        // Class initial letter
+        if (font) {
+            char initial[2] = {classData.name[0], '\0'};
+            renderText(renderer, font, initial, iconX + 5, iconY + 2, {255, 255, 255, 255});
+        }
+
+        // Blood Rage indicator for Berserker
+        if (player->isBloodRageActive()) {
+            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.012f);
+            Uint8 a = static_cast<Uint8>(180 * pulse);
+            SDL_SetRenderDrawColor(renderer, 255, 60, 30, a);
+            SDL_Rect rageRect = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
+            SDL_RenderDrawRect(renderer, &rageRect);
+        }
+    }
+
+    int hpBarOffset = 26; // offset HP bar to the right of class icon
+
     // HP Bar
     if (player && player->getEntity()->hasComponent<HealthComponent>()) {
         auto& hp = player->getEntity()->getComponent<HealthComponent>();
@@ -186,12 +217,12 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             hpColor.r = static_cast<Uint8>(hpColor.r * pulse);
         }
 
-        renderBar(renderer, margin, margin, barW, barH, pct, hpColor, {20, 20, 25, 220});
+        renderBar(renderer, margin + hpBarOffset, margin, barW - hpBarOffset, barH, pct, hpColor, {20, 20, 25, 220});
 
         if (font) {
             char hpText[32];
             std::snprintf(hpText, sizeof(hpText), "HP %.0f/%.0f", hp.currentHP, hp.maxHP);
-            renderText(renderer, font, hpText, margin + 5, margin + 2, {255, 255, 255, 220});
+            renderText(renderer, font, hpText, margin + hpBarOffset + 5, margin + 2, {255, 255, 255, 220});
         }
     }
 

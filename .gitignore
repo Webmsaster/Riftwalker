@@ -19,6 +19,10 @@ CMakeSettings.json
 
 # Save data
 riftwalker_save.dat
+riftwalker_lore.dat
+bestiary_save.dat
+ascension_save.dat
+daily_run.dat
 
 # Logs
 *.log

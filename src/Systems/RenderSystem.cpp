@@ -98,7 +98,8 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     } else if (tag == "enemy_boss") {
         int bt = 0;
         if (entity.hasComponent<AIComponent>()) bt = entity.getComponent<AIComponent>().bossType;
-        if (bt == 3) renderTemporalWeaver(renderer, screenRect, entity, alpha);
+        if (bt == 4) renderVoidSovereign(renderer, screenRect, entity, alpha);
+        else if (bt == 3) renderTemporalWeaver(renderer, screenRect, entity, alpha);
         else if (bt == 2) renderDimensionalArchitect(renderer, screenRect, entity, alpha);
         else if (bt == 1) renderVoidWyrm(renderer, screenRect, entity, alpha);
         else renderBoss(renderer, screenRect, entity, alpha);
@@ -1694,5 +1695,128 @@ void RenderSystem::renderTemporalWeaver(SDL_Renderer* renderer, SDL_Rect rect, E
         fillRect(renderer, bX, bY, static_cast<int>(barW * hpComp.getPercent()), barH, 220, 190, 80, a);
         fillRect(renderer, bX + barW * 2 / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
         fillRect(renderer, bX + barW / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+    }
+}
+
+void RenderSystem::renderVoidSovereign(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int cx = x + w / 2, cy = y + h / 2;
+
+    auto& ai = entity.getComponent<AIComponent>();
+    float hpPercent = 1.0f;
+    if (entity.hasComponent<HealthComponent>())
+        hpPercent = entity.getComponent<HealthComponent>().getPercent();
+
+    int phase = (hpPercent > 0.7f) ? 1 : (hpPercent > 0.4f) ? 2 : 3;
+    float pulse = ai.vsVoidKernPulse;
+
+    // Void aura rings
+    for (int ring = 0; ring < 3; ring++) {
+        float ringR = (w / 2 + 12 + ring * 8) + std::sin(pulse * 2.0f + ring) * 3.0f;
+        Uint8 ringA = static_cast<Uint8>(a * (0.15f - ring * 0.04f));
+        int segments = 16;
+        for (int s = 0; s < segments; s++) {
+            float a1 = (s / (float)segments) * 2.0f * 3.14159f;
+            float a2 = ((s + 1) / (float)segments) * 2.0f * 3.14159f;
+            int rx1 = cx + static_cast<int>(std::cos(a1) * ringR);
+            int ry1 = cy + static_cast<int>(std::sin(a1) * ringR);
+            int rx2 = cx + static_cast<int>(std::cos(a2) * ringR);
+            int ry2 = cy + static_cast<int>(std::sin(a2) * ringR);
+            drawLine(renderer, rx1, ry1, rx2, ry2, 120, 0, 180, ringA);
+        }
+    }
+
+    // Dark violet body
+    fillRect(renderer, x + 4, y + 4, w - 8, h - 8, 80, 0, 120, a);
+    fillRect(renderer, x + 8, y + 8, w - 16, h - 16, 100, 10, 150, a);
+
+    // Pulsing void core
+    int coreR = static_cast<int>(8 + std::sin(pulse * 3.0f) * 3.0f);
+    Uint8 coreA = static_cast<Uint8>(a * (0.6f + std::sin(pulse * 4.0f) * 0.3f));
+    fillRect(renderer, cx - coreR, cy - coreR, coreR * 2, coreR * 2, 180, 0, 255, coreA);
+    fillRect(renderer, cx - coreR + 2, cy - coreR + 2, coreR * 2 - 4, coreR * 2 - 4, 220, 80, 255, coreA);
+
+    // Eyes - change with phase
+    if (phase == 1) {
+        // Two glowing purple eyes
+        fillRect(renderer, x + w / 3 - 3, y + h / 3 - 2, 6, 4, 200, 100, 255, a);
+        fillRect(renderer, x + 2 * w / 3 - 3, y + h / 3 - 2, 6, 4, 200, 100, 255, a);
+    } else if (phase == 2) {
+        // Four eyes (two extra smaller)
+        fillRect(renderer, x + w / 3 - 3, y + h / 3 - 2, 6, 4, 255, 100, 200, a);
+        fillRect(renderer, x + 2 * w / 3 - 3, y + h / 3 - 2, 6, 4, 255, 100, 200, a);
+        fillRect(renderer, x + w / 4 - 2, y + h / 3 + 4, 4, 3, 255, 50, 150, a);
+        fillRect(renderer, x + 3 * w / 4 - 2, y + h / 3 + 4, 4, 3, 255, 50, 150, a);
+    } else {
+        // Single large void eye
+        int eyeR = static_cast<int>(6 + std::sin(pulse * 5.0f) * 2.0f);
+        fillRect(renderer, cx - eyeR, y + h / 3 - eyeR / 2, eyeR * 2, eyeR, 255, 0, 180, a);
+        fillRect(renderer, cx - 2, y + h / 3 - 1, 4, 3, 255, 255, 255, a);
+    }
+
+    // Phase 2: Tentacles
+    if (phase >= 2) {
+        int numTentacles = (phase == 3) ? 6 : 4;
+        for (int t = 0; t < numTentacles; t++) {
+            float tAngle = (t / (float)numTentacles) * 2.0f * 3.14159f + pulse * 0.5f;
+            int baseX = cx + static_cast<int>(std::cos(tAngle) * (w / 2 - 4));
+            int baseY = cy + static_cast<int>(std::sin(tAngle) * (h / 2 - 4));
+            float tentLen = 20.0f + std::sin(pulse * 2.0f + t) * 8.0f;
+            int tipX = baseX + static_cast<int>(std::cos(tAngle) * tentLen);
+            int tipY = baseY + static_cast<int>(std::sin(tAngle) * tentLen);
+            drawLine(renderer, baseX, baseY, tipX, tipY, 140, 0, 200, static_cast<Uint8>(a * 0.7f));
+            // Tentacle tip glow
+            fillRect(renderer, tipX - 2, tipY - 2, 4, 4, 200, 50, 255, static_cast<Uint8>(a * 0.5f));
+        }
+    }
+
+    // Phase 3: Screen edge glow effect (drawn as rects near entity edges)
+    if (phase == 3) {
+        Uint8 edgeA = static_cast<Uint8>(a * (0.15f + std::sin(pulse * 6.0f) * 0.1f));
+        fillRect(renderer, x - 20, y - 20, w + 40, 4, 120, 0, 180, edgeA);
+        fillRect(renderer, x - 20, y + h + 16, w + 40, 4, 120, 0, 180, edgeA);
+        fillRect(renderer, x - 20, y - 20, 4, h + 40, 120, 0, 180, edgeA);
+        fillRect(renderer, x + w + 16, y - 20, 4, h + 40, 120, 0, 180, edgeA);
+    }
+
+    // Laser visual (Reality Tear)
+    if (ai.vsLaserActive) {
+        float laserAngle = ai.vsLaserAngle;
+        int laserLen = 600;
+        int lx = cx + static_cast<int>(std::cos(laserAngle) * laserLen);
+        int ly = cy + static_cast<int>(std::sin(laserAngle) * laserLen);
+        int lx2 = cx - static_cast<int>(std::cos(laserAngle) * laserLen);
+        int ly2 = cy - static_cast<int>(std::sin(laserAngle) * laserLen);
+        // Outer glow
+        drawLine(renderer, lx, ly, lx2, ly2, 180, 0, 255, static_cast<Uint8>(a * 0.3f));
+        // Core beam (offset lines for width)
+        for (int off = -2; off <= 2; off++) {
+            drawLine(renderer, lx, ly + off, lx2, ly2 + off, 255, 100, 255, static_cast<Uint8>(a * 0.7f));
+        }
+    }
+
+    // Dimension lock indicator
+    if (ai.vsDimLockActive > 0.0f) {
+        Uint8 lockA = static_cast<Uint8>(a * 0.3f * std::min(1.0f, ai.vsDimLockActive));
+        fillRect(renderer, x - 10, y - 10, w + 20, h + 20, 255, 0, 0, lockA);
+    }
+
+    // HP bar with phase markers at 70% and 40%
+    if (entity.hasComponent<HealthComponent>()) {
+        auto& hpComp = entity.getComponent<HealthComponent>();
+        int barW = w + 30;
+        int barH = 6;
+        int bX = x - 15;
+        int bY = y - 18;
+        fillRect(renderer, bX, bY, barW, barH, 30, 10, 40, a);
+        // HP fill - color changes by phase
+        Uint8 hpR = (phase == 1) ? 120 : (phase == 2) ? 180 : 255;
+        Uint8 hpG = 0;
+        Uint8 hpB = (phase == 1) ? 180 : (phase == 2) ? 100 : 50;
+        fillRect(renderer, bX, bY, static_cast<int>(barW * hpComp.getPercent()), barH, hpR, hpG, hpB, a);
+        // Phase markers at 70% and 40%
+        fillRect(renderer, bX + static_cast<int>(barW * 0.7f), bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.5f));
+        fillRect(renderer, bX + static_cast<int>(barW * 0.4f), bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.5f));
     }
 }

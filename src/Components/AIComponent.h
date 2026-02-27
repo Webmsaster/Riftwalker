@@ -166,6 +166,26 @@ struct AIComponent : public Component {
     int twCloneCount = 0;            // Number of active clones
     float twHoverY = 0;              // Hover offset (sine wave)
 
+    // Void Sovereign boss specific
+    float vsOrbTimer = 0;            // Void Orbs cooldown
+    float vsSlamTimer = 0;           // Rift Slam cooldown
+    float vsTeleportTimer = 0;       // Teleport cooldown
+    float vsDimLockTimer = 0;        // Dimension Lock cooldown
+    float vsDimLockActive = 0;       // Remaining dim-lock duration
+    float vsStormTimer = 0;          // Void Storm cooldown
+    float vsLaserTimer = 0;          // Reality Tear laser cooldown
+    float vsLaserAngle = 0;          // Laser sweep angle
+    bool vsLaserActive = false;      // Laser is firing
+    float vsAutoSwitchTimer = 0;     // Phase 3: auto dim-switch timer
+    bool vsForceDimSwitch = false;   // Phase 3: flag for PlayState to trigger dim-switch
+    int vsCloneCount = 0;            // Shadow Clones active
+    float vsCloneSpawnTimer = 0;     // Clone respawn cooldown
+    float vsArenaShink = 0;          // Arena shrink amount (Phase 2)
+    float vsStormActive = 0;         // Void Storm remaining duration
+    Vec2 vsStormSafe1;               // Void Storm safe zone 1
+    Vec2 vsStormSafe2;               // Void Storm safe zone 2
+    float vsVoidKernPulse = 0;       // Visual: pulsing core
+
     // Juggle state
     float juggleTimer = 0;
     int juggleHitCount = 0;

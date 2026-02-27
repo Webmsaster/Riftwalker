@@ -326,7 +326,7 @@ Entity& Enemy::createExploder(EntityManager& entities, Vec2 pos, int dimension) 
     ai.chaseSpeed = 180.0f; // Fast runner
     ai.patrolSpeed = 40.0f;
     ai.explodeRadius = 80.0f;
-    ai.explodeDamage = 35.0f;
+    ai.explodeDamage = 30.0f;
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 80.0f, pos.y};
 
@@ -822,5 +822,59 @@ Entity& Enemy::createDimensionalArchitect(EntityManager& entities, Vec2 pos, int
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 150.0f, pos.y - 80.0f};
 
+    return e;
+}
+
+Entity& Enemy::createVoidSovereign(EntityManager& entities, Vec2 pos, int dimension, int difficulty) {
+    auto& e = entities.addEntity("enemy_boss");
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 80, 80);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(80, 0, 120); // Dark violet
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.useGravity = false;
+    phys.gravity = 0;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 72;
+    col.height = 72;
+    col.offset = {4, 4};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 350.0f + difficulty * 60.0f;
+    hp.currentHP = hp.maxHP;
+    hp.armor = 3.0f + difficulty * 1.5f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 25.0f;
+    combat.meleeAttack.range = 80.0f;
+    combat.meleeAttack.knockback = 350.0f;
+    combat.rangedAttack.damage = 18.0f;
+    combat.rangedAttack.range = 500.0f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Boss;
+    ai.detectRange = 600.0f;
+    ai.loseRange = 800.0f;
+    ai.chaseSpeed = 120.0f;
+    ai.bossType = 4; // Void Sovereign = type 4
+    ai.bossPhase = 1;
+    ai.bossAttackTimer = 0;
+    ai.bossAttackPattern = 0;
+    ai.vsOrbTimer = 2.0f;
+    ai.vsSlamTimer = 5.0f;
+    ai.vsTeleportTimer = 8.0f;
+    ai.vsDimLockTimer = 12.0f;
+    ai.vsStormTimer = 20.0f;
+    ai.vsLaserTimer = 15.0f;
+    ai.vsAutoSwitchTimer = 3.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 200.0f, pos.y - 100.0f};
+
+    e.dimension = dimension;
     return e;
 }

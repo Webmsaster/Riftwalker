@@ -216,6 +216,13 @@ void Player::update(float dt, const InputManager& input) {
             }
         }
     }
+    // Phantom: post-dash invisibility timer
+    if (postDashInvisTimer > 0) {
+        postDashInvisTimer -= dt;
+        auto& hp = m_entity->getComponent<HealthComponent>();
+        hp.invulnerable = (postDashInvisTimer > 0);
+    }
+
     if (hasShield) {
         shieldTimer -= dt;
         auto& hp = m_entity->getComponent<HealthComponent>();
@@ -289,10 +296,11 @@ void Player::handleDash(float dt, const InputManager& input) {
 
     if (isDashing) {
         dashTimer -= dt;
-        // Afterimage trail during dash
+        // Afterimage trail during dash (class-colored)
         if (particles) {
             auto& t = m_entity->getComponent<TransformComponent>();
-            SDL_Color ghostColor = {60, 120, 220, 100};
+            const auto& cc = ClassSystem::getData(playerClass).color;
+            SDL_Color ghostColor = {cc.r, cc.g, cc.b, 100};
             particles->burst(t.getCenter(), 2, ghostColor, 20.0f, 6.0f);
         }
         if (dashTimer <= 0) {
@@ -300,6 +308,11 @@ void Player::handleDash(float dt, const InputManager& input) {
             auto& phys = m_entity->getComponent<PhysicsBody>();
             phys.useGravity = true;
             phys.velocity.x *= 0.3f;
+            // Phantom: post-dash invisibility
+            if (playerClass == PlayerClass::Phantom) {
+                const auto& classData = ClassSystem::getData(PlayerClass::Phantom);
+                postDashInvisTimer = classData.postDashInvisTime;
+            }
         }
         return;
     }
@@ -477,23 +490,39 @@ void Player::updateAnimation() {
         sprite.animTimer = 0;
     }
 
+    // Class color
+    const auto& classColor = ClassSystem::getData(playerClass).color;
+
     // Color based on state
     switch (sprite.animState) {
         case AnimState::Hurt: {
             Uint32 t = SDL_GetTicks();
             if ((t / 80) % 2 == 0) sprite.setColor(255, 255, 255);
-            else sprite.setColor(60, 120, 220);
+            else sprite.setColor(classColor.r, classColor.g, classColor.b);
             break;
         }
         case AnimState::Attack:
             sprite.setColor(255, 220, 100);
             break;
         case AnimState::Dash:
-            sprite.setColor(100, 200, 255, 180);
+            sprite.setColor(classColor.r, classColor.g, classColor.b, 180);
             break;
         default:
-            sprite.setColor(60, 120, 220);
+            sprite.setColor(classColor.r, classColor.g, classColor.b);
             break;
+    }
+
+    // Phantom: ghostly during post-dash invis
+    if (postDashInvisTimer > 0) {
+        float alpha = 80.0f + 60.0f * std::sin(SDL_GetTicks() * 0.02f);
+        sprite.color.a = static_cast<Uint8>(alpha);
+    }
+
+    // Berserker: Blood Rage glow
+    if (isBloodRageActive()) {
+        float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.012f);
+        sprite.color.r = static_cast<Uint8>(std::min(255.0f, sprite.color.r + 80 * pulse));
+        sprite.color.g = static_cast<Uint8>(sprite.color.g * (0.5f + 0.2f * pulse));
     }
 
     // Status effect tinting (overrides above for active effects)
@@ -680,6 +709,63 @@ void Player::handleAbilities(float dt, const InputManager& input) {
             }
         }
     }
+}
+
+void Player::applyClassStats() {
+    const auto& data = ClassSystem::getData(playerClass);
+    moveSpeed = data.baseSpeed;
+
+    auto& hp = m_entity->getComponent<HealthComponent>();
+    hp.maxHP = data.baseHP;
+    hp.currentHP = data.baseHP;
+
+    auto& sprite = m_entity->getComponent<SpriteComponent>();
+    sprite.setColor(data.color.r, data.color.g, data.color.b);
+
+    // Phantom: longer dash
+    if (playerClass == PlayerClass::Phantom) {
+        dashDuration = 0.2f * data.dashLengthMult;
+    }
+
+    // Berserker: enhanced Ground Slam
+    if (playerClass == PlayerClass::Berserker && m_entity->hasComponent<AbilityComponent>()) {
+        auto& abil = m_entity->getComponent<AbilityComponent>();
+        abil.slamRadius = 120.0f * 1.4f;        // +40% radius
+        abil.slamStunDuration = 0.8f + 0.4f;     // +0.4s stun
+    }
+
+    // Voidwalker: enhanced Phase Strike
+    if (playerClass == PlayerClass::Voidwalker && m_entity->hasComponent<AbilityComponent>()) {
+        auto& abil = m_entity->getComponent<AbilityComponent>();
+        abil.phaseStrikeRange = 200.0f * 1.5f;   // +50% range
+    }
+
+    // Phantom: enhanced Rift Shield
+    if (playerClass == PlayerClass::Phantom && m_entity->hasComponent<AbilityComponent>()) {
+        auto& abil = m_entity->getComponent<AbilityComponent>();
+        abil.shieldMaxHits = 3 + 1;               // +1 max hits
+    }
+}
+
+bool Player::isBloodRageActive() const {
+    if (playerClass != PlayerClass::Berserker) return false;
+    const auto& data = ClassSystem::getData(PlayerClass::Berserker);
+    auto& hp = m_entity->getComponent<HealthComponent>();
+    return hp.getPercent() < data.lowHPThreshold;
+}
+
+float Player::getClassDamageMultiplier() const {
+    if (isBloodRageActive()) {
+        return ClassSystem::getData(PlayerClass::Berserker).rageDmgBonus;
+    }
+    return 1.0f;
+}
+
+float Player::getClassAttackSpeedMultiplier() const {
+    if (isBloodRageActive()) {
+        return ClassSystem::getData(PlayerClass::Berserker).rageAtkSpeedBonus;
+    }
+    return 1.0f;
 }
 
 void Player::switchMelee() {

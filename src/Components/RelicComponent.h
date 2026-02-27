@@ -27,6 +27,13 @@ enum class RelicID {
     PhoenixFeather,  // 1x Auto-Revive (100% HP)
     VoidHunger,      // Each kill +1% permanent DMG bonus (run)
     ChaosOrb,        // Random relic effect every 30s
+    // Cursed Relics (strong positive + negative)
+    CursedBlade,     // +40% Melee DMG, -20% Ranged DMG
+    GlassHeart,      // +50% Max HP, 2x damage taken
+    TimeTax,         // -50% Ability CD, abilities cost 10 HP
+    EntropySponge,   // No passive entropy, kills +5% entropy
+    VoidPact,        // Kill heals 5 HP, max 60% HP healing
+    ChaosRift,       // Every 10th kill: random buff 15s, every 5th hit: +50% DMG spike
     COUNT
 };
 
@@ -53,6 +60,15 @@ struct RelicComponent : public Component {
     float chaosOrbTimer = 0;    // ChaosOrb random effect timer
     int chaosOrbCurrentEffect = 0;
     float voidHungerBonus = 0;  // Accumulated +% DMG from VoidHunger
+
+    // Cursed relic state
+    int chaosRiftKillCount = 0;   // ChaosRift: track kills for buff trigger
+    int chaosRiftHitCount = 0;    // ChaosRift: track hits taken for DMG spike
+    float chaosRiftBuffTimer = 0; // ChaosRift: active buff timer
+    int chaosRiftBuffType = 0;    // ChaosRift: which random buff is active
+
+    // Synergy state
+    bool phaseHunterBuffActive = false; // Phase Hunter: next attack 2x DMG after dim-switch
 
     bool hasRelic(RelicID id) const {
         for (auto& r : relics) {

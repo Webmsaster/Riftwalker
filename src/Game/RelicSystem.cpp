@@ -1,5 +1,6 @@
 #include "RelicSystem.h"
 #include "Game/Player.h"
+#include "Game/RelicSynergy.h"
 #include "Components/HealthComponent.h"
 #include "Components/CombatComponent.h"
 #include <cstdlib>
@@ -30,6 +31,13 @@ static void initRelicData() {
     d[static_cast<int>(RelicID::PhoenixFeather)]  = {RelicID::PhoenixFeather, "Phoenix Feather", "1x Auto-Revive", RelicTier::Legendary, SDL_Color{255, 180, 50, 255}};
     d[static_cast<int>(RelicID::VoidHunger)]      = {RelicID::VoidHunger, "Void Hunger", "Kill: +1% DMG (Run)", RelicTier::Legendary, SDL_Color{80, 0, 120, 255}};
     d[static_cast<int>(RelicID::ChaosOrb)]        = {RelicID::ChaosOrb, "Chaos Orb", "Random Effect / 30s", RelicTier::Legendary, SDL_Color{255, 100, 200, 255}};
+    // Cursed Relics
+    d[static_cast<int>(RelicID::CursedBlade)]    = {RelicID::CursedBlade, "Cursed Blade", "+40% Melee, -20% Ranged", RelicTier::Rare, SDL_Color{180, 30, 60, 255}};
+    d[static_cast<int>(RelicID::GlassHeart)]     = {RelicID::GlassHeart, "Glass Heart", "+50% Max HP, 2x DMG taken", RelicTier::Rare, SDL_Color{220, 180, 200, 255}};
+    d[static_cast<int>(RelicID::TimeTax)]        = {RelicID::TimeTax, "Time Tax", "-50% Ability CD, costs 10 HP", RelicTier::Rare, SDL_Color{100, 180, 220, 255}};
+    d[static_cast<int>(RelicID::EntropySponge)]  = {RelicID::EntropySponge, "Entropy Sponge", "No passive entropy, kills +5%", RelicTier::Legendary, SDL_Color{40, 180, 80, 255}};
+    d[static_cast<int>(RelicID::VoidPact)]       = {RelicID::VoidPact, "Void Pact", "Kill heals 5 HP, max 60% HP", RelicTier::Legendary, SDL_Color{80, 0, 100, 255}};
+    d[static_cast<int>(RelicID::ChaosRift)]      = {RelicID::ChaosRift, "Chaos Rift", "10th kill: buff, 5th hit: spike", RelicTier::Legendary, SDL_Color{200, 60, 200, 255}};
 }
 
 const RelicData& RelicSystem::getRelicData(RelicID id) {
@@ -107,6 +115,9 @@ void RelicSystem::applyStatEffects(RelicComponent& relics, Player& player,
             case RelicID::BerserkerCore:
                 hpBonus -= hp.maxHP * 0.30f;
                 break;
+            case RelicID::GlassHeart:
+                hpBonus += hp.maxHP * 0.50f;
+                break;
             default: break;
         }
     }
@@ -155,7 +166,8 @@ float RelicSystem::getAbilityCooldownMultiplier(const RelicComponent& relics) {
 bool RelicSystem::rollEchoStrike(const RelicComponent& relics) {
     for (auto& r : relics.relics) {
         if (r.id == RelicID::EchoStrike) {
-            return (std::rand() % 100) < 20;
+            float chance = RelicSynergy::getEchoStrikeChance(relics);
+            return (std::rand() % 100) < static_cast<int>(chance * 100);
         }
     }
     return false;
@@ -246,7 +258,16 @@ void RelicSystem::updateTimedEffects(RelicComponent& relics, float dt) {
 void RelicSystem::onEnemyKill(RelicComponent& relics) {
     for (auto& r : relics.relics) {
         if (r.id == RelicID::VoidHunger) {
-            relics.voidHungerBonus += 0.01f;
+            relics.voidHungerBonus += RelicSynergy::getVoidHungerBonusPerKill(relics);
+        }
+    }
+    // ChaosRift: track kills for buff trigger
+    if (relics.hasRelic(RelicID::ChaosRift)) {
+        relics.chaosRiftKillCount++;
+        if (relics.chaosRiftKillCount >= 10) {
+            relics.chaosRiftKillCount = 0;
+            relics.chaosRiftBuffTimer = 15.0f;
+            relics.chaosRiftBuffType = std::rand() % 4; // 0=speed, 1=dmg, 2=armor, 3=regen
         }
     }
 }
@@ -255,4 +276,46 @@ void RelicSystem::onDimensionSwitch(RelicComponent& relics) {
     if (relics.hasRelic(RelicID::PhaseCloak)) {
         relics.phaseCloakTimer = 1.0f;
     }
+}
+
+bool RelicSystem::isCursed(RelicID id) {
+    return id == RelicID::CursedBlade || id == RelicID::GlassHeart ||
+           id == RelicID::TimeTax || id == RelicID::EntropySponge ||
+           id == RelicID::VoidPact || id == RelicID::ChaosRift;
+}
+
+float RelicSystem::getCursedMeleeMult(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::CursedBlade) ? 1.4f : 1.0f;
+}
+
+float RelicSystem::getCursedRangedMult(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::CursedBlade) ? 0.8f : 1.0f;
+}
+
+float RelicSystem::getDamageTakenMult(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::GlassHeart) ? 1.6f : 1.0f;
+}
+
+float RelicSystem::getAbilityCDMultCursed(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::TimeTax) ? 0.5f : 1.0f;
+}
+
+float RelicSystem::getAbilityHPCost(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::TimeTax) ? 10.0f : 0.0f;
+}
+
+bool RelicSystem::hasNoPassiveEntropy(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::EntropySponge);
+}
+
+float RelicSystem::getKillEntropyGain(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::EntropySponge) ? 5.0f : 0.0f;
+}
+
+float RelicSystem::getVoidPactHeal(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::VoidPact) ? 5.0f : 0.0f;
+}
+
+float RelicSystem::getVoidPactMaxHPPercent(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::VoidPact) ? 0.6f : 1.0f;
 }

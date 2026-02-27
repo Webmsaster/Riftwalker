@@ -731,3 +731,69 @@ Mix_Chunk* SoundGenerator::ambientDimB() {
 
     return toChunk(s);
 }
+
+// Void Sovereign boss sounds
+
+Mix_Chunk* SoundGenerator::voidSovereignOrb() {
+    auto s = generate(0.35f);
+    addSweep(s, 200.0f, 800.0f, 0.3f, 0.0f);
+    addSine(s, 120.0f, 0.2f, 0.0f, 0.0f, 0.15f);
+    addNoise(s, 0.08f, 0.0f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::voidSovereignSlam() {
+    auto s = generate(0.5f);
+    addSweep(s, 150.0f, 30.0f, 0.5f, 0.1f);
+    addNoise(s, 0.25f, 0.0f);
+    addSine(s, 40.0f, 0.3f, 0.0f, 0.05f, 0.4f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::voidSovereignTeleport() {
+    auto s = generate(0.4f);
+    addSweep(s, 1200.0f, 100.0f, 0.2f, 0.0f, 0.0f, 0.2f);
+    addSweep(s, 100.0f, 1200.0f, 0.0f, 0.2f, 0.2f, 0.4f);
+    addNoise(s, 0.1f, 0.0f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::voidSovereignDimLock() {
+    auto s = generate(0.6f);
+    addSine(s, 80.0f, 0.3f, 0.3f, 0.0f, 0.5f);
+    addSine(s, 160.0f, 0.2f, 0.0f, 0.0f, 0.6f);
+    addSquare(s, 40.0f, 0.15f, 0.05f);
+    addNoise(s, 0.1f, 0.02f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::voidSovereignStorm() {
+    auto s = generate(0.8f);
+    addNoise(s, 0.3f, 0.1f);
+    addSweep(s, 60.0f, 200.0f, 0.2f, 0.05f);
+    addSine(s, 100.0f, 0.15f, 0.0f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::voidSovereignLaser() {
+    auto s = generate(0.5f);
+    addSine(s, 440.0f, 0.3f, 0.3f, 0.0f, 0.4f);
+    addSine(s, 880.0f, 0.15f, 0.15f, 0.0f, 0.4f);
+    addSweep(s, 440.0f, 220.0f, 0.2f, 0.0f, 0.3f, 0.5f);
+    addNoise(s, 0.05f, 0.0f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::loreDiscover() {
+    auto s = generate(0.8f);
+    // Mystical ascending chime
+    addSine(s, 523.0f, 0.0f, 0.25f, 0.0f, 0.15f); // C5
+    addSine(s, 523.0f, 0.25f, 0.0f, 0.15f, 0.4f);
+    addSine(s, 659.0f, 0.0f, 0.25f, 0.15f, 0.3f); // E5
+    addSine(s, 659.0f, 0.25f, 0.0f, 0.3f, 0.55f);
+    addSine(s, 784.0f, 0.0f, 0.25f, 0.3f, 0.45f); // G5
+    addSine(s, 784.0f, 0.25f, 0.0f, 0.45f, 0.8f);
+    // Sparkle
+    addSine(s, 1568.0f, 0.05f, 0.0f, 0.4f, 0.8f);
+    return toChunk(s);
+}

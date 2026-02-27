@@ -30,6 +30,9 @@ enum class SFX {
     ShrineActivate, ShrineBlessing, ShrineCurse,
     MerchantGreet, AnomalySpawn,
     ArchTileSwap, ArchConstruct, ArchRiftOpen, ArchCollapse, ArchBeam,
+    VoidSovereignOrb, VoidSovereignSlam, VoidSovereignTeleport,
+    VoidSovereignDimLock, VoidSovereignStorm, VoidSovereignLaser,
+    LoreDiscover,
     COUNT
 };
 

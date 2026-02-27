@@ -83,6 +83,13 @@ void AudioManager::generateSounds() {
     m_sfx[static_cast<int>(SFX::ArchRiftOpen)]         = SoundGenerator::archRiftOpen();
     m_sfx[static_cast<int>(SFX::ArchCollapse)]         = SoundGenerator::archCollapse();
     m_sfx[static_cast<int>(SFX::ArchBeam)]             = SoundGenerator::archBeam();
+    m_sfx[static_cast<int>(SFX::VoidSovereignOrb)]      = SoundGenerator::voidSovereignOrb();
+    m_sfx[static_cast<int>(SFX::VoidSovereignSlam)]      = SoundGenerator::voidSovereignSlam();
+    m_sfx[static_cast<int>(SFX::VoidSovereignTeleport)]  = SoundGenerator::voidSovereignTeleport();
+    m_sfx[static_cast<int>(SFX::VoidSovereignDimLock)]   = SoundGenerator::voidSovereignDimLock();
+    m_sfx[static_cast<int>(SFX::VoidSovereignStorm)]     = SoundGenerator::voidSovereignStorm();
+    m_sfx[static_cast<int>(SFX::VoidSovereignLaser)]     = SoundGenerator::voidSovereignLaser();
+    m_sfx[static_cast<int>(SFX::LoreDiscover)]           = SoundGenerator::loreDiscover();
 }
 
 void AudioManager::shutdown() {

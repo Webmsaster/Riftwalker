@@ -89,6 +89,17 @@ public:
     static Mix_Chunk* archCollapse();
     static Mix_Chunk* archBeam();
 
+    // Void Sovereign boss sounds
+    static Mix_Chunk* voidSovereignOrb();
+    static Mix_Chunk* voidSovereignSlam();
+    static Mix_Chunk* voidSovereignTeleport();
+    static Mix_Chunk* voidSovereignDimLock();
+    static Mix_Chunk* voidSovereignStorm();
+    static Mix_Chunk* voidSovereignLaser();
+
+    // Lore
+    static Mix_Chunk* loreDiscover();
+
     // Ambient music loops (~4 seconds each)
     static Mix_Chunk* ambientDimA(); // Cool, ethereal drone
     static Mix_Chunk* ambientDimB(); // Warm, ominous drone

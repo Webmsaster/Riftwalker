@@ -23,11 +23,12 @@ void Bestiary::init() {
     e[static_cast<int>(EnemyType::Summoner)] = {EnemyType::Summoner, "Rift Summoner", "Calls minions to fight for it.", 35, 8, "Kill summoner first"};
     e[static_cast<int>(EnemyType::Sniper)]   = {EnemyType::Sniper, "Void Sniper", "Long-range precision shots.", 25, 20, "Close the gap fast"};
 
-    s_bossEntries.resize(4);
+    s_bossEntries.resize(5);
     s_bossEntries[0] = {EnemyType::Walker, "Rift Guardian", "First guardian of the rift. Massive and powerful.", 200, 15, "Learn phase patterns"};
     s_bossEntries[1] = {EnemyType::Walker, "Void Wyrm", "Serpentine beast of the void. Poison and dive attacks.", 240, 18, "Avoid poison pools"};
     s_bossEntries[2] = {EnemyType::Walker, "Dimensional Architect", "Builder of realities. Constructs barriers and beams.", 220, 16, "Destroy constructs"};
     s_bossEntries[3] = {EnemyType::Walker, "Temporal Weaver", "Master of time. Slows, stops, and rewinds.", 280, 20, "Dash through time zones"};
+    s_bossEntries[4] = {EnemyType::Walker, "Void Sovereign", "The final lord of the Rift. Bends dimensions to its will.", 400, 25, "Watch for phase transitions"};
 }
 
 void Bestiary::onEnemyKill(EnemyType type) {

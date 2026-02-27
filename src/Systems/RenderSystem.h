@@ -29,6 +29,7 @@ private:
     void renderVoidWyrm(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderDimensionalArchitect(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderTemporalWeaver(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderVoidSovereign(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderProjectile(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
 

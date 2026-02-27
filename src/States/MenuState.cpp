@@ -3,6 +3,7 @@
 #include "Core/AudioManager.h"
 #include "Game/AscensionSystem.h"
 #include "Game/Bestiary.h"
+#include "Game/DailyRun.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -14,23 +15,31 @@ void MenuState::enter() {
     Bestiary::load("bestiary_save.dat");
 
     int cx = 640;
-    int startY = 420;
+    int startY = 365;
     int btnW = 260;
-    int btnH = 48;
-    int gap = 12;
+    int btnH = 34;
+    int gap = 3;
 
     m_buttons.clear();
     m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, "New Run");
-    m_buttons.emplace_back(cx - btnW / 2, startY + btnH + gap, btnW, btnH, "Upgrades");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Achievements");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Options");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, "Quit");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap), btnW, btnH, "Daily Run");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Challenges");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Upgrades");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, "Bestiary");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 5, btnW, btnH, "Achievements");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 6, btnW, btnH, "Lore");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 7, btnW, btnH, "Options");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 8, btnW, btnH, "Quit");
 
-    m_buttons[0].onClick = [this]() { game->changeState(StateID::DifficultySelect); };
-    m_buttons[1].onClick = [this]() { game->changeState(StateID::Upgrade); };
-    m_buttons[2].onClick = [this]() { game->pushState(StateID::Achievements); };
-    m_buttons[3].onClick = [this]() { game->changeState(StateID::Options); };
-    m_buttons[4].onClick = [this]() { game->quit(); };
+    m_buttons[0].onClick = [this]() { game->changeState(StateID::ClassSelect); };
+    m_buttons[1].onClick = [this]() { g_dailyRunActive = true; game->changeState(StateID::ClassSelect); };
+    m_buttons[2].onClick = [this]() { game->changeState(StateID::ChallengeSelect); };
+    m_buttons[3].onClick = [this]() { game->changeState(StateID::Upgrade); };
+    m_buttons[4].onClick = [this]() { game->changeState(StateID::Bestiary); };
+    m_buttons[5].onClick = [this]() { game->pushState(StateID::Achievements); };
+    m_buttons[6].onClick = [this]() { game->changeState(StateID::Lore); };
+    m_buttons[7].onClick = [this]() { game->changeState(StateID::Options); };
+    m_buttons[8].onClick = [this]() { game->quit(); };
 
     m_selectedButton = 0;
     m_buttons[0].setSelected(true);

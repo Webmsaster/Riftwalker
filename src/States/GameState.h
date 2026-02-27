@@ -23,12 +23,15 @@ enum class StateID {
     RunSummary,
     GameOver,
     Options,
+    ClassSelect,
     DifficultySelect,
     Keybindings,
     Achievements,
     Shop,
     ChallengeSelect,
-    Bestiary
+    Bestiary,
+    Lore,
+    Ending
 };
 
 // Global difficulty setting (shared between states)
