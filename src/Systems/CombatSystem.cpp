@@ -192,16 +192,18 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             // Element effects on hit (enemy hitting player)
             if (!isPlayer && target.getTag() == "player" && attacker.hasComponent<AIComponent>()) {
                 auto& ai = attacker.getComponent<AIComponent>();
-                if (ai.element == EnemyElement::Ice && target.hasComponent<PhysicsBody>()) {
-                    // Slow player for 1.5 seconds (reduce speed via friction boost)
-                    auto& phys = target.getComponent<PhysicsBody>();
-                    phys.velocity.x *= 0.3f;
+                if (ai.element == EnemyElement::Ice) {
+                    // Apply freeze: slow player for 1.5 seconds
+                    if (m_player) m_player->applyFreeze(1.5f);
+                    if (target.hasComponent<PhysicsBody>()) {
+                        target.getComponent<PhysicsBody>().velocity.x *= 0.3f;
+                    }
                     if (m_particles) {
                         m_particles->burst(targetCenter, 10, {100, 180, 255, 255}, 80.0f, 2.0f);
                     }
                 } else if (ai.element == EnemyElement::Fire) {
-                    // Extra burn damage
-                    hp.takeDamage(damage * 0.3f);
+                    // Apply burn: damage over time for 2 seconds
+                    if (m_player) m_player->applyBurn(2.0f);
                     if (m_particles) {
                         m_particles->burst(targetCenter, 8, {255, 150, 30, 255}, 100.0f, 2.5f);
                     }

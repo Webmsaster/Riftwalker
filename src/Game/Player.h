@@ -44,6 +44,20 @@ public:
     float speedBoostMultiplier = 1.5f;
     float damageBoostMultiplier = 1.5f;
 
+    // Status effects
+    float burnTimer = 0;
+    float burnDmgTimer = 0;      // ticks damage every 0.3s
+    float freezeTimer = 0;       // slows movement
+    float poisonTimer = 0;
+    float poisonDmgTimer = 0;    // ticks damage every 0.5s
+
+    void applyBurn(float duration) { burnTimer = std::max(burnTimer, duration); }
+    void applyFreeze(float duration) { freezeTimer = std::max(freezeTimer, duration); }
+    void applyPoison(float duration) { poisonTimer = std::max(poisonTimer, duration); }
+    bool isBurning() const { return burnTimer > 0; }
+    bool isFrozen() const { return freezeTimer > 0; }
+    bool isPoisoned() const { return poisonTimer > 0; }
+
 private:
     void handleMovement(float dt, const InputManager& input);
     void handleJump(const InputManager& input);

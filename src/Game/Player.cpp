@@ -99,6 +99,11 @@ void Player::update(float dt, const InputManager& input) {
         damageBoostTimer -= dt;
         if (damageBoostTimer <= 0) damageBoostTimer = 0;
     }
+
+    // Status effect timers
+    if (burnTimer > 0) burnTimer -= dt;
+    if (freezeTimer > 0) freezeTimer -= dt;
+    if (poisonTimer > 0) poisonTimer -= dt;
     if (hasShield) {
         shieldTimer -= dt;
         auto& hp = m_entity->getComponent<HealthComponent>();
@@ -118,6 +123,7 @@ void Player::handleMovement(float dt, const InputManager& input) {
 
     if (std::abs(axis) > 0.1f) {
         float speed = moveSpeed * (speedBoostTimer > 0 ? speedBoostMultiplier : 1.0f);
+        if (freezeTimer > 0) speed *= 0.4f; // Freeze slows movement
         phys.velocity.x = axis * speed;
         facingRight = axis > 0;
         m_entity->getComponent<SpriteComponent>().flipX = !facingRight;
@@ -297,5 +303,20 @@ void Player::updateAnimation() {
         default:
             sprite.setColor(60, 120, 220);
             break;
+    }
+
+    // Status effect tinting (overrides above for active effects)
+    if (burnTimer > 0 && sprite.animState != AnimState::Hurt) {
+        sprite.color.r = std::min(255, sprite.color.r + 100);
+        sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.6f);
+    }
+    if (freezeTimer > 0) {
+        sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.5f);
+        sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.7f);
+        sprite.color.b = std::min(255, sprite.color.b + 80);
+    }
+    if (poisonTimer > 0) {
+        sprite.color.g = std::min(255, sprite.color.g + 60);
+        sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.7f);
     }
 }

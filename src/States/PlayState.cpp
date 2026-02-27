@@ -360,6 +360,7 @@ void PlayState::update(float dt) {
                 m_spikeDmgCooldown = 0.4f;
                 m_camera.shake(4.0f, 0.15f);
                 AudioManager::instance().play(SFX::FireBurn);
+                m_player->applyBurn(1.5f); // Fire tiles also apply burn
                 if (m_player->getEntity()->hasComponent<PhysicsBody>()) {
                     auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
                     phys.velocity.y = -200.0f;
@@ -389,6 +390,29 @@ void PlayState::update(float dt) {
             if (m_level->isOnConveyor(footX, footY, dim, convDir)) {
                 auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
                 phys.velocity.x += convDir * 120.0f * dt;
+            }
+        }
+    }
+
+    // Status effect DoT damage
+    if (m_player) {
+        auto& playerT = m_player->getEntity()->getComponent<TransformComponent>();
+        auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+
+        if (m_player->isBurning()) {
+            m_player->burnDmgTimer -= dt;
+            if (m_player->burnDmgTimer <= 0) {
+                playerHP.takeDamage(5.0f);
+                m_player->burnDmgTimer = 0.3f;
+                m_particles.burst(playerT.getCenter(), 4, {255, 120, 30, 200}, 60.0f, 1.5f);
+            }
+        }
+        if (m_player->isPoisoned()) {
+            m_player->poisonDmgTimer -= dt;
+            if (m_player->poisonDmgTimer <= 0) {
+                playerHP.takeDamage(3.0f);
+                m_player->poisonDmgTimer = 0.5f;
+                m_particles.burst(playerT.getCenter(), 3, {80, 200, 40, 200}, 40.0f, 1.5f);
             }
         }
     }
