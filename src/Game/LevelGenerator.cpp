@@ -240,7 +240,7 @@ void LevelGenerator::applyTemplate(Level& level, int startX, int startY,
                     if (!level.isSolid(tx, ty, dim)) {
                         level.addEnemySpawn(
                             {static_cast<float>(tx * 32), static_cast<float>(ty * 32)},
-                            m_rng() % 5, dim
+                            m_rng() % 7, dim
                         );
                     }
                     break;
@@ -418,10 +418,16 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
 
         if (level.isSolid(ex, ey, dim)) continue;
 
-        int type = m_rng() % 7; // 0-6: Walker, Flyer, Turret, Charger, Phaser, Exploder, Shielder
-        if (difficulty < 2) type = std::min(type, 2);       // Easy: Walker, Flyer, Turret only
-        else if (difficulty < 4) type = std::min(type, 4);  // Medium: +Charger, Phaser
-        // Hard (4+): all types including Exploder, Shielder
+        int type = m_rng() % 10; // 0-9: all enemy types
+        if (difficulty < 2) type = std::min(type, 2);       // Easy: Walker, Flyer, Turret
+        else if (difficulty < 3) type = std::min(type, 4);  // Medium: +Charger, Phaser
+        else if (difficulty < 5) type = std::min(type, 7);  // Hard: +Exploder, Shielder, Crawler
+        // Very Hard (5+): all types including Summoner, Sniper
+
+        // Crawler should spawn near ceiling for best effect
+        if (type == 7) { // Crawler
+            ey = startY + 2;
+        }
 
         level.addEnemySpawn(
             {static_cast<float>(ex * 32), static_cast<float>(ey * 32)},

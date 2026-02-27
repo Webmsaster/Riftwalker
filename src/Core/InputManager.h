@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <unordered_map>
 #include <string>
+#include <vector>
 
 enum class Action {
     MoveLeft, MoveRight, Jump, Dash,
@@ -28,6 +29,21 @@ public:
     bool isActionPressed(Action action) const;
     bool isActionReleased(Action action) const;
     float getAxis(Action negative, Action positive) const;
+
+    // Rebinding
+    void rebindKey(Action action, SDL_Scancode newKey);
+    SDL_Scancode getKeyForAction(Action action) const;
+    bool isKeyUsedByOtherAction(SDL_Scancode key, Action exclude) const;
+    Action getActionForKey(SDL_Scancode key) const;
+
+    // Utility
+    static std::string getActionName(Action action);
+    static const std::vector<Action>& getBindableActions();
+
+    // Reset & Persistence
+    void resetToDefaults();
+    bool saveBindings(const std::string& filepath) const;
+    bool loadBindings(const std::string& filepath);
 
     // Gamepad
     bool hasGamepad() const { return m_gamepad != nullptr; }

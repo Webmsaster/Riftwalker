@@ -7,6 +7,7 @@
 #include "States/GameOverState.h"
 #include "States/OptionsState.h"
 #include "States/DifficultySelectState.h"
+#include "States/KeybindingsState.h"
 #include <SDL2/SDL_image.h>
 #include <fstream>
 #include <sstream>
@@ -64,6 +65,7 @@ bool Game::init() {
     m_states[StateID::GameOver] = std::make_unique<GameOverState>();
     m_states[StateID::Options] = std::make_unique<OptionsState>();
     m_states[StateID::DifficultySelect] = std::make_unique<DifficultySelectState>();
+    m_states[StateID::Keybindings] = std::make_unique<KeybindingsState>();
 
     for (auto& [id, state] : m_states) {
         state->game = this;
@@ -71,6 +73,9 @@ bool Game::init() {
 
     // Load save data
     loadSaveData();
+
+    // Load custom keybindings (falls back to defaults if file missing)
+    m_input.loadBindings("riftwalker_bindings.cfg");
 
     // Start at menu
     changeState(StateID::Menu);
@@ -282,6 +287,7 @@ void Game::saveSaveData() {
 }
 
 void Game::shutdown() {
+    m_input.saveBindings("riftwalker_bindings.cfg");
     saveSaveData();
 
     if (m_font) {

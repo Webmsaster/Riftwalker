@@ -1,6 +1,8 @@
 #include "InputManager.h"
 #include <cstring>
 #include <cstdlib>
+#include <fstream>
+#include <sstream>
 
 InputManager::InputManager()
     : m_gamepad(nullptr)
@@ -157,4 +159,85 @@ float InputManager::getAxis(Action negative, Action positive) const {
 float InputManager::getGamepadAxis(SDL_GameControllerAxis axis) const {
     if (!m_gamepad) return 0.0f;
     return static_cast<float>(SDL_GameControllerGetAxis(m_gamepad, axis)) / 32767.0f;
+}
+
+void InputManager::rebindKey(Action action, SDL_Scancode newKey) {
+    m_keyBindings[action] = newKey;
+}
+
+SDL_Scancode InputManager::getKeyForAction(Action action) const {
+    auto it = m_keyBindings.find(action);
+    if (it != m_keyBindings.end()) return it->second;
+    return SDL_SCANCODE_UNKNOWN;
+}
+
+bool InputManager::isKeyUsedByOtherAction(SDL_Scancode key, Action exclude) const {
+    for (auto& [action, scancode] : m_keyBindings) {
+        if (action != exclude && scancode == key) return true;
+    }
+    return false;
+}
+
+Action InputManager::getActionForKey(SDL_Scancode key) const {
+    for (auto& [action, scancode] : m_keyBindings) {
+        if (scancode == key) return action;
+    }
+    return Action::MoveLeft; // fallback, should not happen
+}
+
+std::string InputManager::getActionName(Action action) {
+    switch (action) {
+        case Action::MoveLeft:        return "Move Left";
+        case Action::MoveRight:       return "Move Right";
+        case Action::Jump:            return "Jump";
+        case Action::Dash:            return "Dash";
+        case Action::Attack:          return "Melee Attack";
+        case Action::RangedAttack:    return "Ranged Attack";
+        case Action::DimensionSwitch: return "Dimension Switch";
+        case Action::Interact:        return "Interact";
+        case Action::Pause:           return "Pause";
+        default:                      return "Unknown";
+    }
+}
+
+const std::vector<Action>& InputManager::getBindableActions() {
+    static const std::vector<Action> actions = {
+        Action::MoveLeft, Action::MoveRight, Action::Jump, Action::Dash,
+        Action::Attack, Action::RangedAttack, Action::DimensionSwitch,
+        Action::Interact, Action::Pause
+    };
+    return actions;
+}
+
+void InputManager::resetToDefaults() {
+    setupDefaultBindings();
+}
+
+bool InputManager::saveBindings(const std::string& filepath) const {
+    std::ofstream file(filepath);
+    if (!file.is_open()) return false;
+
+    for (auto& [action, scancode] : m_keyBindings) {
+        file << static_cast<int>(action) << " " << static_cast<int>(scancode) << "\n";
+    }
+    file.close();
+    return true;
+}
+
+bool InputManager::loadBindings(const std::string& filepath) {
+    std::ifstream file(filepath);
+    if (!file.is_open()) return false;
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        int actionId, scancodeId;
+        if (iss >> actionId >> scancodeId) {
+            auto action = static_cast<Action>(actionId);
+            auto scancode = static_cast<SDL_Scancode>(scancodeId);
+            m_keyBindings[action] = scancode;
+        }
+    }
+    file.close();
+    return true;
 }

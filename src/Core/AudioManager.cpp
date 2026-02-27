@@ -47,6 +47,9 @@ void AudioManager::generateSounds() {
     m_sfx[static_cast<int>(SFX::BossMultiShot)]    = SoundGenerator::bossMultiShot();
     m_sfx[static_cast<int>(SFX::BossShieldBurst)]   = SoundGenerator::bossShieldBurst();
     m_sfx[static_cast<int>(SFX::BossTeleport)]      = SoundGenerator::bossTeleport();
+    m_sfx[static_cast<int>(SFX::CrawlerDrop)]        = SoundGenerator::crawlerDrop();
+    m_sfx[static_cast<int>(SFX::SummonerSummon)]     = SoundGenerator::summonerSummon();
+    m_sfx[static_cast<int>(SFX::SniperTelegraph)]    = SoundGenerator::sniperTelegraph();
 }
 
 void AudioManager::shutdown() {

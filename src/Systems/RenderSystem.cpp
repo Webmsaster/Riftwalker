@@ -854,13 +854,8 @@ void RenderSystem::renderBoss(SDL_Renderer* renderer, SDL_Rect rect, Entity& ent
     int eyeY = y + headH / 3;
     Uint8 eyeGlow = static_cast<Uint8>(200 + 55 * std::sin(time * 2.0f));
     int eyeW = 5, eyeH = 4;
-    if (!flipped) {
-        fillRect(renderer, headX + headW / 4, eyeY, eyeW, eyeH, eyeGlow, 50, 50, a);
-        fillRect(renderer, headX + 3 * headW / 4 - eyeW, eyeY, eyeW, eyeH, eyeGlow, 50, 50, a);
-    } else {
-        fillRect(renderer, headX + headW / 4, eyeY, eyeW, eyeH, eyeGlow, 50, 50, a);
-        fillRect(renderer, headX + 3 * headW / 4 - eyeW, eyeY, eyeW, eyeH, eyeGlow, 50, 50, a);
-    }
+    fillRect(renderer, headX + headW / 4, eyeY, eyeW, eyeH, eyeGlow, 50, 50, a);
+    fillRect(renderer, headX + 3 * headW / 4 - eyeW, eyeY, eyeW, eyeH, eyeGlow, 50, 50, a);
 
     // Arms/weapons
     int armY = bodyY + bodyH / 3;

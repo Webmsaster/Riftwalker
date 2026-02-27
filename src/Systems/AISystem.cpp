@@ -482,7 +482,7 @@ void AISystem::updateCrawler(Entity& entity, float dt, Vec2 playerPos) {
             ai.onCeiling = false;
             phys.useGravity = true;
             phys.velocity.y = ai.dropSpeed;
-            AudioManager::instance().play(SFX::EnemyHit);
+            AudioManager::instance().play(SFX::CrawlerDrop);
         }
     } else if (ai.dropping) {
         // Falling toward player
@@ -606,7 +606,7 @@ void AISystem::updateSummoner(Entity& entity, float dt, Vec2 playerPos, EntityMa
                 if (m_particles) {
                     m_particles->burst(spawnPos, 10, {180, 50, 220, 200}, 80.0f, 4.0f);
                 }
-                AudioManager::instance().play(SFX::RiftRepair);
+                AudioManager::instance().play(SFX::SummonerSummon);
             }
 
             if (dist > ai.loseRange) ai.state = AIState::Patrol;
@@ -666,6 +666,7 @@ void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityMana
             if (ai.attackTimer <= 0 && dist < ai.sniperRange && !ai.isTelegraphing) {
                 ai.isTelegraphing = true;
                 ai.telegraphTimer = ai.telegraphDuration;
+                AudioManager::instance().play(SFX::SniperTelegraph);
             }
 
             // Telegraph countdown

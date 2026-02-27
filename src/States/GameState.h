@@ -23,7 +23,8 @@ enum class StateID {
     RunSummary,
     GameOver,
     Options,
-    DifficultySelect
+    DifficultySelect,
+    Keybindings
 };
 
 // Global difficulty setting (shared between states)

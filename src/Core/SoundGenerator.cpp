@@ -302,6 +302,37 @@ Mix_Chunk* SoundGenerator::bossTeleport() {
     return toChunk(s);
 }
 
+// ---- New enemy sounds ----
+
+Mix_Chunk* SoundGenerator::crawlerDrop() {
+    // Fast whoosh downward + thud on impact
+    auto s = generate(0.2f);
+    addSweep(s, 600, 80, 0.3f, 0.1f, 0, 0.12f);
+    addNoise(s, 0.2f, 0.0f, 0.1f, 0.2f);
+    addSine(s, 60, 0.25f, 0.0f, 0.12f, 0.2f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::summonerSummon() {
+    // Dark magical rising hum + crystalline chime
+    auto s = generate(0.35f);
+    addSweep(s, 80, 300, 0.15f, 0.25f, 0, 0.2f);
+    addSquare(s, 120, 0.08f, 0.15f, 0, 0.2f);
+    addSine(s, 600, 0.0f, 0.2f, 0.15f, 0.25f);
+    addSine(s, 800, 0.2f, 0.0f, 0.25f, 0.35f);
+    addNoise(s, 0.05f, 0.0f, 0.1f, 0.25f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::sniperTelegraph() {
+    // Rising warning tone - builds tension before shot
+    auto s = generate(0.3f);
+    addSweep(s, 400, 1200, 0.05f, 0.3f, 0, 0.25f);
+    addSquare(s, 800, 0.0f, 0.12f, 0.1f, 0.25f);
+    addSine(s, 1200, 0.2f, 0.0f, 0.25f, 0.3f);
+    return toChunk(s);
+}
+
 // ---- Ambient music loops ----
 
 Mix_Chunk* SoundGenerator::ambientDimA() {

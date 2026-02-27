@@ -1,9 +1,11 @@
 #include "OptionsState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/InputManager.h"
 #include <cmath>
 #include <cstdio>
 #include <algorithm>
+#include <string>
 
 void OptionsState::enter() {
     auto& audio = AudioManager::instance();
@@ -15,6 +17,7 @@ void OptionsState::enter() {
     m_options.push_back({"Mute",          audio.isMuted() ? 1 : 0, 0, 1, 1, true});
     m_options.push_back({"Fullscreen",    (game->getWindow() && game->getWindow()->isFullscreen()) ? 1 : 0, 0, 1, 1, true});
     m_options.push_back({"Screen Shake",  100, 0, 100, 10, false});
+    m_options.push_back({"Controls",      0, 0, 0, 0, false}); // special: open keybindings
     m_options.push_back({"Reset Defaults", 0, 0, 0, 0, false}); // special: reset
     m_options.push_back({"Back",          0, 0, 0, 0, false}); // special: back button
 
@@ -36,7 +39,7 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                 break;
 
             case SDL_SCANCODE_A: case SDL_SCANCODE_LEFT:
-                if (m_selected < static_cast<int>(m_options.size()) - 2) { // not Reset/Back
+                if (m_selected < static_cast<int>(m_options.size()) - 3) { // not Controls/Reset/Back
                     auto& opt = m_options[m_selected];
                     if (opt.isToggle) {
                         opt.value = opt.value ? 0 : 1;
@@ -49,7 +52,7 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                 break;
 
             case SDL_SCANCODE_D: case SDL_SCANCODE_RIGHT:
-                if (m_selected < static_cast<int>(m_options.size()) - 2) { // not Reset/Back
+                if (m_selected < static_cast<int>(m_options.size()) - 3) { // not Controls/Reset/Back
                     auto& opt = m_options[m_selected];
                     if (opt.isToggle) {
                         opt.value = opt.value ? 0 : 1;
@@ -76,6 +79,10 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     m_options[5].value = 100;  // Screen shake full
                     for (int i = 0; i <= 5; i++) applyOption(i);
                     AudioManager::instance().play(SFX::MenuConfirm);
+                } else if (m_selected == static_cast<int>(m_options.size()) - 3) {
+                    // Controls
+                    AudioManager::instance().play(SFX::MenuConfirm);
+                    game->changeState(StateID::Keybindings);
                 } else if (m_options[m_selected].isToggle) {
                     auto& opt = m_options[m_selected];
                     opt.value = opt.value ? 0 : 1;
@@ -175,7 +182,8 @@ void OptionsState::render(SDL_Renderer* renderer) {
         bool selected = (i == m_selected);
         bool isBack = (i == static_cast<int>(m_options.size()) - 1);
         bool isReset = (i == static_cast<int>(m_options.size()) - 2);
-        bool isSpecial = isBack || isReset;
+        bool isControls = (i == static_cast<int>(m_options.size()) - 3);
+        bool isSpecial = isBack || isReset || isControls;
 
         // Card background
         Uint8 bgA = selected ? 60 : 25;
@@ -279,19 +287,25 @@ void OptionsState::render(SDL_Renderer* renderer) {
         }
     }
 
-    // Controls reference at bottom
+    // Controls reference at bottom (dynamic from current bindings)
     {
         SDL_Color hc = {80, 70, 110, 180};
-        const char* controls[] = {
-            "WASD - Move    SPACE - Jump    SHIFT - Dash",
-            "J - Melee    K - Ranged    E - Dimension Switch    F - Interact"
+        auto& input = game->getInput();
+        auto keyName = [&](Action a) -> std::string {
+            const char* n = SDL_GetScancodeName(input.getKeyForAction(a));
+            return (n && n[0]) ? n : "???";
         };
+        std::string line1 = keyName(Action::MoveLeft) + "/" + keyName(Action::MoveRight) + " - Move    "
+                          + keyName(Action::Jump) + " - Jump    " + keyName(Action::Dash) + " - Dash";
+        std::string line2 = keyName(Action::Attack) + " - Melee    " + keyName(Action::RangedAttack) + " - Ranged    "
+                          + keyName(Action::DimensionSwitch) + " - Dim Switch    " + keyName(Action::Interact) + " - Interact";
+        const std::string lines[] = {line1, line2};
         for (int i = 0; i < 2; i++) {
-            SDL_Surface* cs = TTF_RenderText_Blended(font, controls[i], hc);
+            SDL_Surface* cs = TTF_RenderText_Blended(font, lines[i].c_str(), hc);
             if (cs) {
                 SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
                 if (ct) {
-                    SDL_Rect cr = {640 - cs->w / 2, 610 + i * 22, cs->w, cs->h};
+                    SDL_Rect cr = {640 - cs->w / 2, 630 + i * 22, cs->w, cs->h};
                     SDL_RenderCopy(renderer, ct, nullptr, &cr);
                     SDL_DestroyTexture(ct);
                 }
