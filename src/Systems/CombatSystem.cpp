@@ -74,7 +74,8 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
 
         if (dist < attackRadius) {
             auto& hp = target.getComponent<HealthComponent>();
-            float damage = atkData.damage * (1.0f + combat.comboCount * 0.15f);
+            float comboMult = combat.comboCount * (0.15f + m_comboBonus);
+            float damage = atkData.damage * (1.0f + comboMult);
 
             // Critical hit check (player only)
             bool isCrit = false;
@@ -118,41 +119,73 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 hp.takeDamage(damage);
                 m_damageEvents.push_back({targetCenter, damage, !isPlayer, isCrit});
 
-                // Knockback
+                // Combo-stage knockback variation (player only)
+                int comboStage = isPlayer ? ((combat.comboCount - 1) % 3) : 0;
                 if (target.hasComponent<PhysicsBody>()) {
                     auto& phys = target.getComponent<PhysicsBody>();
                     Vec2 knockDir = combat.attackDirection;
-                    knockDir.y = -0.3f;
-                    phys.velocity += knockDir * atkData.knockback;
+                    float knockMult = 1.0f;
+
+                    if (isPlayer) {
+                        switch (comboStage) {
+                            case 0: // Normal horizontal hit
+                                knockDir.y = -0.3f;
+                                break;
+                            case 1: // Diagonal sweep
+                                knockDir.y = -0.6f;
+                                knockMult = 1.1f;
+                                break;
+                            case 2: // Finisher uppercut
+                                knockDir.y = -1.2f;
+                                knockMult = 1.4f;
+                                break;
+                        }
+                    } else {
+                        knockDir.y = -0.3f;
+                    }
+
+                    phys.velocity += knockDir * atkData.knockback * knockMult;
                 }
 
                 // SFX
                 AudioManager::instance().play(isPlayer ? SFX::MeleeHit : SFX::EnemyHit);
 
-                // Screen shake on melee hit
+                // Screen shake scales with combo stage
                 if (m_camera) {
-                    float shakeIntensity = isPlayer ? 5.0f : 3.0f;
-                    m_camera->shake(shakeIntensity, 0.12f);
+                    float shakeIntensity = isPlayer ? (5.0f + comboStage * 3.0f) : 3.0f;
+                    float shakeDuration = 0.12f + comboStage * 0.04f;
+                    m_camera->shake(shakeIntensity, shakeDuration);
                 }
 
-                // Hit-freeze effect (brief pause for impact feel)
+                // Hit-freeze scales with combo stage
                 if (isPlayer) {
-                    m_pendingHitFreeze += isCrit ? 0.08f : 0.05f;
+                    float freezeBase = isCrit ? 0.08f : 0.05f;
+                    m_pendingHitFreeze += freezeBase + comboStage * 0.03f;
                 } else {
-                    // Enemy hitting player also gets brief freeze
                     m_pendingHitFreeze += 0.06f;
                 }
 
-                // Particles
+                // Particles scale with combo stage
                 if (m_particles) {
-                    SDL_Color hitColor = isPlayer ? SDL_Color{255, 80, 80, 255} : SDL_Color{100, 150, 255, 255};
+                    SDL_Color hitColor;
+                    int particleCount;
+                    if (isPlayer) {
+                        switch (comboStage) {
+                            case 0: hitColor = {255, 80, 80, 255}; particleCount = 8; break;
+                            case 1: hitColor = {255, 160, 50, 255}; particleCount = 12; break;
+                            case 2: hitColor = {255, 255, 100, 255}; particleCount = 20; break;
+                            default: hitColor = {255, 80, 80, 255}; particleCount = 8; break;
+                        }
+                    } else {
+                        hitColor = {100, 150, 255, 255};
+                        particleCount = 8;
+                    }
                     m_particles->damageEffect(targetCenter, hitColor);
 
-                    if (isPlayer) {
-                        Vec2 hitPos = {(attackCenter.x + targetCenter.x) * 0.5f,
-                                       (attackCenter.y + targetCenter.y) * 0.5f};
-                        m_particles->burst(hitPos, 8, {255, 220, 100, 255}, 120.0f, 2.0f);
-                    }
+                    Vec2 hitPos = {(attackCenter.x + targetCenter.x) * 0.5f,
+                                   (attackCenter.y + targetCenter.y) * 0.5f};
+                    float burstSpeed = 120.0f + comboStage * 60.0f;
+                    m_particles->burst(hitPos, particleCount, {255, 220, 100, 255}, burstSpeed, 2.0f + comboStage);
                 }
             }
 

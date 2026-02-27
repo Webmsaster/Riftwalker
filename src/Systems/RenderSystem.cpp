@@ -248,20 +248,45 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     fillRect(renderer, visorX, visorY, visorW, visorH, 100, 220, 255, a);
     fillRect(renderer, visorX + 1, visorY + 1, visorW - 2, visorH - 2, 180, 240, 255, a);
 
-    // Arm with weapon
-    int armY = bodyY + bodyH / 4;
+    // Arm with weapon (combo-stage visual variation)
+    int comboStage = 0;
+    if (entity.hasComponent<CombatComponent>()) {
+        auto& cb = entity.getComponent<CombatComponent>();
+        if (cb.comboCount > 0) comboStage = (cb.comboCount - 1) % 3;
+    }
+    int armBaseY = bodyY + bodyH / 4;
+    int armY = armBaseY;
     int armLen = attacking ? w : w / 2;
+
+    // Vary arm position by combo stage when attacking
+    if (attacking) {
+        switch (comboStage) {
+            case 0: break; // Normal horizontal
+            case 1: armY = armBaseY - 4; break; // Diagonal up
+            case 2: armY = armBaseY - 8; armLen = w + 4; break; // Uppercut (higher, longer)
+        }
+    }
+
     if (!flipped) {
         fillRect(renderer, x + w - 2, armY, armLen, 4, bodyR, bodyG, bodyB, a);
         if (attacking) {
-            fillRect(renderer, x + w + armLen - 6, armY - 4, 4, 12, 255, 255, 200, a);
-            fillRect(renderer, x + w + armLen - 4, armY - 6, 2, 16, 255, 255, 255, static_cast<Uint8>(a * 0.7f));
+            // Weapon glow color by combo stage
+            Uint8 wR = 255, wG = 255, wB = 200;
+            if (comboStage == 1) { wR = 255; wG = 200; wB = 80; }
+            if (comboStage == 2) { wR = 255; wG = 100; wB = 50; }
+            int weapH = 12 + comboStage * 4;
+            fillRect(renderer, x + w + armLen - 6, armY - weapH / 3, 4, weapH, wR, wG, wB, a);
+            fillRect(renderer, x + w + armLen - 4, armY - weapH / 3 - 2, 2, weapH + 4, 255, 255, 255, static_cast<Uint8>(a * 0.7f));
         }
     } else {
         fillRect(renderer, x - armLen + 2, armY, armLen, 4, bodyR, bodyG, bodyB, a);
         if (attacking) {
-            fillRect(renderer, x - armLen + 2, armY - 4, 4, 12, 255, 255, 200, a);
-            fillRect(renderer, x - armLen + 2, armY - 6, 2, 16, 255, 255, 255, static_cast<Uint8>(a * 0.7f));
+            Uint8 wR = 255, wG = 255, wB = 200;
+            if (comboStage == 1) { wR = 255; wG = 200; wB = 80; }
+            if (comboStage == 2) { wR = 255; wG = 100; wB = 50; }
+            int weapH = 12 + comboStage * 4;
+            fillRect(renderer, x - armLen + 2, armY - weapH / 3, 4, weapH, wR, wG, wB, a);
+            fillRect(renderer, x - armLen + 2, armY - weapH / 3 - 2, 2, weapH + 4, 255, 255, 255, static_cast<Uint8>(a * 0.7f));
         }
     }
 

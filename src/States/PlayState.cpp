@@ -172,6 +172,7 @@ void PlayState::applyUpgrades() {
     m_dimManager.switchCooldown = 0.5f * upgrades.getSwitchCooldownMultiplier();
     m_entropy.passiveDecay = upgrades.getEntropyDecay();
     m_combatSystem.setCritChance(upgrades.getCritChance());
+    m_combatSystem.setComboBonus(upgrades.getComboBonus());
 }
 
 void PlayState::handleEvent(const SDL_Event& event) {
