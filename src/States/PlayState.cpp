@@ -1708,13 +1708,13 @@ void PlayState::checkEventInteraction() {
 
                     case RandomEventType::DimensionalAnomaly:
                         AudioManager::instance().play(SFX::AnomalySpawn);
-                        // Spawn bonus enemies
+                        // Spawn bonus enemies directly (don't re-spawn all)
                         for (int e = 0; e < 3 + m_currentDifficulty; e++) {
                             float sx = event.position.x + (std::rand() % 200 - 100);
                             float sy = event.position.y - 50 - (std::rand() % 100);
-                            m_level->addEnemySpawn({sx, sy}, std::rand() % std::min(10, 3 + m_currentDifficulty), currentDim);
+                            int etype = std::rand() % std::min(10, 3 + m_currentDifficulty);
+                            Enemy::createByType(m_entities, etype, {sx, sy}, currentDim);
                         }
-                        spawnEnemies(); // Re-spawn with new points
                         m_particles.burst(event.position, 25, {180, 100, 255, 255}, 200.0f, 4.0f);
                         break;
 

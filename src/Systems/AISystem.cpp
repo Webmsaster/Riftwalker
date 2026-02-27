@@ -1287,6 +1287,11 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
     if (newPhase != ai.bossPhase) {
         ai.bossPhase = newPhase;
         ai.archSwapSize = (newPhase == 1) ? 3 : (newPhase == 2) ? 5 : 7;
+        // Reset timers so next attacks use new phase parameters
+        ai.archSwapTimer = 1.5f;
+        ai.archRiftTimer = 2.0f;
+        ai.archConstructTimer = 1.0f;
+        ai.archConstructing = false;
         if (m_particles) {
             m_particles->burst(pos, 30, {100, 180, 255, 220}, 200.0f, 6.0f);
         }
@@ -1381,8 +1386,9 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
                     Tile spikeTile;
                     spikeTile.type = TileType::Spike;
                     spikeTile.color = {200, 60, 120, 255}; // Rift spike color
-                    int dim = entity.dimension > 0 ? entity.dimension : 1;
-                    m_level->setTile(tx, ty, dim, spikeTile);
+                    // Place in both dimensions so player can't dodge by switching
+                    m_level->setTile(tx, ty, 1, spikeTile);
+                    m_level->setTile(tx, ty, 2, spikeTile);
                 }
                 AudioManager::instance().play(SFX::ArchRiftOpen);
                 if (m_particles) {

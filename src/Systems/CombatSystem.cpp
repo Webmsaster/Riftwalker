@@ -208,7 +208,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             if (!isPlayer && target.getTag() == "player" && target.hasComponent<AbilityComponent>()) {
                 auto& targetAbil = target.getComponent<AbilityComponent>();
                 if (targetAbil.abilities[1].active && targetAbil.shieldHitsRemaining > 0) {
-                    targetAbil.shieldHitsRemaining--;
+                    targetAbil.shieldHitsRemaining = std::max(0, targetAbil.shieldHitsRemaining - 1);
                     targetAbil.shieldAbsorbedDamage += atkData.damage;
 
                     // Heal player on absorb

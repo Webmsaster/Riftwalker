@@ -197,6 +197,7 @@ void ShopState::render(SDL_Renderer* renderer) {
 void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, int y,
                             int w, int h, bool selected, bool affordable) {
     TTF_Font* font = game->getFont();
+    if (!font) return;
     Uint32 ticks = SDL_GetTicks();
 
     // Tier colors
