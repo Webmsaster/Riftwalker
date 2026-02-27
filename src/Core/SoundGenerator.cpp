@@ -333,6 +333,26 @@ Mix_Chunk* SoundGenerator::sniperTelegraph() {
     return toChunk(s);
 }
 
+// ---- Environmental hazard sounds ----
+
+Mix_Chunk* SoundGenerator::fireBurn() {
+    // Crackling fire + sizzle
+    auto s = generate(0.25f);
+    addNoise(s, 0.15f, 0.0f, 0.1f, 0.2f);
+    addSine(s, 100, 0.1f, 0.0f, 0, 0.25f);
+    addSweep(s, 200, 80, 0.08f, 0.05f, 0.05f, 0.2f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::laserHit() {
+    // Sharp electric zap
+    auto s = generate(0.15f);
+    addSweep(s, 2000, 500, 0.2f, 0.1f, 0, 0.1f);
+    addSquare(s, 800, 0.15f, 0.0f, 0, 0.12f);
+    addNoise(s, 0.1f, 0.0f, 0.05f, 0.15f);
+    return toChunk(s);
+}
+
 // ---- Ambient music loops ----
 
 Mix_Chunk* SoundGenerator::ambientDimA() {

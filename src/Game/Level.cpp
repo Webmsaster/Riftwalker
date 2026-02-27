@@ -57,6 +57,8 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
     int endX = std::min(m_width - 1, static_cast<int>((camPos.x + screenW / 2) / m_tileSize) + 1);
     int endY = std::min(m_height - 1, static_cast<int>((camPos.y + screenH / 2) / m_tileSize) + 1);
 
+    Uint32 ticks = SDL_GetTicks();
+
     // Render current dimension tiles with edge-aware rendering
     for (int y = startY; y <= endY; y++) {
         for (int x = startX; x <= endX; x++) {
@@ -77,6 +79,12 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
                 renderOneWayTile(renderer, sr, tile);
             } else if (tile.type == TileType::Spike) {
                 renderSpikeTile(renderer, sr, tile);
+            } else if (tile.type == TileType::Fire) {
+                renderFireTile(renderer, sr, tile, ticks);
+            } else if (tile.type == TileType::Conveyor) {
+                renderConveyorTile(renderer, sr, tile, ticks);
+            } else if (tile.type == TileType::LaserEmitter) {
+                renderLaserEmitter(renderer, sr, tile, ticks);
             } else if (tile.type == TileType::Decoration) {
                 // Subtle accent dot/cross
                 Uint8 da = tile.color.a;
@@ -120,8 +128,10 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
         }
     }
 
+    // Render laser beams (after tiles, before rifts)
+    renderLaserBeams(renderer, camera, currentDim, ticks);
+
     // Render rifts (animated portals)
-    Uint32 ticks = SDL_GetTicks();
     for (auto& riftPos : m_riftPositions) {
         SDL_FRect worldRect = {riftPos.x, riftPos.y,
                                static_cast<float>(m_tileSize), static_cast<float>(m_tileSize * 2)};
@@ -349,6 +359,206 @@ void Level::renderExit(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const 
     SDL_RenderDrawLine(renderer, sr.x, sr.y + sr.h - 1, sr.x, sr.y + sr.h - 1 - accent);
     SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y + sr.h - 1, sr.x + sr.w - 1 - accent, sr.y + sr.h - 1);
     SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y + sr.h - 1, sr.x + sr.w - 1, sr.y + sr.h - 1 - accent);
+}
+
+void Level::renderFireTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    float time = ticks * 0.005f;
+
+    // Base lava/fire glow
+    SDL_SetRenderDrawColor(renderer, tile.color.r / 2, tile.color.g / 4, 0, 255);
+    SDL_RenderFillRect(renderer, &sr);
+
+    // Animated flame tongues
+    for (int i = 0; i < 4; i++) {
+        float phase = time + i * 1.5f;
+        float flicker = 0.4f + 0.6f * std::abs(std::sin(phase));
+        int flameH = 4 + static_cast<int>(flicker * (sr.h / 2));
+        int flameX = sr.x + (i * sr.w) / 4 + sr.w / 8;
+        int flameW = sr.w / 5;
+
+        Uint8 r = static_cast<Uint8>(tile.color.r * flicker);
+        Uint8 g = static_cast<Uint8>(tile.color.g * flicker * 0.7f);
+        SDL_SetRenderDrawColor(renderer, r, g, 0, static_cast<Uint8>(200 * flicker));
+        SDL_Rect flame = {flameX, sr.y + sr.h - flameH, flameW, flameH};
+        SDL_RenderFillRect(renderer, &flame);
+
+        // Bright tip
+        SDL_SetRenderDrawColor(renderer, 255, 255, 100, static_cast<Uint8>(180 * flicker));
+        SDL_Rect tip = {flameX + 1, sr.y + sr.h - flameH, flameW - 2, 3};
+        SDL_RenderFillRect(renderer, &tip);
+    }
+
+    // Ember particles
+    for (int i = 0; i < 3; i++) {
+        float px = std::sin(time * 1.3f + i * 2.1f) * sr.w * 0.3f;
+        float py = std::fmod(time * 0.8f + i * 1.3f, 1.0f);
+        int ex = sr.x + sr.w / 2 + static_cast<int>(px);
+        int ey = sr.y + sr.h - static_cast<int>(py * sr.h);
+        Uint8 ea = static_cast<Uint8>((1.0f - py) * 200);
+        SDL_SetRenderDrawColor(renderer, 255, 200, 50, ea);
+        SDL_Rect ember = {ex, ey, 2, 2};
+        SDL_RenderFillRect(renderer, &ember);
+    }
+}
+
+void Level::renderConveyorTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    // Base belt
+    SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, 255);
+    SDL_RenderFillRect(renderer, &sr);
+
+    // Top surface
+    Uint8 hiR = std::min(255, tile.color.r + 30);
+    Uint8 hiG = std::min(255, tile.color.g + 30);
+    Uint8 hiB = std::min(255, tile.color.b + 30);
+    SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, 255);
+    SDL_Rect top = {sr.x, sr.y, sr.w, 3};
+    SDL_RenderFillRect(renderer, &top);
+
+    // Animated arrows showing direction
+    float time = ticks * 0.003f;
+    bool goRight = (tile.variant == 0);
+    int arrowCount = 3;
+    SDL_SetRenderDrawColor(renderer, 200, 200, 60, 180);
+
+    for (int i = 0; i < arrowCount; i++) {
+        float phase = std::fmod(time + i * 0.33f, 1.0f);
+        if (!goRight) phase = 1.0f - phase;
+        int ax = sr.x + static_cast<int>(phase * sr.w);
+        int ay = sr.y + sr.h / 2;
+        // Arrow chevron
+        if (goRight) {
+            SDL_RenderDrawLine(renderer, ax - 3, ay - 3, ax, ay);
+            SDL_RenderDrawLine(renderer, ax, ay, ax - 3, ay + 3);
+        } else {
+            SDL_RenderDrawLine(renderer, ax + 3, ay - 3, ax, ay);
+            SDL_RenderDrawLine(renderer, ax, ay, ax + 3, ay + 3);
+        }
+    }
+}
+
+void Level::renderLaserEmitter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    // Dark metallic block
+    SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
+    SDL_RenderFillRect(renderer, &sr);
+
+    // Emitter lens (glowing center)
+    float time = ticks * 0.004f;
+    // Laser toggles: 2s on, 1s off
+    float cycle = std::fmod(time, 3.0f);
+    bool active = cycle < 2.0f;
+
+    Uint8 glow = active ? 255 : 80;
+    SDL_SetRenderDrawColor(renderer, glow, 20, 20, 255);
+    SDL_Rect lens = {sr.x + sr.w / 2 - 3, sr.y + sr.h / 2 - 3, 6, 6};
+    SDL_RenderFillRect(renderer, &lens);
+
+    // Metallic border highlight
+    SDL_SetRenderDrawColor(renderer, 80, 80, 90, 200);
+    SDL_RenderDrawRect(renderer, &sr);
+}
+
+void Level::renderLaserBeams(SDL_Renderer* renderer, const Camera& camera, int dim, Uint32 ticks) const {
+    float time = ticks * 0.004f;
+    // Laser toggles: 2s on, 1s off
+    float cycle = std::fmod(time, 3.0f);
+    bool active = cycle < 2.0f;
+    if (!active) return;
+
+    float pulse = 0.7f + 0.3f * std::sin(time * 8.0f);
+
+    for (int y = 0; y < m_height; y++) {
+        for (int x = 0; x < m_width; x++) {
+            const Tile& tile = getTile(x, y, dim);
+            if (tile.type != TileType::LaserEmitter) continue;
+
+            // Beam direction: variant 0=right, 1=left, 2=down, 3=up
+            int dx = 0, dy = 0;
+            if (tile.variant == 0) dx = 1;
+            else if (tile.variant == 1) dx = -1;
+            else if (tile.variant == 2) dy = 1;
+            else dy = -1;
+
+            // Trace beam until hitting solid
+            int bx = x + dx, by = y + dy;
+            while (inBounds(bx, by)) {
+                const Tile& bt = getTile(bx, by, dim);
+                if (bt.isSolid()) break;
+
+                SDL_FRect worldRect = {
+                    static_cast<float>(bx * m_tileSize),
+                    static_cast<float>(by * m_tileSize),
+                    static_cast<float>(m_tileSize),
+                    static_cast<float>(m_tileSize)
+                };
+                SDL_Rect sr = camera.worldToScreen(worldRect);
+
+                // Beam core (thin bright line)
+                Uint8 a = static_cast<Uint8>(200 * pulse);
+                if (dx != 0) {
+                    // Horizontal beam
+                    SDL_SetRenderDrawColor(renderer, 255, 30, 30, a);
+                    SDL_Rect beam = {sr.x, sr.y + sr.h / 2 - 1, sr.w, 3};
+                    SDL_RenderFillRect(renderer, &beam);
+                    // Glow
+                    SDL_SetRenderDrawColor(renderer, 255, 80, 80, static_cast<Uint8>(60 * pulse));
+                    SDL_Rect glow = {sr.x, sr.y + sr.h / 2 - 4, sr.w, 9};
+                    SDL_RenderFillRect(renderer, &glow);
+                } else {
+                    // Vertical beam
+                    SDL_SetRenderDrawColor(renderer, 255, 30, 30, a);
+                    SDL_Rect beam = {sr.x + sr.w / 2 - 1, sr.y, 3, sr.h};
+                    SDL_RenderFillRect(renderer, &beam);
+                    SDL_SetRenderDrawColor(renderer, 255, 80, 80, static_cast<Uint8>(60 * pulse));
+                    SDL_Rect glow = {sr.x + sr.w / 2 - 4, sr.y, 9, sr.h};
+                    SDL_RenderFillRect(renderer, &glow);
+                }
+
+                bx += dx;
+                by += dy;
+            }
+        }
+    }
+}
+
+bool Level::isInLaserBeam(float worldX, float worldY, int dimension) const {
+    float time = SDL_GetTicks() * 0.004f;
+    float cycle = std::fmod(time, 3.0f);
+    if (cycle >= 2.0f) return false; // laser off
+
+    int playerTX = static_cast<int>(worldX) / m_tileSize;
+    int playerTY = static_cast<int>(worldY) / m_tileSize;
+
+    // Check all emitters (scan only visible range for performance)
+    for (int y = 0; y < m_height; y++) {
+        for (int x = 0; x < m_width; x++) {
+            const Tile& tile = getTile(x, y, dimension);
+            if (tile.type != TileType::LaserEmitter) continue;
+
+            int dx = 0, dy = 0;
+            if (tile.variant == 0) dx = 1;
+            else if (tile.variant == 1) dx = -1;
+            else if (tile.variant == 2) dy = 1;
+            else dy = -1;
+
+            int bx = x + dx, by = y + dy;
+            while (inBounds(bx, by)) {
+                const Tile& bt = getTile(bx, by, dimension);
+                if (bt.isSolid()) break;
+                if (bx == playerTX && by == playerTY) return true;
+                bx += dx;
+                by += dy;
+            }
+        }
+    }
+    return false;
+}
+
+bool Level::isOnConveyor(int tileX, int tileY, int dimension, int& direction) const {
+    if (!inBounds(tileX, tileY)) return false;
+    const Tile& tile = getTile(tileX, tileY, dimension);
+    if (tile.type != TileType::Conveyor) return false;
+    direction = (tile.variant == 0) ? 1 : -1; // 1=right, -1=left
+    return true;
 }
 
 void Level::clear() {

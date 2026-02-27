@@ -44,6 +44,10 @@ public:
     static Mix_Chunk* summonerSummon();
     static Mix_Chunk* sniperTelegraph();
 
+    // Environmental hazard sounds
+    static Mix_Chunk* fireBurn();
+    static Mix_Chunk* laserHit();
+
     // Ambient music loops (~4 seconds each)
     static Mix_Chunk* ambientDimA(); // Cool, ethereal drone
     static Mix_Chunk* ambientDimB(); // Warm, ominous drone

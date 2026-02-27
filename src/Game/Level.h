@@ -42,6 +42,10 @@ public:
     std::vector<SpawnPoint> getEnemySpawns() const { return m_enemySpawns; }
     void addEnemySpawn(Vec2 pos, int type, int dim) { m_enemySpawns.push_back({pos, type, dim}); }
 
+    // Hazard checks
+    bool isInLaserBeam(float worldX, float worldY, int dimension) const;
+    bool isOnConveyor(int tileX, int tileY, int dimension, int& direction) const;
+
     void clear();
 
 private:
@@ -60,6 +64,10 @@ private:
                          int tx, int ty, int dim) const;
     void renderOneWayTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile) const;
     void renderSpikeTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile) const;
+    void renderFireTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
+    void renderConveyorTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
+    void renderLaserEmitter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
+    void renderLaserBeams(SDL_Renderer* renderer, const Camera& camera, int dim, Uint32 ticks) const;
     void renderRift(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const;
     void renderExit(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const;
 };

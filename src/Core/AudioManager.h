@@ -17,6 +17,7 @@ enum class SFX {
     SpikeDamage,
     BossMultiShot, BossShieldBurst, BossTeleport,
     CrawlerDrop, SummonerSummon, SniperTelegraph,
+    FireBurn, LaserHit,
     COUNT
 };
 

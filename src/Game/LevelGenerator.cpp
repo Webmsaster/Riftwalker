@@ -328,6 +328,62 @@ void LevelGenerator::generateRoom(Level& level, int roomX, int roomY,
                 level.setTile(sx, roomY + 1, dim, spike);
             }
         }
+
+        // Fire pits (replace some floor spikes at higher hazard density)
+        if (theme.hazardDensity > 0.1f) {
+            int fireCount = static_cast<int>(roomW * (theme.hazardDensity - 0.05f) * 0.5f);
+            for (int i = 0; i < fireCount; i++) {
+                int fx = roomX + 2 + m_rng() % (roomW - 4);
+                int fy = roomY + roomH - 2;
+                if (level.getTile(fx, fy, dim).type != TileType::Empty &&
+                    level.getTile(fx, fy, dim).type != TileType::Spike) continue;
+                Tile fire;
+                fire.type = TileType::Fire;
+                fire.color = theme.colors.fire;
+                level.setTile(fx, fy, dim, fire);
+            }
+        }
+
+        // Conveyor belts (on platforms, medium+ hazard)
+        if (theme.hazardDensity > 0.08f && roomW >= 8) {
+            int conveyorChance = m_rng() % 4;
+            if (conveyorChance == 0) {
+                int cx = roomX + 2 + m_rng() % (roomW / 2);
+                int cy = roomY + roomH - 2;
+                int cLen = 3 + m_rng() % 4;
+                int dir = m_rng() % 2; // 0=right, 1=left
+                for (int ci = 0; ci < cLen && cx + ci < roomX + roomW - 1; ci++) {
+                    if (level.getTile(cx + ci, cy, dim).type != TileType::Empty) continue;
+                    Tile conv;
+                    conv.type = TileType::Conveyor;
+                    conv.color = theme.colors.conveyor;
+                    conv.variant = dir;
+                    level.setTile(cx + ci, cy, dim, conv);
+                }
+            }
+        }
+
+        // Laser emitters (on walls, higher difficulty)
+        if (theme.hazardDensity > 0.12f && roomH >= 6) {
+            int laserChance = m_rng() % 5;
+            if (laserChance == 0) {
+                // Place on left wall shooting right
+                int ly = roomY + 2 + m_rng() % (roomH - 4);
+                Tile laser;
+                laser.type = TileType::LaserEmitter;
+                laser.color = theme.colors.laser;
+                laser.variant = 0; // shoots right
+                level.setTile(roomX, ly, dim, laser);
+            } else if (laserChance == 1) {
+                // Place on right wall shooting left
+                int ly = roomY + 2 + m_rng() % (roomH - 4);
+                Tile laser;
+                laser.type = TileType::LaserEmitter;
+                laser.color = theme.colors.laser;
+                laser.variant = 1; // shoots left
+                level.setTile(roomX + roomW - 1, ly, dim, laser);
+            }
+        }
     }
 
     // Decorations: subtle accent dots in empty spaces

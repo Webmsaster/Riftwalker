@@ -50,6 +50,8 @@ void AudioManager::generateSounds() {
     m_sfx[static_cast<int>(SFX::CrawlerDrop)]        = SoundGenerator::crawlerDrop();
     m_sfx[static_cast<int>(SFX::SummonerSummon)]     = SoundGenerator::summonerSummon();
     m_sfx[static_cast<int>(SFX::SniperTelegraph)]    = SoundGenerator::sniperTelegraph();
+    m_sfx[static_cast<int>(SFX::FireBurn)]             = SoundGenerator::fireBurn();
+    m_sfx[static_cast<int>(SFX::LaserHit)]             = SoundGenerator::laserHit();
 }
 
 void AudioManager::shutdown() {

@@ -321,15 +321,17 @@ void PlayState::update(float dt) {
         }
     }
 
-    // Spike damage
+    // Hazard damage (spikes, fire, laser, conveyor)
     m_spikeDmgCooldown -= dt;
-    if (m_spikeDmgCooldown <= 0) {
+    {
         auto& playerT = m_player->getEntity()->getComponent<TransformComponent>();
         int tileSize = m_level->getTileSize();
         int footX = static_cast<int>(playerT.getCenter().x) / tileSize;
         int footY = static_cast<int>(playerT.position.y + playerT.height - 1) / tileSize;
         int dim = m_dimManager.getCurrentDimension();
-        if (m_level->inBounds(footX, footY)) {
+
+        // Spike & fire damage (cooldown-based)
+        if (m_spikeDmgCooldown <= 0 && m_level->inBounds(footX, footY)) {
             const auto& tile = m_level->getTile(footX, footY, dim);
             if (tile.type == TileType::Spike) {
                 auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
@@ -344,6 +346,42 @@ void PlayState::update(float dt) {
                 }
                 m_particles.burst(playerT.getCenter(), 15, {255, 80, 40, 255}, 150.0f, 3.0f);
                 m_hud.triggerDamageFlash();
+            } else if (tile.type == TileType::Fire) {
+                auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+                playerHP.takeDamage(10.0f);
+                m_entropy.addEntropy(3.0f);
+                m_spikeDmgCooldown = 0.4f;
+                m_camera.shake(4.0f, 0.15f);
+                AudioManager::instance().play(SFX::FireBurn);
+                if (m_player->getEntity()->hasComponent<PhysicsBody>()) {
+                    auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+                    phys.velocity.y = -200.0f;
+                }
+                m_particles.burst(playerT.getCenter(), 12, {255, 150, 30, 255}, 120.0f, 2.5f);
+                m_hud.triggerDamageFlash();
+            }
+        }
+
+        // Laser beam damage (separate cooldown via same timer)
+        if (m_spikeDmgCooldown <= 0) {
+            if (m_level->isInLaserBeam(playerT.getCenter().x, playerT.getCenter().y, dim)) {
+                auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+                playerHP.takeDamage(20.0f);
+                m_entropy.addEntropy(8.0f);
+                m_spikeDmgCooldown = 0.3f;
+                m_camera.shake(8.0f, 0.25f);
+                AudioManager::instance().play(SFX::LaserHit);
+                m_particles.burst(playerT.getCenter(), 20, {255, 50, 50, 255}, 200.0f, 3.0f);
+                m_hud.triggerDamageFlash();
+            }
+        }
+
+        // Conveyor belt push (always active, no damage)
+        if (m_player->getEntity()->hasComponent<PhysicsBody>() && m_level->inBounds(footX, footY)) {
+            int convDir = 0;
+            if (m_level->isOnConveyor(footX, footY, dim, convDir)) {
+                auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+                phys.velocity.x += convDir * 120.0f * dt;
             }
         }
     }

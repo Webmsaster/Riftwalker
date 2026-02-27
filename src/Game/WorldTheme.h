@@ -11,6 +11,9 @@ struct ThemeColors {
     SDL_Color accent{150, 150, 200, 255};
     SDL_Color enemyPrimary{200, 60, 60, 255};
     SDL_Color enemySecondary{180, 40, 40, 255};
+    SDL_Color laser{255, 40, 40, 255};
+    SDL_Color fire{255, 120, 30, 255};
+    SDL_Color conveyor{100, 100, 120, 255};
 };
 
 enum class ThemeID {

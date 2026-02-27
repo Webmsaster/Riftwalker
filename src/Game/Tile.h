@@ -11,7 +11,10 @@ enum class TileType {
     Spawn,      // Player spawn
     EnemySpawn, // Enemy spawn point
     Pickup,     // Item pickup location
-    Decoration  // Visual only
+    Decoration, // Visual only
+    LaserEmitter, // Emits horizontal/vertical laser beam
+    Fire,         // Fire pit - damage over time
+    Conveyor      // Conveyor belt - pushes player left/right
 };
 
 struct Tile {
@@ -19,9 +22,10 @@ struct Tile {
     SDL_Color color{0, 0, 0, 0};
     int textureIndex = -1;
     bool visited = false; // for generation
+    int variant = 0;      // direction/subtype: laser=0 right,1 left,2 down,3 up; conveyor=0 right,1 left
 
     bool isSolid() const {
-        return type == TileType::Solid;
+        return type == TileType::Solid || type == TileType::LaserEmitter;
     }
 
     bool isOneWay() const {
@@ -29,6 +33,6 @@ struct Tile {
     }
 
     bool isDangerous() const {
-        return type == TileType::Spike;
+        return type == TileType::Spike || type == TileType::Fire;
     }
 };
