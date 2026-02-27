@@ -201,6 +201,82 @@ Level LevelGenerator::generate(int difficulty, int seed) {
         }
     }
 
+    // Secret rooms: 10% chance per regular room, hidden behind breakable walls
+    // Only in dimension that differs from the other (visible as ghost)
+    for (size_t i = 1; i + 1 < rooms.size(); i++) {
+        if (m_rng() % 10 != 0) continue; // 10% chance
+
+        auto& room = rooms[i];
+        int secretW = 6;
+        int secretH = 5;
+
+        // Place above or below the room
+        bool placeAbove = (m_rng() % 2 == 0) && (room.y - secretH - 1 > 1);
+        int sx = room.x + 1 + m_rng() % std::max(1, room.w - secretW - 2);
+        int sy = placeAbove ? (room.y - secretH - 1) : (room.y + room.h + 1);
+
+        if (sy < 2 || sy + secretH >= levelH - 1) continue;
+        if (sx + secretW >= levelW - 1) continue;
+
+        // Build the secret room in both dimensions
+        for (int dim = 1; dim <= 2; dim++) {
+            auto& theme = (dim == 1) ? m_themeA : m_themeB;
+
+            // Walls
+            for (int ry = 0; ry < secretH; ry++) {
+                for (int rx = 0; rx < secretW; rx++) {
+                    bool isWall = (ry == 0 || ry == secretH - 1 || rx == 0 || rx == secretW - 1);
+                    Tile t;
+                    if (isWall) {
+                        t.type = TileType::Solid;
+                        t.color = theme.colors.solid;
+                    } else {
+                        t.type = TileType::Empty;
+                    }
+                    level.setTile(sx + rx, sy + ry, dim, t);
+                }
+            }
+
+            // Accent color on walls to make it look special
+            for (int rx = 1; rx < secretW - 1; rx++) {
+                Tile accent;
+                accent.type = TileType::Solid;
+                accent.color = theme.colors.accent;
+                level.setTile(sx + rx, sy, dim, accent);
+            }
+
+            // One-tile connection to main room (hidden passage)
+            int passX = sx + secretW / 2;
+            int passY = placeAbove ? sy + secretH - 1 : sy;
+            Tile empty;
+            empty.type = TileType::Empty;
+            level.setTile(passX, passY, dim, empty);
+            // Short vertical corridor
+            int corridorDir = placeAbove ? 1 : -1;
+            for (int cy = 1; cy <= 2; cy++) {
+                int tileY = passY + cy * corridorDir;
+                if (level.inBounds(passX, tileY)) {
+                    level.setTile(passX, tileY, dim, empty);
+                }
+            }
+
+            // Reward: extra pickup spawns and a rift shard bonus area
+            for (int rx = 2; rx < secretW - 2; rx++) {
+                Tile deco;
+                deco.type = TileType::Decoration;
+                deco.color = theme.colors.accent;
+                deco.color.a = 100;
+                level.setTile(sx + rx, sy + secretH / 2, dim, deco);
+            }
+        }
+
+        // Add enemy spawns with better loot (dimension 0 = both)
+        level.addEnemySpawn(
+            {static_cast<float>((sx + 2) * 32), static_cast<float>((sy + 2) * 32)},
+            m_rng() % 5, 0
+        );
+    }
+
     // Add rifts (puzzles)
     int riftCount = 2 + difficulty;
     addRifts(level, riftCount);
