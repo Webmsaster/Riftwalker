@@ -144,6 +144,8 @@ float RelicSystem::getDamageMultiplier(const RelicComponent& relics, float curre
             default: break;
         }
     }
+    // PhaseHunter synergy: 2x damage on first attack after dimension switch
+    mult *= RelicSynergy::getPhaseHunterDamageMult(relics);
     return mult;
 }
 
@@ -219,7 +221,11 @@ void RelicSystem::consumePhoenixFeather(RelicComponent& relics) {
 float RelicSystem::getShardDropMultiplier(const RelicComponent& relics) {
     float mult = 1.0f;
     for (auto& r : relics.relics) {
-        if (r.id == RelicID::LuckyCoin) mult += 0.10f;
+        if (r.id == RelicID::LuckyCoin) {
+            // CursedFortune synergy: +30% instead of +10%
+            float synergyBonus = RelicSynergy::getShardDropBonus(relics);
+            mult += (synergyBonus > 0) ? synergyBonus : 0.10f;
+        }
     }
     return mult;
 }
@@ -276,6 +282,10 @@ void RelicSystem::onDimensionSwitch(RelicComponent& relics) {
     if (relics.hasRelic(RelicID::PhaseCloak)) {
         relics.phaseCloakTimer = 1.0f;
     }
+    // PhaseHunter synergy: activate 2x damage buff after dimension switch
+    if (RelicSynergy::isActive(relics, SynergyID::PhaseHunter)) {
+        relics.phaseHunterBuffActive = true;
+    }
 }
 
 bool RelicSystem::isCursed(RelicID id) {
@@ -293,7 +303,10 @@ float RelicSystem::getCursedRangedMult(const RelicComponent& relics) {
 }
 
 float RelicSystem::getDamageTakenMult(const RelicComponent& relics) {
-    return relics.hasRelic(RelicID::GlassHeart) ? 1.6f : 1.0f;
+    if (!relics.hasRelic(RelicID::GlassHeart)) return 1.0f;
+    // FortifiedSoul synergy: reduce GlassHeart penalty
+    float synergyMult = RelicSynergy::getGlassHeartDamageMult(relics);
+    return (synergyMult > 0) ? synergyMult : 1.6f;
 }
 
 float RelicSystem::getAbilityCDMultCursed(const RelicComponent& relics) {

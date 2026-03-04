@@ -12,6 +12,7 @@
 #include "Game/ItemDrop.h"
 #include "Game/Player.h"
 #include "Game/RelicSystem.h"
+#include "Game/RelicSynergy.h"
 #include "Game/Enemy.h"
 #include "Game/Bestiary.h"
 #include "Game/ClassSystem.h"
@@ -345,6 +346,10 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 auto& relics = attacker.getComponent<RelicComponent>();
                 float hpPct = attacker.getComponent<HealthComponent>().getPercent();
                 damage *= RelicSystem::getDamageMultiplier(relics, hpPct);
+                // PhaseHunter synergy: consume buff after attack
+                if (relics.phaseHunterBuffActive) {
+                    relics.phaseHunterBuffActive = false;
+                }
             }
 
             // Class damage multiplier (Berserker Blood Rage)
@@ -602,6 +607,29 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     m_damageEvents.push_back({transform.getCenter(), thornDmg, false, false});
                     if (m_particles) {
                         m_particles->burst(transform.getCenter(), 6, {200, 100, 50, 255}, 100.0f, 2.0f);
+                    }
+
+                    // ChainThorns synergy: chain thorn damage to 2 nearby enemies
+                    float chainDmg = RelicSynergy::getThornChainDamage(relics);
+                    if (chainDmg > 0) {
+                        Vec2 attackerPos = attacker.getComponent<TransformComponent>().getCenter();
+                        int chainsLeft = 2;
+                        entities.forEach([&](Entity& e) {
+                            if (chainsLeft <= 0) return;
+                            if (!e.isAlive() || &e == &attacker) return;
+                            if (!e.hasComponent<AIComponent>() || !e.hasComponent<HealthComponent>()) return;
+                            auto& ePos = e.getComponent<TransformComponent>().getCenter();
+                            float dist = std::sqrt((ePos.x - attackerPos.x) * (ePos.x - attackerPos.x) +
+                                                   (ePos.y - attackerPos.y) * (ePos.y - attackerPos.y));
+                            if (dist < 150.0f) {
+                                e.getComponent<HealthComponent>().takeDamage(chainDmg);
+                                m_damageEvents.push_back({ePos, chainDmg, false, false});
+                                if (m_particles) {
+                                    m_particles->burst(ePos, 4, {255, 255, 80, 255}, 80.0f, 2.0f);
+                                }
+                                chainsLeft--;
+                            }
+                        });
                     }
                 }
             }

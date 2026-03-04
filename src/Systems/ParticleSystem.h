@@ -8,10 +8,13 @@ struct Particle {
     Vec2 position;
     Vec2 velocity;
     SDL_Color color;
+    SDL_Color colorEnd{0, 0, 0, 0};
     float lifetime;
     float maxLifetime;
     float size;
     float sizeDecay;
+    float gravity = 0;
+    bool useColorLerp = false;
     bool alive = true;
 };
 
@@ -43,6 +46,7 @@ public:
     void burst(Vec2 pos, int count, SDL_Color color, float speed = 150.0f, float size = 3.0f);
     void dimensionSwitch(Vec2 pos, SDL_Color colorA, SDL_Color colorB);
     void damageEffect(Vec2 pos, SDL_Color color);
+    void ambientDust(Vec2 pos, SDL_Color color, float radius = 200.0f);
     void clear();
 
 private:

@@ -100,6 +100,9 @@ private:
     float m_collapseTimer = 0;
     float m_collapseMaxTime = 60.0f;
 
+    // Ambient effects
+    float m_ambientDustTimer = 0;
+
     // Combat feel
     float m_hitFreezeTimer = 0;
     float m_spikeDmgCooldown = 0;

@@ -8,6 +8,10 @@ enum class SynergyID {
     PhaseHunter,         // PhaseCloak + DimensionalEcho
     VoidCatalyst,        // VoidHunger + BerserkerCore
     LuckyPhoenix,        // LuckyCoin + PhoenixFeather
+    FortifiedSoul,       // IronHeart + GlassHeart
+    EntropyVortex,       // EntropyAnchor + EntropySponge
+    Quicksilver,         // SwiftBoots + QuickHands
+    CursedFortune,       // CursedBlade + LuckyCoin
     COUNT
 };
 
@@ -34,4 +38,8 @@ public:
     static float getPhaseHunterDamageMult(const RelicComponent& relics);
     static float getVoidHungerBonusPerKill(const RelicComponent& relics);
     static float getPhoenixShardRetain(const RelicComponent& relics);
+    static float getGlassHeartDamageMult(const RelicComponent& relics);
+    static float getKillEntropyReduction(const RelicComponent& relics);
+    static float getDashSpeedBonus(const RelicComponent& relics);
+    static float getShardDropBonus(const RelicComponent& relics);
 };

@@ -11,6 +11,7 @@
 #include "Core/AudioManager.h"
 #include "Game/AchievementSystem.h"
 #include "Game/RelicSystem.h"
+#include "Game/RelicSynergy.h"
 #include "Game/ClassSystem.h"
 #include "Game/LoreSystem.h"
 #include "Game/DailyRun.h"
@@ -831,6 +832,16 @@ void PlayState::update(float dt) {
                 Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
                 m_particles.burst(pPos, 50, {255, 180, 50, 255}, 350.0f, 6.0f);
                 m_particles.burst(pPos, 25, {255, 120, 30, 255}, 250.0f, 5.0f);
+                // LuckyPhoenix synergy: retain 50% of shards as bonus
+                float shardRetain = RelicSynergy::getPhoenixShardRetain(relics);
+                if (shardRetain > 0) {
+                    int bonusShards = static_cast<int>(shardsCollected * shardRetain);
+                    if (bonusShards > 0) {
+                        shardsCollected += bonusShards;
+                        game->getUpgradeSystem().addRiftShards(bonusShards);
+                        m_particles.burst(pPos, 30, {255, 215, 0, 255}, 200.0f, 4.0f);
+                    }
+                }
                 // Skip to buff check
                 goto skipDeath;
             }
@@ -884,6 +895,19 @@ void PlayState::update(float dt) {
 
     // Particles
     m_particles.update(dt);
+
+    // Ambient dimension dust (subtle atmospheric particles)
+    m_ambientDustTimer += dt;
+    if (m_ambientDustTimer >= 0.3f) {
+        m_ambientDustTimer = 0;
+        if (m_player) {
+            Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+            SDL_Color dustColor = (m_dimManager.getCurrentDimension() == 1)
+                ? SDL_Color{100, 140, 220, 80}   // Dim A: blue dust
+                : SDL_Color{220, 120, 80, 80};   // Dim B: warm dust
+            m_particles.ambientDust(pPos, dustColor, 300.0f);
+        }
+    }
 
     // Level complete transition
     if (m_levelComplete) {
@@ -946,14 +970,20 @@ void PlayState::update(float dt) {
         if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
             auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
             for (int k = 0; k < m_combatSystem.killCount; k++) {
-                // SoulSiphon: heal on kill
+                // SoulSiphon: heal on kill (VampiricFrenzy synergy: 8 HP under 30%)
                 float killHeal = RelicSystem::getKillHeal(relics);
                 if (killHeal > 0) {
                     auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
-                    playerHP.heal(killHeal);
+                    float synergyHeal = RelicSynergy::getKillHealBonus(relics, playerHP.getPercent());
+                    playerHP.heal(synergyHeal > 0 ? synergyHeal : killHeal);
                 }
                 // VoidHunger: +1% DMG per kill
                 RelicSystem::onEnemyKill(relics);
+                // EntropyVortex synergy: kills reduce entropy
+                float entropyReduce = RelicSynergy::getKillEntropyReduction(relics);
+                if (entropyReduce > 0) {
+                    m_entropy.reduceEntropy(m_entropy.getMaxEntropy() * entropyReduce);
+                }
             }
         }
     }

@@ -23,7 +23,23 @@ static const SynergyData s_synergyData[] = {
 
     {SynergyID::LuckyPhoenix, "Lucky Phoenix",
      "Revive retains 50% of shards",
-     RelicID::LuckyCoin, RelicID::PhoenixFeather}
+     RelicID::LuckyCoin, RelicID::PhoenixFeather},
+
+    {SynergyID::FortifiedSoul, "Fortified Soul",
+     "Glass Heart penalty reduced: 1.3x DMG taken",
+     RelicID::IronHeart, RelicID::GlassHeart},
+
+    {SynergyID::EntropyVortex, "Entropy Vortex",
+     "Kills reduce entropy by 5%",
+     RelicID::EntropyAnchor, RelicID::EntropySponge},
+
+    {SynergyID::Quicksilver, "Quicksilver",
+     "+20% Dash speed",
+     RelicID::SwiftBoots, RelicID::QuickHands},
+
+    {SynergyID::CursedFortune, "Cursed Fortune",
+     "+30% Shard Drop instead of 10%",
+     RelicID::CursedBlade, RelicID::LuckyCoin}
 };
 
 const SynergyData& RelicSynergy::getData(SynergyID id) {
@@ -76,4 +92,28 @@ float RelicSynergy::getVoidHungerBonusPerKill(const RelicComponent& relics) {
 float RelicSynergy::getPhoenixShardRetain(const RelicComponent& relics) {
     if (isActive(relics, SynergyID::LuckyPhoenix)) return 0.5f;
     return 0;
+}
+
+float RelicSynergy::getGlassHeartDamageMult(const RelicComponent& relics) {
+    // FortifiedSoul: GlassHeart penalty 2x -> 1.3x
+    if (isActive(relics, SynergyID::FortifiedSoul)) return 1.3f;
+    return 0; // 0 = no override, use default
+}
+
+float RelicSynergy::getKillEntropyReduction(const RelicComponent& relics) {
+    // EntropyVortex: kills reduce entropy by 5%
+    if (isActive(relics, SynergyID::EntropyVortex)) return 0.05f;
+    return 0;
+}
+
+float RelicSynergy::getDashSpeedBonus(const RelicComponent& relics) {
+    // Quicksilver: +20% dash speed
+    if (isActive(relics, SynergyID::Quicksilver)) return 0.20f;
+    return 0;
+}
+
+float RelicSynergy::getShardDropBonus(const RelicComponent& relics) {
+    // CursedFortune: +30% shard drop instead of normal 10%
+    if (isActive(relics, SynergyID::CursedFortune)) return 0.30f;
+    return 0; // 0 = no override
 }

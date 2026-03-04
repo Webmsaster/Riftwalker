@@ -11,6 +11,8 @@
 #include "Core/AudioManager.h"
 #include "Systems/CombatSystem.h"
 #include "Game/SpriteConfig.h"
+#include "Game/RelicSynergy.h"
+#include "Components/RelicComponent.h"
 #include <cmath>
 
 Player::Player(EntityManager& entities) {
@@ -330,7 +332,12 @@ void Player::handleDash(float dt, const InputManager& input) {
         auto& phys = m_entity->getComponent<PhysicsBody>();
         phys.useGravity = false;
         phys.velocity.y = 0;
-        phys.velocity.x = (facingRight ? 1.0f : -1.0f) * dashSpeed;
+        float finalDashSpeed = dashSpeed;
+        if (m_entity->hasComponent<RelicComponent>()) {
+            finalDashSpeed *= (1.0f + RelicSynergy::getDashSpeedBonus(
+                m_entity->getComponent<RelicComponent>()));
+        }
+        phys.velocity.x = (facingRight ? 1.0f : -1.0f) * finalDashSpeed;
 
         // Dash particles
         if (particles) {

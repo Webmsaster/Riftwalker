@@ -42,6 +42,7 @@ void ParticleSystem::update(float dt) {
         p.lifetime -= dt;
         if (p.lifetime <= 0) { p.alive = false; continue; }
 
+        p.velocity.y += p.gravity * dt;
         p.position += p.velocity * dt;
         p.size -= p.sizeDecay * dt;
         if (p.size < 0) p.size = 0;
@@ -60,7 +61,14 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
         if (!p.alive || p.size <= 0) continue;
 
         float lifeRatio = 1.0f - (p.lifetime / p.maxLifetime);
-        Uint8 alpha = static_cast<Uint8>(p.color.a * (1.0f - lifeRatio));
+
+        Uint8 r = p.color.r, g = p.color.g, b = p.color.b;
+        if (p.useColorLerp) {
+            r = lerpByte(p.color.r, p.colorEnd.r, lifeRatio);
+            g = lerpByte(p.color.g, p.colorEnd.g, lifeRatio);
+            b = lerpByte(p.color.b, p.colorEnd.b, lifeRatio);
+        }
+        Uint8 alpha = static_cast<Uint8>(p.color.a * (1.0f - lifeRatio * lifeRatio));
 
         Vec2 screen = camera.worldToScreen(p.position);
         SDL_Rect rect = {
@@ -70,7 +78,7 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
             static_cast<int>(p.size)
         };
 
-        SDL_SetRenderDrawColor(renderer, p.color.r, p.color.g, p.color.b, alpha);
+        SDL_SetRenderDrawColor(renderer, r, g, b, alpha);
         SDL_RenderFillRect(renderer, &rect);
     }
 }
@@ -87,6 +95,9 @@ void ParticleSystem::spawnParticle(const ParticleEmitter& emitter) {
     if (emitter.gravity != 0) p.velocity.y += emitter.gravity;
 
     p.color = emitter.colorStart;
+    p.colorEnd = emitter.colorEnd;
+    p.useColorLerp = (emitter.colorEnd.a > 0);
+    p.gravity = emitter.gravity;
     p.lifetime = emitter.lifetime + randFloat(-emitter.lifetimeVariance, emitter.lifetimeVariance);
     p.maxLifetime = p.lifetime;
     p.size = emitter.size;
@@ -117,6 +128,23 @@ void ParticleSystem::dimensionSwitch(Vec2 pos, SDL_Color colorA, SDL_Color color
 
 void ParticleSystem::damageEffect(Vec2 pos, SDL_Color color) {
     burst(pos, 15, color, 120.0f, 3.0f);
+}
+
+void ParticleSystem::ambientDust(Vec2 pos, SDL_Color color, float radius) {
+    ParticleEmitter e;
+    e.position = {pos.x + randFloat(-radius, radius), pos.y + randFloat(-radius, radius)};
+    e.colorStart = color;
+    e.colorEnd = {color.r, color.g, color.b, 0};
+    e.burstCount = 1;
+    e.speed = 15.0f;
+    e.speedVariance = 10.0f;
+    e.lifetime = 2.5f;
+    e.lifetimeVariance = 1.0f;
+    e.size = 2.0f;
+    e.sizeDecay = 0.3f;
+    e.gravity = -15.0f;
+    e.spread = 360.0f;
+    addEmitter(e);
 }
 
 void ParticleSystem::addEmitter(const ParticleEmitter& emitter) {
