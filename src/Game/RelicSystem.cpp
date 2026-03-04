@@ -34,7 +34,7 @@ static void initRelicData() {
     // Cursed Relics
     d[static_cast<int>(RelicID::CursedBlade)]    = {RelicID::CursedBlade, "Cursed Blade", "+40% Melee, -20% Ranged", RelicTier::Rare, SDL_Color{180, 30, 60, 255}};
     d[static_cast<int>(RelicID::GlassHeart)]     = {RelicID::GlassHeart, "Glass Heart", "+50% Max HP, 2x DMG taken", RelicTier::Rare, SDL_Color{220, 180, 200, 255}};
-    d[static_cast<int>(RelicID::TimeTax)]        = {RelicID::TimeTax, "Time Tax", "-50% Ability CD, costs 10 HP", RelicTier::Rare, SDL_Color{100, 180, 220, 255}};
+    d[static_cast<int>(RelicID::TimeTax)]        = {RelicID::TimeTax, "Time Tax", "-50% Ability CD, costs 5 HP", RelicTier::Rare, SDL_Color{100, 180, 220, 255}};
     d[static_cast<int>(RelicID::EntropySponge)]  = {RelicID::EntropySponge, "Entropy Sponge", "No passive entropy, kills +5%", RelicTier::Legendary, SDL_Color{40, 180, 80, 255}};
     d[static_cast<int>(RelicID::VoidPact)]       = {RelicID::VoidPact, "Void Pact", "Kill heals 5 HP, max 60% HP", RelicTier::Legendary, SDL_Color{80, 0, 100, 255}};
     d[static_cast<int>(RelicID::ChaosRift)]      = {RelicID::ChaosRift, "Chaos Rift", "10th kill: buff, 5th hit: spike", RelicTier::Legendary, SDL_Color{200, 60, 200, 255}};
@@ -301,7 +301,7 @@ float RelicSystem::getAbilityCDMultCursed(const RelicComponent& relics) {
 }
 
 float RelicSystem::getAbilityHPCost(const RelicComponent& relics) {
-    return relics.hasRelic(RelicID::TimeTax) ? 10.0f : 0.0f;
+    return relics.hasRelic(RelicID::TimeTax) ? 5.0f : 0.0f;
 }
 
 bool RelicSystem::hasNoPassiveEntropy(const RelicComponent& relics) {

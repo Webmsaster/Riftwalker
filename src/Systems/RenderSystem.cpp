@@ -10,6 +10,31 @@
 #include <algorithm>
 #include <cmath>
 
+bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    if (!sprite.texture) return false;
+
+    // Update animation frame if entity has AnimationComponent
+    SDL_Rect srcRect = sprite.srcRect;
+    if (entity.hasComponent<AnimationComponent>()) {
+        auto& anim = entity.getComponent<AnimationComponent>();
+        srcRect = anim.getCurrentSrcRect();
+    }
+
+    // Apply color modulation and alpha
+    SDL_SetTextureColorMod(sprite.texture, sprite.color.r, sprite.color.g, sprite.color.b);
+    SDL_SetTextureAlphaMod(sprite.texture, static_cast<Uint8>(sprite.color.a * alpha));
+    SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
+
+    // Flip based on facing direction
+    SDL_RendererFlip flip = SDL_FLIP_NONE;
+    if (sprite.flipX) flip = static_cast<SDL_RendererFlip>(flip | SDL_FLIP_HORIZONTAL);
+    if (sprite.flipY) flip = static_cast<SDL_RendererFlip>(flip | SDL_FLIP_VERTICAL);
+
+    SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &rect, 0.0, nullptr, flip);
+    return true;
+}
+
 void RenderSystem::fillRect(SDL_Renderer* r, int x, int y, int w, int h,
                             Uint8 cr, Uint8 cg, Uint8 cb, Uint8 ca) {
     SDL_SetRenderDrawColor(r, cr, cg, cb, ca);
@@ -69,6 +94,10 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
+    // Hybrid rendering: try sprite first, fall back to procedural
+    if (renderSprite(renderer, screenRect, entity, alpha)) {
+        // Sprite rendered successfully — skip procedural, but still apply overlays below
+    } else
     // Custom rendering based on entity type
     if (tag == "player") {
         renderPlayer(renderer, screenRect, entity, alpha);

@@ -103,6 +103,9 @@ void PlayState::generateLevel() {
     m_levelGen.setThemes(m_themeA, m_themeB);
     m_level = std::make_unique<Level>(m_levelGen.generate(m_currentDifficulty, m_runSeed + m_currentDifficulty));
 
+    // Try to load tileset for sprite-based tile rendering
+    m_level->loadTileset();
+
     // Create player with selected class
     m_player = std::make_unique<Player>(m_entities);
     m_player->particles = &m_particles;

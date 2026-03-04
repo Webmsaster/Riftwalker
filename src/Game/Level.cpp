@@ -1,4 +1,5 @@
 #include "Level.h"
+#include "Core/ResourceManager.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -42,6 +43,39 @@ bool Level::isOneWay(int x, int y, int dimension) const {
 
 bool Level::inBounds(int x, int y) const {
     return x >= 0 && x < m_width && y >= 0 && y < m_height;
+}
+
+bool Level::loadTileset(const std::string& path) {
+    m_tileset = ResourceManager::instance().getTexture(path);
+    if (m_tileset) {
+        SDL_Log("Tileset loaded: %s", path.c_str());
+    }
+    return m_tileset != nullptr;
+}
+
+int Level::getAutoTileIndex(int tx, int ty, int dim) const {
+    int mask = 0;
+    if (isSolid(tx, ty - 1, dim)) mask |= 1;  // top
+    if (isSolid(tx + 1, ty, dim)) mask |= 2;  // right
+    if (isSolid(tx, ty + 1, dim)) mask |= 4;  // bottom
+    if (isSolid(tx - 1, ty, dim)) mask |= 8;  // left
+    return mask;
+}
+
+void Level::renderTilesetTile(SDL_Renderer* renderer, SDL_Rect destRect,
+                               int tilesetRow, int tilesetCol, const Tile& tile) {
+    SDL_Rect srcRect = {
+        tilesetCol * m_tileSize,
+        tilesetRow * m_tileSize,
+        m_tileSize, m_tileSize
+    };
+
+    // Apply theme color tinting
+    SDL_SetTextureColorMod(m_tileset, tile.color.r, tile.color.g, tile.color.b);
+    SDL_SetTextureAlphaMod(m_tileset, tile.color.a);
+    SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
+
+    SDL_RenderCopy(renderer, m_tileset, &srcRect, &destRect);
 }
 
 void Level::render(SDL_Renderer* renderer, const Camera& camera,
@@ -188,7 +222,19 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
 
 void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile,
                              int tx, int ty, int dim) const {
-    // Check neighbors for edge-aware rendering
+    // Tileset rendering: use auto-tile index for correct variant
+    if (m_tileset) {
+        int autoIdx = getAutoTileIndex(tx, ty, dim);
+        // Row 0 of tileset, column = auto-tile index (0-15)
+        SDL_Rect srcRect = { autoIdx * m_tileSize, 0, m_tileSize, m_tileSize };
+        SDL_SetTextureColorMod(m_tileset, tile.color.r, tile.color.g, tile.color.b);
+        SDL_SetTextureAlphaMod(m_tileset, tile.color.a);
+        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
+        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
+        return;
+    }
+
+    // Procedural fallback: Check neighbors for edge-aware rendering
     bool emptyAbove = !isSolid(tx, ty - 1, dim);
     bool emptyBelow = !isSolid(tx, ty + 1, dim);
     bool emptyLeft  = !isSolid(tx - 1, ty, dim);

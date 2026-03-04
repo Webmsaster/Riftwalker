@@ -5,6 +5,8 @@
 #include "Components/ColliderComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/CombatComponent.h"
+#include "Components/AnimationComponent.h"
+#include "Game/SpriteConfig.h"
 
 void Enemy::makeMiniBoss(Entity& e) {
     auto& ai = e.getComponent<AIComponent>();
@@ -128,6 +130,9 @@ Entity& Enemy::createWalker(EntityManager& entities, Vec2 pos, int dimension) {
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 150.0f, pos.y};
 
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Walker);
+
     return e;
 }
 
@@ -169,6 +174,9 @@ Entity& Enemy::createFlyer(EntityManager& entities, Vec2 pos, int dimension) {
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 100.0f, pos.y};
 
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Flyer);
+
     return e;
 }
 
@@ -205,6 +213,9 @@ Entity& Enemy::createTurret(EntityManager& entities, Vec2 pos, int dimension) {
     ai.enemyType = EnemyType::Turret;
     ai.detectRange = 300.0f;
     ai.attackRange = 280.0f;
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Turret);
 
     return e;
 }
@@ -247,6 +258,9 @@ Entity& Enemy::createCharger(EntityManager& entities, Vec2 pos, int dimension) {
     ai.chargeWindup = 0.5f;
     ai.patrolSpeed = 50.0f;
 
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Charger);
+
     return e;
 }
 
@@ -287,6 +301,9 @@ Entity& Enemy::createPhaser(EntityManager& entities, Vec2 pos, int dimension) {
     ai.chaseSpeed = 110.0f;
     ai.patrolSpeed = 70.0f;
 
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Phaser);
+
     return e;
 }
 
@@ -311,8 +328,8 @@ Entity& Enemy::createExploder(EntityManager& entities, Vec2 pos, int dimension) 
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 15.0f; // Very fragile glass cannon
-    hp.currentHP = 15.0f;
+    hp.maxHP = 25.0f; // Fragile but survives one melee hit
+    hp.currentHP = 25.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 40.0f; // High damage on contact
@@ -329,6 +346,9 @@ Entity& Enemy::createExploder(EntityManager& entities, Vec2 pos, int dimension) 
     ai.explodeDamage = 30.0f;
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 80.0f, pos.y};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Exploder);
 
     return e;
 }
@@ -368,10 +388,13 @@ Entity& Enemy::createShielder(EntityManager& entities, Vec2 pos, int dimension) 
     ai.detectRange = 180.0f;
     ai.attackRange = 40.0f;
     ai.patrolSpeed = 40.0f;
-    ai.chaseSpeed = 80.0f; // Slow but tanky
+    ai.chaseSpeed = 110.0f; // Tanky but can pressure the player
     ai.shieldUp = true;
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 120.0f, pos.y};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Shielder);
 
     return e;
 }
@@ -415,6 +438,9 @@ Entity& Enemy::createCrawler(EntityManager& entities, Vec2 pos, int dimension) {
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 100.0f, pos.y};
 
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Crawler);
+
     return e;
 }
 
@@ -457,6 +483,9 @@ Entity& Enemy::createSummoner(EntityManager& entities, Vec2 pos, int dimension) 
     ai.patrolSpeed = 30.0f;
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 80.0f, pos.y};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Summoner);
 
     return e;
 }
@@ -504,6 +533,9 @@ Entity& Enemy::createSniper(EntityManager& entities, Vec2 pos, int dimension) {
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 60.0f, pos.y};
 
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Sniper);
+
     return e;
 }
 
@@ -544,6 +576,9 @@ Entity& Enemy::createMinion(EntityManager& entities, Vec2 pos, int dimension) {
     ai.patrolSpeed = 70.0f;
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 60.0f, pos.y};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Walker); // Minions use walker sprites
 
     return e;
 }
@@ -598,6 +633,9 @@ Entity& Enemy::createVoidWyrm(EntityManager& entities, Vec2 pos, int dimension, 
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 200.0f, pos.y - 100.0f};
 
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupBoss(anim, sprite, 1);
+
     return e;
 }
 
@@ -649,6 +687,9 @@ Entity& Enemy::createBoss(EntityManager& entities, Vec2 pos, int dimension, int 
     ai.bossLeapTimer = 0;
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 200.0f, pos.y};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupBoss(anim, sprite, 0);
 
     return e;
 }
@@ -765,6 +806,9 @@ Entity& Enemy::createTemporalWeaver(EntityManager& entities, Vec2 pos, int dimen
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 150.0f, pos.y - 60.0f};
 
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupBoss(anim, sprite, 3);
+
     return e;
 }
 
@@ -822,6 +866,9 @@ Entity& Enemy::createDimensionalArchitect(EntityManager& entities, Vec2 pos, int
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 150.0f, pos.y - 80.0f};
 
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupBoss(anim, sprite, 2);
+
     return e;
 }
 
@@ -850,10 +897,10 @@ Entity& Enemy::createVoidSovereign(EntityManager& entities, Vec2 pos, int dimens
     hp.armor = 3.0f + difficulty * 1.5f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 25.0f;
+    combat.meleeAttack.damage = 25.0f + difficulty * 5.0f;
     combat.meleeAttack.range = 80.0f;
     combat.meleeAttack.knockback = 350.0f;
-    combat.rangedAttack.damage = 18.0f;
+    combat.rangedAttack.damage = 18.0f + difficulty * 3.0f;
     combat.rangedAttack.range = 500.0f;
 
     auto& ai = e.addComponent<AIComponent>();
@@ -874,6 +921,9 @@ Entity& Enemy::createVoidSovereign(EntityManager& entities, Vec2 pos, int dimens
     ai.vsAutoSwitchTimer = 3.0f;
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 200.0f, pos.y - 100.0f};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupBoss(anim, sprite, 4);
 
     e.dimension = dimension;
     return e;

@@ -6,6 +6,7 @@
 #include "Core/Camera.h"
 #include <vector>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
 class Level {
 public:
@@ -19,6 +20,10 @@ public:
     bool isSolid(int x, int y, int dimension) const;
     bool isOneWay(int x, int y, int dimension) const;
     bool inBounds(int x, int y) const;
+
+    // Tileset loading (returns true if loaded, uses ResourceManager)
+    bool loadTileset(const std::string& path = "assets/textures/tiles/tileset_universal.png");
+    bool hasTileset() const { return m_tileset != nullptr; }
 
     // Rendering
     void render(SDL_Renderer* renderer, const Camera& camera,
@@ -85,7 +90,15 @@ private:
     std::vector<RandomEvent> m_randomEvents;
     std::vector<NPCData> m_npcs;
 
+    SDL_Texture* m_tileset = nullptr;
+    int m_tilesetCols = 16;  // Tiles per row in tileset
+
     int index(int x, int y) const { return y * m_width + x; }
+
+    // Tileset rendering
+    void renderTilesetTile(SDL_Renderer* renderer, SDL_Rect destRect,
+                           int tilesetRow, int tilesetCol, const Tile& tile);
+    int getAutoTileIndex(int tx, int ty, int dim) const;
 
     // Tile rendering helpers
     void renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile,

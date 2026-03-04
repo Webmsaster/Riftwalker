@@ -1,6 +1,7 @@
 #pragma once
 #include "ECS/EntityManager.h"
 #include "Core/Camera.h"
+#include "Components/AIComponent.h"
 
 class ParticleSystem;
 class CombatSystem;
@@ -32,6 +33,7 @@ private:
     void updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
 
     void explode(Entity& entity, EntityManager& entities);
+    void updateEnemyAnimation(Entity& entity);
 
     float distanceTo(Vec2 a, Vec2 b) const;
 

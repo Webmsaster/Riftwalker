@@ -10,6 +10,7 @@
 #include "Components/AIComponent.h"
 #include "Core/AudioManager.h"
 #include "Systems/CombatSystem.h"
+#include "Game/SpriteConfig.h"
 #include <cmath>
 
 Player::Player(EntityManager& entities) {
@@ -65,10 +66,13 @@ Player::Player(EntityManager& entities) {
     combat.chargedAttack.duration = 0.25f;
     combat.chargedAttack.type = AttackType::Charged;
 
-    m_entity->addComponent<AnimationComponent>();
+    auto& anim = m_entity->addComponent<AnimationComponent>();
     m_entity->addComponent<AbilityComponent>();
     m_entity->addComponent<RelicComponent>();
     m_entity->dimension = 0; // Player exists in both dimensions
+
+    // Try to load sprite texture and register animations
+    SpriteConfig::setupPlayer(anim, sprite);
 }
 
 void Player::update(float dt, const InputManager& input) {
@@ -488,6 +492,12 @@ void Player::updateAnimation() {
     if (newState != sprite.animState) {
         sprite.animState = newState;
         sprite.animTimer = 0;
+
+        // Drive spritesheet animation if texture is loaded
+        if (sprite.texture) {
+            auto& anim = m_entity->getComponent<AnimationComponent>();
+            anim.play(SpriteConfig::animStateToName(newState));
+        }
     }
 
     // Class color

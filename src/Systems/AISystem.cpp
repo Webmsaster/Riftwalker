@@ -4,14 +4,56 @@
 #include "Components/PhysicsBody.h"
 #include "Components/CombatComponent.h"
 #include "Components/SpriteComponent.h"
+#include "Components/AnimationComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/ColliderComponent.h"
 #include "Systems/ParticleSystem.h"
 #include "Systems/CombatSystem.h"
 #include "Core/AudioManager.h"
 #include "Game/Level.h"
+#include "Game/SpriteConfig.h"
 #include <cmath>
 #include <cstdlib>
+
+void AISystem::updateEnemyAnimation(Entity& entity) {
+    if (!entity.hasComponent<SpriteComponent>() || !entity.hasComponent<AnimationComponent>())
+        return;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    if (!sprite.texture) return; // No sprite loaded, skip
+
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& anim = entity.getComponent<AnimationComponent>();
+
+    // Map AIState to animation name
+    const char* animName = Anim::Idle;
+    bool isBoss = (ai.enemyType == EnemyType::Boss);
+
+    if (entity.hasComponent<HealthComponent>() && entity.getComponent<HealthComponent>().currentHP <= 0) {
+        animName = Anim::Dead;
+    } else if (ai.state == AIState::Stunned || ai.state == AIState::Juggled) {
+        animName = Anim::Hurt;
+    } else if (ai.state == AIState::Attack) {
+        animName = isBoss ? Anim::Attack1 : Anim::Attack;
+    } else if (ai.state == AIState::Chase) {
+        animName = isBoss ? Anim::Move : Anim::Walk;
+    } else if (ai.state == AIState::Patrol) {
+        animName = isBoss ? Anim::Move : Anim::Walk;
+    } else if (ai.state == AIState::Flee) {
+        animName = isBoss ? Anim::Move : Anim::Walk;
+    } else {
+        animName = Anim::Idle;
+    }
+
+    // Boss-specific: hit flash triggers hurt
+    if (isBoss && entity.hasComponent<HealthComponent>()) {
+        auto& hp = entity.getComponent<HealthComponent>();
+        if (hp.invincibilityTimer > hp.invincibilityTime - 0.12f && hp.invincibilityTimer > 0) {
+            animName = Anim::Hurt;
+        }
+    }
+
+    anim.play(animName);
+}
 
 float AISystem::distanceTo(Vec2 a, Vec2 b) const {
     float dx = a.x - b.x;
@@ -116,6 +158,9 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
                 break;
             }
         }
+
+        // Drive sprite animation based on AI state
+        updateEnemyAnimation(*e);
     }
 }
 
