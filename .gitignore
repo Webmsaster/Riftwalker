@@ -27,6 +27,10 @@ daily_run.dat
 # Logs
 *.log
 
+# Python
+__pycache__/
+*.pyc
+
 # OS
 Thumbs.db
 Desktop.ini
