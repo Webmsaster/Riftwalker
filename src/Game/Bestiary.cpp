@@ -97,6 +97,8 @@ void Bestiary::load(const std::string& filepath) {
         if (line == "BOSS") { readingBoss = true; continue; }
         int id, kills, disc;
         if (sscanf(line.c_str(), "%d %d %d", &id, &kills, &disc) == 3) {
+            if (kills < 0) kills = 0;
+            if (kills > 999999) kills = 999999;
             if (!readingBoss && id >= 0 && id < static_cast<int>(s_entries.size())) {
                 s_entries[id].killCount = kills;
                 s_entries[id].discovered = (disc != 0);

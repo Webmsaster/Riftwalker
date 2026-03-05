@@ -1,7 +1,6 @@
 #pragma once
 #include "ECS/Component.h"
 #include <SDL2/SDL.h>
-#include <string>
 
 enum class AnimState : uint8_t {
     Idle = 0,

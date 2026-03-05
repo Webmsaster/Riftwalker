@@ -6,10 +6,10 @@ class Level;
 
 class PhysicsSystem {
 public:
-    void update(EntityManager& entities, float dt, const Level* level, int currentDimension = 1);
+    void update(EntityManager& entities, float dt, Level* level, int currentDimension = 1);
 
 private:
     void applyGravity(Entity& entity, float dt);
     void applyVelocity(Entity& entity, float dt);
-    void resolveTerrainCollision(Entity& entity, const Level* level, int currentDimension);
+    void resolveTerrainCollision(Entity& entity, Level* level, int currentDimension);
 };

@@ -22,6 +22,7 @@ void ParticleSystem::update(float dt) {
         }
 
         emitter.timer += dt;
+        if (emitter.emitRate <= 0) continue;
         float interval = 1.0f / emitter.emitRate;
         while (emitter.timer >= interval) {
             emitter.timer -= interval;
@@ -92,13 +93,13 @@ void ParticleSystem::spawnParticle(const ParticleEmitter& emitter) {
     float angle = (emitter.direction + randFloat(-emitter.spread / 2, emitter.spread / 2)) * 3.14159f / 180.0f;
     float speed = emitter.speed + randFloat(-emitter.speedVariance, emitter.speedVariance);
     p.velocity = {std::cos(angle) * speed, std::sin(angle) * speed};
-    if (emitter.gravity != 0) p.velocity.y += emitter.gravity;
 
     p.color = emitter.colorStart;
     p.colorEnd = emitter.colorEnd;
     p.useColorLerp = (emitter.colorEnd.a > 0);
     p.gravity = emitter.gravity;
     p.lifetime = emitter.lifetime + randFloat(-emitter.lifetimeVariance, emitter.lifetimeVariance);
+    if (p.lifetime <= 0.01f) p.lifetime = 0.01f;
     p.maxLifetime = p.lifetime;
     p.size = emitter.size;
     p.sizeDecay = emitter.sizeDecay;

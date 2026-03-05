@@ -5,6 +5,9 @@ class Game;
 
 class GameState {
 public:
+    static constexpr int SCREEN_WIDTH = 1280;
+    static constexpr int SCREEN_HEIGHT = 720;
+
     virtual ~GameState() = default;
     virtual void enter() {}
     virtual void exit() {}

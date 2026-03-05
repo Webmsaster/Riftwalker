@@ -165,7 +165,9 @@ float InputManager::getAxis(Action negative, Action positive) const {
 
 float InputManager::getGamepadAxis(SDL_GameControllerAxis axis) const {
     if (!m_gamepad) return 0.0f;
-    return static_cast<float>(SDL_GameControllerGetAxis(m_gamepad, axis)) / 32767.0f;
+    float val = static_cast<float>(SDL_GameControllerGetAxis(m_gamepad, axis)) / 32768.0f;
+    if (val < -1.0f) val = -1.0f;
+    return val;
 }
 
 void InputManager::rebindKey(Action action, SDL_Scancode newKey) {
@@ -247,6 +249,8 @@ bool InputManager::loadBindings(const std::string& filepath) {
         std::istringstream iss(line);
         int actionId, scancodeId;
         if (iss >> actionId >> scancodeId) {
+            if (scancodeId < 0 || scancodeId >= SDL_NUM_SCANCODES) continue;
+            if (actionId < 0) continue;
             auto action = static_cast<Action>(actionId);
             auto scancode = static_cast<SDL_Scancode>(scancodeId);
             m_keyBindings[action] = scancode;

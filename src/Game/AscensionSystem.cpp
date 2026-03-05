@@ -79,4 +79,5 @@ void AscensionSystem::load(const std::string& filepath) {
     f >> currentLevel >> riftCores;
     if (currentLevel < 0) currentLevel = 0;
     if (currentLevel > 10) currentLevel = 10;
+    if (riftCores < 0) riftCores = 0;
 }

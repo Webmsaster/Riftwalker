@@ -2,7 +2,6 @@
 #include "ECS/Entity.h"
 #include "ECS/EntityManager.h"
 #include "Components/AIComponent.h"
-#include "Core/Camera.h"
 
 class Enemy {
 public:

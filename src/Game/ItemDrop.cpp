@@ -38,11 +38,6 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
         }
     };
 
-    // Auto-destroy after 10 seconds
-    auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 10.0f;
-    hp.currentHP = 10.0f;
-
     return e;
 }
 

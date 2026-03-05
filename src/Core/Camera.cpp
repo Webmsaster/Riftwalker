@@ -46,7 +46,7 @@ void Camera::shake(float intensity, float duration) {
 
 void Camera::update(float dt) {
     m_shakeOffset = {0, 0};
-    if (m_shakeTimer < m_shakeDuration) {
+    if (m_shakeDuration > 0 && m_shakeTimer < m_shakeDuration) {
         m_shakeTimer += dt;
         float progress = m_shakeTimer / m_shakeDuration;
         float currentIntensity = m_shakeIntensity * (1.0f - progress);
@@ -58,8 +58,14 @@ void Camera::update(float dt) {
     if (m_hasBounds) {
         float halfW = m_screenW / (2.0f * zoom);
         float halfH = m_screenH / (2.0f * zoom);
-        m_position.x = std::clamp(m_position.x, m_minX + halfW, m_maxX - halfW);
-        m_position.y = std::clamp(m_position.y, m_minY + halfH, m_maxY - halfH);
+        float clampMinX = m_minX + halfW;
+        float clampMaxX = m_maxX - halfW;
+        float clampMinY = m_minY + halfH;
+        float clampMaxY = m_maxY - halfH;
+        if (clampMinX > clampMaxX) clampMinX = clampMaxX = (clampMinX + clampMaxX) * 0.5f;
+        if (clampMinY > clampMaxY) clampMinY = clampMaxY = (clampMinY + clampMaxY) * 0.5f;
+        m_position.x = std::clamp(m_position.x, clampMinX, clampMaxX);
+        m_position.y = std::clamp(m_position.y, clampMinY, clampMaxY);
     }
 }
 

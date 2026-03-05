@@ -57,6 +57,7 @@ void UpgradeState::update(float dt) {
 
 void UpgradeState::renderText(SDL_Renderer* renderer, TTF_Font* font,
                                const char* text, int x, int y, SDL_Color color) {
+    if (!font) return;
     SDL_Surface* s = TTF_RenderText_Blended(font, text, color);
     if (s) {
         SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
@@ -77,10 +78,10 @@ void UpgradeState::render(SDL_Renderer* renderer) {
 
     // Subtle background pattern
     for (int i = 0; i < 30; i++) {
-        float y = static_cast<float>((i * 73 + static_cast<int>(m_time * 10)) % 720);
+        float y = static_cast<float>((i * 73 + static_cast<int>(m_time * 10)) % SCREEN_HEIGHT);
         Uint8 a = static_cast<Uint8>(15 + (i * 3) % 15);
         SDL_SetRenderDrawColor(renderer, 40, 25, 70, a);
-        SDL_RenderDrawLine(renderer, 0, static_cast<int>(y), 1280, static_cast<int>(y));
+        SDL_RenderDrawLine(renderer, 0, static_cast<int>(y), SCREEN_WIDTH, static_cast<int>(y));
     }
 
     TTF_Font* font = game->getFont();
@@ -143,7 +144,7 @@ void UpgradeState::render(SDL_Renderer* renderer) {
 
     // Separator line
     SDL_SetRenderDrawColor(renderer, 80, 50, 140, 100);
-    SDL_RenderDrawLine(renderer, margin, 90, 1280 - margin, 90);
+    SDL_RenderDrawLine(renderer, margin, 90, SCREEN_WIDTH - margin, 90);
 
     // Upgrade list
     int endIdx = std::min(m_scrollOffset + VISIBLE_ITEMS, static_cast<int>(upgradeList.size()));
@@ -154,7 +155,7 @@ void UpgradeState::render(SDL_Renderer* renderer) {
         bool maxed = u.currentLevel >= u.maxLevel;
 
         // Card background with gradient
-        SDL_Rect card = {margin, y, 1280 - margin * 2, itemH - 4};
+        SDL_Rect card = {margin, y, SCREEN_WIDTH - margin * 2, itemH - 4};
         if (selected) {
             // Top half
             SDL_SetRenderDrawColor(renderer, 65, 40, 110, 230);
@@ -228,11 +229,11 @@ void UpgradeState::render(SDL_Renderer* renderer) {
         renderText(renderer, font, u.description.c_str(), textX, y + 28, descColor);
 
         // Progress bar for level
-        int barX = 1280 - margin - 220;
+        int barX = SCREEN_WIDTH - margin - 220;
         int barY = y + 10;
         int barW = 100;
         int barH = 10;
-        float progress = static_cast<float>(u.currentLevel) / u.maxLevel;
+        float progress = u.maxLevel > 0 ? static_cast<float>(u.currentLevel) / u.maxLevel : 0.0f;
 
         // Bar background
         SDL_SetRenderDrawColor(renderer, 20, 15, 35, 200);
@@ -290,13 +291,13 @@ void UpgradeState::render(SDL_Renderer* renderer) {
     if (m_flashTimer > 0) {
         Uint8 fa = static_cast<Uint8>(m_flashTimer * 80);
         SDL_SetRenderDrawColor(renderer, 140, 100, 255, fa);
-        SDL_Rect full = {0, 0, 1280, 720};
+        SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
         SDL_RenderFillRect(renderer, &full);
     }
 
     // Instructions
     SDL_SetRenderDrawColor(renderer, 60, 40, 90, 80);
-    SDL_Rect instrBg = {0, 670, 1280, 50};
+    SDL_Rect instrBg = {0, 670, SCREEN_WIDTH, 50};
     SDL_RenderFillRect(renderer, &instrBg);
     renderText(renderer, font, "W/S: Navigate    ENTER: Purchase    ESC: Back",
                640 - 200, 683, {120, 110, 150, 180});

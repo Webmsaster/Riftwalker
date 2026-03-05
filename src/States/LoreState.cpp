@@ -8,7 +8,6 @@ void LoreState::enter() {
     m_fontBody = TTF_OpenFont("assets/fonts/default.ttf", 16);
     m_fontSmall = TTF_OpenFont("assets/fonts/default.ttf", 14);
     m_selected = 0;
-    m_scrollY = 0.0f;
     m_time = 0.0f;
     m_lore = game->getLoreSystem();
 }
@@ -36,7 +35,7 @@ void LoreState::render(SDL_Renderer* renderer) {
         SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, "~ CODEX ~", white);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_Rect dst = {400 - surf->w / 2, 30, surf->w, surf->h};
+            SDL_Rect dst = {640 - surf->w / 2, 30, surf->w, surf->h};
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
             SDL_DestroyTexture(tex);
             SDL_FreeSurface(surf);
@@ -51,7 +50,7 @@ void LoreState::render(SDL_Renderer* renderer) {
         SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, buf, gray);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_Rect dst = {400 - surf->w / 2, 65, surf->w, surf->h};
+            SDL_Rect dst = {640 - surf->w / 2, 65, surf->w, surf->h};
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
             SDL_DestroyTexture(tex);
             SDL_FreeSurface(surf);
@@ -175,7 +174,7 @@ void LoreState::render(SDL_Renderer* renderer) {
         SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, "W/S: Navigate   ESC: Back", hint);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_Rect dst = {400 - surf->w / 2, 570, surf->w, surf->h};
+            SDL_Rect dst = {640 - surf->w / 2, 570, surf->w, surf->h};
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
             SDL_DestroyTexture(tex);
             SDL_FreeSurface(surf);
@@ -188,18 +187,19 @@ void LoreState::handleEvent(const SDL_Event& event) {
         if (!m_lore) return;
         int total = static_cast<int>(m_lore->getFragments().size());
         if (total == 0) return;
-        switch (event.key.keysym.sym) {
-            case SDLK_ESCAPE:
+        switch (event.key.keysym.scancode) {
+            case SDL_SCANCODE_ESCAPE:
                 if (game) game->changeState(StateID::Menu);
                 break;
-            case SDLK_w:
-            case SDLK_UP:
+            case SDL_SCANCODE_W:
+            case SDL_SCANCODE_UP:
                 m_selected = (m_selected - 1 + total) % total;
                 break;
-            case SDLK_s:
-            case SDLK_DOWN:
+            case SDL_SCANCODE_S:
+            case SDL_SCANCODE_DOWN:
                 m_selected = (m_selected + 1) % total;
                 break;
+            default: break;
         }
     }
 }

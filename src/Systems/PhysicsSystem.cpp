@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cmath>
 
-void PhysicsSystem::update(EntityManager& entities, float dt, const Level* level, int currentDimension) {
+void PhysicsSystem::update(EntityManager& entities, float dt, Level* level, int currentDimension) {
     auto ents = entities.getEntitiesWithComponent<PhysicsBody>();
     for (auto* e : ents) {
         if (!e->hasComponent<TransformComponent>()) continue;
@@ -57,7 +57,7 @@ void PhysicsSystem::update(EntityManager& entities, float dt, const Level* level
             if (phys.onGround) {
                 int footTX = static_cast<int>(t.getCenter().x) / level->getTileSize();
                 int footTY = static_cast<int>(t.position.y + t.height + 1) / level->getTileSize();
-                const_cast<Level*>(level)->triggerCrumble(footTX, footTY, dim);
+                level->triggerCrumble(footTX, footTY, dim);
             }
         }
 
@@ -103,13 +103,14 @@ void PhysicsSystem::applyVelocity(Entity& entity, float dt) {
     transform.position += phys.velocity * dt;
 }
 
-void PhysicsSystem::resolveTerrainCollision(Entity& entity, const Level* level, int currentDimension) {
+void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int currentDimension) {
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
     auto& collider = entity.getComponent<ColliderComponent>();
 
     SDL_FRect rect = collider.getWorldRect();
     int tileSize = level->getTileSize();
+    if (tileSize <= 0) return;
 
     phys.onGround = false;
     phys.onWallLeft = false;

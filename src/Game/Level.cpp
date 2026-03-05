@@ -13,7 +13,10 @@ Level::Level(int width, int height, int tileSize)
 
 Tile& Level::getTile(int x, int y, int dimension) {
     static Tile empty;
-    if (!inBounds(x, y)) return empty;
+    if (!inBounds(x, y)) {
+        empty = Tile{}; // Reset to prevent stale mutations from previous OOB accesses
+        return empty;
+    }
     return (dimension == 2) ? m_tilesB[index(x, y)] : m_tilesA[index(x, y)];
 }
 
@@ -27,6 +30,7 @@ void Level::setTile(int x, int y, int dimension, const Tile& tile) {
     if (!inBounds(x, y)) return;
     if (dimension == 2) m_tilesB[index(x, y)] = tile;
     else m_tilesA[index(x, y)] = tile;
+    m_laserCacheDirty = true;
 }
 
 bool Level::isSolid(int x, int y, int dimension) const {
@@ -83,8 +87,8 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     Vec2 camPos = camera.getPosition();
-    int screenW = 1280;
-    int screenH = 720;
+    int screenW = camera.getViewWidth();
+    int screenH = camera.getViewHeight();
 
     int startX = std::max(0, static_cast<int>((camPos.x - screenW / 2) / m_tileSize) - 1);
     int startY = std::max(0, static_cast<int>((camPos.y - screenH / 2) / m_tileSize) - 1);
@@ -540,6 +544,21 @@ void Level::renderLaserEmitter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& 
     SDL_RenderDrawRect(renderer, &sr);
 }
 
+void Level::buildLaserCache() const {
+    m_laserEmitters.clear();
+    for (int d = 1; d <= 2; d++) {
+        const auto& tiles = (d == 2) ? m_tilesB : m_tilesA;
+        for (int y = 0; y < m_height; y++) {
+            for (int x = 0; x < m_width; x++) {
+                if (tiles[y * m_width + x].type == TileType::LaserEmitter) {
+                    m_laserEmitters.push_back({x, y, d});
+                }
+            }
+        }
+    }
+    m_laserCacheDirty = false;
+}
+
 void Level::renderLaserBeams(SDL_Renderer* renderer, const Camera& camera, int dim, Uint32 ticks) const {
     float time = ticks * 0.004f;
     // Laser toggles: 2s on, 1s off
@@ -547,58 +566,53 @@ void Level::renderLaserBeams(SDL_Renderer* renderer, const Camera& camera, int d
     bool active = cycle < 2.0f;
     if (!active) return;
 
+    if (m_laserCacheDirty) buildLaserCache();
+
     float pulse = 0.7f + 0.3f * std::sin(time * 8.0f);
 
-    for (int y = 0; y < m_height; y++) {
-        for (int x = 0; x < m_width; x++) {
-            const Tile& tile = getTile(x, y, dim);
-            if (tile.type != TileType::LaserEmitter) continue;
+    for (auto& ep : m_laserEmitters) {
+        if (ep.dim != dim) continue;
+        int x = ep.x, y = ep.y;
+        const Tile& tile = getTile(x, y, dim);
 
-            // Beam direction: variant 0=right, 1=left, 2=down, 3=up
-            int dx = 0, dy = 0;
-            if (tile.variant == 0) dx = 1;
-            else if (tile.variant == 1) dx = -1;
-            else if (tile.variant == 2) dy = 1;
-            else dy = -1;
+        int dx = 0, dy = 0;
+        if (tile.variant == 0) dx = 1;
+        else if (tile.variant == 1) dx = -1;
+        else if (tile.variant == 2) dy = 1;
+        else dy = -1;
 
-            // Trace beam until hitting solid
-            int bx = x + dx, by = y + dy;
-            while (inBounds(bx, by)) {
-                const Tile& bt = getTile(bx, by, dim);
-                if (bt.isSolid()) break;
+        int bx = x + dx, by = y + dy;
+        while (inBounds(bx, by)) {
+            const Tile& bt = getTile(bx, by, dim);
+            if (bt.isSolid()) break;
 
-                SDL_FRect worldRect = {
-                    static_cast<float>(bx * m_tileSize),
-                    static_cast<float>(by * m_tileSize),
-                    static_cast<float>(m_tileSize),
-                    static_cast<float>(m_tileSize)
-                };
-                SDL_Rect sr = camera.worldToScreen(worldRect);
+            SDL_FRect worldRect = {
+                static_cast<float>(bx * m_tileSize),
+                static_cast<float>(by * m_tileSize),
+                static_cast<float>(m_tileSize),
+                static_cast<float>(m_tileSize)
+            };
+            SDL_Rect sr = camera.worldToScreen(worldRect);
 
-                // Beam core (thin bright line)
-                Uint8 a = static_cast<Uint8>(200 * pulse);
-                if (dx != 0) {
-                    // Horizontal beam
-                    SDL_SetRenderDrawColor(renderer, 255, 30, 30, a);
-                    SDL_Rect beam = {sr.x, sr.y + sr.h / 2 - 1, sr.w, 3};
-                    SDL_RenderFillRect(renderer, &beam);
-                    // Glow
-                    SDL_SetRenderDrawColor(renderer, 255, 80, 80, static_cast<Uint8>(60 * pulse));
-                    SDL_Rect glow = {sr.x, sr.y + sr.h / 2 - 4, sr.w, 9};
-                    SDL_RenderFillRect(renderer, &glow);
-                } else {
-                    // Vertical beam
-                    SDL_SetRenderDrawColor(renderer, 255, 30, 30, a);
-                    SDL_Rect beam = {sr.x + sr.w / 2 - 1, sr.y, 3, sr.h};
-                    SDL_RenderFillRect(renderer, &beam);
-                    SDL_SetRenderDrawColor(renderer, 255, 80, 80, static_cast<Uint8>(60 * pulse));
-                    SDL_Rect glow = {sr.x + sr.w / 2 - 4, sr.y, 9, sr.h};
-                    SDL_RenderFillRect(renderer, &glow);
-                }
-
-                bx += dx;
-                by += dy;
+            Uint8 a = static_cast<Uint8>(200 * pulse);
+            if (dx != 0) {
+                SDL_SetRenderDrawColor(renderer, 255, 30, 30, a);
+                SDL_Rect beam = {sr.x, sr.y + sr.h / 2 - 1, sr.w, 3};
+                SDL_RenderFillRect(renderer, &beam);
+                SDL_SetRenderDrawColor(renderer, 255, 80, 80, static_cast<Uint8>(60 * pulse));
+                SDL_Rect glow = {sr.x, sr.y + sr.h / 2 - 4, sr.w, 9};
+                SDL_RenderFillRect(renderer, &glow);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 255, 30, 30, a);
+                SDL_Rect beam = {sr.x + sr.w / 2 - 1, sr.y, 3, sr.h};
+                SDL_RenderFillRect(renderer, &beam);
+                SDL_SetRenderDrawColor(renderer, 255, 80, 80, static_cast<Uint8>(60 * pulse));
+                SDL_Rect glow = {sr.x + sr.w / 2 - 4, sr.y, 9, sr.h};
+                SDL_RenderFillRect(renderer, &glow);
             }
+
+            bx += dx;
+            by += dy;
         }
     }
 }
@@ -608,29 +622,29 @@ bool Level::isInLaserBeam(float worldX, float worldY, int dimension) const {
     float cycle = std::fmod(time, 3.0f);
     if (cycle >= 2.0f) return false; // laser off
 
+    if (m_laserCacheDirty) buildLaserCache();
+
     int playerTX = static_cast<int>(worldX) / m_tileSize;
     int playerTY = static_cast<int>(worldY) / m_tileSize;
 
-    // Check all emitters (scan only visible range for performance)
-    for (int y = 0; y < m_height; y++) {
-        for (int x = 0; x < m_width; x++) {
-            const Tile& tile = getTile(x, y, dimension);
-            if (tile.type != TileType::LaserEmitter) continue;
+    for (auto& ep : m_laserEmitters) {
+        if (ep.dim != dimension) continue;
+        int x = ep.x, y = ep.y;
+        const Tile& tile = getTile(x, y, dimension);
 
-            int dx = 0, dy = 0;
-            if (tile.variant == 0) dx = 1;
-            else if (tile.variant == 1) dx = -1;
-            else if (tile.variant == 2) dy = 1;
-            else dy = -1;
+        int dx = 0, dy = 0;
+        if (tile.variant == 0) dx = 1;
+        else if (tile.variant == 1) dx = -1;
+        else if (tile.variant == 2) dy = 1;
+        else dy = -1;
 
-            int bx = x + dx, by = y + dy;
-            while (inBounds(bx, by)) {
-                const Tile& bt = getTile(bx, by, dimension);
-                if (bt.isSolid()) break;
-                if (bx == playerTX && by == playerTY) return true;
-                bx += dx;
-                by += dy;
-            }
+        int bx = x + dx, by = y + dy;
+        while (inBounds(bx, by)) {
+            const Tile& bt = getTile(bx, by, dimension);
+            if (bt.isSolid()) break;
+            if (bx == playerTX && by == playerTY) return true;
+            bx += dx;
+            by += dy;
         }
     }
     return false;
@@ -652,6 +666,7 @@ void Level::clear() {
     m_secretRooms.clear();
     m_randomEvents.clear();
     m_npcs.clear();
+    m_laserCacheDirty = true;
 }
 
 bool Level::isIceTile(int tileX, int tileY, int dimension) const {

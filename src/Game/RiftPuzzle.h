@@ -69,5 +69,4 @@ private:
     // Alignment puzzle
     int m_currentRotation = 0;
     int m_targetRotation = 0;
-    int m_alignmentSteps = 0;
 };

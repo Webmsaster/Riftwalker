@@ -1,5 +1,6 @@
 #include "Game/TrailEmitter.h"
 #include <SDL2/SDL.h>
+#include <algorithm>
 
 void TrailSystem::emit(float x, float y, float size, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float lifetime) {
     if (static_cast<int>(m_points.size()) >= MAX_POINTS) return;
@@ -7,14 +8,11 @@ void TrailSystem::emit(float x, float y, float size, uint8_t r, uint8_t g, uint8
 }
 
 void TrailSystem::update(float dt) {
-    for (auto it = m_points.begin(); it != m_points.end(); ) {
-        it->life += dt;
-        if (it->life >= it->maxLife) {
-            it = m_points.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    for (auto& p : m_points) p.life += dt;
+    m_points.erase(
+        std::remove_if(m_points.begin(), m_points.end(),
+            [](const TrailPoint& p) { return p.life >= p.maxLife; }),
+        m_points.end());
 }
 
 void TrailSystem::render(SDL_Renderer* renderer) const {

@@ -23,9 +23,6 @@ private:
     // Vignette (always on)
     float m_hpPercent = 1.0f;
 
-    // Low HP pulse
-    float m_lowHPPulse = 0.0f;
-
     // Kill flash
     float m_killFlashTimer = 0.0f;
 

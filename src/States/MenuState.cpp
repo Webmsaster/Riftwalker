@@ -253,8 +253,8 @@ void MenuState::render(SDL_Renderer* renderer) {
 
     // Subtle grid pattern
     SDL_SetRenderDrawColor(renderer, 22, 18, 35, 25);
-    for (int x = 0; x < 1280; x += 80) SDL_RenderDrawLine(renderer, x, 0, x, 720);
-    for (int y = 0; y < 720; y += 80) SDL_RenderDrawLine(renderer, 0, y, 1280, y);
+    for (int x = 0; x < SCREEN_WIDTH; x += 80) SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
+    for (int y = 0; y < SCREEN_HEIGHT; y += 80) SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
 
     // Background particles
     for (auto& p : m_bgParticles) {
@@ -365,7 +365,7 @@ void MenuState::render(SDL_Renderer* renderer) {
     if (m_fadeIn < 1.0f) {
         Uint8 fa = static_cast<Uint8>((1.0f - m_fadeIn) * 255);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, fa);
-        SDL_Rect full = {0, 0, 1280, 720};
+        SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
         SDL_RenderFillRect(renderer, &full);
     }
 }

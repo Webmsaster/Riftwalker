@@ -26,6 +26,7 @@ void DimensionManager::update(float dt) {
 
     if (m_switching) {
         m_switchTimer += dt;
+        if (switchDuration <= 0) switchDuration = 0.01f;
         float progress = m_switchTimer / switchDuration;
 
         if (progress < 0.5f) {

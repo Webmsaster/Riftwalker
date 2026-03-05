@@ -35,7 +35,6 @@ void RiftPuzzle::initSequence() {
 void RiftPuzzle::initAlignment() {
     m_targetRotation = 0;
     m_currentRotation = (1 + std::rand() % 7) * 45; // 45-315 degrees
-    m_alignmentSteps = 0;
     m_timeLimit = 8.0f + m_difficulty * 2.0f;
 }
 
@@ -110,7 +109,7 @@ void RiftPuzzle::handleInput(int action) {
             if (action >= 0 && action <= 3) {
                 m_playerInput.push_back(action);
                 int idx = static_cast<int>(m_playerInput.size()) - 1;
-                if (m_playerInput[idx] != m_sequence[idx]) {
+                if (idx >= static_cast<int>(m_sequence.size()) || m_playerInput[idx] != m_sequence[idx]) {
                     m_state = PuzzleState::Failed;
                     if (onComplete) onComplete(false);
                     return;
@@ -125,7 +124,6 @@ void RiftPuzzle::handleInput(int action) {
         case PuzzleType::Alignment: {
             if (action == 1) m_currentRotation = (m_currentRotation + 45) % 360;
             else if (action == 3) m_currentRotation = (m_currentRotation - 45 + 360) % 360;
-            m_alignmentSteps++;
 
             if (m_currentRotation == m_targetRotation) {
                 m_state = PuzzleState::Success;

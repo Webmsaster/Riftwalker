@@ -9,6 +9,7 @@ Timer::Timer()
     , m_fpsTimer(0.0f)
 {
     m_frequency = SDL_GetPerformanceFrequency();
+    if (m_frequency == 0) m_frequency = 1;
     m_lastTime = SDL_GetPerformanceCounter();
 }
 

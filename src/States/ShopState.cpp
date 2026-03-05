@@ -83,8 +83,8 @@ void ShopState::render(SDL_Renderer* renderer) {
     Uint32 ticks = SDL_GetTicks();
     for (int i = 0; i < 30; i++) {
         float speed = 0.3f + (i % 5) * 0.15f;
-        int bx = ((i * 4513 + 23143 + static_cast<int>(m_animTimer * 20 * speed)) % 1280);
-        int by = ((i * 3251 + 51749 + static_cast<int>(m_animTimer * 10 * speed)) % 720);
+        int bx = ((i * 4513 + 23143 + static_cast<int>(m_animTimer * 20 * speed)) % SCREEN_WIDTH);
+        int by = ((i * 3251 + 51749 + static_cast<int>(m_animTimer * 10 * speed)) % SCREEN_HEIGHT);
         float pulse = 0.3f + 0.3f * std::sin(ticks * 0.002f + i * 1.3f);
         Uint8 pa = static_cast<Uint8>(30 * pulse);
         SDL_SetRenderDrawColor(renderer, 120, 80, 200, pa);
@@ -207,6 +207,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         case BuffTier::Common:    tierColor = {80, 140, 255, 255}; tierLabel = "COMMON"; break;
         case BuffTier::Rare:      tierColor = {180, 80, 255, 255}; tierLabel = "RARE"; break;
         case BuffTier::Legendary: tierColor = {255, 200, 50, 255}; tierLabel = "LEGENDARY"; break;
+        default: tierColor = {180, 180, 180, 255}; tierLabel = "???"; break;
     }
 
     // Card background

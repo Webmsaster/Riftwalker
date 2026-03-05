@@ -300,9 +300,10 @@ void LevelGenerator::generateRoom(Level& level, int roomX, int roomY,
     int obstacleCount = static_cast<int>(roomW * roomH * density * 0.02f * openFactor);
     int maxObstacleH = std::max(1, static_cast<int>(2 + (1.0f - theme.openness) * 4));
 
+    if (roomW <= 4 || roomH <= 4) obstacleCount = 0;
     for (int i = 0; i < obstacleCount; i++) {
-        int ox = roomX + 2 + m_rng() % (roomW - 4);
-        int oy = roomY + 2 + m_rng() % (roomH - 4);
+        int ox = roomX + 2 + m_rng() % std::max(1, roomW - 4);
+        int oy = roomY + 2 + m_rng() % std::max(1, roomH - 4);
         int oh = 1 + m_rng() % maxObstacleH;
 
         for (int j = 0; j < oh; j++) {
@@ -480,6 +481,7 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
     float density = (dim == 1 ? m_themeA : m_themeB).enemyDensity;
     int count = static_cast<int>(density * w * 0.15f) + difficulty / 2;
 
+    if (w <= 6 || h <= 4) return;
     for (int i = 0; i < count; i++) {
         int ex = startX + 3 + m_rng() % (w - 6);
         int ey = startY + 2 + m_rng() % (h - 4);

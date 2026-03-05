@@ -121,14 +121,17 @@ void AudioManager::playMusic(const std::string& path, int loops) {
 }
 
 void AudioManager::stopMusic() {
+    if (!m_initialized) return;
     Mix_HaltMusic();
 }
 
 void AudioManager::pauseMusic() {
+    if (!m_initialized) return;
     Mix_PauseMusic();
 }
 
 void AudioManager::resumeMusic() {
+    if (!m_initialized) return;
     Mix_ResumeMusic();
 }
 

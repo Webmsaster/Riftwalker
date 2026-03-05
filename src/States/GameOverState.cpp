@@ -32,23 +32,23 @@ void GameOverState::render(SDL_Renderer* renderer) {
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     // Scanlines
-    for (int y = 0; y < 720; y += 3) {
+    for (int y = 0; y < SCREEN_HEIGHT; y += 3) {
         Uint8 a = static_cast<Uint8>(8 + 5 * (y % 6 == 0 ? 1 : 0));
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, a);
-        SDL_RenderDrawLine(renderer, 0, y, 1280, y);
+        SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
     }
 
     // Random glitch bars
     if (m_glitchIntensity > 0.1f) {
         int barCount = static_cast<int>(m_glitchIntensity * 8);
         for (int i = 0; i < barCount; i++) {
-            int gy = std::rand() % 720;
+            int gy = std::rand() % SCREEN_HEIGHT;
             int gh = 1 + std::rand() % 4;
             int gx = std::rand() % 200 - 100;
             Uint8 gr = static_cast<Uint8>(std::rand() % 60);
             Uint8 ga = static_cast<Uint8>(40 + std::rand() % 60);
             SDL_SetRenderDrawColor(renderer, 100 + gr, 10, 10, ga);
-            SDL_Rect bar = {gx, gy, 1280 + 200, gh};
+            SDL_Rect bar = {gx, gy, SCREEN_WIDTH + 200, gh};
             SDL_RenderFillRect(renderer, &bar);
         }
     }
@@ -57,15 +57,15 @@ void GameOverState::render(SDL_Renderer* renderer) {
     Uint8 vigAlpha = static_cast<Uint8>(std::min(255.0f, 40.0f + m_timer * 15.0f));
     // Top
     SDL_SetRenderDrawColor(renderer, 80, 0, 0, vigAlpha);
-    SDL_Rect vigTop = {0, 0, 1280, 80};
+    SDL_Rect vigTop = {0, 0, SCREEN_WIDTH, 80};
     SDL_RenderFillRect(renderer, &vigTop);
     // Bottom
-    SDL_Rect vigBot = {0, 640, 1280, 80};
+    SDL_Rect vigBot = {0, 640, SCREEN_WIDTH, 80};
     SDL_RenderFillRect(renderer, &vigBot);
     // Sides
-    SDL_Rect vigL = {0, 0, 60, 720};
+    SDL_Rect vigL = {0, 0, 60, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &vigL);
-    SDL_Rect vigR = {1220, 0, 60, 720};
+    SDL_Rect vigR = {1220, 0, 60, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &vigR);
 
     TTF_Font* font = game->getFont();

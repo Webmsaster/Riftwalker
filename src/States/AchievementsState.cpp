@@ -57,16 +57,16 @@ void AchievementsState::render(SDL_Renderer* renderer) {
 
     // Background
     SDL_SetRenderDrawColor(renderer, 12, 8, 20, 255);
-    SDL_Rect full = {0, 0, 1280, 720};
+    SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &full);
 
     // Subtle grid pattern
     SDL_SetRenderDrawColor(renderer, 25, 18, 40, 255);
-    for (int y = 0; y < 720; y += 40) {
-        SDL_RenderDrawLine(renderer, 0, y, 1280, y);
+    for (int y = 0; y < SCREEN_HEIGHT; y += 40) {
+        SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
     }
-    for (int x = 0; x < 1280; x += 40) {
-        SDL_RenderDrawLine(renderer, x, 0, x, 720);
+    for (int x = 0; x < SCREEN_WIDTH; x += 40) {
+        SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
     }
 
     // Title

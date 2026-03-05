@@ -16,7 +16,6 @@ private:
     TTF_Font* m_fontBody = nullptr;
     TTF_Font* m_fontSmall = nullptr;
     int m_selected = 0;
-    float m_scrollY = 0.0f;
     float m_time = 0.0f;
     LoreSystem* m_lore = nullptr;
 };

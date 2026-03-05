@@ -5,7 +5,6 @@
 struct TransformComponent : public Component {
     Vec2 position;
     Vec2 scale{1.0f, 1.0f};
-    float rotation = 0.0f;
     int width = 32;
     int height = 32;
 

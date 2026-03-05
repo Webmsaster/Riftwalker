@@ -32,6 +32,9 @@ public:
 
     float zoom = 1.0f;
 
+    int getViewWidth() const { return m_screenW; }
+    int getViewHeight() const { return m_screenH; }
+
     // Screen shake intensity multiplier (0.0 = off, 1.0 = full)
     float shakeMultiplier = 1.0f;
 

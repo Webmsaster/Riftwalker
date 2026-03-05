@@ -62,13 +62,13 @@ void PauseState::render(SDL_Renderer* renderer) {
     // Dark overlay with vignette
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
-    SDL_Rect overlay = {0, 0, 1280, 720};
+    SDL_Rect overlay = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &overlay);
 
     // Scanlines
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 30);
-    for (int y = 0; y < 720; y += 3) {
-        SDL_RenderDrawLine(renderer, 0, y, 1280, y);
+    for (int y = 0; y < SCREEN_HEIGHT; y += 3) {
+        SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
     }
 
     // Animated border frame
@@ -78,8 +78,8 @@ void PauseState::render(SDL_Renderer* renderer) {
 
     // Top/bottom border bars
     SDL_SetRenderDrawColor(renderer, 120, 80, 200, borderAlpha);
-    SDL_Rect topBar = {0, 0, 1280, 3};
-    SDL_Rect botBar = {0, 717, 1280, 3};
+    SDL_Rect topBar = {0, 0, SCREEN_WIDTH, 3};
+    SDL_Rect botBar = {0, 717, SCREEN_WIDTH, 3};
     SDL_RenderFillRect(renderer, &topBar);
     SDL_RenderFillRect(renderer, &botBar);
 

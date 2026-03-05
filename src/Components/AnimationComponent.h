@@ -54,8 +54,10 @@ struct AnimationComponent : public Component {
         if (anim.frames.empty()) return;
 
         frameTimer += dt;
-        if (frameTimer >= anim.frames[currentFrame].duration) {
-            frameTimer -= anim.frames[currentFrame].duration;
+        float frameDur = anim.frames[currentFrame].duration;
+        if (frameDur <= 0) frameDur = 0.016f; // prevent infinite loop on zero-duration frames
+        if (frameTimer >= frameDur) {
+            frameTimer -= frameDur;
             currentFrame++;
             if (currentFrame >= static_cast<int>(anim.frames.size())) {
                 if (anim.loop) {

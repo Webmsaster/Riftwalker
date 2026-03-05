@@ -6,7 +6,6 @@
 #include "Core/Camera.h"
 #include <vector>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 
 class Level {
 public:
@@ -89,6 +88,12 @@ private:
     std::vector<SecretRoom> m_secretRooms;
     std::vector<RandomEvent> m_randomEvents;
     std::vector<NPCData> m_npcs;
+
+    // Laser emitter cache (built on first access)
+    mutable bool m_laserCacheDirty = true;
+    struct EmitterPos { int x, y, dim; };
+    mutable std::vector<EmitterPos> m_laserEmitters;
+    void buildLaserCache() const;
 
     SDL_Texture* m_tileset = nullptr;
     int m_tilesetCols = 16;  // Tiles per row in tileset

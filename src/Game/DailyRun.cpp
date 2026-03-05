@@ -25,6 +25,7 @@ void DailyRun::addRecord(int score, int kills, int difficulty) {
     rec.difficulty = difficulty;
     auto date = getTodayDate();
     strncpy(rec.date, date.c_str(), sizeof(rec.date) - 1);
+    rec.date[sizeof(rec.date) - 1] = '\0';
 
     m_records.push_back(rec);
     std::sort(m_records.begin(), m_records.end(), [](const DailyRecord& a, const DailyRecord& b) {

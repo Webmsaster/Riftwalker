@@ -521,9 +521,6 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             char comboText[32];
             std::snprintf(comboText, sizeof(comboText), "%dx COMBO", combat.comboCount);
 
-            // Pulsing scale effect
-            float pulse = 0.8f + 0.2f * std::sin(SDL_GetTicks() * 0.012f);
-
             // Color shifts from yellow to orange to red based on combo count
             SDL_Color comboColor;
             if (combat.comboCount < 4) {

@@ -148,8 +148,8 @@ void OptionsState::render(SDL_Renderer* renderer) {
 
     // Subtle grid
     SDL_SetRenderDrawColor(renderer, 22, 18, 35, 20);
-    for (int x = 0; x < 1280; x += 80) SDL_RenderDrawLine(renderer, x, 0, x, 720);
-    for (int y = 0; y < 720; y += 80) SDL_RenderDrawLine(renderer, 0, y, 1280, y);
+    for (int x = 0; x < SCREEN_WIDTH; x += 80) SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
+    for (int y = 0; y < SCREEN_HEIGHT; y += 80) SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
 
     TTF_Font* font = game->getFont();
     if (!font) return;
@@ -234,8 +234,8 @@ void OptionsState::render(SDL_Renderer* renderer) {
                 SDL_RenderFillRect(renderer, &barBg);
 
                 // Filled bar
-                float pct = static_cast<float>(m_options[i].value - m_options[i].minVal)
-                          / (m_options[i].maxVal - m_options[i].minVal);
+                float range = static_cast<float>(m_options[i].maxVal - m_options[i].minVal);
+                float pct = (range > 0.001f) ? static_cast<float>(m_options[i].value - m_options[i].minVal) / range : 0.0f;
                 int fillW = static_cast<int>(barW * pct);
                 SDL_SetRenderDrawColor(renderer, 100, 70, 200, 220);
                 SDL_Rect barFill = {barX, barY, fillW, barH};

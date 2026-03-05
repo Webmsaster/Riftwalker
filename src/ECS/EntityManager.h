@@ -16,6 +16,7 @@ public:
     template <typename T>
     std::vector<Entity*> getEntitiesWithComponent() const {
         std::vector<Entity*> result;
+        result.reserve(m_entities.size() / 2);
         for (auto& e : m_entities) {
             if (e->isAlive() && e->hasComponent<T>()) {
                 result.push_back(e.get());
