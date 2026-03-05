@@ -72,7 +72,7 @@ struct CombatComponent : public Component {
 
     float getChargePercent() const {
         if (!isCharging) return 0;
-        return std::min(chargeTimer / maxChargeTime, 1.0f);
+        return std::min(chargeTimer / (maxChargeTime > 0.0f ? maxChargeTime : 1.0f), 1.0f);
     }
 
     void releaseCharged(Vec2 direction) {

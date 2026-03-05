@@ -70,6 +70,7 @@ private:
     GameState* m_currentState = nullptr;
 
     bool m_running = false;
+    bool m_shutdownDone = false;
 
     // Screen transition
     enum class TransitionState { None, FadeOut, FadeIn };

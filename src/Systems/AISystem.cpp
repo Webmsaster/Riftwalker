@@ -94,8 +94,11 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
         if (ai.isElite) {
             ai.eliteGlowTimer += dt;
 
-            // Shielded: regenerate shield
+            // Shielded: regenerate shield (timer starts at 5s)
             if (ai.eliteMod == EliteModifier::Shielded) {
+                if (ai.eliteShieldRegenTimer <= 0 && ai.eliteShieldHP >= 30.0f) {
+                    ai.eliteShieldRegenTimer = 5.0f; // Initialize timer on first frame
+                }
                 ai.eliteShieldRegenTimer -= dt;
                 if (ai.eliteShieldRegenTimer <= 0 && ai.eliteShieldHP < 30.0f) {
                     ai.eliteShieldHP = 30.0f;
@@ -818,7 +821,8 @@ void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityMana
                     };
                     auto& ph = proj.addComponent<HealthComponent>();
                     ph.maxHP = 1; ph.currentHP = 1;
-                    ph.onDamage = [&proj](float) { proj.destroy(); };
+                    Entity* projPtr = &proj;
+                    ph.onDamage = [projPtr](float) { projPtr->destroy(); };
 
                     AudioManager::instance().play(SFX::RangedShot);
                     if (m_camera) m_camera->shake(3.0f, 0.1f);

@@ -103,8 +103,12 @@ void UpgradeSystem::deserialize(const std::string& data) {
     std::istringstream ss(data);
     ss >> m_riftShards >> totalRuns >> bestRoomReached
        >> totalEnemiesKilled >> totalRiftsRepaired;
+    if (m_riftShards < 0) m_riftShards = 0;
+    if (totalRuns < 0) totalRuns = 0;
     for (auto& u : m_upgrades) {
         ss >> u.currentLevel;
+        if (u.currentLevel < 0) u.currentLevel = 0;
+        if (u.currentLevel > u.maxLevel) u.currentLevel = u.maxLevel;
     }
     // Deserialize run history
     int histCount = 0;

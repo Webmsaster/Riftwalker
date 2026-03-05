@@ -12,7 +12,6 @@
 #include "Systems/CombatSystem.h"
 #include "Game/SpriteConfig.h"
 #include "Game/RelicSynergy.h"
-#include "Components/RelicComponent.h"
 #include <cmath>
 
 Player::Player(EntityManager& entities) {
@@ -225,20 +224,19 @@ void Player::update(float dt, const InputManager& input) {
     // Phantom: post-dash invisibility timer
     if (postDashInvisTimer > 0) {
         postDashInvisTimer -= dt;
-        auto& hp = m_entity->getComponent<HealthComponent>();
-        hp.invulnerable = (postDashInvisTimer > 0);
     }
 
     if (hasShield) {
         shieldTimer -= dt;
-        auto& hp = m_entity->getComponent<HealthComponent>();
-        hp.invulnerable = true;
         if (shieldTimer <= 0) {
             hasShield = false;
             shieldTimer = 0;
-            hp.invulnerable = false;
         }
     }
+
+    // Resolve invulnerability: shield takes priority over dash invis
+    auto& hp = m_entity->getComponent<HealthComponent>();
+    hp.invulnerable = hasShield || (postDashInvisTimer > 0);
 }
 
 void Player::handleMovement(float dt, const InputManager& input) {
@@ -821,8 +819,8 @@ void Player::applyWeaponStats() {
     combat.rangedAttack.knockback = ranged.knockback;
     combat.rangedAttack.duration = ranged.duration;
 
-    // Phase Daggers speed bonus
-    moveSpeed = 250.0f;
+    // Phase Daggers speed bonus (use class base speed, not hardcoded)
+    moveSpeed = ClassSystem::getData(playerClass).baseSpeed;
     if (combat.currentMelee == WeaponID::PhaseDaggers) {
         moveSpeed *= (1.0f + melee.speedModifier);
     }

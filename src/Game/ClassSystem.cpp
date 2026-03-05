@@ -53,7 +53,9 @@ static const ClassData s_classData[] = {
 };
 
 const ClassData& ClassSystem::getData(PlayerClass pc) {
-    return s_classData[static_cast<int>(pc)];
+    int idx = static_cast<int>(pc);
+    if (idx < 0 || idx >= CLASS_COUNT) idx = 0;
+    return s_classData[idx];
 }
 
 const ClassData& ClassSystem::getData(int index) {

@@ -12,7 +12,7 @@ struct AbilityData {
 
     bool isReady() const { return cooldownTimer <= 0 && !active; }
     float getCooldownPercent() const {
-        if (cooldownTimer <= 0) return 1.0f;
+        if (cooldownTimer <= 0 || cooldown <= 0) return 1.0f;
         return 1.0f - cooldownTimer / cooldown;
     }
 };
@@ -51,7 +51,7 @@ struct AbilityComponent : public Component {
         abilities[2].maxDuration = 0;    // instant
     }
 
-    void update(float dt) {
+    void update(float dt) override {
         for (int i = 0; i < 3; i++) {
             if (abilities[i].cooldownTimer > 0) {
                 abilities[i].cooldownTimer -= dt;

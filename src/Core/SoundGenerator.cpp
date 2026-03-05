@@ -18,6 +18,7 @@ void SoundGenerator::addSine(Sample& s, float freq, float startVol, float endVol
     int startSamp = static_cast<int>(startTime * s.sampleRate);
     int endSamp = static_cast<int>(endTime * s.sampleRate);
     endSamp = std::min(endSamp, static_cast<int>(s.data.size()));
+    if (endSamp <= startSamp) return;
 
     for (int i = startSamp; i < endSamp; i++) {
         float t = static_cast<float>(i - startSamp) / (endSamp - startSamp);
@@ -34,6 +35,7 @@ void SoundGenerator::addSquare(Sample& s, float freq, float startVol, float endV
     int startSamp = static_cast<int>(startTime * s.sampleRate);
     int endSamp = static_cast<int>(endTime * s.sampleRate);
     endSamp = std::min(endSamp, static_cast<int>(s.data.size()));
+    if (endSamp <= startSamp) return;
 
     for (int i = startSamp; i < endSamp; i++) {
         float t = static_cast<float>(i - startSamp) / (endSamp - startSamp);
@@ -51,6 +53,7 @@ void SoundGenerator::addNoise(Sample& s, float startVol, float endVol,
     int startSamp = static_cast<int>(startTime * s.sampleRate);
     int endSamp = static_cast<int>(endTime * s.sampleRate);
     endSamp = std::min(endSamp, static_cast<int>(s.data.size()));
+    if (endSamp <= startSamp) return;
 
     for (int i = startSamp; i < endSamp; i++) {
         float t = static_cast<float>(i - startSamp) / (endSamp - startSamp);
@@ -68,6 +71,7 @@ void SoundGenerator::addSweep(Sample& s, float startFreq, float endFreq,
     int startSamp = static_cast<int>(startTime * s.sampleRate);
     int endSamp = static_cast<int>(endTime * s.sampleRate);
     endSamp = std::min(endSamp, static_cast<int>(s.data.size()));
+    if (endSamp <= startSamp) return;
 
     float phase = 0;
     for (int i = startSamp; i < endSamp; i++) {
@@ -91,6 +95,8 @@ Mix_Chunk* SoundGenerator::toChunk(const Sample& s) {
     Mix_Chunk* chunk = Mix_QuickLoad_RAW(buf, static_cast<Uint32>(bufSize));
     if (chunk) {
         chunk->allocated = 1; // SDL will free the buffer
+    } else {
+        SDL_free(buf);
     }
     return chunk;
 }

@@ -45,6 +45,7 @@ struct WorldTheme {
     bool hasLava = false;
 
     static std::vector<WorldTheme> getAllThemes();
+    static const std::vector<WorldTheme>& getAllThemesRef();
     static WorldTheme getTheme(ThemeID id);
     static std::pair<WorldTheme, WorldTheme> getRandomPair(int seed);
 };

@@ -25,7 +25,7 @@ public:
                                   HealthComponent& hp, CombatComponent& combat);
 
     // Get damage multiplier from relics (called per attack)
-    static float getDamageMultiplier(const RelicComponent& relics, float currentHPPercent);
+    static float getDamageMultiplier(const RelicComponent& relics, float currentHPPercent, int currentDimension = 0);
 
     // Get attack speed multiplier
     static float getAttackSpeedMultiplier(const RelicComponent& relics);
@@ -67,14 +67,22 @@ public:
     // On kill: update VoidHunger bonus
     static void onEnemyKill(RelicComponent& relics);
 
-    // On dimension switch: trigger PhaseCloak
-    static void onDimensionSwitch(RelicComponent& relics);
+    // On dimension switch: trigger PhaseCloak, RiftConduit, etc.
+    static void onDimensionSwitch(RelicComponent& relics, HealthComponent* hp = nullptr);
+
+    // Get dimension switch cooldown multiplier (RiftMantle)
+    static float getSwitchCooldownMult(const RelicComponent& relics);
+
+    // Balance safety rails (internal cooldowns / caps)
+    static float getVoidResonanceICD();    // Seconds between 2x procs
+    static float getDimResidueSpawnICD();  // Seconds between zone spawns
+    static int   getMaxResidueZones();     // Max concurrent zones
 
     // Cursed relic queries
     static bool isCursed(RelicID id);
     static float getCursedMeleeMult(const RelicComponent& relics);
     static float getCursedRangedMult(const RelicComponent& relics);
-    static float getDamageTakenMult(const RelicComponent& relics);
+    static float getDamageTakenMult(const RelicComponent& relics, int currentDimension = 0);
     static float getAbilityCDMultCursed(const RelicComponent& relics);
     static float getAbilityHPCost(const RelicComponent& relics);
     static bool hasNoPassiveEntropy(const RelicComponent& relics);

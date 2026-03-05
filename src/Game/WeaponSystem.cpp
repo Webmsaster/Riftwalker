@@ -79,12 +79,16 @@ WeaponID WeaponSystem::nextRanged(WeaponID current) {
 
 bool WeaponSystem::isUnlocked(WeaponID id) {
     init();
-    return s_weapons[static_cast<int>(id)].unlocked;
+    int idx = static_cast<int>(id);
+    if (idx < 0 || idx >= static_cast<int>(s_weapons.size())) return false;
+    return s_weapons[idx].unlocked;
 }
 
 void WeaponSystem::unlock(WeaponID id) {
     init();
-    s_weapons[static_cast<int>(id)].unlocked = true;
+    int idx = static_cast<int>(id);
+    if (idx < 0 || idx >= static_cast<int>(s_weapons.size())) return;
+    s_weapons[idx].unlocked = true;
 }
 
 void WeaponSystem::resetUnlocks() {

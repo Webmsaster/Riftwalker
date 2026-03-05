@@ -42,6 +42,9 @@ public:
     bool killedElemental = false;
     int killCount = 0;
 
+    // Balance tracking (consumed by PlayState for run summary)
+    int voidResonanceProcs = 0;
+
 private:
     void processAttack(Entity& attacker, EntityManager& entities, int currentDim);
 

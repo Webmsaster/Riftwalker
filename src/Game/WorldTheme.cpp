@@ -1,5 +1,6 @@
 #include "WorldTheme.h"
 #include <cstdlib>
+#include <random>
 
 std::vector<WorldTheme> WorldTheme::getAllThemes() {
     return {
@@ -65,8 +66,13 @@ std::vector<WorldTheme> WorldTheme::getAllThemes() {
     };
 }
 
+const std::vector<WorldTheme>& WorldTheme::getAllThemesRef() {
+    static const auto themes = getAllThemes();
+    return themes;
+}
+
 WorldTheme WorldTheme::getTheme(ThemeID id) {
-    auto themes = getAllThemes();
+    auto& themes = getAllThemesRef();
     for (auto& t : themes) {
         if (t.id == id) return t;
     }
@@ -74,10 +80,11 @@ WorldTheme WorldTheme::getTheme(ThemeID id) {
 }
 
 std::pair<WorldTheme, WorldTheme> WorldTheme::getRandomPair(int seed) {
-    auto themes = getAllThemes();
-    std::srand(seed);
-    int a = std::rand() % themes.size();
+    auto& themes = getAllThemesRef();
+    std::mt19937 rng(seed);
+    std::uniform_int_distribution<int> dist(0, static_cast<int>(themes.size()) - 1);
+    int a = dist(rng);
     int b;
-    do { b = std::rand() % themes.size(); } while (b == a);
+    do { b = dist(rng); } while (b == a);
     return {themes[a], themes[b]};
 }

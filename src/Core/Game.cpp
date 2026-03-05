@@ -203,18 +203,22 @@ void Game::render() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    // Render state stack (bottom up for overlay states)
+    // Render state stack (bottom up for overlay states), then current state on top
     if (!m_stateStack.empty()) {
-        // For pause: render play state underneath
-        std::vector<GameState*> stackStates;
+        GameState* stackArr[16];
+        int stackSize = 0;
         auto tempStack = m_stateStack;
-        while (!tempStack.empty()) {
-            stackStates.push_back(tempStack.top());
+        while (!tempStack.empty() && stackSize < 16) {
+            stackArr[stackSize++] = tempStack.top();
             tempStack.pop();
         }
         // Render from bottom to top
-        for (int i = static_cast<int>(stackStates.size()) - 1; i >= 0; i--) {
-            stackStates[i]->render(renderer);
+        for (int i = stackSize - 1; i >= 0; i--) {
+            stackArr[i]->render(renderer);
+        }
+        // Render current (top) state last
+        if (m_currentState) {
+            m_currentState->render(renderer);
         }
     } else if (m_currentState) {
         m_currentState->render(renderer);
@@ -309,6 +313,9 @@ void Game::saveSaveData() {
 }
 
 void Game::shutdown() {
+    if (m_shutdownDone) return;
+    m_shutdownDone = true;
+
     m_input.saveBindings("riftwalker_bindings.cfg");
     m_achievements.save("riftwalker_achievements.dat");
     m_lore.save("riftwalker_lore.dat");
@@ -319,6 +326,8 @@ void Game::shutdown() {
         m_font = nullptr;
     }
 
+    m_currentState = nullptr;
+    while (!m_stateStack.empty()) m_stateStack.pop();
     m_states.clear();
     ResourceManager::instance().shutdown();
     AudioManager::instance().shutdown();

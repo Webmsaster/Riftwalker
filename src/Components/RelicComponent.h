@@ -34,6 +34,13 @@ enum class RelicID {
     EntropySponge,   // No passive entropy, kills +5% entropy
     VoidPact,        // Kill heals 5 HP, max 60% HP healing
     ChaosRift,       // Every 10th kill: random buff 15s, every 5th hit: +50% DMG spike
+    // Dimension-Switch Relics
+    RiftConduit,     // Dim-switch: +10% attack speed 3s (stacks 3x)
+    DualityGem,      // Dim A: +25% DMG, Dim B: +25% Armor
+    DimResidue,      // Leave damage zone in old dimension after switch
+    RiftMantle,      // -50% switch cooldown, but 5% maxHP per switch
+    StabilityMatrix, // +3% DMG/s in current dim (max +30%, resets on switch)
+    VoidResonance,   // Kill enemy in wrong dimension: 2x DMG
     COUNT
 };
 
@@ -67,6 +74,16 @@ struct RelicComponent : public Component {
     float chaosRiftBuffTimer = 0; // ChaosRift: active buff timer
     int chaosRiftBuffType = 0;    // ChaosRift: which random buff is active
 
+    // Dimension relic state
+    float riftConduitTimer = 0;       // RiftConduit: attack speed buff duration
+    int riftConduitStacks = 0;        // RiftConduit: current stacks (max 3)
+    float stabilityTimer = 0;         // StabilityMatrix: time in current dimension
+    int lastSwitchDimension = 0;      // Track which dimension for Residue
+
+    // Internal cooldowns (safety rails)
+    float voidResonanceProcCD = 0;    // VoidResonance: ICD between 2x procs (seconds)
+    float dimResidueSpawnCD = 0;      // DimResidue: ICD between zone spawns (seconds)
+
     // Synergy state
     bool phaseHunterBuffActive = false; // Phase Hunter: next attack 2x DMG after dim-switch
 
@@ -93,5 +110,15 @@ struct RelicComponent : public Component {
     void update(float dt) override {
         if (phaseCloakTimer > 0) phaseCloakTimer -= dt;
         if (chaosOrbTimer > 0) chaosOrbTimer -= dt;
+        if (voidResonanceProcCD > 0) voidResonanceProcCD -= dt;
+        if (dimResidueSpawnCD > 0) dimResidueSpawnCD -= dt;
+        if (riftConduitTimer > 0) {
+            riftConduitTimer -= dt;
+            if (riftConduitTimer <= 0) riftConduitStacks = 0;
+        }
+        if (hasRelic(RelicID::StabilityMatrix)) {
+            stabilityTimer += dt;
+            if (stabilityTimer > 10.0f) stabilityTimer = 10.0f;
+        }
     }
 };

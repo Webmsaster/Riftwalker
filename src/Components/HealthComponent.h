@@ -21,7 +21,8 @@ struct HealthComponent : public Component {
 
     void takeDamage(float amount) {
         if (isInvincible() || currentHP <= 0) return;
-        float actual = amount * (1.0f - armor);
+        float clampedArmor = std::max(0.0f, std::min(1.0f, armor));
+        float actual = amount * (1.0f - clampedArmor);
         currentHP -= actual;
         invincibilityTimer = invincibilityTime;
         if (onDamage) onDamage(actual);
@@ -37,7 +38,7 @@ struct HealthComponent : public Component {
         if (onHeal) onHeal(currentHP - old);
     }
 
-    float getPercent() const { return currentHP / maxHP; }
+    float getPercent() const { return maxHP > 0 ? currentHP / maxHP : 0.0f; }
 
     void update(float dt) override {
         if (invincibilityTimer > 0) invincibilityTimer -= dt;

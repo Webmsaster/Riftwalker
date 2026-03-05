@@ -6,6 +6,15 @@
 #include <cstdlib>
 #include <algorithm>
 
+// === Balance Safety Rails ===
+static constexpr float MAX_ATK_SPEED_MULT = 1.6f;       // Hard cap on attack speed
+static constexpr float MAX_DMG_MULT = 4.0f;             // Hard cap on damage multiplier
+static constexpr float MAX_VOID_HUNGER_BONUS = 0.40f;   // +40% cap from VoidHunger
+static constexpr float MIN_SWITCH_COOLDOWN = 0.20f;     // Floor for dimension switch CD (seconds)
+static constexpr float VOID_RESONANCE_ICD = 0.8f;       // Seconds between VoidResonance 2x procs
+static constexpr float DIM_RESIDUE_SPAWN_ICD = 1.2f;    // Seconds between DimResidue zone spawns
+static constexpr int   MAX_RESIDUE_ZONES = 3;            // Max concurrent DimResidue zones
+
 static std::vector<RelicData> s_relicData;
 
 static void initRelicData() {
@@ -33,11 +42,18 @@ static void initRelicData() {
     d[static_cast<int>(RelicID::ChaosOrb)]        = {RelicID::ChaosOrb, "Chaos Orb", "Random Effect / 30s", RelicTier::Legendary, SDL_Color{255, 100, 200, 255}};
     // Cursed Relics
     d[static_cast<int>(RelicID::CursedBlade)]    = {RelicID::CursedBlade, "Cursed Blade", "+40% Melee, -20% Ranged", RelicTier::Rare, SDL_Color{180, 30, 60, 255}};
-    d[static_cast<int>(RelicID::GlassHeart)]     = {RelicID::GlassHeart, "Glass Heart", "+50% Max HP, 2x DMG taken", RelicTier::Rare, SDL_Color{220, 180, 200, 255}};
+    d[static_cast<int>(RelicID::GlassHeart)]     = {RelicID::GlassHeart, "Glass Heart", "+50% Max HP, 1.6x DMG taken", RelicTier::Rare, SDL_Color{220, 180, 200, 255}};
     d[static_cast<int>(RelicID::TimeTax)]        = {RelicID::TimeTax, "Time Tax", "-50% Ability CD, costs 5 HP", RelicTier::Rare, SDL_Color{100, 180, 220, 255}};
     d[static_cast<int>(RelicID::EntropySponge)]  = {RelicID::EntropySponge, "Entropy Sponge", "No passive entropy, kills +5%", RelicTier::Legendary, SDL_Color{40, 180, 80, 255}};
     d[static_cast<int>(RelicID::VoidPact)]       = {RelicID::VoidPact, "Void Pact", "Kill heals 5 HP, max 60% HP", RelicTier::Legendary, SDL_Color{80, 0, 100, 255}};
     d[static_cast<int>(RelicID::ChaosRift)]      = {RelicID::ChaosRift, "Chaos Rift", "10th kill: buff, 5th hit: spike", RelicTier::Legendary, SDL_Color{200, 60, 200, 255}};
+    // Dimension-Switch Relics
+    d[static_cast<int>(RelicID::RiftConduit)]    = {RelicID::RiftConduit, "Rift Conduit", "Switch: +10% ATK Speed 3s (x3)", RelicTier::Common, SDL_Color{120, 180, 255, 255}};
+    d[static_cast<int>(RelicID::DualityGem)]     = {RelicID::DualityGem, "Duality Gem", "Dim A: +25% DMG, Dim B: +25% Armor", RelicTier::Rare, SDL_Color{180, 100, 220, 255}};
+    d[static_cast<int>(RelicID::DimResidue)]     = {RelicID::DimResidue, "Dim. Residue", "Switch: leave 15 DMG/s zone 2s", RelicTier::Rare, SDL_Color{200, 80, 150, 255}};
+    d[static_cast<int>(RelicID::RiftMantle)]     = {RelicID::RiftMantle, "Rift Mantle", "-50% Switch CD, costs 5% Max HP", RelicTier::Legendary, SDL_Color{100, 220, 180, 255}};
+    d[static_cast<int>(RelicID::StabilityMatrix)] = {RelicID::StabilityMatrix, "Stability Matrix", "+3% DMG/s in dim (max 30%)", RelicTier::Common, SDL_Color{200, 200, 100, 255}};
+    d[static_cast<int>(RelicID::VoidResonance)]  = {RelicID::VoidResonance, "Void Resonance", "Cross-dim kill: 2x DMG", RelicTier::Legendary, SDL_Color{150, 50, 200, 255}};
 }
 
 const RelicData& RelicSystem::getRelicData(RelicID id) {
@@ -128,7 +144,7 @@ void RelicSystem::applyStatEffects(RelicComponent& relics, Player& player,
     player.moveSpeed *= speedMult;
 }
 
-float RelicSystem::getDamageMultiplier(const RelicComponent& relics, float currentHPPercent) {
+float RelicSystem::getDamageMultiplier(const RelicComponent& relics, float currentHPPercent, int currentDimension) {
     float mult = 1.0f;
     for (auto& r : relics.relics) {
         switch (r.id) {
@@ -139,14 +155,26 @@ float RelicSystem::getDamageMultiplier(const RelicComponent& relics, float curre
                 mult += 0.50f;
                 break;
             case RelicID::VoidHunger:
-                mult += relics.voidHungerBonus;
+                mult += std::min(relics.voidHungerBonus, MAX_VOID_HUNGER_BONUS);
                 break;
+            case RelicID::DualityGem:
+                // Dimension A (1): +25% DMG (DualNature: always active)
+                if (currentDimension == 1 || RelicSynergy::isDualNatureActive(relics))
+                    mult += 0.25f;
+                break;
+            case RelicID::StabilityMatrix: {
+                // +3% DMG per second (RiftMaster: +4%/s), max 30%/40%
+                float rate = RelicSynergy::getStabilityDmgPerSec(relics);
+                float maxBonus = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
+                mult += std::min(relics.stabilityTimer * rate, maxBonus);
+                break;
+            }
             default: break;
         }
     }
     // PhaseHunter synergy: 2x damage on first attack after dimension switch
     mult *= RelicSynergy::getPhaseHunterDamageMult(relics);
-    return mult;
+    return std::min(mult, MAX_DMG_MULT);
 }
 
 float RelicSystem::getAttackSpeedMultiplier(const RelicComponent& relics) {
@@ -154,7 +182,11 @@ float RelicSystem::getAttackSpeedMultiplier(const RelicComponent& relics) {
     for (auto& r : relics.relics) {
         if (r.id == RelicID::QuickHands) mult += 0.15f;
     }
-    return mult;
+    // RiftConduit: +10% attack speed per stack (max 3 stacks)
+    if (relics.hasRelic(RelicID::RiftConduit) && relics.riftConduitTimer > 0) {
+        mult += relics.riftConduitStacks * 0.10f;
+    }
+    return std::min(mult, MAX_ATK_SPEED_MULT);
 }
 
 float RelicSystem::getAbilityCooldownMultiplier(const RelicComponent& relics) {
@@ -265,6 +297,7 @@ void RelicSystem::onEnemyKill(RelicComponent& relics) {
     for (auto& r : relics.relics) {
         if (r.id == RelicID::VoidHunger) {
             relics.voidHungerBonus += RelicSynergy::getVoidHungerBonusPerKill(relics);
+            relics.voidHungerBonus = std::min(relics.voidHungerBonus, MAX_VOID_HUNGER_BONUS);
         }
     }
     // ChaosRift: track kills for buff trigger
@@ -278,7 +311,7 @@ void RelicSystem::onEnemyKill(RelicComponent& relics) {
     }
 }
 
-void RelicSystem::onDimensionSwitch(RelicComponent& relics) {
+void RelicSystem::onDimensionSwitch(RelicComponent& relics, HealthComponent* hp) {
     if (relics.hasRelic(RelicID::PhaseCloak)) {
         relics.phaseCloakTimer = 1.0f;
     }
@@ -286,6 +319,32 @@ void RelicSystem::onDimensionSwitch(RelicComponent& relics) {
     if (RelicSynergy::isActive(relics, SynergyID::PhaseHunter)) {
         relics.phaseHunterBuffActive = true;
     }
+    // RiftConduit: stack attack speed buff on switch
+    if (relics.hasRelic(RelicID::RiftConduit)) {
+        relics.riftConduitStacks = std::min(relics.riftConduitStacks + 1, 3);
+        relics.riftConduitTimer = 3.0f;
+    }
+    // StabilityMatrix: reset timer on switch (RiftMaster: stacks persist)
+    if (relics.hasRelic(RelicID::StabilityMatrix) && !RelicSynergy::isRiftMasterActive(relics)) {
+        relics.stabilityTimer = 0;
+    }
+    // RiftMantle: costs 5% max HP per switch (DualNature: no cost)
+    if (relics.hasRelic(RelicID::RiftMantle) && hp && !RelicSynergy::isDualNatureActive(relics)) {
+        float cost = hp->maxHP * 0.05f;
+        hp->takeDamage(cost);
+        if (hp->currentHP < 1.0f) hp->currentHP = 1.0f; // Don't kill player
+    }
+}
+
+float RelicSystem::getSwitchCooldownMult(const RelicComponent& relics) {
+    float baseCooldown = 0.5f; // DimensionManager default
+    float mult = relics.hasRelic(RelicID::RiftMantle) ? 0.5f : 1.0f;
+    // Enforce hard minimum switch cooldown
+    float effective = baseCooldown * mult;
+    if (effective < MIN_SWITCH_COOLDOWN) {
+        mult = MIN_SWITCH_COOLDOWN / baseCooldown;
+    }
+    return mult;
 }
 
 bool RelicSystem::isCursed(RelicID id) {
@@ -302,11 +361,19 @@ float RelicSystem::getCursedRangedMult(const RelicComponent& relics) {
     return relics.hasRelic(RelicID::CursedBlade) ? 0.8f : 1.0f;
 }
 
-float RelicSystem::getDamageTakenMult(const RelicComponent& relics) {
-    if (!relics.hasRelic(RelicID::GlassHeart)) return 1.0f;
-    // FortifiedSoul synergy: reduce GlassHeart penalty
-    float synergyMult = RelicSynergy::getGlassHeartDamageMult(relics);
-    return (synergyMult > 0) ? synergyMult : 1.6f;
+float RelicSystem::getDamageTakenMult(const RelicComponent& relics, int currentDimension) {
+    float mult = 1.0f;
+    if (relics.hasRelic(RelicID::GlassHeart)) {
+        // FortifiedSoul synergy: reduce GlassHeart penalty
+        float synergyMult = RelicSynergy::getGlassHeartDamageMult(relics);
+        mult = (synergyMult > 0) ? synergyMult : 1.6f;
+    }
+    // DualityGem: Dimension B (2): +25% Armor (DualNature: always active)
+    if (relics.hasRelic(RelicID::DualityGem) &&
+        (currentDimension == 2 || RelicSynergy::isDualNatureActive(relics))) {
+        mult *= 0.75f;
+    }
+    return mult;
 }
 
 float RelicSystem::getAbilityCDMultCursed(const RelicComponent& relics) {
@@ -332,3 +399,7 @@ float RelicSystem::getVoidPactHeal(const RelicComponent& relics) {
 float RelicSystem::getVoidPactMaxHPPercent(const RelicComponent& relics) {
     return relics.hasRelic(RelicID::VoidPact) ? 0.6f : 1.0f;
 }
+
+float RelicSystem::getVoidResonanceICD() { return VOID_RESONANCE_ICD; }
+float RelicSystem::getDimResidueSpawnICD() { return DIM_RESIDUE_SPAWN_ICD; }
+int   RelicSystem::getMaxResidueZones() { return MAX_RESIDUE_ZONES; }

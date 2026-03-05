@@ -18,7 +18,7 @@ public:
 
     float getEntropy() const { return m_entropy; }
     float getMaxEntropy() const { return m_maxEntropy; }
-    float getPercent() const { return m_entropy / m_maxEntropy; }
+    float getPercent() const { return m_maxEntropy > 0 ? m_entropy / m_maxEntropy : 0.0f; }
     bool isCritical() const { return m_entropy >= m_maxEntropy; }
 
     // Input distortion amount (0-1)

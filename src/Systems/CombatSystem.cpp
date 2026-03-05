@@ -139,12 +139,12 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                     killCount++;
                     if (ai.isMiniBoss) killedMiniBoss = true;
                     if (ai.element != EnemyElement::None) killedElemental = true;
-                    ItemDrop::spawnRandomDrop(entities, e.getComponent<TransformComponent>().getCenter(),
-                        e.dimension, 1, m_player);
+                    Vec2 deathPos = e.hasComponent<TransformComponent>() ?
+                        e.getComponent<TransformComponent>().getCenter() : Vec2{0,0};
+                    ItemDrop::spawnRandomDrop(entities, deathPos, e.dimension, 1, m_player);
                     e.destroy();
                     if (m_particles) {
-                        m_particles->burst(e.getComponent<TransformComponent>().getCenter(),
-                            15, {255, 100, 30, 255}, 180.0f, 3.0f);
+                        m_particles->burst(deathPos, 15, {255, 100, 30, 255}, 180.0f, 3.0f);
                     }
                 }
             }
@@ -179,6 +179,12 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
         if (combat.attackTimer >= atkData.duration - 0.02f) {
             Vec2 pos = transform.getCenter();
 
+            // CursedBlade: ranged damage modifier
+            float projDamage = atkData.damage;
+            if (isPlayer && attacker.hasComponent<RelicComponent>()) {
+                projDamage *= RelicSystem::getCursedRangedMult(attacker.getComponent<RelicComponent>());
+            }
+
             // Weapon-specific ranged behavior (player only)
             if (isPlayer && combat.currentRanged == WeaponID::RiftShotgun) {
                 // 5 pellets in a fan pattern
@@ -187,17 +193,17 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 for (int i = 0; i < 5; i++) {
                     float angle = baseAngle + (i - 2) * (spread / 4.0f);
                     Vec2 dir = {std::cos(angle), std::sin(angle)};
-                    createProjectile(entities, pos, dir, atkData.damage, 350.0f, attacker.dimension);
+                    createProjectile(entities, pos, dir, projDamage, 350.0f, attacker.dimension);
                 }
                 AudioManager::instance().play(SFX::RangedShot);
             } else if (isPlayer && combat.currentRanged == WeaponID::VoidBeam) {
                 // Continuous beam: create piercing projectile
                 createProjectile(entities, pos, combat.attackDirection,
-                                atkData.damage, 500.0f, attacker.dimension);
+                                projDamage, 500.0f, attacker.dimension);
                 // No extra SFX each tick (too fast)
             } else {
                 createProjectile(entities, pos, combat.attackDirection,
-                                atkData.damage, 400.0f, attacker.dimension);
+                                projDamage, 400.0f, attacker.dimension);
                 AudioManager::instance().play(SFX::RangedShot);
             }
         }
@@ -214,8 +220,20 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
         if (&target == &attacker) return;
         if (!target.hasComponent<HealthComponent>() || !target.hasComponent<TransformComponent>()) return;
 
-        // Check dimension
-        if (target.dimension != 0 && target.dimension != currentDim) return;
+        // Check dimension (VoidResonance + DimensionalEcho bypass)
+        bool isCrossDimHit = false;
+        if (target.dimension != 0 && target.dimension != currentDim) {
+            if (isPlayer && attacker.hasComponent<RelicComponent>()) {
+                auto& rel = attacker.getComponent<RelicComponent>();
+                if (rel.hasRelic(RelicID::VoidResonance) || rel.hasRelic(RelicID::DimensionalEcho)) {
+                    isCrossDimHit = true; // Allow hit, mark for bonus
+                } else {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
 
         // Player attacks enemies, enemies attack player
         bool targetIsEnemy = target.getTag().find("enemy") != std::string::npos;
@@ -345,7 +363,16 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             if (isPlayer && attacker.hasComponent<RelicComponent>()) {
                 auto& relics = attacker.getComponent<RelicComponent>();
                 float hpPct = attacker.getComponent<HealthComponent>().getPercent();
-                damage *= RelicSystem::getDamageMultiplier(relics, hpPct);
+                damage *= RelicSystem::getDamageMultiplier(relics, hpPct, currentDim);
+                // CursedBlade: melee damage modifier
+                damage *= RelicSystem::getCursedMeleeMult(relics);
+                // VoidResonance: 2x damage on cross-dimension hits (with ICD)
+                if (isCrossDimHit && relics.hasRelic(RelicID::VoidResonance)
+                    && relics.voidResonanceProcCD <= 0) {
+                    damage *= 2.0f;
+                    relics.voidResonanceProcCD = RelicSystem::getVoidResonanceICD();
+                    voidResonanceProcs++;
+                }
                 // PhaseHunter synergy: consume buff after attack
                 if (relics.phaseHunterBuffActive) {
                     relics.phaseHunterBuffActive = false;
@@ -382,7 +409,8 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         }
                     }
                 }
-                // Parry success guarantees crit
+                // Parry success guarantees crit (skip if already crit from Phase Daggers)
+                if (!isCrit) {
                 bool guaranteedCrit = (combat.parrySuccessTimer > 0);
                 float roll = static_cast<float>(std::rand()) / RAND_MAX;
                 if (guaranteedCrit || (m_critChance > 0 && roll < m_critChance)) {
@@ -401,6 +429,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     if (m_camera) m_camera->shake(8.0f, 0.2f);
                     m_pendingHitFreeze += 0.06f;
                 }
+                } // end if (!isCrit)
             }
 
             // Charged attack: scale damage with charge percent
@@ -448,6 +477,12 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
+            // Defensive relic multiplier (GlassHeart, DualityGem armor, FortifiedSoul)
+            if (!isPlayer && target.getTag() == "player" && target.hasComponent<RelicComponent>()) {
+                damage *= RelicSystem::getDamageTakenMult(
+                    target.getComponent<RelicComponent>(), currentDim);
+            }
+
             if (shieldBlocked) {
                 float actualDmg = damage * 0.1f;
                 hp.takeDamage(actualDmg);
@@ -464,7 +499,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 m_damageEvents.push_back({targetCenter, damage, !isPlayer, isCrit});
 
                 // Combo-stage knockback variation (player only)
-                int comboStage = isPlayer ? ((combat.comboCount - 1) % 3) : 0;
+                int comboStage = (isPlayer && combat.comboCount > 0) ? ((combat.comboCount - 1) % 3) : 0;
                 if (target.hasComponent<PhysicsBody>()) {
                     auto& phys = target.getComponent<PhysicsBody>();
                     Vec2 knockDir = combat.attackDirection;
@@ -751,10 +786,10 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
-            // Elite Vampiric: heal on dealing damage
-            if (!isPlayer && target.hasComponent<AIComponent>()) {
-                auto& tAI = target.getComponent<AIComponent>();
-                if (tAI.isElite && tAI.eliteMod == EliteModifier::Vampiric) {
+            // Elite Vampiric: heal on dealing damage (check attacker, not target)
+            if (attacker.hasComponent<AIComponent>()) {
+                auto& aAI = attacker.getComponent<AIComponent>();
+                if (aAI.isElite && aAI.eliteMod == EliteModifier::Vampiric) {
                     float healAmt = damage * 0.2f;
                     if (attacker.hasComponent<HealthComponent>()) {
                         auto& aHP = attacker.getComponent<HealthComponent>();
@@ -845,8 +880,14 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                                 float edist = std::sqrt(edx * edx + edy * edy);
                                 if (edist < explodeRadius) {
                                     float falloff = 1.0f - (edist / explodeRadius) * 0.5f;
-                                    nearby.getComponent<HealthComponent>().takeDamage(explodeDmg * falloff);
-                                    m_damageEvents.push_back({nt.getCenter(), explodeDmg * falloff,
+                                    float dmg = explodeDmg * falloff;
+                                    // Defensive relic multiplier for player
+                                    if (nearby.getTag() == "player" && nearby.hasComponent<RelicComponent>()) {
+                                        dmg *= RelicSystem::getDamageTakenMult(
+                                            nearby.getComponent<RelicComponent>(), currentDim);
+                                    }
+                                    nearby.getComponent<HealthComponent>().takeDamage(dmg);
+                                    m_damageEvents.push_back({nt.getCenter(), dmg,
                                         nearby.getTag() == "player", false});
                                     if (nearby.hasComponent<PhysicsBody>()) {
                                         Vec2 kb = {edx, edy - 80.0f};
@@ -894,15 +935,19 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
 
                 // Exploder death explosion is handled by AISystem
+                SDL_Color deathColor = {255, 255, 255, 255};
+                if (target.hasComponent<SpriteComponent>()) {
+                    deathColor = target.getComponent<SpriteComponent>().color;
+                }
+                // Read AI data before destroy
+                bool wasMB = target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isMiniBoss;
+                bool wasElite = target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isElite;
                 target.destroy();
                 if (m_particles) {
-                    auto& sprite = target.getComponent<SpriteComponent>();
-                    m_particles->burst(targetCenter, 25, sprite.color, 200.0f, 4.0f);
+                    m_particles->burst(targetCenter, 25, deathColor, 200.0f, 4.0f);
                 }
                 // Bigger shake on kill (extra for mini-bosses and elites)
                 if (m_camera && isPlayer) {
-                    bool wasMB = target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isMiniBoss;
-                    bool wasElite = target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isElite;
                     m_camera->shake(wasMB ? 12.0f : (wasElite ? 10.0f : 8.0f),
                                     wasMB ? 0.35f : (wasElite ? 0.3f : 0.2f));
                 }
@@ -931,9 +976,15 @@ void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
     col.layer = LAYER_PROJECTILE;
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_ENEMY;
     col.type = ColliderType::Trigger;
-    col.onTrigger = [damage](Entity* self, Entity* other) {
+    col.onTrigger = [damage, dimension](Entity* self, Entity* other) {
         if (other->hasComponent<HealthComponent>()) {
-            other->getComponent<HealthComponent>().takeDamage(damage);
+            float finalDmg = damage;
+            // Defensive relic multiplier when projectile hits the player
+            if (other->getTag() == "player" && other->hasComponent<RelicComponent>()) {
+                finalDmg *= RelicSystem::getDamageTakenMult(
+                    other->getComponent<RelicComponent>(), dimension);
+            }
+            other->getComponent<HealthComponent>().takeDamage(finalDmg);
         }
         self->destroy();
     };
@@ -942,5 +993,6 @@ void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
     hp.maxHP = 1;
     hp.currentHP = 1;
     hp.invincibilityTime = 0;
-    hp.onDamage = [&proj](float) { proj.destroy(); };
+    Entity* projPtr = &proj;
+    hp.onDamage = [projPtr](float) { projPtr->destroy(); };
 }

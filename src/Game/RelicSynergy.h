@@ -12,6 +12,9 @@ enum class SynergyID {
     EntropyVortex,       // EntropyAnchor + EntropySponge
     Quicksilver,         // SwiftBoots + QuickHands
     CursedFortune,       // CursedBlade + LuckyCoin
+    RiftMaster,          // RiftConduit + StabilityMatrix
+    DualNature,          // DualityGem + RiftMantle
+    VoidEcho,            // VoidResonance + DimResidue
     COUNT
 };
 
@@ -42,4 +45,11 @@ public:
     static float getKillEntropyReduction(const RelicComponent& relics);
     static float getDashSpeedBonus(const RelicComponent& relics);
     static float getShardDropBonus(const RelicComponent& relics);
+
+    // Dimension relic synergies
+    static bool isRiftMasterActive(const RelicComponent& relics);
+    static float getStabilityDmgPerSec(const RelicComponent& relics);
+    static bool isDualNatureActive(const RelicComponent& relics);
+    static float getResidueDuration(const RelicComponent& relics);
+    static float getResidueDamage(const RelicComponent& relics);
 };
