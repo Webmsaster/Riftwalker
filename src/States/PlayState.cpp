@@ -16,6 +16,7 @@
 #include "Game/LoreSystem.h"
 #include "Game/DailyRun.h"
 #include "States/EndingState.h"
+#include "States/RunSummaryState.h"
 #include "Components/RelicComponent.h"
 #include <cstdlib>
 #include <cmath>
@@ -69,6 +70,8 @@ void PlayState::startNewRun() {
     m_nearNPCIndex = -1;
     m_showNPCDialog = false;
     m_npcDialogChoice = 0;
+    m_balanceStats = {};
+    m_combatSystem.voidResonanceProcs = 0;
 
     // Reset run buffs
     game->getRunBuffSystem().reset();
@@ -157,8 +160,10 @@ void PlayState::spawnEnemies() {
         }
     } else if (g_selectedDifficulty == GameDifficulty::Hard) {
         int extraCount = static_cast<int>(spawns.size() * 0.4f);
+        int origSize = static_cast<int>(spawns.size());
+        spawns.reserve(spawns.size() + extraCount);
         for (int i = 0; i < extraCount; i++) {
-            auto& base = spawns[std::rand() % spawns.size()];
+            auto base = spawns[std::rand() % origSize]; // copy to avoid dangling ref
             Vec2 offset = {static_cast<float>((std::rand() % 100) - 50), 0};
             spawns.push_back({Vec2{base.position.x + offset.x, base.position.y}, base.enemyType, base.dimension});
         }
@@ -253,6 +258,19 @@ void PlayState::applyUpgrades() {
 
 void PlayState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
+        if (event.key.keysym.scancode == SDL_SCANCODE_F3) {
+            m_showDebugOverlay = !m_showDebugOverlay;
+            return;
+        }
+        if (event.key.keysym.scancode == SDL_SCANCODE_F4) {
+            m_pendingSnapshot = true;
+            return;
+        }
+        if (event.key.keysym.scancode == SDL_SCANCODE_F6) {
+            m_smokeTest = !m_smokeTest;
+            m_showDebugOverlay = m_smokeTest; // Auto-enable F3 overlay
+            return;
+        }
         if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
             if (m_showRelicChoice) {
                 // Can't escape relic choice
@@ -293,6 +311,7 @@ void PlayState::handleEvent(const SDL_Event& event) {
             auto& npcs = m_level->getNPCs();
             auto options = NPCSystem::getDialogOptions(npcs[m_nearNPCIndex].type);
             int optCount = static_cast<int>(options.size());
+            if (optCount == 0) { m_showNPCDialog = false; return; }
             switch (event.key.keysym.scancode) {
                 case SDL_SCANCODE_W: case SDL_SCANCODE_UP:
                     m_npcDialogChoice = (m_npcDialogChoice - 1 + optCount) % optCount;
@@ -330,6 +349,12 @@ void PlayState::handleEvent(const SDL_Event& event) {
 
 void PlayState::update(float dt) {
     if (!m_player || !m_level) return;
+
+    // Track balance stats every frame
+    updateBalanceTracking(dt);
+
+    // Smoke test: auto-play for integration testing
+    if (m_smokeTest) updateSmokeTest(dt);
 
     // Hit-freeze: brief pause on melee hit for impact feel
     float freeze = m_combatSystem.consumeHitFreeze();
@@ -401,9 +426,38 @@ void PlayState::update(float dt) {
         AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
         m_screenEffects.triggerDimensionRipple();
 
-        // Relic: Phase Cloak - invisibility after dim switch
+        // Relic dimension-switch effects
         if (m_player->getEntity()->hasComponent<RelicComponent>()) {
-            RelicSystem::onDimensionSwitch(m_player->getEntity()->getComponent<RelicComponent>());
+            auto& relicComp = m_player->getEntity()->getComponent<RelicComponent>();
+            auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+            int prevDim = relicComp.lastSwitchDimension;
+            relicComp.lastSwitchDimension = m_dimManager.getCurrentDimension();
+            RelicSystem::onDimensionSwitch(relicComp, &playerHP);
+
+            // DimResidue: leave damage zone (with spawn ICD + zone cap)
+            if (relicComp.hasRelic(RelicID::DimResidue) && prevDim > 0
+                && relicComp.dimResidueSpawnCD <= 0) {
+                // Count existing zones
+                int zoneCount = 0;
+                m_entities.forEach([&](Entity& e) {
+                    if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
+                });
+                if (zoneCount < RelicSystem::getMaxResidueZones()) {
+                    Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                    float residueDur = RelicSynergy::getResidueDuration(relicComp);
+                    auto& zone = m_entities.addEntity("dim_residue");
+                    zone.dimension = prevDim;
+                    auto& zt = zone.addComponent<TransformComponent>();
+                    zt.position = {pPos.x - 24, pPos.y - 24};
+                    zt.width = 48;
+                    zt.height = 48;
+                    auto& zh = zone.addComponent<HealthComponent>();
+                    zh.maxHP = residueDur;
+                    zh.currentHP = residueDur;
+                    m_particles.burst(pPos, 12, {200, 80, 150, 255}, 80.0f, 2.0f);
+                    relicComp.dimResidueSpawnCD = RelicSystem::getDimResidueSpawnICD();
+                }
+            }
         }
 
         // Voidwalker passive: Rift Affinity - heal on dim-switch
@@ -582,7 +636,12 @@ void PlayState::update(float dt) {
 
     // Shard magnet: attract pickups toward player
     float magnetRange = game->getUpgradeSystem().getShardMagnetRange();
-    if (magnetRange > 14.0f) { // Only if upgrade purchased (base is 14)
+    // ShardMagnet relic: +50% pickup radius
+    if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+        magnetRange *= RelicSystem::getShardMagnetMultiplier(
+            m_player->getEntity()->getComponent<RelicComponent>());
+    }
+    if (magnetRange > 14.0f) { // Only if upgrade purchased or relic active
         Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
         m_entities.forEach([&](Entity& e) {
             if (e.getTag().find("pickup") == std::string::npos) return;
@@ -616,7 +675,10 @@ void PlayState::update(float dt) {
         if (!bossAlive) {
             m_bossDefeated = true;
             // Boss kill rewards
-            int bossShards = static_cast<int>((50 + m_currentDifficulty * 20) * game->getRunBuffSystem().getShardMultiplier());
+            float bossShardMult = game->getRunBuffSystem().getShardMultiplier();
+            if (m_player->getEntity()->hasComponent<RelicComponent>())
+                bossShardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
+            int bossShards = static_cast<int>((50 + m_currentDifficulty * 20) * bossShardMult);
             shardsCollected += bossShards;
             game->getUpgradeSystem().addRiftShards(bossShards);
             AudioManager::instance().play(SFX::LevelComplete);
@@ -668,12 +730,21 @@ void PlayState::update(float dt) {
         int footY = static_cast<int>(playerT.position.y + playerT.height - 1) / tileSize;
         int dim = m_dimManager.getCurrentDimension();
 
+        // Helper: apply defensive relic multiplier to hazard damage
+        auto hazardDmg = [&](float base) -> float {
+            if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+                return base * RelicSystem::getDamageTakenMult(
+                    m_player->getEntity()->getComponent<RelicComponent>(), dim);
+            }
+            return base;
+        };
+
         // Spike & fire damage (cooldown-based)
         if (m_spikeDmgCooldown <= 0 && m_level->inBounds(footX, footY)) {
             const auto& tile = m_level->getTile(footX, footY, dim);
             if (tile.type == TileType::Spike) {
                 auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
-                playerHP.takeDamage(15.0f);
+                playerHP.takeDamage(hazardDmg(15.0f));
                 m_entropy.addEntropy(5.0f);
                 m_spikeDmgCooldown = 0.5f;
                 m_camera.shake(6.0f, 0.2f);
@@ -686,7 +757,7 @@ void PlayState::update(float dt) {
                 m_hud.triggerDamageFlash();
             } else if (tile.type == TileType::Fire) {
                 auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
-                playerHP.takeDamage(10.0f);
+                playerHP.takeDamage(hazardDmg(10.0f));
                 m_entropy.addEntropy(3.0f);
                 m_spikeDmgCooldown = 0.4f;
                 m_camera.shake(4.0f, 0.15f);
@@ -705,7 +776,7 @@ void PlayState::update(float dt) {
         if (m_spikeDmgCooldown <= 0) {
             if (m_level->isInLaserBeam(playerT.getCenter().x, playerT.getCenter().y, dim)) {
                 auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
-                playerHP.takeDamage(20.0f);
+                playerHP.takeDamage(hazardDmg(20.0f));
                 m_entropy.addEntropy(8.0f);
                 m_spikeDmgCooldown = 0.3f;
                 m_camera.shake(8.0f, 0.25f);
@@ -731,13 +802,12 @@ void PlayState::update(float dt) {
             if (m_level->inBounds(centerTX, centerTY)) {
                 const auto& tile = m_level->getTile(centerTX, centerTY, dim);
                 if (tile.type == TileType::Teleporter) {
-                    static float teleportCooldown = 0;
-                    teleportCooldown -= dt;
-                    if (teleportCooldown <= 0) {
+                    m_teleportCooldown -= dt;
+                    if (m_teleportCooldown <= 0) {
                         Vec2 dest = m_level->getTeleporterDestination(centerTX, centerTY, dim);
                         if (dest.x != 0 || dest.y != 0) {
                             playerT.position = dest;
-                            teleportCooldown = 1.0f; // Prevent instant re-teleport
+                            m_teleportCooldown = 1.0f; // Prevent instant re-teleport
                             m_particles.burst(playerT.getCenter(), 15, {50, 220, 100, 255}, 200.0f, 3.0f);
                             AudioManager::instance().play(SFX::BossTeleport);
                         }
@@ -751,11 +821,21 @@ void PlayState::update(float dt) {
     if (m_player) {
         auto& playerT = m_player->getEntity()->getComponent<TransformComponent>();
         auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+        int dotDim = m_dimManager.getCurrentDimension();
+
+        // Helper: apply defensive relic multiplier to DoT damage
+        auto dotDmg = [&](float base) -> float {
+            if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+                return base * RelicSystem::getDamageTakenMult(
+                    m_player->getEntity()->getComponent<RelicComponent>(), dotDim);
+            }
+            return base;
+        };
 
         if (m_player->isBurning()) {
             m_player->burnDmgTimer -= dt;
             if (m_player->burnDmgTimer <= 0) {
-                playerHP.takeDamage(5.0f);
+                playerHP.takeDamage(dotDmg(5.0f));
                 m_player->burnDmgTimer = 0.3f;
                 m_particles.burst(playerT.getCenter(), 4, {255, 120, 30, 200}, 60.0f, 1.5f);
             }
@@ -763,7 +843,7 @@ void PlayState::update(float dt) {
         if (m_player->isPoisoned()) {
             m_player->poisonDmgTimer -= dt;
             if (m_player->poisonDmgTimer <= 0) {
-                playerHP.takeDamage(3.0f);
+                playerHP.takeDamage(dotDmg(3.0f));
                 m_player->poisonDmgTimer = 0.5f;
                 m_particles.burst(playerT.getCenter(), 3, {80, 200, 40, 200}, 40.0f, 1.5f);
             }
@@ -814,6 +894,10 @@ void PlayState::update(float dt) {
             }
         } else {
             m_entropy.passiveGainModifier = 1.0f;
+        }
+        // EntropySponge: no passive entropy (kills add entropy instead)
+        if (RelicSystem::hasNoPassiveEntropy(relics)) {
+            m_entropy.passiveGainModifier = 0.0f;
         }
     }
 
@@ -895,6 +979,39 @@ void PlayState::update(float dt) {
 
     // Particles
     m_particles.update(dt);
+
+    // DimResidue damage zones: tick down lifetime and deal AoE damage
+    int curDim = m_dimManager.getCurrentDimension();
+    float residueDps = 15.0f; // Default DPS
+    if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
+        residueDps = RelicSynergy::getResidueDamage(m_player->getEntity()->getComponent<RelicComponent>());
+    }
+    m_entities.forEach([&](Entity& zone) {
+        if (zone.getTag() != "dim_residue") return;
+        if (!zone.hasComponent<HealthComponent>()) return;
+        auto& zHP = zone.getComponent<HealthComponent>();
+        zHP.currentHP -= dt;
+        if (zHP.currentHP <= 0) {
+            zone.destroy();
+            return;
+        }
+        // Only deal damage in matching dimension
+        if (zone.dimension != 0 && zone.dimension != curDim) return;
+        auto& zt = zone.getComponent<TransformComponent>();
+        Vec2 zCenter = zt.getCenter();
+        // Damage enemies in range
+        m_entities.forEach([&](Entity& enemy) {
+            if (enemy.getTag().find("enemy") == std::string::npos) return;
+            if (enemy.dimension != 0 && enemy.dimension != curDim) return;
+            if (!enemy.hasComponent<TransformComponent>() || !enemy.hasComponent<HealthComponent>()) return;
+            auto& et = enemy.getComponent<TransformComponent>();
+            float dx = et.getCenter().x - zCenter.x;
+            float dy = et.getCenter().y - zCenter.y;
+            if (std::sqrt(dx * dx + dy * dy) < 48.0f) {
+                enemy.getComponent<HealthComponent>().takeDamage(residueDps * dt);
+            }
+        });
+    });
 
     // Ambient dimension dust (subtle atmospheric particles)
     m_ambientDustTimer += dt;
@@ -983,6 +1100,20 @@ void PlayState::update(float dt) {
                 float entropyReduce = RelicSynergy::getKillEntropyReduction(relics);
                 if (entropyReduce > 0) {
                     m_entropy.reduceEntropy(m_entropy.getMaxEntropy() * entropyReduce);
+                }
+                // VoidPact: heal 5 HP on kill (capped at 60% max HP)
+                float vpHeal = RelicSystem::getVoidPactHeal(relics);
+                if (vpHeal > 0) {
+                    auto& pHP = m_player->getEntity()->getComponent<HealthComponent>();
+                    float hpCap = pHP.maxHP * RelicSystem::getVoidPactMaxHPPercent(relics);
+                    if (pHP.currentHP < hpCap) {
+                        pHP.heal(std::min(vpHeal, hpCap - pHP.currentHP));
+                    }
+                }
+                // EntropySponge: kills add entropy
+                float killEntropy = RelicSystem::getKillEntropyGain(relics);
+                if (killEntropy > 0) {
+                    m_entropy.addEntropy(killEntropy);
                 }
             }
         }
@@ -1082,7 +1213,10 @@ void PlayState::checkRiftInteraction() {
                 riftsRepaired++;
                 m_entropy.onRiftRepaired();
                 game->getAchievements().unlock("rift_walker");
-                int riftShards = static_cast<int>((10 + m_currentDifficulty * 5) * game->getRunBuffSystem().getShardMultiplier());
+                float riftShardMult = game->getRunBuffSystem().getShardMultiplier();
+                if (m_player && m_player->getEntity()->hasComponent<RelicComponent>())
+                    riftShardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
+                int riftShards = static_cast<int>((10 + m_currentDifficulty * 5) * riftShardMult);
                 shardsCollected += riftShards;
                 game->getUpgradeSystem().addRiftShards(riftShards);
                 game->getUpgradeSystem().totalRiftsRepaired++;
@@ -1125,6 +1259,8 @@ void PlayState::checkExitReached() {
         float shardMult = (g_selectedDifficulty == GameDifficulty::Easy) ? 1.5f :
                           (g_selectedDifficulty == GameDifficulty::Hard) ? 0.75f : 1.0f;
         shardMult *= game->getRunBuffSystem().getShardMultiplier();
+        if (m_player->getEntity()->hasComponent<RelicComponent>())
+            shardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
         int shards = static_cast<int>((20 + m_currentDifficulty * 10) * shardMult);
         shardsCollected += shards;
         game->getUpgradeSystem().addRiftShards(shards);
@@ -1157,8 +1293,8 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
         int sx = baseX - static_cast<int>(camPos.x * parallax) % 2560;
         int sy = baseY - static_cast<int>(camPos.y * parallax) % 1440;
         // Wrap around screen
-        sx = ((sx % 1280) + 1280) % 1280;
-        sy = ((sy % 720) + 720) % 720;
+        sx = ((sx % SCREEN_WIDTH) + SCREEN_WIDTH) % SCREEN_WIDTH;
+        sy = ((sy % SCREEN_HEIGHT) + SCREEN_HEIGHT) % SCREEN_HEIGHT;
 
         float twinkle = 0.5f + 0.5f * std::sin(ticks * 0.002f + i * 1.7f);
         Uint8 brightness = static_cast<Uint8>(30 + 40 * twinkle);
@@ -1182,11 +1318,11 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
         static_cast<Uint8>(bgColor.b + 30 > 255 ? 255 : bgColor.b + 30),
         gridAlpha);
 
-    for (int x = -gridOffX; x < 1280; x += gridSpacing) {
-        SDL_RenderDrawLine(renderer, x, 0, x, 720);
+    for (int x = -gridOffX; x < SCREEN_WIDTH; x += gridSpacing) {
+        SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
     }
-    for (int y = -gridOffY; y < 720; y += gridSpacing) {
-        SDL_RenderDrawLine(renderer, 0, y, 1280, y);
+    for (int y = -gridOffY; y < SCREEN_HEIGHT; y += gridSpacing) {
+        SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
     }
 
     // Layer 3: Floating dimension particles (close parallax)
@@ -1202,8 +1338,8 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
         // Gentle floating motion
         py += std::sin(ticks * 0.001f + i * 2.3f) * 15.0f;
 
-        int screenX = ((static_cast<int>(px) % 1280) + 1280) % 1280;
-        int screenY = ((static_cast<int>(py) % 720) + 720) % 720;
+        int screenX = ((static_cast<int>(px) % SCREEN_WIDTH) + SCREEN_WIDTH) % SCREEN_WIDTH;
+        int screenY = ((static_cast<int>(py) % SCREEN_HEIGHT) + SCREEN_HEIGHT) % SCREEN_HEIGHT;
 
         int size = 2 + i % 3;
         Uint8 pa = static_cast<Uint8>(20 + 15 * std::sin(ticks * 0.0015f + i));
@@ -1235,10 +1371,10 @@ void PlayState::render(SDL_Renderer* renderer) {
     m_particles.render(renderer, m_camera);
 
     // Dimension switch visual effect
-    m_dimManager.applyVisualEffect(renderer, 1280, 720);
+    m_dimManager.applyVisualEffect(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // Entropy visual effects
-    m_entropy.applyVisualEffects(renderer, 1280, 720);
+    m_entropy.applyVisualEffects(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // Collapse warning
     if (m_collapsing) {
@@ -1246,7 +1382,7 @@ void PlayState::render(SDL_Renderer* renderer) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         Uint8 a = static_cast<Uint8>(urgency * 100);
         SDL_SetRenderDrawColor(renderer, 255, 30, 0, a);
-        SDL_Rect border = {0, 0, 1280, 720};
+        SDL_Rect border = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
         SDL_RenderDrawRect(renderer, &border);
 
         // Collapse timer text
@@ -1329,7 +1465,7 @@ void PlayState::render(SDL_Renderer* renderer) {
 
     // Puzzle overlay
     if (m_activePuzzle && m_activePuzzle->isActive()) {
-        m_activePuzzle->render(renderer, 1280, 720);
+        m_activePuzzle->render(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
 
     // Level complete: rift warp transition effect
@@ -1342,7 +1478,7 @@ void PlayState::render(SDL_Renderer* renderer) {
         // Growing dark overlay
         Uint8 overlayA = static_cast<Uint8>(progress * 180);
         SDL_SetRenderDrawColor(renderer, 10, 5, 20, overlayA);
-        SDL_Rect full = {0, 0, 1280, 720};
+        SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
         SDL_RenderFillRect(renderer, &full);
 
         // Expanding rift circle from center
@@ -1358,7 +1494,7 @@ void PlayState::render(SDL_Renderer* renderer) {
                 float a = angle * 6.283185f / 60.0f + ticks * 0.002f;
                 int px = 640 + static_cast<int>(std::cos(a) * r);
                 int py = 360 + static_cast<int>(std::sin(a) * r);
-                if (px < 0 || px >= 1280 || py < 0 || py >= 720) continue;
+                if (px < 0 || px >= SCREEN_WIDTH || py < 0 || py >= SCREEN_HEIGHT) continue;
                 SDL_SetRenderDrawColor(renderer, 180, 100, 255, riftA);
                 SDL_Rect dot = {px - 1, py - 1, 3, 3};
                 SDL_RenderFillRect(renderer, &dot);
@@ -1369,17 +1505,17 @@ void PlayState::render(SDL_Renderer* renderer) {
         if (progress > 0.3f) {
             int lineCount = static_cast<int>((progress - 0.3f) * 20);
             for (int i = 0; i < lineCount; i++) {
-                int y = ((i * 4513 + ticks / 40) % 720);
+                int y = ((i * 4513 + ticks / 40) % SCREEN_HEIGHT);
                 Uint8 la = static_cast<Uint8>(progress * 60);
                 SDL_SetRenderDrawColor(renderer, 150, 80, 220, la);
-                SDL_Rect line = {0, y, 1280, 1};
+                SDL_Rect line = {0, y, SCREEN_WIDTH, 1};
                 SDL_RenderFillRect(renderer, &line);
             }
         }
 
         // Text banner
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(180 * std::min(1.0f, progress * 3.0f)));
-        SDL_Rect banner = {0, 330, 1280, 60};
+        SDL_Rect banner = {0, 330, SCREEN_WIDTH, 60};
         SDL_RenderFillRect(renderer, &banner);
 
         TTF_Font* font = game->getFont();
@@ -1428,19 +1564,19 @@ void PlayState::render(SDL_Renderer* renderer) {
         Uint8 a = static_cast<Uint8>(alpha * 60);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 255, 215, 0, a);
-        SDL_Rect fullScreen = {0, 0, 1280, 720};
+        SDL_Rect fullScreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
         SDL_RenderFillRect(renderer, &fullScreen);
     }
 
     // Screen effects (vignette, low-HP pulse, kill flash, boss intro, ripple, glitch)
-    m_screenEffects.render(renderer, 1280, 720);
+    m_screenEffects.render(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // Damage flash overlay
-    m_hud.renderFlash(renderer, 1280, 720);
+    m_hud.renderFlash(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // HUD (on top of everything)
     m_hud.render(renderer, game->getFont(), m_player.get(), &m_entropy, &m_dimManager,
-                 1280, 720, game->getFPS(), game->getUpgradeSystem().getRiftShards());
+                 SCREEN_WIDTH, SCREEN_HEIGHT, game->getFPS(), game->getUpgradeSystem().getRiftShards());
 
     // Relic bar (bottom left, below buffs)
     renderRelicBar(renderer, game->getFont());
@@ -1449,7 +1585,7 @@ void PlayState::render(SDL_Renderer* renderer) {
     renderChallengeHUD(renderer, game->getFont());
 
     // Minimap (bottom right corner)
-    m_hud.renderMinimap(renderer, m_level.get(), m_player.get(), &m_dimManager, 1280, 720, &m_entities);
+    m_hud.renderMinimap(renderer, m_level.get(), m_player.get(), &m_dimManager, SCREEN_WIDTH, SCREEN_HEIGHT, &m_entities);
 
     // Achievement notification popup
     auto* notif = game->getAchievements().getActiveNotification();
@@ -1494,10 +1630,318 @@ void PlayState::render(SDL_Renderer* renderer) {
         }
     }
 
+    // Debug overlay (F3)
+    if (m_showDebugOverlay) {
+        renderDebugOverlay(renderer, game->getFont());
+    }
+
     // Relic choice overlay
     if (m_showRelicChoice) {
         renderRelicChoice(renderer, game->getFont());
     }
+}
+
+void PlayState::renderDebugOverlay(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font || !m_player || !m_player->getEntity()->hasComponent<RelicComponent>()) return;
+
+    auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+    auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+    float hpPct = hp.getPercent();
+    int curDim = m_dimManager.getCurrentDimension();
+
+    // Compute raw damage multiplier (before cap)
+    float rawDmg = 1.0f;
+    for (auto& r : relics.relics) {
+        if (r.id == RelicID::BloodFrenzy && hpPct < 0.3f) rawDmg += 0.25f;
+        if (r.id == RelicID::BerserkerCore) rawDmg += 0.50f;
+        if (r.id == RelicID::VoidHunger) rawDmg += relics.voidHungerBonus;
+        if (r.id == RelicID::DualityGem && (curDim == 1 || RelicSynergy::isDualNatureActive(relics)))
+            rawDmg += 0.25f;
+        if (r.id == RelicID::StabilityMatrix) {
+            float rate = RelicSynergy::getStabilityDmgPerSec(relics);
+            float maxB = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
+            rawDmg += std::min(relics.stabilityTimer * rate, maxB);
+        }
+    }
+    rawDmg *= RelicSynergy::getPhaseHunterDamageMult(relics);
+    float clampedDmg = RelicSystem::getDamageMultiplier(relics, hpPct, curDim);
+
+    // Compute raw attack speed multiplier (before cap)
+    float rawSpd = 1.0f;
+    for (auto& r : relics.relics) {
+        if (r.id == RelicID::QuickHands) rawSpd += 0.15f;
+    }
+    if (relics.hasRelic(RelicID::RiftConduit) && relics.riftConduitTimer > 0)
+        rawSpd += relics.riftConduitStacks * 0.10f;
+    float clampedSpd = RelicSystem::getAttackSpeedMultiplier(relics);
+
+    // Switch CD with floor detection
+    float baseCD = 0.5f;
+    float cdMult = RelicSystem::getSwitchCooldownMult(relics);
+    float finalCD = m_dimManager.switchCooldown;
+    bool cdFloored = (baseCD * cdMult) < finalCD + 0.001f && relics.hasRelic(RelicID::RiftMantle);
+
+    // Zone count
+    int zoneCount = 0;
+    m_entities.forEach([&](Entity& e) {
+        if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
+    });
+
+    // Gameplay paused detection
+    bool gameplayPaused = m_showRelicChoice || m_showNPCDialog
+        || (m_activePuzzle && m_activePuzzle->isActive());
+
+    // Stability derived values
+    float stabRate = RelicSynergy::getStabilityDmgPerSec(relics);
+    float stabMax = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
+    float stabPct = std::min(relics.stabilityTimer * stabRate, stabMax) * 100.0f;
+
+    int synergyCount = RelicSynergy::getActiveSynergyCount(relics);
+    float dmgTakenMult = RelicSystem::getDamageTakenMult(relics, curDim);
+
+    // Build lines into stack buffer
+    struct Line { char text[96]; SDL_Color color; };
+    Line lines[15];
+    int lineCount = 0;
+
+    auto addLine = [&](SDL_Color c, const char* fmt, ...) {
+        if (lineCount >= 15) return;
+        va_list args;
+        va_start(args, fmt);
+        std::vsnprintf(lines[lineCount].text, sizeof(lines[0].text), fmt, args);
+        va_end(args);
+        lines[lineCount].color = c;
+        lineCount++;
+    };
+
+    SDL_Color cHeader = {255, 220, 80, 255};
+    SDL_Color cNormal = {200, 220, 240, 255};
+    SDL_Color cWarn   = {255, 100, 80, 255};
+    SDL_Color cGreen  = {100, 255, 140, 255};
+
+    addLine(cHeader, "=== RELIC SAFETY RAILS (F3/F4) ===");
+    addLine(gameplayPaused ? cWarn : cGreen, "Paused: %s", gameplayPaused ? "YES" : "NO");
+    addLine(rawDmg > clampedDmg + 0.001f ? cWarn : cNormal,
+            "DMG Mult: %.2fx raw -> %.2fx clamped", rawDmg, clampedDmg);
+    addLine(rawSpd > clampedSpd + 0.001f ? cWarn : cNormal,
+            "ATK Speed: %.2fx raw -> %.2fx clamped", rawSpd, clampedSpd);
+    addLine(dmgTakenMult > 1.001f ? cWarn : dmgTakenMult < 0.999f ? cGreen : cNormal,
+            "Damage Taken Mult: %.2fx", dmgTakenMult);
+    if (cdFloored)
+        addLine(cWarn, "Switch CD: %.2fs x%.2f = %.2fs FLOOR", baseCD, cdMult, finalCD);
+    else
+        addLine(cNormal, "Switch CD: %.2fs x%.2f = %.2fs", baseCD, cdMult, finalCD);
+    addLine(cNormal, "VoidHunger: %.0f%% / %.0f%% cap",
+            relics.voidHungerBonus * 100.0f, 40.0f);
+    addLine(cNormal, "VoidRes ICD: %.2fs remain", std::max(0.0f, relics.voidResonanceProcCD));
+    addLine(zoneCount > 0 ? cHeader : cNormal,
+            "Residue: %d/%d zones, spawn ICD %.2fs",
+            zoneCount, RelicSystem::getMaxResidueZones(),
+            std::max(0.0f, relics.dimResidueSpawnCD));
+    addLine(cNormal, "Stability: %.1fs (%.0f%% DMG)",
+            relics.stabilityTimer, stabPct);
+    addLine(cNormal, "Conduit: %d stacks, %.1fs left",
+            relics.riftConduitStacks, std::max(0.0f, relics.riftConduitTimer));
+    addLine(cNormal, "Dim: %d | Synergies: %d | Seed: %d",
+            curDim, synergyCount, m_runSeed);
+    addLine({140, 140, 160, 255}, "F4: snapshot to balance_snapshots.csv");
+
+    // Render panel
+    int panelX = 10, panelY = 190;
+    int lineH = 16, padX = 8, padY = 4;
+    int panelW = 360;
+    int panelH = padY * 2 + lineCount * lineH;
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
+    SDL_Rect bg = {panelX, panelY, panelW, panelH};
+    SDL_RenderFillRect(renderer, &bg);
+    SDL_SetRenderDrawColor(renderer, 255, 220, 80, 120);
+    SDL_RenderDrawRect(renderer, &bg);
+
+    for (int i = 0; i < lineCount; i++) {
+        SDL_Surface* s = TTF_RenderText_Blended(font, lines[i].text, lines[i].color);
+        if (!s) continue;
+        SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+        if (t) {
+            SDL_Rect dst = {panelX + padX, panelY + padY + i * lineH, s->w, s->h};
+            SDL_RenderCopy(renderer, t, nullptr, &dst);
+            SDL_DestroyTexture(t);
+        }
+        SDL_FreeSurface(s);
+    }
+
+    // Process pending F4 snapshot (only on keypress, not per frame)
+    if (m_pendingSnapshot) {
+        m_pendingSnapshot = false;
+        writeBalanceSnapshot();
+    }
+}
+
+void PlayState::updateBalanceTracking(float dt) {
+    if (!m_player || !m_player->getEntity()->hasComponent<RelicComponent>()) return;
+
+    bool gameplayActive = !m_showRelicChoice && !m_showNPCDialog
+        && !(m_activePuzzle && m_activePuzzle->isActive());
+    if (gameplayActive) m_balanceStats.activePlayTime += dt;
+
+    auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+    auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+    float hpPct = hp.getPercent();
+    int curDim = m_dimManager.getCurrentDimension();
+
+    // Raw DMG multiplier (mirrors debug overlay logic)
+    float rawDmg = 1.0f;
+    for (auto& r : relics.relics) {
+        if (r.id == RelicID::BloodFrenzy && hpPct < 0.3f) rawDmg += 0.25f;
+        if (r.id == RelicID::BerserkerCore) rawDmg += 0.50f;
+        if (r.id == RelicID::VoidHunger) rawDmg += relics.voidHungerBonus;
+        if (r.id == RelicID::DualityGem && (curDim == 1 || RelicSynergy::isDualNatureActive(relics)))
+            rawDmg += 0.25f;
+        if (r.id == RelicID::StabilityMatrix) {
+            float rate = RelicSynergy::getStabilityDmgPerSec(relics);
+            float maxB = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
+            rawDmg += std::min(relics.stabilityTimer * rate, maxB);
+        }
+    }
+    rawDmg *= RelicSynergy::getPhaseHunterDamageMult(relics);
+    float clampedDmg = RelicSystem::getDamageMultiplier(relics, hpPct, curDim);
+
+    // Raw ATK speed multiplier
+    float rawSpd = 1.0f;
+    for (auto& r : relics.relics) {
+        if (r.id == RelicID::QuickHands) rawSpd += 0.15f;
+    }
+    if (relics.hasRelic(RelicID::RiftConduit) && relics.riftConduitTimer > 0)
+        rawSpd += relics.riftConduitStacks * 0.10f;
+    float clampedSpd = RelicSystem::getAttackSpeedMultiplier(relics);
+
+    // Track peaks
+    m_balanceStats.peakDmgRaw = std::max(m_balanceStats.peakDmgRaw, rawDmg);
+    m_balanceStats.peakDmgClamped = std::max(m_balanceStats.peakDmgClamped, clampedDmg);
+    m_balanceStats.peakSpdRaw = std::max(m_balanceStats.peakSpdRaw, rawSpd);
+    m_balanceStats.peakSpdClamped = std::max(m_balanceStats.peakSpdClamped, clampedSpd);
+
+    // CD floor tracking
+    if (gameplayActive && relics.hasRelic(RelicID::RiftMantle)) {
+        float baseCD = 0.5f;
+        float cdMult = RelicSystem::getSwitchCooldownMult(relics);
+        float finalCD = m_dimManager.switchCooldown;
+        if ((baseCD * cdMult) < finalCD + 0.001f)
+            m_balanceStats.cdFloorTime += dt;
+    }
+
+    // Residue zone count
+    int zoneCount = 0;
+    m_entities.forEach([&](Entity& e) {
+        if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
+    });
+    m_balanceStats.peakResidueZones = std::max(m_balanceStats.peakResidueZones, zoneCount);
+
+    // VoidHunger tracking
+    m_balanceStats.peakVoidHunger = std::max(m_balanceStats.peakVoidHunger, relics.voidHungerBonus);
+    m_balanceStats.finalVoidHunger = relics.voidHungerBonus;
+}
+
+void PlayState::writeBalanceSnapshot() {
+    if (!m_player || !m_player->getEntity()->hasComponent<RelicComponent>()) return;
+
+    auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+    auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+    float hpPct = hp.getPercent();
+    int curDim = m_dimManager.getCurrentDimension();
+
+    // Raw damage (same calc as overlay)
+    float rawDmg = 1.0f;
+    for (auto& r : relics.relics) {
+        if (r.id == RelicID::BloodFrenzy && hpPct < 0.3f) rawDmg += 0.25f;
+        if (r.id == RelicID::BerserkerCore) rawDmg += 0.50f;
+        if (r.id == RelicID::VoidHunger) rawDmg += relics.voidHungerBonus;
+        if (r.id == RelicID::DualityGem && (curDim == 1 || RelicSynergy::isDualNatureActive(relics)))
+            rawDmg += 0.25f;
+        if (r.id == RelicID::StabilityMatrix) {
+            float rate = RelicSynergy::getStabilityDmgPerSec(relics);
+            float maxB = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
+            rawDmg += std::min(relics.stabilityTimer * rate, maxB);
+        }
+    }
+    rawDmg *= RelicSynergy::getPhaseHunterDamageMult(relics);
+    float clampedDmg = RelicSystem::getDamageMultiplier(relics, hpPct, curDim);
+
+    // Raw attack speed
+    float rawSpd = 1.0f;
+    for (auto& r : relics.relics) {
+        if (r.id == RelicID::QuickHands) rawSpd += 0.15f;
+    }
+    if (relics.hasRelic(RelicID::RiftConduit) && relics.riftConduitTimer > 0)
+        rawSpd += relics.riftConduitStacks * 0.10f;
+    float clampedSpd = RelicSystem::getAttackSpeedMultiplier(relics);
+
+    float baseCD = 0.5f;
+    float cdMult = RelicSystem::getSwitchCooldownMult(relics);
+    float finalCD = m_dimManager.switchCooldown;
+
+    int zoneCount = 0;
+    m_entities.forEach([&](Entity& e) {
+        if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
+    });
+
+    float stabRate = RelicSynergy::getStabilityDmgPerSec(relics);
+    float stabMax = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
+    float stabPct = std::min(relics.stabilityTimer * stabRate, stabMax) * 100.0f;
+    int synergyCount = RelicSynergy::getActiveSynergyCount(relics);
+
+    const char* className = "Unknown";
+    switch (m_player->playerClass) {
+        case PlayerClass::Voidwalker: className = "Voidwalker"; break;
+        case PlayerClass::Berserker:  className = "Berserker"; break;
+        case PlayerClass::Phantom:    className = "Phantom"; break;
+        default: break;
+    }
+
+    // Write header if file doesn't exist or is empty
+    bool needHeader = false;
+    {
+        FILE* check = std::fopen("balance_snapshots.csv", "r");
+        if (!check) {
+            needHeader = true;
+        } else {
+            std::fseek(check, 0, SEEK_END);
+            if (std::ftell(check) == 0) needHeader = true;
+            std::fclose(check);
+        }
+    }
+
+    FILE* f = std::fopen("balance_snapshots.csv", "a");
+    if (!f) return;
+
+    if (needHeader) {
+        std::fprintf(f, "seed,difficulty,class,time,dim,synergies,"
+            "dmg_raw,dmg_clamped,atk_raw,atk_clamped,"
+            "switch_base,switch_mult,switch_final,"
+            "voidhunger_pct,voidres_icd,"
+            "residue_zones,residue_spawn_icd,"
+            "stability_timer,stability_pct,"
+            "conduit_stacks,conduit_timer\n");
+    }
+
+    std::fprintf(f,
+        "%d,%d,%s,%.1f,%d,%d,"
+        "%.3f,%.3f,%.3f,%.3f,"
+        "%.2f,%.2f,%.2f,"
+        "%.1f,%.2f,"
+        "%d,%.2f,"
+        "%.1f,%.1f,"
+        "%d,%.1f\n",
+        m_runSeed, m_currentDifficulty, className, m_runTime, curDim, synergyCount,
+        rawDmg, clampedDmg, rawSpd, clampedSpd,
+        baseCD, cdMult, finalCD,
+        relics.voidHungerBonus * 100.0f, std::max(0.0f, relics.voidResonanceProcCD),
+        zoneCount, std::max(0.0f, relics.dimResidueSpawnCD),
+        relics.stabilityTimer, stabPct,
+        relics.riftConduitStacks, std::max(0.0f, relics.riftConduitTimer));
+
+    std::fclose(f);
 }
 
 void PlayState::showRelicChoice() {
@@ -1522,6 +1966,18 @@ void PlayState::selectRelic(int index) {
     auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
     RelicSystem::applyStatEffects(relics, *m_player, hp, combat);
 
+    // RiftMantle: reduce dimension switch cooldown (clamped by safety rail)
+    m_dimManager.switchCooldown = std::max(0.20f, 0.5f * RelicSystem::getSwitchCooldownMult(relics));
+
+    // TimeDilator: -30% ability cooldowns (applied once on pickup)
+    if (choice == RelicID::TimeDilator && m_player->getEntity()->hasComponent<AbilityComponent>()) {
+        auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
+        float cdMult = RelicSystem::getAbilityCooldownMultiplier(relics);
+        abil.abilities[0].cooldown *= cdMult;
+        abil.abilities[1].cooldown *= cdMult;
+        abil.abilities[2].cooldown *= cdMult;
+    }
+
     // Visual/audio feedback
     AudioManager::instance().play(SFX::RiftRepair);
     Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
@@ -1540,7 +1996,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
 
     // Dark overlay
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 160);
-    SDL_Rect full = {0, 0, 1280, 720};
+    SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &full);
 
     // Title
@@ -1677,7 +2133,7 @@ void PlayState::renderRelicBar(SDL_Renderer* renderer, TTF_Font* font) {
     int iconSize = 20;
     int gap = 4;
     int startX = 15;
-    int startY = 720 - 50;
+    int startY = SCREEN_HEIGHT - 50;
 
     for (int i = 0; i < static_cast<int>(relics.relics.size()) && i < 12; i++) {
         auto& data = RelicSystem::getRelicData(relics.relics[i].id);
@@ -2442,7 +2898,7 @@ void PlayState::renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Rect sr = m_camera.worldToScreen(worldRect);
 
         // Skip if off screen
-        if (sr.x + sr.w < 0 || sr.x > 1280 || sr.y + sr.h < 0 || sr.y > 720) continue;
+        if (sr.x + sr.w < 0 || sr.x > SCREEN_WIDTH || sr.y + sr.h < 0 || sr.y > SCREEN_HEIGHT) continue;
 
         float bob = std::sin(ticks * 0.003f + i * 2.0f) * 3.0f;
         sr.y -= static_cast<int>(bob);
@@ -2563,6 +3019,22 @@ void PlayState::endRun() {
         }
         game->changeState(StateID::Ending);
     } else {
+        // Copy balance stats to run summary
+        if (auto* summary = dynamic_cast<RunSummaryState*>(game->getState(StateID::RunSummary))) {
+            summary->enemiesKilled = enemiesKilled;
+            summary->riftsRepaired = riftsRepaired;
+            summary->roomsCleared = roomsCleared;
+            summary->peakDmgRaw = m_balanceStats.peakDmgRaw;
+            summary->peakDmgClamped = m_balanceStats.peakDmgClamped;
+            summary->peakSpdRaw = m_balanceStats.peakSpdRaw;
+            summary->peakSpdClamped = m_balanceStats.peakSpdClamped;
+            summary->cdFloorPercent = (m_balanceStats.activePlayTime > 0)
+                ? (m_balanceStats.cdFloorTime / m_balanceStats.activePlayTime * 100.0f) : 0;
+            summary->voidResProcs = m_combatSystem.voidResonanceProcs;
+            summary->peakResidueZones = m_balanceStats.peakResidueZones;
+            summary->peakVoidHunger = m_balanceStats.peakVoidHunger * 100.0f;
+            summary->finalVoidHunger = m_balanceStats.finalVoidHunger * 100.0f;
+        }
         game->changeState(StateID::RunSummary);
     }
 }
@@ -2715,7 +3187,7 @@ void PlayState::renderNPCs(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_FRect worldRect = {npc.position.x - 12, npc.position.y - 32, 24, 32};
         SDL_Rect sr = m_camera.worldToScreen(worldRect);
 
-        if (sr.x + sr.w < 0 || sr.x > 1280 || sr.y + sr.h < 0 || sr.y > 720) continue;
+        if (sr.x + sr.w < 0 || sr.x > SCREEN_WIDTH || sr.y + sr.h < 0 || sr.y > SCREEN_HEIGHT) continue;
 
         float bob = std::sin(ticks * 0.003f + i * 3.0f) * 3.0f;
         sr.y -= static_cast<int>(bob);
@@ -2815,7 +3287,7 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
     // Semi-transparent overlay
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
-    SDL_Rect full = {0, 0, 1280, 720};
+    SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &full);
 
     // Dialog box
@@ -2926,6 +3398,8 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
         return;
     }
 
+    if (!m_player->getEntity()->hasComponent<HealthComponent>() ||
+        !m_player->getEntity()->hasComponent<CombatComponent>()) return;
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
 
@@ -3069,4 +3543,127 @@ void PlayState::applyAscensionModifiers() {
             ai.patrolSpeed *= asc.enemySpeedMult;
         }
     });
+}
+
+void PlayState::updateSmokeTest(float dt) {
+    if (!m_player || !m_level) return;
+
+    m_smokeRunTime += dt;
+    m_smokeActionTimer -= dt;
+    m_smokeDimTimer -= dt;
+
+    // God mode: keep HP full
+    auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+    hp.currentHP = hp.maxHP;
+
+    // Auto-select relic when choice appears
+    if (m_showRelicChoice && !m_relicChoices.empty()) {
+        selectRelic(std::rand() % static_cast<int>(m_relicChoices.size()));
+        return;
+    }
+
+    // Auto-dismiss NPC dialog
+    if (m_showNPCDialog) {
+        m_showNPCDialog = false;
+        return;
+    }
+
+    // Navigate toward exit or nearest rift
+    Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+    Vec2 target = m_level->getExitPoint();
+
+    // If rifts remain, go to nearest rift first
+    auto rifts = m_level->getRiftPositions();
+    float nearestRiftDist = 99999.0f;
+    for (auto& r : rifts) {
+        float dx = r.x - playerPos.x;
+        float dy = r.y - playerPos.y;
+        float d = std::sqrt(dx * dx + dy * dy);
+        if (d < nearestRiftDist) {
+            nearestRiftDist = d;
+            target = r;
+        }
+    }
+
+    // Move toward target
+    float dirX = target.x - playerPos.x;
+    auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+
+    if (dirX > 30.0f) {
+        phys.velocity.x = m_player->moveSpeed;
+    } else if (dirX < -30.0f) {
+        phys.velocity.x = -m_player->moveSpeed;
+    }
+
+    // Jump when blocked or periodically
+    if (phys.onGround && (std::abs(phys.velocity.x) < 10.0f || (std::rand() % 60 == 0))) {
+        phys.velocity.y = -m_player->jumpForce;
+    }
+
+    // Attack nearby enemies
+    if (m_smokeActionTimer <= 0) {
+        auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+        // Find nearest enemy
+        float nearestEnemy = 99999.0f;
+        Vec2 enemyDir = {1.0f, 0.0f};
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.hasComponent<TransformComponent>()) return;
+            auto& et = e.getComponent<TransformComponent>();
+            float dx = et.getCenter().x - playerPos.x;
+            float dy = et.getCenter().y - playerPos.y;
+            float d = std::sqrt(dx * dx + dy * dy);
+            if (d < nearestEnemy) {
+                nearestEnemy = d;
+                enemyDir = {dx, dy};
+                float len = std::sqrt(dx * dx + dy * dy);
+                if (len > 0) enemyDir = enemyDir * (1.0f / len);
+            }
+        });
+
+        if (nearestEnemy < 80.0f) {
+            // Melee attack
+            combat.startAttack(AttackType::Melee, enemyDir);
+            m_smokeActionTimer = 0.25f;
+        } else if (nearestEnemy < 300.0f) {
+            // Ranged attack
+            combat.startAttack(AttackType::Ranged, enemyDir);
+            m_smokeActionTimer = 0.4f;
+        } else {
+            m_smokeActionTimer = 0.1f;
+        }
+    }
+
+    // Dimension switch every 5-8 seconds
+    if (m_smokeDimTimer <= 0) {
+        m_dimManager.switchDimension();
+        m_smokeDimTimer = 5.0f + static_cast<float>(std::rand() % 30) * 0.1f;
+    }
+
+    // Interact with rift if near
+    if (nearestRiftDist < 60.0f && !m_activePuzzle) {
+        // Auto-interact
+        m_nearRiftIndex = 0;
+        for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
+            float dx = rifts[i].x - playerPos.x;
+            float dy = rifts[i].y - playerPos.y;
+            if (std::sqrt(dx * dx + dy * dy) < 60.0f) {
+                m_nearRiftIndex = i;
+                break;
+            }
+        }
+    }
+
+    // Auto-solve puzzle
+    if (m_activePuzzle && m_activePuzzle->isActive()) {
+        // Brute force: spam correct inputs
+        m_activePuzzle->handleInput(1); // Try action 1
+    }
+
+    // Dash occasionally
+    if (std::rand() % 120 == 0 && phys.onGround && m_player->dashCooldownTimer <= 0) {
+        m_player->isDashing = true;
+        m_player->dashTimer = m_player->dashDuration;
+        m_player->dashCooldownTimer = m_player->dashCooldown;
+    }
 }

@@ -76,9 +76,9 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
     // Background particles drifting down
     for (int i = 0; i < 40; i++) {
-        float x = static_cast<float>((i * 131 + 47) % 1280);
-        float baseY = static_cast<float>((i * 89 + 23) % 720);
-        float y = std::fmod(baseY + m_time * (15.0f + (i % 5) * 5.0f), 720.0f);
+        float x = static_cast<float>((i * 131 + 47) % SCREEN_WIDTH);
+        float baseY = static_cast<float>((i * 89 + 23) % SCREEN_HEIGHT);
+        float y = std::fmod(baseY + m_time * (15.0f + (i % 5) * 5.0f), static_cast<float>(SCREEN_HEIGHT));
         float twinkle = 0.5f + 0.5f * std::sin(m_time * 2.0f + i * 1.3f);
         Uint8 a = static_cast<Uint8>(20 * twinkle);
         Uint8 r = (i % 3 == 0) ? static_cast<Uint8>(80) : static_cast<Uint8>(40);
@@ -217,7 +217,98 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         }
     }
 
+    // Balance summary (appears after stats)
+    bool hasBalanceData = peakDmgRaw > 1.001f || peakSpdRaw > 1.001f
+        || voidResProcs > 0 || peakResidueZones > 0 || peakVoidHunger > 0.1f;
+    int balanceEndY = baseY + statCount * statH;
+
+    if (hasBalanceData && m_statsTimer > 2.2f) {
+        float bAlpha = std::min(1.0f, (m_statsTimer - 2.2f) * 2.0f) * m_fadeIn;
+        Uint8 ba = static_cast<Uint8>(255 * bAlpha);
+
+        int by = baseY + statCount * statH + 8;
+
+        // Thin separator
+        SDL_SetRenderDrawColor(renderer, 100, 80, 140, static_cast<Uint8>(ba * 0.5f));
+        SDL_RenderDrawLine(renderer, 350, by, 930, by);
+
+        // Header
+        SDL_Color hdrC = {140, 120, 180, ba};
+        SDL_Surface* hs = TTF_RenderText_Blended(font, "Balance Summary", hdrC);
+        if (hs) {
+            SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
+            if (ht) {
+                SDL_SetTextureAlphaMod(ht, ba);
+                SDL_Rect hr = {640 - hs->w / 2, by + 4, hs->w, hs->h};
+                SDL_RenderCopy(renderer, ht, nullptr, &hr);
+                SDL_DestroyTexture(ht);
+            }
+            SDL_FreeSurface(hs);
+        }
+
+        // Line 1: DMG & ATK speed
+        char line1[96];
+        bool dmgCapped = peakDmgRaw > peakDmgClamped + 0.01f;
+        bool spdCapped = peakSpdRaw > peakSpdClamped + 0.01f;
+        std::snprintf(line1, sizeof(line1), "DMG %.2fx%s  |  ATK %.2fx%s",
+                      peakDmgClamped, dmgCapped ? " (CAP)" : "",
+                      peakSpdClamped, spdCapped ? " (CAP)" : "");
+        SDL_Color l1c = {(dmgCapped || spdCapped) ? (Uint8)255 : (Uint8)160,
+                         (dmgCapped || spdCapped) ? (Uint8)140 : (Uint8)155,
+                         (dmgCapped || spdCapped) ? (Uint8)100 : (Uint8)180, ba};
+        SDL_Surface* l1s = TTF_RenderText_Blended(font, line1, l1c);
+        if (l1s) {
+            SDL_Texture* l1t = SDL_CreateTextureFromSurface(renderer, l1s);
+            if (l1t) {
+                SDL_SetTextureAlphaMod(l1t, ba);
+                SDL_Rect l1r = {320, by + 22, l1s->w, l1s->h};
+                SDL_RenderCopy(renderer, l1t, nullptr, &l1r);
+                SDL_DestroyTexture(l1t);
+            }
+            SDL_FreeSurface(l1s);
+        }
+
+        // Line 2: CD Floor, VoidRes, Residue
+        char line2[96];
+        std::snprintf(line2, sizeof(line2), "CD Floor %.0f%%  |  VoidRes %d  |  Zones %d",
+                      cdFloorPercent, voidResProcs, peakResidueZones);
+        SDL_Color l2c = {160, 155, 180, ba};
+        SDL_Surface* l2s = TTF_RenderText_Blended(font, line2, l2c);
+        if (l2s) {
+            SDL_Texture* l2t = SDL_CreateTextureFromSurface(renderer, l2s);
+            if (l2t) {
+                SDL_SetTextureAlphaMod(l2t, ba);
+                SDL_Rect l2r = {320, by + 38, l2s->w, l2s->h};
+                SDL_RenderCopy(renderer, l2t, nullptr, &l2r);
+                SDL_DestroyTexture(l2t);
+            }
+            SDL_FreeSurface(l2s);
+        }
+
+        // Line 3: VoidHunger
+        if (peakVoidHunger > 0.1f) {
+            char line3[96];
+            std::snprintf(line3, sizeof(line3), "VoidHunger %.0f%% final (%.0f%% peak)",
+                          finalVoidHunger, peakVoidHunger);
+            SDL_Color l3c = {180, 140, 100, ba};
+            SDL_Surface* l3s = TTF_RenderText_Blended(font, line3, l3c);
+            if (l3s) {
+                SDL_Texture* l3t = SDL_CreateTextureFromSurface(renderer, l3s);
+                if (l3t) {
+                    SDL_SetTextureAlphaMod(l3t, ba);
+                    SDL_Rect l3r = {320, by + 54, l3s->w, l3s->h};
+                    SDL_RenderCopy(renderer, l3t, nullptr, &l3r);
+                    SDL_DestroyTexture(l3t);
+                }
+                SDL_FreeSurface(l3s);
+            }
+        }
+
+        balanceEndY = by + 72;
+    }
+
     // NEW RECORD banner
+    int recordY = std::max(balanceEndY + 10, baseY + statCount * statH + 20);
     if (isNewRecord && m_statsTimer > 2.5f) {
         float recordAlpha = std::min(1.0f, (m_statsTimer - 2.5f) * 2.0f) * m_fadeIn;
         float pulse = 0.7f + 0.3f * std::sin(m_time * 6.0f);
@@ -225,7 +316,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
         // Glowing background bar
         SDL_SetRenderDrawColor(renderer, 255, 200, 50, static_cast<Uint8>(ra * 0.2f));
-        SDL_Rect recordBg = {300, 500, 680, 40};
+        SDL_Rect recordBg = {300, recordY, 680, 40};
         SDL_RenderFillRect(renderer, &recordBg);
 
         // Gold border
@@ -240,7 +331,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
                 SDL_SetTextureAlphaMod(rt, ra);
                 int rw = static_cast<int>(rs->w * 1.5f);
                 int rh = static_cast<int>(rs->h * 1.5f);
-                SDL_Rect rr = {640 - rw / 2, 505, rw, rh};
+                SDL_Rect rr = {640 - rw / 2, recordY + 5, rw, rh};
                 SDL_RenderCopy(renderer, rt, nullptr, &rr);
                 SDL_DestroyTexture(rt);
             }
@@ -251,7 +342,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         for (int i = 0; i < 8; i++) {
             float angle = m_time * 2.0f + i * (6.283185f / 8);
             int sx = 640 + static_cast<int>(std::cos(angle) * 180);
-            int sy = 520 + static_cast<int>(std::sin(angle) * 12);
+            int sy = recordY + 20 + static_cast<int>(std::sin(angle) * 12);
             Uint8 sa = static_cast<Uint8>(ra * (0.5f + 0.5f * std::sin(m_time * 5.0f + i)));
             SDL_SetRenderDrawColor(renderer, 255, 230, 100, sa);
             SDL_Rect spark = {sx - 1, sy - 1, 3, 3};
@@ -268,7 +359,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {640 - s->w / 2, 620, s->w, s->h};
+                SDL_Rect r = {640 - s->w / 2, 660, s->w, s->h};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }

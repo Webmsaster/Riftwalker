@@ -65,7 +65,7 @@ private:
     EntityManager m_entities;
     std::unique_ptr<Player> m_player;
     std::unique_ptr<Level> m_level;
-    Camera m_camera{1280, 720};
+    Camera m_camera{SCREEN_WIDTH, SCREEN_HEIGHT};
     LevelGenerator m_levelGen;
 
     // Systems
@@ -135,6 +135,9 @@ private:
     bool m_hasAttackedThisRun = false;
     int m_dashCount = 0; // for dash master achievement
 
+    // Teleporter cooldown (reset per run)
+    float m_teleportCooldown = 0;
+
     // Shop / Run buffs
     bool m_pendingLevelGen = false;
     void applyRunBuffs();
@@ -181,6 +184,33 @@ private:
 
     // Ascension system
     void applyAscensionModifiers();
+
+    // Debug overlay (F3 toggle, F4 snapshot)
+    bool m_showDebugOverlay = false;
+    bool m_pendingSnapshot = false;
+    void renderDebugOverlay(SDL_Renderer* renderer, TTF_Font* font);
+    void writeBalanceSnapshot();
+
+    // Balance tracking (for run summary)
+    struct BalanceStats {
+        float peakDmgRaw = 0;
+        float peakDmgClamped = 0;
+        float peakSpdRaw = 0;
+        float peakSpdClamped = 0;
+        float cdFloorTime = 0;
+        float activePlayTime = 0;
+        int peakResidueZones = 0;
+        float peakVoidHunger = 0;
+        float finalVoidHunger = 0;
+    } m_balanceStats;
+    void updateBalanceTracking(float dt);
+
+    // Smoke test (F6) - auto-play for integration testing
+    bool m_smokeTest = false;
+    float m_smokeActionTimer = 0;
+    float m_smokeDimTimer = 0;
+    float m_smokeRunTime = 0;
+    void updateSmokeTest(float dt);
 
     // Visual polish (Stufe 4)
     TrailSystem m_trails;

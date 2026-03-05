@@ -14,6 +14,17 @@ public:
     int shardsEarned = 0;
     bool isNewRecord = false;
 
+    // Balance summary
+    float peakDmgRaw = 0;
+    float peakDmgClamped = 0;
+    float peakSpdRaw = 0;
+    float peakSpdClamped = 0;
+    float cdFloorPercent = 0;
+    int voidResProcs = 0;
+    int peakResidueZones = 0;
+    float peakVoidHunger = 0;
+    float finalVoidHunger = 0;
+
 private:
     float m_fadeIn = 0;
     float m_time = 0;
