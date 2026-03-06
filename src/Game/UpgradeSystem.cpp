@@ -68,6 +68,8 @@ int UpgradeSystem::getExtraJumps() const { return getUpgradeLevel(UpgradeID::Dou
 float UpgradeSystem::getSwitchCooldownMultiplier() const { return 1.0f - getUpgradeLevel(UpgradeID::SwitchCooldown) * 0.2f; }
 float UpgradeSystem::getArmorBonus() const { return getUpgradeLevel(UpgradeID::Armor) * 0.1f; }
 float UpgradeSystem::getComboBonus() const { return getUpgradeLevel(UpgradeID::ComboMaster) * 0.1f; }
+// FIX: WallSlide upgrade had no getter — players could buy it but it did nothing
+float UpgradeSystem::getWallSlideSpeedMultiplier() const { return 1.0f - getUpgradeLevel(UpgradeID::WallSlide) * 0.25f; }
 float UpgradeSystem::getCritChance() const { return getUpgradeLevel(UpgradeID::CritChance) * 0.1f; }
 float UpgradeSystem::getShardMagnetRange() const { return 14.0f + getUpgradeLevel(UpgradeID::ShardMagnet) * 30.0f; }
 float UpgradeSystem::getAbilityCooldownMultiplier() const { return 1.0f - getUpgradeLevel(UpgradeID::AbilityCooldown) * 0.15f; }

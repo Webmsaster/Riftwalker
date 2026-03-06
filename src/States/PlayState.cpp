@@ -240,6 +240,8 @@ void PlayState::applyUpgrades() {
     m_player->jumpForce = -420.0f * upgrades.getJumpMultiplier();
     m_player->dashCooldown = 0.5f * upgrades.getDashCooldownMultiplier();
     m_player->maxJumps = 2 + upgrades.getExtraJumps();
+    // FIX: Apply WallSlide upgrade (was purchased but had no effect)
+    m_player->wallSlideSpeed = 60.0f * upgrades.getWallSlideSpeedMultiplier();
 
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     hp.maxHP = 100.0f + upgrades.getMaxHPBonus();

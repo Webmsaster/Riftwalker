@@ -69,6 +69,8 @@ public:
     float getSwitchCooldownMultiplier() const;
     float getArmorBonus() const;
     float getComboBonus() const;
+    // FIX: WallSlide upgrade was missing getter — upgrade had no gameplay effect
+    float getWallSlideSpeedMultiplier() const;
     float getCritChance() const;
     float getShardMagnetRange() const;
     float getAbilityCooldownMultiplier() const;
