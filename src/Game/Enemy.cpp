@@ -14,16 +14,17 @@ void Enemy::makeMiniBoss(Entity& e) {
 
     // Scale up stats
     auto& hp = e.getComponent<HealthComponent>();
-    hp.maxHP *= 3.0f;
+    // BALANCE: MiniBoss HP multiplier 3.0 -> 2.5 (tough but not a full boss fight)
+    hp.maxHP *= 2.5f;
     hp.currentHP = hp.maxHP;
-    // FIX: Armor is 0-1 range (fraction of damage reduction), not absolute
-    // FIX: Clamp to 0.75 so minibosses always take at least 25% damage
-    hp.armor = std::min(hp.armor + 0.3f, 0.75f);
+    // BALANCE: MiniBoss armor bonus 0.3 -> 0.2, cap 0.75 -> 0.6
+    hp.armor = std::min(hp.armor + 0.2f, 0.6f);
 
     auto& combat = e.getComponent<CombatComponent>();
-    combat.meleeAttack.damage *= 1.5f;
+    // BALANCE: MiniBoss DMG multiplier 1.5 -> 1.3
+    combat.meleeAttack.damage *= 1.3f;
     combat.meleeAttack.knockback *= 1.3f;
-    combat.rangedAttack.damage *= 1.5f;
+    combat.rangedAttack.damage *= 1.3f;
 
     // Scale up size
     auto& t = e.getComponent<TransformComponent>();
@@ -115,11 +116,13 @@ Entity& Enemy::createWalker(EntityManager& entities, Vec2 pos, int dimension) {
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 45.0f;
-    hp.currentHP = 45.0f;
+    // BALANCE: Walker HP 45 -> 40 (2 melee hits to kill)
+    hp.maxHP = 40.0f;
+    hp.currentHP = 40.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 12.0f;
+    // BALANCE: Walker DMG 12 -> 10 (less punishing per hit)
+    combat.meleeAttack.damage = 10.0f;
     combat.meleeAttack.knockback = 200.0f;
     combat.meleeAttack.cooldown = 1.0f;
 
@@ -128,7 +131,8 @@ Entity& Enemy::createWalker(EntityManager& entities, Vec2 pos, int dimension) {
     ai.detectRange = 180.0f;
     ai.attackRange = 40.0f;
     ai.patrolSpeed = 60.0f;
-    ai.chaseSpeed = 100.0f;
+    // BALANCE: Walker chase speed 100 -> 90 (easier to kite)
+    ai.chaseSpeed = 90.0f;
     ai.patrolStart = pos;
     ai.patrolEnd = {pos.x + 150.0f, pos.y};
 
@@ -159,11 +163,13 @@ Entity& Enemy::createFlyer(EntityManager& entities, Vec2 pos, int dimension) {
     col.mask = LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 30.0f;
-    hp.currentHP = 30.0f;
+    // BALANCE: Flyer HP 30 -> 25 (fragile but evasive)
+    hp.maxHP = 25.0f;
+    hp.currentHP = 25.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 12.0f;
+    // BALANCE: Flyer DMG 12 -> 10
+    combat.meleeAttack.damage = 10.0f;
     combat.meleeAttack.knockback = 150.0f;
     combat.meleeAttack.cooldown = 1.5f;
 
@@ -201,11 +207,13 @@ Entity& Enemy::createTurret(EntityManager& entities, Vec2 pos, int dimension) {
     col.mask = LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 50.0f;
-    hp.currentHP = 50.0f;
+    // BALANCE: Turret HP 50 -> 40
+    hp.maxHP = 40.0f;
+    hp.currentHP = 40.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.rangedAttack.damage = 10.0f;
+    // BALANCE: Turret DMG 10 -> 8
+    combat.rangedAttack.damage = 8.0f;
     combat.rangedAttack.range = 300.0f;
     combat.rangedAttack.knockback = 80.0f;
     combat.rangedAttack.cooldown = 1.8f;
@@ -243,11 +251,13 @@ Entity& Enemy::createCharger(EntityManager& entities, Vec2 pos, int dimension) {
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 55.0f;
-    hp.currentHP = 55.0f;
+    // BALANCE: Charger HP 55 -> 45
+    hp.maxHP = 45.0f;
+    hp.currentHP = 45.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 22.0f;
+    // BALANCE: Charger DMG 22 -> 18 (still hurts but survivable)
+    combat.meleeAttack.damage = 18.0f;
     combat.meleeAttack.knockback = 350.0f;
     combat.meleeAttack.cooldown = 2.0f;
 
@@ -287,11 +297,13 @@ Entity& Enemy::createPhaser(EntityManager& entities, Vec2 pos, int dimension) {
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 35.0f;
-    hp.currentHP = 35.0f;
+    // BALANCE: Phaser HP 35 -> 30
+    hp.maxHP = 30.0f;
+    hp.currentHP = 30.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 18.0f;
+    // BALANCE: Phaser DMG 18 -> 14
+    combat.meleeAttack.damage = 14.0f;
     combat.meleeAttack.knockback = 200.0f;
     combat.meleeAttack.cooldown = 1.2f;
 
@@ -330,11 +342,13 @@ Entity& Enemy::createExploder(EntityManager& entities, Vec2 pos, int dimension) 
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 25.0f; // Fragile but survives one melee hit
-    hp.currentHP = 25.0f;
+    // BALANCE: Exploder HP 25 -> 20 (one melee hit kills)
+    hp.maxHP = 20.0f;
+    hp.currentHP = 20.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 40.0f; // High damage on contact
+    // BALANCE: Exploder DMG 40 -> 30 (punishing but not half player HP)
+    combat.meleeAttack.damage = 30.0f;
     combat.meleeAttack.knockback = 400.0f;
     combat.meleeAttack.cooldown = 10.0f; // Only explodes once
 
@@ -376,13 +390,15 @@ Entity& Enemy::createShielder(EntityManager& entities, Vec2 pos, int dimension) 
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 80.0f; // Very tanky
-    hp.currentHP = 80.0f;
-    // FIX: Armor is 0-1 range (0.5 = 50% damage reduction)
-    hp.armor = 0.5f;
+    // BALANCE: Shielder HP 80 -> 65 (still tanky but not bullet-sponge)
+    hp.maxHP = 65.0f;
+    hp.currentHP = 65.0f;
+    // BALANCE: Shielder armor 0.5 -> 0.35 (was taking 8 hits, now ~5)
+    hp.armor = 0.35f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 18.0f;
+    // BALANCE: Shielder DMG 18 -> 14
+    combat.meleeAttack.damage = 14.0f;
     combat.meleeAttack.knockback = 280.0f;
     combat.meleeAttack.cooldown = 1.5f;
 
@@ -423,11 +439,13 @@ Entity& Enemy::createCrawler(EntityManager& entities, Vec2 pos, int dimension) {
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 25.0f;
-    hp.currentHP = 25.0f;
+    // BALANCE: Crawler HP 25 -> 20
+    hp.maxHP = 20.0f;
+    hp.currentHP = 20.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 15.0f;
+    // BALANCE: Crawler DMG 15 -> 12
+    combat.meleeAttack.damage = 12.0f;
     combat.meleeAttack.knockback = 250.0f;
     combat.meleeAttack.cooldown = 1.0f;
 
@@ -518,7 +536,8 @@ Entity& Enemy::createSniper(EntityManager& entities, Vec2 pos, int dimension) {
     hp.currentHP = 30.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.rangedAttack.damage = 20.0f;
+    // BALANCE: Sniper DMG 20 -> 16 (still high but survivable)
+    combat.rangedAttack.damage = 16.0f;
     combat.rangedAttack.range = 400.0f;
     combat.rangedAttack.knockback = 120.0f;
     combat.rangedAttack.cooldown = 2.5f;
@@ -567,7 +586,8 @@ Entity& Enemy::createMinion(EntityManager& entities, Vec2 pos, int dimension) {
     hp.currentHP = 10.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 8.0f;
+    // BALANCE: Minion DMG 8 -> 6
+    combat.meleeAttack.damage = 6.0f;
     combat.meleeAttack.knockback = 100.0f;
     combat.meleeAttack.cooldown = 1.5f;
 
@@ -608,14 +628,15 @@ Entity& Enemy::createVoidWyrm(EntityManager& entities, Vec2 pos, int dimension, 
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 180.0f + difficulty * 70.0f;
+    // BALANCE: Void Wyrm HP 180+diff*70 -> 150+diff*40 (shorter fights)
+    hp.maxHP = 150.0f + difficulty * 40.0f;
     hp.currentHP = hp.maxHP;
-    // FIX: Armor is 0-1 range; was 1.0+diff*1.5 making boss immune
-    // FIX: Cap at 0.75 so bosses always take at least 25% damage at high difficulty
-    hp.armor = std::min(0.2f + difficulty * 0.1f, 0.75f);
+    // BALANCE: Wyrm armor base 0.2 -> 0.15, scale 0.1 -> 0.05 (less damage reduction)
+    hp.armor = std::min(0.15f + difficulty * 0.05f, 0.6f);
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 20.0f + difficulty * 4.0f;
+    // BALANCE: Wyrm melee 20+diff*4 -> 18+diff*3
+    combat.meleeAttack.damage = 18.0f + difficulty * 3.0f;
     combat.meleeAttack.knockback = 350.0f;
     combat.meleeAttack.cooldown = 1.0f;
     combat.rangedAttack.damage = 12.0f + difficulty * 3.0f;
@@ -666,17 +687,19 @@ Entity& Enemy::createBoss(EntityManager& entities, Vec2 pos, int dimension, int 
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 200.0f + difficulty * 80.0f;
+    // BALANCE: Rift Guardian HP 200+diff*80 -> 180+diff*50 (first boss, must be beatable)
+    hp.maxHP = 180.0f + difficulty * 50.0f;
     hp.currentHP = hp.maxHP;
-    // FIX: Armor is 0-1 range; was 2.0+diff*2.0 making boss immune
-    // FIX: Cap at 0.75 so bosses always take at least 25% damage at high difficulty
-    hp.armor = std::min(0.3f + difficulty * 0.1f, 0.75f);
+    // BALANCE: Guardian armor base 0.3 -> 0.15, scale 0.1 -> 0.05 (player deals meaningful damage)
+    hp.armor = std::min(0.15f + difficulty * 0.05f, 0.6f);
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 25.0f + difficulty * 5.0f;
+    // BALANCE: Guardian melee 25+diff*5 -> 20+diff*3 (25% of player HP, not 40%)
+    combat.meleeAttack.damage = 20.0f + difficulty * 3.0f;
     combat.meleeAttack.knockback = 400.0f;
     combat.meleeAttack.cooldown = 1.2f;
-    combat.rangedAttack.damage = 15.0f + difficulty * 3.0f;
+    // BALANCE: Guardian ranged 15+diff*3 -> 12+diff*2
+    combat.rangedAttack.damage = 12.0f + difficulty * 2.0f;
     combat.rangedAttack.range = 400.0f;
     combat.rangedAttack.knockback = 150.0f;
     combat.rangedAttack.cooldown = 2.0f;
@@ -707,14 +730,14 @@ void Enemy::makeElite(Entity& e, EliteModifier mod) {
     ai.eliteMod = mod;
     ai.eliteGlowTimer = 0;
 
-    // Base elite stat boosts: +50% HP, +25% DMG, +30% shard drop
+    // BALANCE: Elite HP multiplier 1.5 -> 1.3, DMG 1.25 -> 1.15 (noticeable but not overwhelming)
     auto& hp = e.getComponent<HealthComponent>();
-    hp.maxHP *= 1.5f;
+    hp.maxHP *= 1.3f;
     hp.currentHP = hp.maxHP;
 
     auto& combat = e.getComponent<CombatComponent>();
-    combat.meleeAttack.damage *= 1.25f;
-    combat.rangedAttack.damage *= 1.25f;
+    combat.meleeAttack.damage *= 1.15f;
+    combat.rangedAttack.damage *= 1.15f;
 
     auto& sprite = e.getComponent<SpriteComponent>();
 
@@ -782,17 +805,19 @@ Entity& Enemy::createTemporalWeaver(EntityManager& entities, Vec2 pos, int dimen
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 280.0f + difficulty * 90.0f;
+    // BALANCE: Temporal Weaver HP 280+diff*90 -> 220+diff*50
+    hp.maxHP = 220.0f + difficulty * 50.0f;
     hp.currentHP = hp.maxHP;
-    // FIX: Armor is 0-1 range; was 2.0+diff*1.5 making boss immune
-    // FIX: Cap at 0.75 so bosses always take at least 25% damage at high difficulty
-    hp.armor = std::min(0.25f + difficulty * 0.1f, 0.75f);
+    // BALANCE: Weaver armor base 0.25 -> 0.15, scale 0.1 -> 0.05
+    hp.armor = std::min(0.15f + difficulty * 0.05f, 0.6f);
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 20.0f + difficulty * 4.0f;
+    // BALANCE: Weaver melee 20+diff*4 -> 18+diff*3
+    combat.meleeAttack.damage = 18.0f + difficulty * 3.0f;
     combat.meleeAttack.knockback = 350.0f;
     combat.meleeAttack.cooldown = 1.2f;
-    combat.rangedAttack.damage = 14.0f + difficulty * 3.0f;
+    // BALANCE: Weaver ranged 14+diff*3 -> 12+diff*2
+    combat.rangedAttack.damage = 12.0f + difficulty * 2.0f;
     combat.rangedAttack.range = 380.0f;
     combat.rangedAttack.knockback = 130.0f;
     combat.rangedAttack.cooldown = 1.8f;
@@ -843,17 +868,19 @@ Entity& Enemy::createDimensionalArchitect(EntityManager& entities, Vec2 pos, int
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 250.0f + difficulty * 80.0f;
+    // BALANCE: Dim. Architect HP 250+diff*80 -> 200+diff*45
+    hp.maxHP = 200.0f + difficulty * 45.0f;
     hp.currentHP = hp.maxHP;
-    // FIX: Armor is 0-1 range; was 2.0+diff*2.0 making boss immune
-    // FIX: Cap at 0.75 so bosses always take at least 25% damage at high difficulty
-    hp.armor = std::min(0.3f + difficulty * 0.1f, 0.75f);
+    // BALANCE: Architect armor base 0.3 -> 0.2, scale 0.1 -> 0.05
+    hp.armor = std::min(0.2f + difficulty * 0.05f, 0.6f);
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 18.0f + difficulty * 3.0f;
+    // BALANCE: Architect melee 18+diff*3 -> 16+diff*2
+    combat.meleeAttack.damage = 16.0f + difficulty * 2.0f;
     combat.meleeAttack.knockback = 300.0f;
     combat.meleeAttack.cooldown = 1.5f;
-    combat.rangedAttack.damage = 12.0f + difficulty * 2.0f;
+    // BALANCE: Architect ranged 12+diff*2 -> 10+diff*2
+    combat.rangedAttack.damage = 10.0f + difficulty * 2.0f;
     combat.rangedAttack.range = 400.0f;
     combat.rangedAttack.knockback = 100.0f;
     combat.rangedAttack.cooldown = 2.0f;
@@ -903,17 +930,19 @@ Entity& Enemy::createVoidSovereign(EntityManager& entities, Vec2 pos, int dimens
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 350.0f + difficulty * 60.0f;
+    // BALANCE: Void Sovereign HP 350+diff*60 -> 280+diff*35 (final boss, epic but beatable)
+    hp.maxHP = 280.0f + difficulty * 35.0f;
     hp.currentHP = hp.maxHP;
-    // FIX: Armor is 0-1 range; was 3.0+diff*1.5 making final boss immune
-    // FIX: Cap at 0.75 so bosses always take at least 25% damage at high difficulty
-    hp.armor = std::min(0.4f + difficulty * 0.1f, 0.75f);
+    // BALANCE: Sovereign armor base 0.4 -> 0.25, scale 0.1 -> 0.05
+    hp.armor = std::min(0.25f + difficulty * 0.05f, 0.6f);
 
     auto& combat = e.addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 25.0f + difficulty * 5.0f;
+    // BALANCE: Sovereign melee 25+diff*5 -> 22+diff*3
+    combat.meleeAttack.damage = 22.0f + difficulty * 3.0f;
     combat.meleeAttack.range = 80.0f;
     combat.meleeAttack.knockback = 350.0f;
-    combat.rangedAttack.damage = 18.0f + difficulty * 3.0f;
+    // BALANCE: Sovereign ranged 18+diff*3 -> 15+diff*2
+    combat.rangedAttack.damage = 15.0f + difficulty * 2.0f;
     combat.rangedAttack.range = 500.0f;
 
     auto& ai = e.addComponent<AIComponent>();

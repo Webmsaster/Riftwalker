@@ -32,7 +32,8 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
     col.onTrigger = [](Entity* self, Entity* other) {
         if (other->getTag() == "player" && other->hasComponent<HealthComponent>()) {
             auto& hp = other->getComponent<HealthComponent>();
-            hp.currentHP = std::min(hp.currentHP + 20.0f, hp.maxHP);
+            // BALANCE: Health orb heal 20 -> 30 (25% of base HP, meaningful recovery)
+            hp.currentHP = std::min(hp.currentHP + 30.0f, hp.maxHP);
             AudioManager::instance().play(SFX::Pickup);
             self->destroy();
         }
@@ -172,21 +173,23 @@ Entity& ItemDrop::spawnDamageBoost(EntityManager& entities, Vec2 pos, int dimens
 
 void ItemDrop::spawnRandomDrop(EntityManager& entities, Vec2 pos, int dimension, int difficulty, Player* player) {
     int roll = std::rand() % 100;
-    if (roll < 20) {
-        // 20% chance: health orb
+    // BALANCE: Health orb rate 20% -> 25%, shard rate 25% -> 30%, shard value 3+diff*2 -> 5+diff*3
+    // Goal: ~1 upgrade purchasable per level
+    if (roll < 25) {
+        // 25% chance: health orb (was 20%)
         spawnHealthOrb(entities, pos, dimension);
-    } else if (roll < 45) {
-        // 25% chance: rift shard
-        spawnRiftShard(entities, pos, dimension, 3 + difficulty * 2);
     } else if (roll < 55) {
+        // 30% chance: rift shard (was 25%), higher value
+        spawnRiftShard(entities, pos, dimension, 5 + difficulty * 3);
+    } else if (roll < 65) {
         // 10% chance: shield
         if (player) spawnShieldOrb(entities, pos, dimension, player);
-    } else if (roll < 63) {
+    } else if (roll < 73) {
         // 8% chance: speed boost
         if (player) spawnSpeedBoost(entities, pos, dimension, player);
-    } else if (roll < 70) {
+    } else if (roll < 80) {
         // 7% chance: damage boost
         if (player) spawnDamageBoost(entities, pos, dimension, player);
     }
-    // 30% chance: nothing
+    // BALANCE: Nothing chance reduced 30% -> 20% (more rewarding combat)
 }

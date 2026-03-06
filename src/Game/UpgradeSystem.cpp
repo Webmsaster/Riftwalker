@@ -7,25 +7,26 @@ UpgradeSystem::UpgradeSystem() {
 }
 
 void UpgradeSystem::init() {
+    // BALANCE: All upgrade costs reduced ~25-30% so players can buy 1-2 per level
     m_upgrades = {
-        {UpgradeID::MaxHP, "Reinforced Suit", "+20 Max HP", 50, 5},
-        {UpgradeID::MoveSpeed, "Quantum Boots", "+10% Move Speed", 40, 5},
-        {UpgradeID::DashCooldown, "Phase Thrusters", "-15% Dash Cooldown", 60, 4},
-        {UpgradeID::MeleeDamage, "Rift Blade", "+15% Melee Damage", 55, 5},
-        {UpgradeID::RangedDamage, "Void Projector", "+15% Ranged Damage", 55, 5},
-        {UpgradeID::EntropyResistance, "Entropy Shield", "-20% Entropy Gain", 80, 5},
-        {UpgradeID::EntropyDecay, "Auto-Stabilizer", "+Passive Entropy Decay", 100, 3},
-        {UpgradeID::JumpHeight, "Gravity Modulator", "+10% Jump Height", 45, 4},
-        {UpgradeID::DoubleJump, "Air Dash Module", "+1 Extra Jump", 120, 2},
-        {UpgradeID::SwitchCooldown, "Rift Capacitor", "-20% Switch Cooldown", 70, 4},
-        {UpgradeID::Armor, "Dimensional Plating", "+10% Damage Reduction", 65, 5},
-        {UpgradeID::ComboMaster, "Combo Amplifier", "+Combo Damage Bonus", 90, 3},
-        {UpgradeID::WallSlide, "Grip Enhancer", "Better Wall Slide Control", 50, 2},
-        {UpgradeID::CritChance, "Rift Resonance", "+10% Critical Chance", 75, 3},
-        {UpgradeID::ShardMagnet, "Shard Magnet", "+Pickup Range", 35, 3},
-        {UpgradeID::AbilityCooldown, "Temporal Flux", "-15% Ability Cooldowns", 80, 3},
-        {UpgradeID::AbilityPower, "Rift Amplifier", "+20% Ability Damage", 90, 3},
-        {UpgradeID::ShieldCapacity, "Barrier Core", "+1 Shield Capacity", 100, 2},
+        {UpgradeID::MaxHP, "Reinforced Suit", "+20 Max HP", 35, 5},            // was 50
+        {UpgradeID::MoveSpeed, "Quantum Boots", "+10% Move Speed", 30, 5},     // was 40
+        {UpgradeID::DashCooldown, "Phase Thrusters", "-15% Dash Cooldown", 45, 4}, // was 60
+        {UpgradeID::MeleeDamage, "Rift Blade", "+15% Melee Damage", 40, 5},    // was 55
+        {UpgradeID::RangedDamage, "Void Projector", "+15% Ranged Damage", 40, 5}, // was 55
+        {UpgradeID::EntropyResistance, "Entropy Shield", "-20% Entropy Gain", 55, 5}, // was 80
+        {UpgradeID::EntropyDecay, "Auto-Stabilizer", "+Passive Entropy Decay", 70, 3}, // was 100
+        {UpgradeID::JumpHeight, "Gravity Modulator", "+10% Jump Height", 35, 4}, // was 45
+        {UpgradeID::DoubleJump, "Air Dash Module", "+1 Extra Jump", 85, 2},     // was 120
+        {UpgradeID::SwitchCooldown, "Rift Capacitor", "-20% Switch Cooldown", 50, 4}, // was 70
+        {UpgradeID::Armor, "Dimensional Plating", "+10% Damage Reduction", 45, 5}, // was 65
+        {UpgradeID::ComboMaster, "Combo Amplifier", "+Combo Damage Bonus", 65, 3}, // was 90
+        {UpgradeID::WallSlide, "Grip Enhancer", "Better Wall Slide Control", 35, 2}, // was 50
+        {UpgradeID::CritChance, "Rift Resonance", "+10% Critical Chance", 55, 3}, // was 75
+        {UpgradeID::ShardMagnet, "Shard Magnet", "+Pickup Range", 25, 3},       // was 35
+        {UpgradeID::AbilityCooldown, "Temporal Flux", "-15% Ability Cooldowns", 55, 3}, // was 80
+        {UpgradeID::AbilityPower, "Rift Amplifier", "+20% Ability Damage", 65, 3}, // was 90
+        {UpgradeID::ShieldCapacity, "Barrier Core", "+1 Shield Capacity", 70, 2}, // was 100
     };
 }
 

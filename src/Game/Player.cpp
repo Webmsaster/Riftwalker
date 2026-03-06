@@ -35,18 +35,22 @@ Player::Player(EntityManager& entities) {
     col.mask = LAYER_TILE | LAYER_ENEMY | LAYER_PICKUP | LAYER_TRIGGER;
 
     auto& hp = m_entity->addComponent<HealthComponent>();
-    hp.maxHP = 100.0f;
-    hp.currentHP = 100.0f;
-    hp.invincibilityTime = 1.0f;
+    // BALANCE: Player HP 100 -> 120 (more breathing room in early game)
+    hp.maxHP = 120.0f;
+    hp.currentHP = 120.0f;
+    // BALANCE: Invincibility 1.0s -> 1.2s (slightly more recovery time after hit)
+    hp.invincibilityTime = 1.2f;
 
     auto& combat = m_entity->addComponent<CombatComponent>();
-    combat.meleeAttack.damage = 20.0f;
+    // BALANCE: Melee damage 20 -> 25 (first boss was 55 hits, now ~30 hits)
+    combat.meleeAttack.damage = 25.0f;
     combat.meleeAttack.range = 48.0f;
     combat.meleeAttack.knockback = 250.0f;
     combat.meleeAttack.cooldown = 0.35f;
     combat.meleeAttack.duration = 0.15f;
 
-    combat.rangedAttack.damage = 12.0f;
+    // BALANCE: Ranged damage 12 -> 15 (proportional to melee buff)
+    combat.rangedAttack.damage = 15.0f;
     combat.rangedAttack.range = 300.0f;
     combat.rangedAttack.knockback = 100.0f;
     combat.rangedAttack.cooldown = 0.6f;

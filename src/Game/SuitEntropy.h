@@ -40,7 +40,8 @@ public:
 private:
     float m_entropy = 0;
     float m_maxEntropy = 100.0f;
-    float m_passiveGain = 1.0f; // per second
+    // BALANCE: Passive entropy gain 1.0 -> 0.5 (less time pressure, more focus on combat)
+    float m_passiveGain = 0.5f; // per second
 
     // Visual effect timers
     float m_flickerTimer = 0;

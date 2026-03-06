@@ -244,13 +244,15 @@ void PlayState::applyUpgrades() {
     m_player->wallSlideSpeed = 60.0f * upgrades.getWallSlideSpeedMultiplier();
 
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
-    hp.maxHP = 100.0f + upgrades.getMaxHPBonus();
+    // BALANCE: Base HP 100 -> 120 (matches Player.cpp change)
+    hp.maxHP = 120.0f + upgrades.getMaxHPBonus();
     hp.currentHP = hp.maxHP;
     hp.armor = upgrades.getArmorBonus();
 
     auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
-    combat.meleeAttack.damage = 20.0f * upgrades.getMeleeDamageMultiplier();
-    combat.rangedAttack.damage = 12.0f * upgrades.getRangedDamageMultiplier();
+    // BALANCE: Base melee 20 -> 25, ranged 12 -> 15 (matches Player.cpp change)
+    combat.meleeAttack.damage = 25.0f * upgrades.getMeleeDamageMultiplier();
+    combat.rangedAttack.damage = 15.0f * upgrades.getRangedDamageMultiplier();
 
     m_dimManager.switchCooldown = 0.5f * upgrades.getSwitchCooldownMultiplier();
     m_entropy.passiveDecay = upgrades.getEntropyDecay();

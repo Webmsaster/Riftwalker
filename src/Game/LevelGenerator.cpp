@@ -479,7 +479,9 @@ void LevelGenerator::addPlatforms(Level& level, int startX, int startY,
 void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
                                       int w, int h, int dim, int difficulty) {
     float density = (dim == 1 ? m_themeA : m_themeB).enemyDensity;
-    int count = static_cast<int>(density * w * 0.15f) + difficulty / 2;
+    // BALANCE: Enemy density formula reduced: 0.15 -> 0.12, diff/2 -> diff/3
+    // Diff 1: ~2/room, Diff 5: ~3/room, Diff 10: ~5/room (was 2, 4, 7)
+    int count = static_cast<int>(density * w * 0.12f) + difficulty / 3;
 
     if (w <= 6 || h <= 4) return;
     for (int i = 0; i < count; i++) {
