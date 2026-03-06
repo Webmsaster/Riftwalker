@@ -151,6 +151,12 @@ void PlayState::generateLevel() {
     m_levelCompleteTimer = 0;
     m_activePuzzle.reset();
     m_nearRiftIndex = -1;
+    // FIX: Reset per-level rift tracking
+    m_repairedRiftIndices.clear();
+    m_levelRiftsRepaired = 0;
+    // FIX: Reset collapse state for new level
+    m_collapsing = false;
+    m_collapseTimer = 0;
 
     // Start ambient music
     AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
@@ -314,8 +320,10 @@ void PlayState::handleEvent(const SDL_Event& event) {
         }
 
         // NPC dialog input
+        // FIX: Added bounds check for m_nearNPCIndex against npcs.size()
         if (m_showNPCDialog && m_nearNPCIndex >= 0) {
             auto& npcs = m_level->getNPCs();
+            if (m_nearNPCIndex >= static_cast<int>(npcs.size())) { m_showNPCDialog = false; return; }
             auto options = NPCSystem::getDialogOptions(npcs[m_nearNPCIndex].type);
             int optCount = static_cast<int>(options.size());
             if (optCount == 0) { m_showNPCDialog = false; return; }
@@ -1189,6 +1197,8 @@ void PlayState::checkRiftInteraction() {
 
     m_nearRiftIndex = -1;
     for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
+        // FIX: Skip already-repaired rifts
+        if (m_repairedRiftIndices.count(i)) continue;
         float dx = playerPos.x - rifts[i].x;
         float dy = playerPos.y - rifts[i].y;
         float dist = std::sqrt(dx * dx + dy * dy);
@@ -1214,10 +1224,14 @@ void PlayState::checkRiftInteraction() {
         m_activePuzzle = std::make_unique<RiftPuzzle>(
             static_cast<PuzzleType>(puzzleType), m_currentDifficulty);
 
-        m_activePuzzle->onComplete = [this](bool success) {
+        int riftIdx = m_nearRiftIndex; // FIX: capture rift index for lambda
+        m_activePuzzle->onComplete = [this, riftIdx](bool success) {
             if (success) {
                 AudioManager::instance().play(SFX::RiftRepair);
                 riftsRepaired++;
+                // FIX: Mark this rift as repaired and track per-level count
+                m_repairedRiftIndices.insert(riftIdx);
+                m_levelRiftsRepaired++;
                 m_entropy.onRiftRepaired();
                 game->getAchievements().unlock("rift_walker");
                 float riftShardMult = game->getRunBuffSystem().getShardMultiplier();
@@ -1232,9 +1246,9 @@ void PlayState::checkRiftInteraction() {
                     {150, 80, 255, 255}, 250.0f, 6.0f);
                 m_camera.shake(5.0f, 0.3f);
 
-                // Start collapse after all rifts repaired
+                // FIX: Start collapse after all rifts in THIS level repaired
                 int totalRifts = static_cast<int>(m_level->getRiftPositions().size());
-                if (riftsRepaired >= totalRifts) {
+                if (m_levelRiftsRepaired >= totalRifts) {
                     m_collapsing = true;
                     m_collapseTimer = 0;
                 }
@@ -3662,22 +3676,69 @@ void PlayState::updateSmokeTest(float dt) {
         }
     }
 
-    // Move toward target
+    // FIX: Use input injection instead of direct velocity manipulation.
+    // Direct velocity was overridden by Player::handleMovement + PhysicsSystem friction.
     float dirX = target.x - playerPos.x;
     float dirY = target.y - playerPos.y;
     auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+    auto& inputMut = game->getInputMutable();
 
-    if (dirX > 30.0f) {
-        phys.velocity.x = m_player->moveSpeed;
-    } else if (dirX < -30.0f) {
-        phys.velocity.x = -m_player->moveSpeed;
+    // FIX: Stuck detection — if position barely changed in 3s, move toward exit instead
+    static Vec2 lastStuckCheckPos = {0, 0};
+    static float stuckTimer = 0;
+    float movedDist = std::sqrt((playerPos.x - lastStuckCheckPos.x) * (playerPos.x - lastStuckCheckPos.x)
+                              + (playerPos.y - lastStuckCheckPos.y) * (playerPos.y - lastStuckCheckPos.y));
+    if (movedDist < 30.0f) {
+        stuckTimer += dt;
+    } else {
+        stuckTimer = 0;
+        lastStuckCheckPos = playerPos;
     }
 
-    // Jump when blocked, target above, or periodically
-    bool blocked = std::abs(phys.velocity.x) < 10.0f && std::abs(dirX) > 50.0f;
+    // If stuck for 3s, ignore rift and head for exit; also try random jumps
+    bool isStuck = stuckTimer > 3.0f;
+    if (isStuck) {
+        Vec2 exitPos = m_level->getExitPoint();
+        dirX = exitPos.x - playerPos.x;
+        dirY = exitPos.y - playerPos.y;
+        // Reset stuck timer periodically so we re-evaluate
+        if (stuckTimer > 6.0f) {
+            stuckTimer = 0;
+            lastStuckCheckPos = playerPos;
+        }
+    }
+
+    // Horizontal movement: also move if target is mainly above/below (need to navigate platforms)
+    if (dirX > 30.0f) {
+        inputMut.injectActionPress(Action::MoveRight);
+    } else if (dirX < -30.0f) {
+        inputMut.injectActionPress(Action::MoveLeft);
+    } else if (std::abs(dirY) > 40.0f) {
+        // Target is above/below but close in X — move right toward exit to find platforms
+        Vec2 exitPos = m_level->getExitPoint();
+        if (exitPos.x > playerPos.x + 30.0f)
+            inputMut.injectActionPress(Action::MoveRight);
+        else if (exitPos.x < playerPos.x - 30.0f)
+            inputMut.injectActionPress(Action::MoveLeft);
+        else
+            inputMut.injectActionPress(std::rand() % 2 ? Action::MoveRight : Action::MoveLeft);
+    }
+
+    // FIX: jumpForce is already negative (-420), so use input injection for jumps.
+    bool blocked = (phys.onWallLeft || phys.onWallRight) ||
+                   (std::abs(phys.velocity.x) < 10.0f && std::abs(dirX) > 50.0f);
     bool targetAbove = dirY < -40.0f;
-    if (phys.onGround && (blocked || targetAbove || (std::rand() % 60 == 0))) {
-        phys.velocity.y = -m_player->jumpForce;
+    if (phys.onGround && (blocked || targetAbove || isStuck || (std::rand() % 60 == 0))) {
+        inputMut.injectActionPress(Action::Jump);
+    }
+    // FIX: Wall-jump when sliding on wall — essential for navigating platformer terrain
+    if (m_player->isWallSliding) {
+        inputMut.injectActionPress(Action::Jump);
+    }
+    // Double-jump in air when target is above or stuck
+    if (!phys.onGround && !m_player->isWallSliding && m_player->jumpsRemaining > 0
+        && (targetAbove || isStuck || (std::rand() % 20 == 0))) {
+        inputMut.injectActionPress(Action::Jump);
     }
 
     // Interact with rift when near (inject Interact input so normal update handles it)
@@ -3716,16 +3777,14 @@ void PlayState::updateSmokeTest(float dt) {
         }
     }
 
-    // Dimension switch every 5-8 seconds
+    // FIX: Use input injection for dimension switch to trigger all associated effects
     if (m_smokeDimTimer <= 0) {
-        m_dimManager.switchDimension();
+        inputMut.injectActionPress(Action::DimensionSwitch);
         m_smokeDimTimer = 5.0f + static_cast<float>(std::rand() % 30) * 0.1f;
     }
 
-    // Dash occasionally
+    // FIX: Use input injection for dash instead of direct state manipulation
     if (std::rand() % 120 == 0 && phys.onGround && m_player->dashCooldownTimer <= 0) {
-        m_player->isDashing = true;
-        m_player->dashTimer = m_player->dashDuration;
-        m_player->dashCooldownTimer = m_player->dashCooldown;
+        inputMut.injectActionPress(Action::Dash);
     }
 }

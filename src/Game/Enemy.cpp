@@ -16,7 +16,8 @@ void Enemy::makeMiniBoss(Entity& e) {
     auto& hp = e.getComponent<HealthComponent>();
     hp.maxHP *= 3.0f;
     hp.currentHP = hp.maxHP;
-    hp.armor += 3.0f;
+    // FIX: Armor is 0-1 range (fraction of damage reduction), not absolute
+    hp.armor += 0.3f;
 
     auto& combat = e.getComponent<CombatComponent>();
     combat.meleeAttack.damage *= 1.5f;
@@ -376,7 +377,8 @@ Entity& Enemy::createShielder(EntityManager& entities, Vec2 pos, int dimension) 
     auto& hp = e.addComponent<HealthComponent>();
     hp.maxHP = 80.0f; // Very tanky
     hp.currentHP = 80.0f;
-    hp.armor = 5.0f; // Damage reduction
+    // FIX: Armor is 0-1 range (0.5 = 50% damage reduction)
+    hp.armor = 0.5f;
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 18.0f;
@@ -607,7 +609,8 @@ Entity& Enemy::createVoidWyrm(EntityManager& entities, Vec2 pos, int dimension, 
     auto& hp = e.addComponent<HealthComponent>();
     hp.maxHP = 180.0f + difficulty * 70.0f;
     hp.currentHP = hp.maxHP;
-    hp.armor = 1.0f + difficulty * 1.5f;
+    // FIX: Armor is 0-1 range; was 1.0+diff*1.5 making boss immune
+    hp.armor = 0.2f + difficulty * 0.1f;
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 20.0f + difficulty * 4.0f;
@@ -663,7 +666,8 @@ Entity& Enemy::createBoss(EntityManager& entities, Vec2 pos, int dimension, int 
     auto& hp = e.addComponent<HealthComponent>();
     hp.maxHP = 200.0f + difficulty * 80.0f;
     hp.currentHP = hp.maxHP;
-    hp.armor = 2.0f + difficulty * 2.0f;
+    // FIX: Armor is 0-1 range; was 2.0+diff*2.0 making boss immune
+    hp.armor = 0.3f + difficulty * 0.1f;
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 25.0f + difficulty * 5.0f;
@@ -777,7 +781,8 @@ Entity& Enemy::createTemporalWeaver(EntityManager& entities, Vec2 pos, int dimen
     auto& hp = e.addComponent<HealthComponent>();
     hp.maxHP = 280.0f + difficulty * 90.0f;
     hp.currentHP = hp.maxHP;
-    hp.armor = 2.0f + difficulty * 1.5f;
+    // FIX: Armor is 0-1 range; was 2.0+diff*1.5 making boss immune
+    hp.armor = 0.25f + difficulty * 0.1f;
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 20.0f + difficulty * 4.0f;
@@ -836,7 +841,8 @@ Entity& Enemy::createDimensionalArchitect(EntityManager& entities, Vec2 pos, int
     auto& hp = e.addComponent<HealthComponent>();
     hp.maxHP = 250.0f + difficulty * 80.0f;
     hp.currentHP = hp.maxHP;
-    hp.armor = 2.0f + difficulty * 2.0f;
+    // FIX: Armor is 0-1 range; was 2.0+diff*2.0 making boss immune
+    hp.armor = 0.3f + difficulty * 0.1f;
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 18.0f + difficulty * 3.0f;
@@ -894,7 +900,8 @@ Entity& Enemy::createVoidSovereign(EntityManager& entities, Vec2 pos, int dimens
     auto& hp = e.addComponent<HealthComponent>();
     hp.maxHP = 350.0f + difficulty * 60.0f;
     hp.currentHP = hp.maxHP;
-    hp.armor = 3.0f + difficulty * 1.5f;
+    // FIX: Armor is 0-1 range; was 3.0+diff*1.5 making final boss immune
+    hp.armor = 0.4f + difficulty * 0.1f;
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 25.0f + difficulty * 5.0f;

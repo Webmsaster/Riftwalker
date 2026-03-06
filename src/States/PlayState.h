@@ -1,4 +1,5 @@
 #pragma once
+#include <set>
 #include "GameState.h"
 #include "ECS/EntityManager.h"
 #include "Core/Camera.h"
@@ -84,6 +85,9 @@ private:
     // Puzzles
     std::unique_ptr<RiftPuzzle> m_activePuzzle;
     int m_nearRiftIndex = -1;
+    // FIX: Track repaired rifts per level to prevent re-repair and fix collapse timing
+    std::set<int> m_repairedRiftIndices;
+    int m_levelRiftsRepaired = 0;
 
     // World themes
     WorldTheme m_themeA;
