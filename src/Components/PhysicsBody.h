@@ -11,6 +11,10 @@ struct PhysicsBody : public Component {
     float airResistance = 0.0f;
     float bounciness = 0.0f;
 
+    // Apex hang-time: reduced gravity near jump peak
+    float apexThreshold = 0.0f;       // velocity.y range considered "near apex" (0 = disabled)
+    float apexGravityMultiplier = 1.0f; // gravity multiplier when near apex
+
     bool useGravity = true;
     bool onGround = false;
     bool onWallLeft = false;

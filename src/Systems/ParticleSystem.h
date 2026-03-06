@@ -44,8 +44,10 @@ public:
 
     void addEmitter(const ParticleEmitter& emitter);
     void burst(Vec2 pos, int count, SDL_Color color, float speed = 150.0f, float size = 3.0f);
+    void directionalBurst(Vec2 pos, int count, SDL_Color color, float dirDeg, float spreadDeg = 90.0f, float speed = 180.0f, float size = 3.0f);
     void dimensionSwitch(Vec2 pos, SDL_Color colorA, SDL_Color colorB);
     void damageEffect(Vec2 pos, SDL_Color color);
+    void weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, float intensity = 1.0f);
     void ambientDust(Vec2 pos, SDL_Color color, float radius = 200.0f);
     void clear();
 

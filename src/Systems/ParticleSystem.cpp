@@ -122,6 +122,23 @@ void ParticleSystem::burst(Vec2 pos, int count, SDL_Color color, float speed, fl
     addEmitter(e);
 }
 
+void ParticleSystem::directionalBurst(Vec2 pos, int count, SDL_Color color, float dirDeg, float spreadDeg, float speed, float size) {
+    ParticleEmitter e;
+    e.position = pos;
+    e.colorStart = color;
+    e.burstCount = count;
+    e.speed = speed;
+    e.speedVariance = speed * 0.4f;
+    e.lifetime = 0.35f;
+    e.lifetimeVariance = 0.1f;
+    e.size = size;
+    e.sizeDecay = size * 2.0f;
+    e.direction = dirDeg;
+    e.spread = spreadDeg;
+    e.gravity = 200.0f;
+    addEmitter(e);
+}
+
 void ParticleSystem::dimensionSwitch(Vec2 pos, SDL_Color colorA, SDL_Color colorB) {
     burst(pos, 30, colorA, 200.0f, 5.0f);
     burst(pos, 30, colorB, 200.0f, 5.0f);
@@ -129,6 +146,39 @@ void ParticleSystem::dimensionSwitch(Vec2 pos, SDL_Color colorA, SDL_Color color
 
 void ParticleSystem::damageEffect(Vec2 pos, SDL_Color color) {
     burst(pos, 15, color, 120.0f, 3.0f);
+}
+
+void ParticleSystem::weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, float intensity) {
+    // Spawn trail particles along the weapon line (origin -> tip)
+    int count = static_cast<int>(2 + intensity * 2); // 2-4 particles per frame
+    for (int i = 0; i < count; i++) {
+        if (m_particles.size() >= MAX_PARTICLES) return;
+
+        float t = randFloat(0.3f, 1.0f); // bias toward tip
+        Vec2 pos = {
+            origin.x + (tipPos.x - origin.x) * t,
+            origin.y + (tipPos.y - origin.y) * t
+        };
+        // Small random offset perpendicular to weapon direction
+        pos.x += randFloat(-3.0f, 3.0f);
+        pos.y += randFloat(-3.0f, 3.0f);
+
+        Particle p;
+        p.position = pos;
+        // Slow drift away from weapon line
+        p.velocity = {randFloat(-20.0f, 20.0f), randFloat(-30.0f, 10.0f)};
+        p.color = color;
+        p.color.a = static_cast<Uint8>(200 * intensity);
+        p.colorEnd = {color.r, color.g, color.b, 0};
+        p.useColorLerp = true;
+        p.lifetime = 0.1f + randFloat(0.0f, 0.05f);
+        p.maxLifetime = p.lifetime;
+        p.size = 2.0f + randFloat(0.0f, 2.0f) * intensity;
+        p.sizeDecay = p.size * 6.0f; // fast shrink
+        p.gravity = 0;
+        p.alive = true;
+        m_particles.push_back(p);
+    }
 }
 
 void ParticleSystem::ambientDust(Vec2 pos, SDL_Color color, float radius) {

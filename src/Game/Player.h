@@ -47,6 +47,16 @@ public:
     float dashCooldown = 0.5f;
     float dashCooldownTimer = 0;
 
+    // Input buffering (jump/dash register even if pressed slightly too early)
+    float jumpBufferTimer = 0;
+    float jumpBufferTime = 0.1f;   // 100ms buffer window
+    float dashBufferTimer = 0;
+    float dashBufferTime = 0.08f;  // 80ms buffer window
+
+    // Post-dash momentum preservation
+    float dashMomentumTimer = 0;
+    float dashMomentumTime = 0.15f; // 150ms momentum window after dash
+
     ParticleSystem* particles = nullptr;
     bool wasInAir = false;
 

@@ -534,7 +534,8 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     phys.velocity += knockDir * atkData.knockback * knockMult;
                 }
 
-                // Stun: dash attack stuns 1s, combo finisher (stage 2) stuns 0.5s
+                // Stun: dash attack stuns 1s, combo finisher (stage 2) stuns 0.5s,
+                // all other player hits apply brief hitstun for game-feel
                 if (isPlayer && target.hasComponent<AIComponent>()) {
                     auto& targetAI = target.getComponent<AIComponent>();
                     if (isDashAttack) {
@@ -543,6 +544,10 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     } else if (comboStage == 2) {
                         targetAI.stun(0.5f);
                         AudioManager::instance().play(SFX::EnemyStun);
+                    } else if (targetAI.state != AIState::Juggled &&
+                               targetAI.state != AIState::Stunned) {
+                        // Brief hitstun on normal hits — makes every hit feel punchy
+                        targetAI.stun(0.1f);
                     }
                 }
 
@@ -629,7 +634,18 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                                    (attackCenter.y + targetCenter.y) * 0.5f};
                     float burstSpeed = isDashAttack ? 250.0f : (120.0f + comboStage * 60.0f);
                     float burstLife = isDashAttack ? 5.0f : (2.0f + comboStage);
-                    m_particles->burst(hitPos, particleCount, {255, 220, 100, 255}, burstSpeed, burstLife);
+                    m_particles->burst(hitPos, particleCount / 2, {255, 220, 100, 255}, burstSpeed, burstLife);
+
+                    // Directional impact particles: spray in hit direction
+                    float hitDirDeg = std::atan2(targetCenter.y - attackCenter.y,
+                                                 targetCenter.x - attackCenter.x) * 180.0f / 3.14159f;
+                    float dirSpread = isDashAttack ? 60.0f : 90.0f;
+                    float dirSpeed = isDashAttack ? 280.0f : (150.0f + comboStage * 50.0f);
+                    int dirCount = isDashAttack ? 15 : (5 + comboStage * 3);
+                    m_particles->directionalBurst(hitPos, dirCount, hitColor, hitDirDeg, dirSpread, dirSpeed, burstLife);
+
+                    // Small white sparks at impact point
+                    m_particles->burst(hitPos, 3 + comboStage, {255, 255, 255, 255}, 80.0f, 1.5f);
                 }
             }
 

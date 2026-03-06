@@ -75,7 +75,14 @@ void PhysicsSystem::applyGravity(Entity& entity, float dt) {
     auto& phys = entity.getComponent<PhysicsBody>();
     if (!phys.useGravity) return;
 
-    phys.velocity.y += phys.gravity * dt;
+    // Apex hang-time: reduce gravity when near the peak of a jump
+    float effectiveGravity = phys.gravity;
+    if (!phys.onGround && phys.apexThreshold > 0.0f &&
+        std::abs(phys.velocity.y) < phys.apexThreshold) {
+        effectiveGravity = phys.gravity * phys.apexGravityMultiplier;
+    }
+
+    phys.velocity.y += effectiveGravity * dt;
     if (phys.velocity.y > phys.maxFallSpeed) {
         phys.velocity.y = phys.maxFallSpeed;
     }

@@ -26,6 +26,8 @@ Player::Player(EntityManager& entities) {
     phys.gravity = 980.0f;
     phys.friction = 1200.0f;
     phys.airResistance = 200.0f;
+    phys.apexThreshold = 80.0f;         // apex hang when |vel.y| < 80 px/s
+    phys.apexGravityMultiplier = 0.4f;  // 60% gravity reduction at jump peak
 
     auto& col = m_entity->addComponent<ColliderComponent>();
     col.width = 24;
@@ -85,6 +87,11 @@ void Player::update(float dt, const InputManager& input) {
 
     auto& phys = m_entity->getComponent<PhysicsBody>();
 
+    // Tick input buffer timers
+    if (jumpBufferTimer > 0) jumpBufferTimer -= dt;
+    if (dashBufferTimer > 0) dashBufferTimer -= dt;
+    if (dashMomentumTimer > 0) dashMomentumTimer -= dt;
+
     handleDash(dt, input);
 
     if (!isDashing) {
@@ -94,6 +101,49 @@ void Player::update(float dt, const InputManager& input) {
     }
 
     handleAttack(input);
+
+    // Weapon trail: emit particles each frame during melee/dash attacks
+    {
+        auto& combat = m_entity->getComponent<CombatComponent>();
+        if (combat.isAttacking && particles &&
+            (combat.currentAttack == AttackType::Melee ||
+             combat.currentAttack == AttackType::Dash ||
+             combat.currentAttack == AttackType::Charged)) {
+            auto& t = m_entity->getComponent<TransformComponent>();
+            Vec2 center = t.getCenter();
+            auto& atk = combat.getCurrentAttackData();
+
+            // Weapon tip position based on attack direction and range
+            float reach = atk.range + 8.0f;
+            Vec2 tipPos = center + combat.attackDirection * reach;
+
+            // Attack progress (0=start, 1=end)
+            float progress = atk.duration > 0.0f ? 1.0f - (combat.attackTimer / atk.duration) : 1.0f;
+
+            // Color varies by attack type
+            SDL_Color trailColor;
+            if (combat.currentAttack == AttackType::Dash) {
+                trailColor = {100, 200, 255, 255}; // cyan for dash
+            } else if (combat.currentAttack == AttackType::Charged) {
+                trailColor = {255, 200, 50, 255}; // gold for charged
+            } else {
+                // Melee: escalate color with combo
+                switch (combat.comboCount % 3) {
+                    case 0: trailColor = {255, 255, 200, 255}; break; // white-warm
+                    case 1: trailColor = {255, 200, 80, 255};  break; // orange
+                    case 2: trailColor = {255, 100, 50, 255};  break; // red-orange
+                    default: trailColor = {255, 255, 200, 255}; break;
+                }
+            }
+
+            // Intensity peaks mid-swing
+            float intensity = 1.0f - std::abs(progress - 0.5f) * 2.0f;
+            intensity = 0.5f + intensity * 0.5f; // range: 0.5 to 1.0
+
+            particles->weaponTrail(center, tipPos, trailColor, intensity);
+        }
+    }
+
     handleAbilities(dt, input);
     updateAnimation();
 
@@ -251,7 +301,16 @@ void Player::handleMovement(float dt, const InputManager& input) {
     if (std::abs(axis) > 0.1f) {
         float speed = moveSpeed * (speedBoostTimer > 0 ? speedBoostMultiplier : 1.0f);
         if (freezeTimer > 0) speed *= 0.4f; // Freeze slows movement
-        phys.velocity.x = axis * speed;
+        float targetVelX = axis * speed;
+
+        // Post-dash momentum: keep higher velocity if moving in same direction
+        if (dashMomentumTimer > 0 &&
+            std::abs(phys.velocity.x) > speed &&
+            (phys.velocity.x > 0) == (axis > 0)) {
+            // Don't override — let friction naturally decelerate
+        } else {
+            phys.velocity.x = targetVelX;
+        }
         facingRight = axis > 0;
         m_entity->getComponent<SpriteComponent>().flipX = !facingRight;
     }
@@ -260,7 +319,14 @@ void Player::handleMovement(float dt, const InputManager& input) {
 void Player::handleJump(const InputManager& input) {
     auto& phys = m_entity->getComponent<PhysicsBody>();
 
+    // Input buffering: remember jump press for a short window
     if (input.isActionPressed(Action::Jump)) {
+        jumpBufferTimer = jumpBufferTime;
+    }
+
+    bool wantsJump = jumpBufferTimer > 0;
+
+    if (wantsJump) {
         if (isWallSliding) {
             // Wall jump
             float dir = facingRight ? -1.0f : 1.0f;
@@ -268,6 +334,7 @@ void Player::handleJump(const InputManager& input) {
             phys.velocity.y = wallJumpForceY;
             facingRight = !facingRight;
             isWallSliding = false;
+            jumpBufferTimer = 0;
             AudioManager::instance().play(SFX::PlayerJump);
             if (particles) {
                 auto& t = m_entity->getComponent<TransformComponent>();
@@ -277,6 +344,7 @@ void Player::handleJump(const InputManager& input) {
             AudioManager::instance().play(SFX::PlayerJump);
             phys.velocity.y = jumpForce;
             phys.coyoteTimer = 0;
+            jumpBufferTimer = 0;
             if (!phys.onGround && !phys.canCoyoteJump()) {
                 jumpsRemaining--;
                 // Double jump particle effect
@@ -302,6 +370,11 @@ void Player::handleJump(const InputManager& input) {
 void Player::handleDash(float dt, const InputManager& input) {
     if (dashCooldownTimer > 0) dashCooldownTimer -= dt;
 
+    // Input buffering: remember dash press while on cooldown
+    if (input.isActionPressed(Action::Dash)) {
+        dashBufferTimer = dashBufferTime;
+    }
+
     if (isDashing) {
         dashTimer -= dt;
         // Afterimage trail during dash (class-colored)
@@ -315,7 +388,8 @@ void Player::handleDash(float dt, const InputManager& input) {
             isDashing = false;
             auto& phys = m_entity->getComponent<PhysicsBody>();
             phys.useGravity = true;
-            phys.velocity.x *= 0.3f;
+            phys.velocity.x *= 0.7f;
+            dashMomentumTimer = dashMomentumTime;
             // Phantom: post-dash invisibility
             if (playerClass == PlayerClass::Phantom) {
                 const auto& classData = ClassSystem::getData(PlayerClass::Phantom);
@@ -325,7 +399,8 @@ void Player::handleDash(float dt, const InputManager& input) {
         return;
     }
 
-    if (input.isActionPressed(Action::Dash) && dashCooldownTimer <= 0) {
+    if (dashBufferTimer > 0 && dashCooldownTimer <= 0) {
+        dashBufferTimer = 0;
         isDashing = true;
         dashTimer = dashDuration;
         dashCooldownTimer = dashCooldown;
