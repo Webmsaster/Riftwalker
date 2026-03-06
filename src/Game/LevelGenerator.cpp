@@ -118,6 +118,33 @@ Level LevelGenerator::generate(int difficulty, int seed) {
         addPlatforms(level, curX, curY, rw, rh, 1, m_themeA);
         addPlatforms(level, curX, curY, rw, rh, 2, m_themeB);
 
+        // Dimension-exclusive bridge platforms: exist in only one dimension,
+        // creating paths that require dimension-switching to navigate
+        if (rw >= 10 && rh >= 6) {
+            int bridgeCount = 1 + m_rng() % 2; // 1-2 per room
+            for (int b = 0; b < bridgeCount; b++) {
+                int bridgeDim = (m_rng() % 2 == 0) ? 1 : 2;
+                const auto& theme = (bridgeDim == 1) ? m_themeA : m_themeB;
+                int bx = curX + 2 + m_rng() % (rw - 5);
+                int by = curY + 2 + m_rng() % (rh - 4);
+                int bw = 3 + m_rng() % 3; // 3-5 tiles wide
+
+                for (int dx = 0; dx < bw; dx++) {
+                    int tx = bx + dx;
+                    if (tx >= curX + rw - 1) break;
+                    // Only place if empty in target dim and empty in other dim
+                    int otherDim = (bridgeDim == 1) ? 2 : 1;
+                    if (level.getTile(tx, by, bridgeDim).type == TileType::Empty &&
+                        level.getTile(tx, by, otherDim).type == TileType::Empty) {
+                        Tile plat;
+                        plat.type = TileType::OneWay;
+                        plat.color = theme.colors.oneWay;
+                        level.setTile(tx, by, bridgeDim, plat);
+                    }
+                }
+            }
+        }
+
         // Add enemies
         addEnemySpawns(level, curX, curY, rw, rh,
                        (m_rng() % 2 == 0) ? 1 : 2, difficulty);

@@ -18,6 +18,7 @@ public:
 
     bool isSolid(int x, int y, int dimension) const;
     bool isOneWay(int x, int y, int dimension) const;
+    bool isDimensionExclusive(int x, int y, int dimension) const;
     bool inBounds(int x, int y) const;
 
     // Tileset loading (returns true if loaded, uses ResourceManager)

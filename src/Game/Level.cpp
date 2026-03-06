@@ -45,6 +45,14 @@ bool Level::isOneWay(int x, int y, int dimension) const {
     return tile.isOneWay();
 }
 
+bool Level::isDimensionExclusive(int x, int y, int dimension) const {
+    if (!inBounds(x, y)) return false;
+    int otherDim = (dimension == 1) ? 2 : 1;
+    const auto& thisTile = getTile(x, y, dimension);
+    const auto& otherTile = getTile(x, y, otherDim);
+    return (thisTile.isSolid() || thisTile.isOneWay()) && otherTile.type == TileType::Empty;
+}
+
 bool Level::inBounds(int x, int y) const {
     return x >= 0 && x < m_width && y >= 0 && y < m_height;
 }
@@ -171,6 +179,29 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
             } else {
                 SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, tile.color.a);
                 SDL_RenderFillRect(renderer, &sr);
+            }
+
+            // Dimension-exclusive indicator: pulsing border on tiles that don't exist in the other dimension
+            if (isDimensionExclusive(x, y, currentDim) &&
+                (tile.isSolid() || tile.isOneWay())) {
+                float pulse = 0.5f + 0.5f * std::sin(ticks * 0.004f + x * 1.3f + y * 2.1f);
+                Uint8 dimAlpha = static_cast<Uint8>(40 + 50 * pulse);
+                // Color matches current dimension (blue=dim1, red=dim2)
+                if (currentDim == 1) {
+                    SDL_SetRenderDrawColor(renderer, 100, 160, 255, dimAlpha);
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 255, 100, 100, dimAlpha);
+                }
+                SDL_RenderDrawRect(renderer, &sr);
+                // Inner glow line
+                SDL_Rect innerGlow = {sr.x + 1, sr.y + 1, sr.w - 2, sr.h - 2};
+                Uint8 innerAlpha = static_cast<Uint8>(20 + 25 * pulse);
+                if (currentDim == 1) {
+                    SDL_SetRenderDrawColor(renderer, 100, 160, 255, innerAlpha);
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 255, 100, 100, innerAlpha);
+                }
+                SDL_RenderDrawRect(renderer, &innerGlow);
             }
         }
     }
