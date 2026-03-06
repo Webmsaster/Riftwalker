@@ -38,6 +38,8 @@ public:
     bool isShowingSequence() const { return m_showingSequence; }
     int getCurrentRotation() const { return m_currentRotation; }
     int getTargetRotation() const { return m_targetRotation; }
+    float getCyclePos() const { return m_cyclePos; }
+    bool isInSweetSpot() const { return m_cyclePos >= m_sweetSpotStart && m_cyclePos <= m_sweetSpotEnd; }
 
 private:
     void initTiming();

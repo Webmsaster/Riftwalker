@@ -402,50 +402,94 @@ void Level::renderExit(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const 
     float time = ticks * 0.002f;
     float pulse = 0.5f + 0.5f * std::sin(time);
 
-    // Outer glow (green)
-    int glowSize = 3 + static_cast<int>(pulse * 3);
-    SDL_Rect glow = {sr.x - glowSize, sr.y - glowSize,
-                     sr.w + glowSize * 2, sr.h + glowSize * 2};
-    SDL_SetRenderDrawColor(renderer, 40, 180, 60, static_cast<Uint8>(25 + 15 * pulse));
-    SDL_RenderFillRect(renderer, &glow);
+    if (m_exitActive) {
+        // ACTIVE EXIT: bright green, energetic particles
 
-    // Gateway frame
-    SDL_SetRenderDrawColor(renderer, 60, 200, 80, 230);
-    SDL_RenderDrawRect(renderer, &sr);
-    SDL_Rect inner1 = {sr.x + 1, sr.y + 1, sr.w - 2, sr.h - 2};
-    SDL_SetRenderDrawColor(renderer, 40, 160, 60, 200);
-    SDL_RenderDrawRect(renderer, &inner1);
+        // Outer glow (green)
+        int glowSize = 3 + static_cast<int>(pulse * 3);
+        SDL_Rect glow = {sr.x - glowSize, sr.y - glowSize,
+                         sr.w + glowSize * 2, sr.h + glowSize * 2};
+        SDL_SetRenderDrawColor(renderer, 40, 180, 60, static_cast<Uint8>(25 + 15 * pulse));
+        SDL_RenderFillRect(renderer, &glow);
 
-    // Inner portal (dark green with bright sparkles)
-    SDL_Rect inner = {sr.x + 3, sr.y + 3, sr.w - 6, sr.h - 6};
-    SDL_SetRenderDrawColor(renderer, 15, 40, 20, 200);
-    SDL_RenderFillRect(renderer, &inner);
+        // Gateway frame
+        SDL_SetRenderDrawColor(renderer, 60, 200, 80, 230);
+        SDL_RenderDrawRect(renderer, &sr);
+        SDL_Rect inner1 = {sr.x + 1, sr.y + 1, sr.w - 2, sr.h - 2};
+        SDL_SetRenderDrawColor(renderer, 40, 160, 60, 200);
+        SDL_RenderDrawRect(renderer, &inner1);
 
-    // Upward particle lines (energy flowing up)
-    for (int i = 0; i < 5; i++) {
-        float phase = time * 2.0f + i * 1.2f;
-        float yOff = std::fmod(phase, 1.0f);
-        int px = inner.x + 2 + (i * (inner.w - 4)) / 4;
-        int py = inner.y + inner.h - static_cast<int>(yOff * inner.h);
-        int len = 3 + static_cast<int>(pulse * 3);
+        // Inner portal (dark green with bright sparkles)
+        SDL_Rect inner = {sr.x + 3, sr.y + 3, sr.w - 6, sr.h - 6};
+        SDL_SetRenderDrawColor(renderer, 15, 40, 20, 200);
+        SDL_RenderFillRect(renderer, &inner);
 
-        Uint8 g = static_cast<Uint8>(150 + 105 * std::sin(time + i));
-        SDL_SetRenderDrawColor(renderer, 50, g, 80, static_cast<Uint8>(200 * (1.0f - yOff)));
-        SDL_Rect particle = {px, py, 2, len};
-        SDL_RenderFillRect(renderer, &particle);
+        // Upward particle lines (energy flowing up)
+        for (int i = 0; i < 5; i++) {
+            float phase = time * 2.0f + i * 1.2f;
+            float yOff = std::fmod(phase, 1.0f);
+            int px = inner.x + 2 + (i * (inner.w - 4)) / 4;
+            int py = inner.y + inner.h - static_cast<int>(yOff * inner.h);
+            int len = 3 + static_cast<int>(pulse * 3);
+
+            Uint8 g = static_cast<Uint8>(150 + 105 * std::sin(time + i));
+            SDL_SetRenderDrawColor(renderer, 50, g, 80, static_cast<Uint8>(200 * (1.0f - yOff)));
+            SDL_Rect particle = {px, py, 2, len};
+            SDL_RenderFillRect(renderer, &particle);
+        }
+
+        // Corner accents (bright green)
+        int accent = 4;
+        SDL_SetRenderDrawColor(renderer, 100, 255, 120, 200);
+        SDL_RenderDrawLine(renderer, sr.x, sr.y, sr.x + accent, sr.y);
+        SDL_RenderDrawLine(renderer, sr.x, sr.y, sr.x, sr.y + accent);
+        SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y, sr.x + sr.w - 1 - accent, sr.y);
+        SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y, sr.x + sr.w - 1, sr.y + accent);
+        SDL_RenderDrawLine(renderer, sr.x, sr.y + sr.h - 1, sr.x + accent, sr.y + sr.h - 1);
+        SDL_RenderDrawLine(renderer, sr.x, sr.y + sr.h - 1, sr.x, sr.y + sr.h - 1 - accent);
+        SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y + sr.h - 1, sr.x + sr.w - 1 - accent, sr.y + sr.h - 1);
+        SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y + sr.h - 1, sr.x + sr.w - 1, sr.y + sr.h - 1 - accent);
+    } else {
+        // LOCKED EXIT: dim red/gray, slow pulse, no particles
+
+        // Dim outer glow (red-gray)
+        float slowPulse = 0.5f + 0.5f * std::sin(time * 0.5f);
+        int glowSize = 2 + static_cast<int>(slowPulse * 2);
+        SDL_Rect glow = {sr.x - glowSize, sr.y - glowSize,
+                         sr.w + glowSize * 2, sr.h + glowSize * 2};
+        SDL_SetRenderDrawColor(renderer, 80, 30, 30, static_cast<Uint8>(15 + 10 * slowPulse));
+        SDL_RenderFillRect(renderer, &glow);
+
+        // Gateway frame (dim gray-red)
+        SDL_SetRenderDrawColor(renderer, 100, 60, 60, 180);
+        SDL_RenderDrawRect(renderer, &sr);
+        SDL_Rect inner1 = {sr.x + 1, sr.y + 1, sr.w - 2, sr.h - 2};
+        SDL_SetRenderDrawColor(renderer, 80, 40, 40, 150);
+        SDL_RenderDrawRect(renderer, &inner1);
+
+        // Inner portal (dark, locked look)
+        SDL_Rect inner = {sr.x + 3, sr.y + 3, sr.w - 6, sr.h - 6};
+        SDL_SetRenderDrawColor(renderer, 20, 15, 15, 200);
+        SDL_RenderFillRect(renderer, &inner);
+
+        // Lock symbol: horizontal bar across middle
+        int barY = inner.y + inner.h / 2 - 2;
+        SDL_Rect lockBar = {inner.x + 2, barY, inner.w - 4, 4};
+        SDL_SetRenderDrawColor(renderer, 120, 60, 60, static_cast<Uint8>(150 + 50 * slowPulse));
+        SDL_RenderFillRect(renderer, &lockBar);
+
+        // Corner accents (dim red)
+        int accent = 4;
+        SDL_SetRenderDrawColor(renderer, 120, 50, 50, 150);
+        SDL_RenderDrawLine(renderer, sr.x, sr.y, sr.x + accent, sr.y);
+        SDL_RenderDrawLine(renderer, sr.x, sr.y, sr.x, sr.y + accent);
+        SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y, sr.x + sr.w - 1 - accent, sr.y);
+        SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y, sr.x + sr.w - 1, sr.y + accent);
+        SDL_RenderDrawLine(renderer, sr.x, sr.y + sr.h - 1, sr.x + accent, sr.y + sr.h - 1);
+        SDL_RenderDrawLine(renderer, sr.x, sr.y + sr.h - 1, sr.x, sr.y + sr.h - 1 - accent);
+        SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y + sr.h - 1, sr.x + sr.w - 1 - accent, sr.y + sr.h - 1);
+        SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y + sr.h - 1, sr.x + sr.w - 1, sr.y + sr.h - 1 - accent);
     }
-
-    // Corner accents
-    int accent = 4;
-    SDL_SetRenderDrawColor(renderer, 100, 255, 120, 200);
-    SDL_RenderDrawLine(renderer, sr.x, sr.y, sr.x + accent, sr.y);
-    SDL_RenderDrawLine(renderer, sr.x, sr.y, sr.x, sr.y + accent);
-    SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y, sr.x + sr.w - 1 - accent, sr.y);
-    SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y, sr.x + sr.w - 1, sr.y + accent);
-    SDL_RenderDrawLine(renderer, sr.x, sr.y + sr.h - 1, sr.x + accent, sr.y + sr.h - 1);
-    SDL_RenderDrawLine(renderer, sr.x, sr.y + sr.h - 1, sr.x, sr.y + sr.h - 1 - accent);
-    SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y + sr.h - 1, sr.x + sr.w - 1 - accent, sr.y + sr.h - 1);
-    SDL_RenderDrawLine(renderer, sr.x + sr.w - 1, sr.y + sr.h - 1, sr.x + sr.w - 1, sr.y + sr.h - 1 - accent);
 }
 
 void Level::renderFireTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {

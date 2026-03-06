@@ -6,7 +6,15 @@
 #include <cstdlib>
 #include <algorithm>
 
+extern bool g_autoSmokeTest;
+
 void RunSummaryState::enter() {
+    // Smoke test: auto-skip run summary — go back to menu then quit
+    if (g_autoSmokeTest) {
+        game->quit();
+        return;
+    }
+
     m_fadeIn = 0;
     m_time = 0;
     m_statsTimer = 0;

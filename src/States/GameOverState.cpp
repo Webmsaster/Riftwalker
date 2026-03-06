@@ -3,7 +3,13 @@
 #include <cmath>
 #include <cstdlib>
 
+extern bool g_autoSmokeTest;
+
 void GameOverState::enter() {
+    if (g_autoSmokeTest) {
+        game->quit();
+        return;
+    }
     m_timer = 0;
     m_glitchIntensity = 1.0f;
 }

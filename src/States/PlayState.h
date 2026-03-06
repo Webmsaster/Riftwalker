@@ -104,6 +104,9 @@ private:
     float m_collapseTimer = 0;
     float m_collapseMaxTime = 60.0f;
 
+    // FIX: Exit locked hint when player reaches exit before repairing all rifts
+    float m_exitLockedHintTimer = 0;
+
     // Ambient effects
     float m_ambientDustTimer = 0;
 

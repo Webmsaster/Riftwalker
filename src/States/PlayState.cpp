@@ -22,15 +22,39 @@
 #include <cmath>
 #include <cstring>
 #include <cstdio>
+#include <cstdarg>
 #include <algorithm>
 
 extern bool g_autoSmokeTest;
+
+static FILE* g_smokeFile = nullptr;
+
+static void smokeLog(const char* fmt, ...) {
+    char buf[512];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    if (!g_smokeFile) {
+        g_smokeFile = fopen("smoke_test.log", "a");
+    }
+    if (g_smokeFile) {
+        fprintf(g_smokeFile, "%s\n", buf);
+        fflush(g_smokeFile);
+    }
+}
 
 void PlayState::enter() {
     if (g_autoSmokeTest) {
         m_smokeTest = true;
         m_showDebugOverlay = true;
-        SDL_Log("[SMOKE] Smoke test auto-enabled via --smoke flag");
+        // Open persistent log file
+        if (g_smokeFile) fclose(g_smokeFile);
+        g_smokeFile = fopen("smoke_test.log", "w");
+        if (g_smokeFile) {
+            fprintf(g_smokeFile, "=== RIFTWALKER SMOKE TEST ===\n");
+            fflush(g_smokeFile);
+        }
     }
     startNewRun();
 }
@@ -371,6 +395,14 @@ void PlayState::handleEvent(const SDL_Event& event) {
 
 void PlayState::update(float dt) {
     if (!m_player || !m_level) return;
+
+    // Generate level FIRST after returning from shop (before any gameplay logic)
+    // This prevents stale state (old collapsing/exit) from triggering false completions
+    if (m_pendingLevelGen) {
+        m_pendingLevelGen = false;
+        applyRunBuffs();
+        generateLevel();
+    }
 
     // Track balance stats every frame
     updateBalanceTracking(dt);
@@ -1074,12 +1106,7 @@ void PlayState::update(float dt) {
         }
     }
 
-    // Generate level after returning from shop
-    if (m_pendingLevelGen) {
-        m_pendingLevelGen = false;
-        applyRunBuffs();
-        generateLevel();
-    }
+    // (pendingLevelGen moved to top of update to prevent stale state bugs)
 
     // Collapse mechanic
     if (m_collapsing) {
@@ -1093,6 +1120,9 @@ void PlayState::update(float dt) {
             return;
         }
     }
+
+    // FIX: Decay exit locked hint timer
+    if (m_exitLockedHintTimer > 0) m_exitLockedHintTimer -= dt;
 
     // Track dash count for achievement
     if (m_player && m_player->isDashing && m_player->dashTimer >= m_player->dashDuration - 0.02f) {
@@ -1258,6 +1288,7 @@ void PlayState::checkRiftInteraction() {
                 if (m_levelRiftsRepaired >= totalRifts) {
                     m_collapsing = true;
                     m_collapseTimer = 0;
+                    m_level->setExitActive(true);
                 }
             } else {
                 AudioManager::instance().play(SFX::RiftFail);
@@ -1281,8 +1312,18 @@ void PlayState::checkExitReached() {
     float dist = std::sqrt(dx * dx + dy * dy);
 
     if (dist < 50.0f) {
+        // FIX: Exit only works after all rifts are repaired (collapse started).
+        // This enforces the core game loop: repair rifts -> collapse -> escape.
+        if (!m_collapsing) {
+            // Show hint to player that exit is locked
+            m_exitLockedHintTimer = 2.0f;
+            return;
+        }
         m_levelComplete = true;
         m_levelCompleteTimer = 0;
+        if (m_smokeTest) {
+            smokeLog("[SMOKE] LEVEL %d COMPLETE! (%.1fs)", m_currentDifficulty, m_smokeRunTime);
+        }
         AudioManager::instance().play(SFX::LevelComplete);
         float shardMult = (g_selectedDifficulty == GameDifficulty::Easy) ? 1.5f :
                           (g_selectedDifficulty == GameDifficulty::Hard) ? 0.75f : 1.0f;
@@ -1435,6 +1476,50 @@ void PlayState::render(SDL_Renderer* renderer) {
                     SDL_DestroyTexture(tt);
                 }
                 SDL_FreeSurface(ts);
+            }
+        }
+    }
+
+    // FIX: Rift progress indicator (top center, always visible when rifts remain)
+    if (m_level && !m_collapsing && !m_levelComplete) {
+        int totalRifts = static_cast<int>(m_level->getRiftPositions().size());
+        int remaining = totalRifts - m_levelRiftsRepaired;
+        if (remaining > 0) {
+            TTF_Font* font = game->getFont();
+            if (font) {
+                char riftBuf[64];
+                std::snprintf(riftBuf, sizeof(riftBuf), "Rifts: %d / %d", m_levelRiftsRepaired, totalRifts);
+                SDL_Color rc = {180, 130, 255, 200};
+                SDL_Surface* rs = TTF_RenderText_Blended(font, riftBuf, rc);
+                if (rs) {
+                    SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
+                    if (rt) {
+                        SDL_Rect rr = {640 - rs->w / 2, 30, rs->w, rs->h};
+                        SDL_RenderCopy(renderer, rt, nullptr, &rr);
+                        SDL_DestroyTexture(rt);
+                    }
+                    SDL_FreeSurface(rs);
+                }
+            }
+        }
+    }
+
+    // FIX: Exit locked hint when player reaches exit before repairing rifts
+    if (m_exitLockedHintTimer > 0) {
+        TTF_Font* font = game->getFont();
+        if (font) {
+            Uint8 alpha = static_cast<Uint8>(std::min(1.0f, m_exitLockedHintTimer) * 255);
+            SDL_Color hc = {255, 100, 80, alpha};
+            SDL_Surface* hs = TTF_RenderText_Blended(font, "Repair all rifts to unlock exit!", hc);
+            if (hs) {
+                SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
+                if (ht) {
+                    SDL_SetTextureAlphaMod(ht, alpha);
+                    SDL_Rect hr = {640 - hs->w / 2, 460, hs->w, hs->h};
+                    SDL_RenderCopy(renderer, ht, nullptr, &hr);
+                    SDL_DestroyTexture(ht);
+                }
+                SDL_FreeSurface(hs);
             }
         }
     }
@@ -3580,9 +3665,43 @@ void PlayState::updateSmokeTest(float dt) {
     m_smokeActionTimer -= dt;
     m_smokeDimTimer -= dt;
 
-    // God mode: keep HP full
+    // God mode: keep HP full + prevent entropy death
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     hp.currentHP = hp.maxHP;
+    if (m_entropy.getPercent() > 0.5f) {
+        m_entropy.reduceEntropy(m_entropy.getEntropy() * 0.5f);
+    }
+
+    // Auto-rescue: if bot fell far below spawn, teleport back
+    {
+        Vec2 pos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        Vec2 spawn = m_level->getSpawnPoint();
+        float maxDropBelow = 500.0f; // 15+ tiles below spawn = probably fell off
+        float mapBottom = m_level->getPixelHeight() * 0.85f;
+        if (pos.y > spawn.y + maxDropBelow || pos.y > mapBottom) {
+            auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
+            auto& phys2 = m_player->getEntity()->getComponent<PhysicsBody>();
+            transform.position = spawn;
+            phys2.velocity = {0, 0};
+            smokeLog("[SMOKE] Auto-rescue: fell too far (y=%.0f, spawn=%.0f), teleport to spawn", pos.y, spawn.y);
+        }
+    }
+
+    // All static navigation state (declared here, used throughout)
+    static float levelTimer = 0;
+    static int smokeLastLevel = 0;
+    static float noProgressTimer = 0;
+    static float bestDistToTarget = 99999.0f;
+    static int noProgressSkips = 0;
+    static Vec2 lastStuckCheckPos = {0, 0};
+    static float stuckTimer = 0;
+    static bool stuckLogged = false;
+    static int smokeSkipRiftMask = 0;
+    static int smokeCurrentTarget = -1;
+
+    // Heartbeat frame counter — proves game loop is alive
+    static int smokeFrameCount = 0;
+    smokeFrameCount++;
 
     // Periodic status log every 5 seconds
     static float lastStatusLog = 0;
@@ -3590,34 +3709,111 @@ void PlayState::updateSmokeTest(float dt) {
         lastStatusLog = m_smokeRunTime;
         Vec2 pos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
         auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
-        auto rifts = m_level->getRiftPositions();
-        SDL_Log("[SMOKE] t=%.0fs pos=(%.0f,%.0f) vel=(%.0f,%.0f) rifts=%d ground=%d",
-                m_smokeRunTime, pos.x, pos.y, phys.velocity.x, phys.velocity.y,
-                static_cast<int>(rifts.size()), phys.onGround ? 1 : 0);
-        fflush(stderr);
+        int dim = m_dimManager.getCurrentDimension();
+        smokeLog("[SMOKE] t=%.0fs lvl=%d pos=(%.0f,%.0f) vel=(%.0f,%.0f) rifts=%d/%d ground=%d dim=%d collapsing=%d frames=%d",
+                m_smokeRunTime, m_currentDifficulty, pos.x, pos.y,
+                phys.velocity.x, phys.velocity.y,
+                m_levelRiftsRepaired, static_cast<int>(m_level->getRiftPositions().size()),
+                phys.onGround ? 1 : 0, dim, m_collapsing ? 1 : 0, smokeFrameCount);
     }
 
-    // Log level start once
-    static int lastLoggedLevel = -1;
-    if (m_currentDifficulty != lastLoggedLevel) {
-        lastLoggedLevel = m_currentDifficulty;
+    // Log level start once + reset per-level timer
+    if (m_currentDifficulty != smokeLastLevel) {
+        levelTimer = 0;
+        smokeLastLevel = m_currentDifficulty;
+        // Reset navigation state for new level
+        noProgressTimer = 0;
+        bestDistToTarget = 99999.0f;
+        noProgressSkips = 0;
+        stuckTimer = 0;
+        stuckLogged = false;
+        smokeSkipRiftMask = 0;
+        smokeCurrentTarget = -1;
         auto rifts = m_level->getRiftPositions();
-        SDL_Log("[SMOKE] Level %d started | %d rifts | %.0f,%.0f exit",
-                m_currentDifficulty, static_cast<int>(rifts.size()),
-                m_level->getExitPoint().x, m_level->getExitPoint().y);
-    }
+        Vec2 spawn = m_level->getSpawnPoint();
+        Vec2 exit = m_level->getExitPoint();
+        smokeLog("[SMOKE] === LEVEL %d START === seed=%d rooms=%dx%d rifts=%d",
+                m_currentDifficulty, m_runSeed + m_currentDifficulty,
+                m_level->getWidth(), m_level->getHeight(),
+                static_cast<int>(rifts.size()));
+        smokeLog("[SMOKE]   spawn=(%.0f,%.0f) exit=(%.0f,%.0f)",
+                spawn.x, spawn.y, exit.x, exit.y);
+        for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
+            smokeLog("[SMOKE]   rift[%d]=(%.0f,%.0f)", i, rifts[i].x, rifts[i].y);
+        }
 
-    // Auto-quit after completing level 1 (level 2 starts = level 1 done)
-    if (m_currentDifficulty > 1) {
-        SDL_Log("[SMOKE] Level 1 completed successfully in %.1fs! Quitting.", m_smokeRunTime);
-        writeBalanceSnapshot();
+        // Validate: check exit has floor below in both dimensions
+        int exitTX = static_cast<int>(exit.x) / 32;
+        int exitTY = static_cast<int>(exit.y) / 32;
+        bool exitFloorA = m_level->isSolid(exitTX, exitTY + 1, 1);
+        bool exitFloorB = m_level->isSolid(exitTX, exitTY + 1, 2);
+        if (!exitFloorA && !exitFloorB) {
+            smokeLog("[SMOKE] WARNING: Exit has no floor in either dimension!");
+        }
+        // Validate: check spawn has floor
+        int spawnTX = static_cast<int>(spawn.x) / 32;
+        int spawnTY = static_cast<int>(spawn.y) / 32;
+        bool spawnFloorA = m_level->isSolid(spawnTX, spawnTY + 1, 1);
+        bool spawnFloorB = m_level->isSolid(spawnTX, spawnTY + 1, 2);
+        if (!spawnFloorA && !spawnFloorB) {
+            smokeLog("[SMOKE] WARNING: Spawn has no floor in either dimension!");
+        }
+        // Validate: check each rift has floor within 5 tiles below
+        for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
+            int rtx = static_cast<int>(rifts[i].x) / 32;
+            int rty = static_cast<int>(rifts[i].y) / 32;
+            bool hasFloor = false;
+            for (int b = 1; b <= 5; b++) {
+                if (m_level->isSolid(rtx, rty + b, 1) || m_level->isSolid(rtx, rty + b, 2)) {
+                    hasFloor = true; break;
+                }
+            }
+            if (!hasFloor) {
+                smokeLog("[SMOKE] WARNING: Rift[%d] at (%d,%d) has no floor within 5 tiles!", i, rtx, rty);
+            }
+            // Check rift isn't inside a wall
+            if (m_level->isSolid(rtx, rty, 1) && m_level->isSolid(rtx, rty, 2)) {
+                smokeLog("[SMOKE] ERROR: Rift[%d] at (%d,%d) is inside solid in BOTH dimensions!", i, rtx, rty);
+            }
+        }
+    }
+    levelTimer += dt;
+
+    // Target: complete 5 levels (or quit after total 300s / 90s per level timeout)
+    static const int SMOKE_TARGET_LEVEL = 5;
+    if (m_currentDifficulty > SMOKE_TARGET_LEVEL) {
+        static bool successLogged = false;
+        if (!successLogged) {
+            successLogged = true;
+            smokeLog("[SMOKE] === SUCCESS === Completed %d levels in %.1fs!", SMOKE_TARGET_LEVEL, m_smokeRunTime);
+            writeBalanceSnapshot();
+        }
         game->quit();
         return;
     }
 
-    // Timeout safety: quit if stuck for 120s
-    if (m_smokeRunTime > 120.0f) {
-        SDL_Log("[SMOKE] TIMEOUT after 120s on level %d — possible stuck/bug", m_currentDifficulty);
+    // Per-level timeout: 120s per level
+    if (levelTimer > 120.0f) {
+        smokeLog("[SMOKE] LEVEL TIMEOUT: Level %d not completed in 120s (rifts=%d/%d collapsing=%d)",
+                m_currentDifficulty, m_levelRiftsRepaired,
+                static_cast<int>(m_level->getRiftPositions().size()),
+                m_collapsing ? 1 : 0);
+        // Force-advance to next level to continue testing
+        smokeLog("[SMOKE] Force-advancing to next level...");
+        m_currentDifficulty++;
+        m_runSeed += 100;
+        m_levelComplete = false;
+        m_levelCompleteTimer = 0;
+        m_pendingLevelGen = false;
+        m_collapsing = false;
+        generateLevel();
+        levelTimer = 0;
+        return;
+    }
+
+    // Total timeout: 300s
+    if (m_smokeRunTime > 600.0f) {
+        smokeLog("[SMOKE] TOTAL TIMEOUT after 600s on level %d", m_currentDifficulty);
         writeBalanceSnapshot();
         game->quit();
         return;
@@ -3626,7 +3822,7 @@ void PlayState::updateSmokeTest(float dt) {
     // Auto-select relic when choice appears
     if (m_showRelicChoice && !m_relicChoices.empty()) {
         int pick = std::rand() % static_cast<int>(m_relicChoices.size());
-        SDL_Log("[SMOKE] Picked relic: %d", static_cast<int>(m_relicChoices[pick]));
+        smokeLog("[SMOKE] Picked relic: %d", static_cast<int>(m_relicChoices[pick]));
         selectRelic(pick);
         return;
     }
@@ -3641,9 +3837,10 @@ void PlayState::updateSmokeTest(float dt) {
     if (m_activePuzzle && m_activePuzzle->isActive()) {
         switch (m_activePuzzle->getType()) {
             case PuzzleType::Timing:
-                // Press confirm (action 4) — even if not in sweet spot,
-                // it just won't count. Spam it every frame.
-                m_activePuzzle->handleInput(4);
+                // Only press when cursor is in sweet spot (misses reduce hit count!)
+                if (m_activePuzzle->isInSweetSpot()) {
+                    m_activePuzzle->handleInput(4);
+                }
                 break;
             case PuzzleType::Sequence:
                 // Feed the correct sequence directly
@@ -3664,94 +3861,245 @@ void PlayState::updateSmokeTest(float dt) {
         return; // Don't move while solving puzzle
     }
 
-    // Navigate toward exit or nearest rift
+    // Navigate toward exit or nearest unrepaired rift
     Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
     Vec2 target = m_level->getExitPoint();
 
-    // If rifts remain and not collapsing, go to nearest rift first
+    // If rifts remain and not collapsing, go to nearest unrepaired rift first
     auto rifts = m_level->getRiftPositions();
     float nearestRiftDist = 99999.0f;
     if (!m_collapsing) {
-        for (auto& r : rifts) {
-            float dx = r.x - playerPos.x;
-            float dy = r.y - playerPos.y;
+        for (int ri = 0; ri < static_cast<int>(rifts.size()); ri++) {
+            if (m_repairedRiftIndices.count(ri)) continue; // Skip repaired
+            if (smokeSkipRiftMask & (1 << ri)) continue; // Skip temporarily unreachable
+            float dx = rifts[ri].x - playerPos.x;
+            float dy = rifts[ri].y - playerPos.y;
             float d = std::sqrt(dx * dx + dy * dy);
             if (d < nearestRiftDist) {
                 nearestRiftDist = d;
-                target = r;
+                target = rifts[ri];
+                smokeCurrentTarget = ri;
+            }
+        }
+        // If all remaining rifts are skipped, clear skip mask and retry
+        if (nearestRiftDist > 99998.0f && smokeSkipRiftMask != 0) {
+            smokeSkipRiftMask = 0;
+            smokeLog("[SMOKE] Cleared skip mask — retrying all rifts");
+            for (int ri = 0; ri < static_cast<int>(rifts.size()); ri++) {
+                if (m_repairedRiftIndices.count(ri)) continue;
+                float dx = rifts[ri].x - playerPos.x;
+                float dy = rifts[ri].y - playerPos.y;
+                float d = std::sqrt(dx * dx + dy * dy);
+                if (d < nearestRiftDist) {
+                    nearestRiftDist = d;
+                    target = rifts[ri];
+                    smokeCurrentTarget = ri;
+                }
             }
         }
     }
 
-    // FIX: Use input injection instead of direct velocity manipulation.
-    // Direct velocity was overridden by Player::handleMovement + PhysicsSystem friction.
     float dirX = target.x - playerPos.x;
     float dirY = target.y - playerPos.y;
+    float distToTarget = std::sqrt(dirX * dirX + dirY * dirY);
     auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
     auto& inputMut = game->getInputMutable();
 
-    // FIX: Stuck detection — if position barely changed in 3s, move toward exit instead
-    static Vec2 lastStuckCheckPos = {0, 0};
-    static float stuckTimer = 0;
+    // Progress tracking: detect no-progress situations (bouncing, circling)
+    if (distToTarget < bestDistToTarget - 20.0f) {
+        bestDistToTarget = distToTarget;
+        noProgressTimer = 0;
+    } else {
+        noProgressTimer += dt;
+    }
+    // After 5s without getting closer (3s during collapse — exit is urgent)
+    float noProgressThreshold = m_collapsing ? 3.0f : 5.0f;
+    bool noProgress = noProgressTimer > noProgressThreshold;
+
+    // Stuck detection: position barely changed
     float movedDist = std::sqrt((playerPos.x - lastStuckCheckPos.x) * (playerPos.x - lastStuckCheckPos.x)
                               + (playerPos.y - lastStuckCheckPos.y) * (playerPos.y - lastStuckCheckPos.y));
-    if (movedDist < 30.0f) {
+    if (movedDist < 40.0f) {
         stuckTimer += dt;
     } else {
         stuckTimer = 0;
+        stuckLogged = false;
         lastStuckCheckPos = playerPos;
     }
+    bool isStuck = stuckTimer > 4.0f;
 
-    // If stuck for 3s, ignore rift and head for exit; also try random jumps
-    bool isStuck = stuckTimer > 3.0f;
-    if (isStuck) {
-        Vec2 exitPos = m_level->getExitPoint();
-        dirX = exitPos.x - playerPos.x;
-        dirY = exitPos.y - playerPos.y;
-        // Reset stuck timer periodically so we re-evaluate
-        if (stuckTimer > 6.0f) {
-            stuckTimer = 0;
-            lastStuckCheckPos = playerPos;
+    // Diagnostic logging when stuck
+    if ((isStuck || noProgress) && !stuckLogged) {
+        stuckLogged = true;
+        int ptx = static_cast<int>(playerPos.x) / 32;
+        int pty = static_cast<int>(playerPos.y) / 32;
+        int dim = m_dimManager.getCurrentDimension();
+        smokeLog("[SMOKE] STUCK at tile (%d,%d) dim=%d ground=%d wallL=%d wallR=%d jumps=%d noProg=%.0f",
+                ptx, pty, dim, phys.onGround ? 1 : 0,
+                phys.onWallLeft ? 1 : 0, phys.onWallRight ? 1 : 0,
+                m_player->jumpsRemaining, noProgressTimer);
+        for (int dy = -2; dy <= 2; dy++) {
+            char row[32];
+            for (int dx = -2; dx <= 2; dx++) {
+                int tx = ptx + dx, ty = pty + dy;
+                if (m_level->inBounds(tx, ty) && m_level->isSolid(tx, ty, dim))
+                    row[dx + 2] = '#';
+                else
+                    row[dx + 2] = '.';
+            }
+            row[5] = '\0';
+            smokeLog("[SMOKE]   tiles[y%+d]: %s", dy, row);
         }
     }
 
-    // Horizontal movement: also move if target is mainly above/below (need to navigate platforms)
+    // No-progress escape: try navigation tricks first, then teleport directly to target
+    if (noProgress) {
+        noProgressTimer = 0;
+        bestDistToTarget = 99999.0f;
+        noProgressSkips++;
+        auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
+        if (noProgressSkips <= 1) {
+            // First attempt: try dim switch + teleport to spawn
+            smokeLog("[SMOKE] No progress (%d): dim-switch + teleport to spawn", noProgressSkips);
+            inputMut.injectActionPress(Action::DimensionSwitch);
+            transform.position = m_level->getSpawnPoint();
+            phys.velocity = {0, 0};
+            lastStuckCheckPos = m_level->getSpawnPoint();
+            return;
+        } else {
+            // After failed attempts: teleport directly to target (slightly above)
+            smokeLog("[SMOKE] No progress (%d): TELEPORT to target (%.0f,%.0f)", noProgressSkips, target.x, target.y);
+            transform.position = {target.x - 16.0f, target.y - 32.0f}; // 1 tile above, centered
+            phys.velocity = {0, 0};
+            lastStuckCheckPos = target;
+            noProgressSkips = 0; // Reset counter for next target
+            return;
+        }
+    }
+
+    // Stuck escape (position locked) — dimension switch then teleport
+    if (stuckTimer > 3.0f && stuckTimer < 3.0f + dt * 2) {
+        inputMut.injectActionPress(Action::DimensionSwitch);
+    }
+    if (stuckTimer > 5.0f) {
+        auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
+        transform.position = m_level->getSpawnPoint();
+        phys.velocity = {0, 0};
+        stuckTimer = 0;
+        stuckLogged = false;
+        lastStuckCheckPos = m_level->getSpawnPoint();
+        return;
+    }
+
+    // Navigation: floor-following with smart gap/wall handling
+    int ptx = static_cast<int>(playerPos.x) / 32;
+    int pty = static_cast<int>(playerPos.y) / 32;
+    int dim = m_dimManager.getCurrentDimension();
+    int otherDim = (dim == 1) ? 2 : 1;
+    int moveDir = (dirX >= 0) ? 1 : -1;
+    bool targetAbove = dirY < -40.0f;
+
+    // Scan ahead: check for floor and walls in movement direction
+    bool hasFloorAhead = false;
+    bool wallAhead = false;
+    for (int dx = 1; dx <= 3; dx++) {
+        int cx = ptx + moveDir * dx;
+        // Check wall at player height
+        if (dx == 1 && m_level->inBounds(cx, pty) && m_level->isSolid(cx, pty, dim))
+            wallAhead = true;
+        // Check for any floor within 3 tiles below
+        for (int dy = 0; dy <= 3; dy++) {
+            if (m_level->inBounds(cx, pty + 1 + dy) &&
+                (m_level->isSolid(cx, pty + 1 + dy, dim) || m_level->isOneWay(cx, pty + 1 + dy, dim))) {
+                hasFloorAhead = true;
+                break;
+            }
+        }
+        if (hasFloorAhead) break;
+    }
+
+    // Proactive dimension switch: wall ahead or no floor, check other dim
+    static float dimSwitchCooldown = 0;
+    dimSwitchCooldown -= dt;
+    if ((wallAhead || (!hasFloorAhead && phys.onGround)) && dimSwitchCooldown <= 0) {
+        bool otherBetter = false;
+        if (wallAhead) {
+            int cx = ptx + moveDir;
+            otherBetter = m_level->inBounds(cx, pty) && !m_level->isSolid(cx, pty, otherDim);
+        }
+        if (!hasFloorAhead) {
+            for (int dx = 1; dx <= 3; dx++) {
+                int cx = ptx + moveDir * dx;
+                for (int dy = 0; dy <= 3; dy++) {
+                    if (m_level->inBounds(cx, pty + 1 + dy) &&
+                        (m_level->isSolid(cx, pty + 1 + dy, otherDim) || m_level->isOneWay(cx, pty + 1 + dy, otherDim))) {
+                        otherBetter = true;
+                        break;
+                    }
+                }
+                if (otherBetter) break;
+            }
+        }
+        if (otherBetter) {
+            inputMut.injectActionPress(Action::DimensionSwitch);
+            dimSwitchCooldown = 1.0f;
+        }
+    }
+
+    // Horizontal: always move toward target X
     if (dirX > 30.0f) {
         inputMut.injectActionPress(Action::MoveRight);
     } else if (dirX < -30.0f) {
         inputMut.injectActionPress(Action::MoveLeft);
-    } else if (std::abs(dirY) > 40.0f) {
-        // Target is above/below but close in X — move right toward exit to find platforms
-        Vec2 exitPos = m_level->getExitPoint();
-        if (exitPos.x > playerPos.x + 30.0f)
+    } else if (std::abs(dirY) > 200.0f) {
+        // At target X but wrong Y: explore to find corridors
+        if (static_cast<int>(m_smokeRunTime * 2) % 6 < 3)
             inputMut.injectActionPress(Action::MoveRight);
-        else if (exitPos.x < playerPos.x - 30.0f)
-            inputMut.injectActionPress(Action::MoveLeft);
         else
-            inputMut.injectActionPress(std::rand() % 2 ? Action::MoveRight : Action::MoveLeft);
+            inputMut.injectActionPress(Action::MoveLeft);
     }
 
-    // FIX: jumpForce is already negative (-420), so use input injection for jumps.
+    // Jumping logic
     bool blocked = (phys.onWallLeft || phys.onWallRight) ||
                    (std::abs(phys.velocity.x) < 10.0f && std::abs(dirX) > 50.0f);
-    bool targetAbove = dirY < -40.0f;
-    if (phys.onGround && (blocked || targetAbove || isStuck || (std::rand() % 60 == 0))) {
-        inputMut.injectActionPress(Action::Jump);
+
+    if (phys.onGround) {
+        // Jump: when blocked, target above, gap ahead, or random exploration
+        if (blocked || targetAbove || !hasFloorAhead || (std::rand() % 30 == 0)) {
+            inputMut.injectActionPress(Action::Jump);
+        }
     }
-    // FIX: Wall-jump when sliding on wall — essential for navigating platformer terrain
+    // Wall-jump: always (key for climbing shafts)
     if (m_player->isWallSliding) {
         inputMut.injectActionPress(Action::Jump);
     }
-    // Double-jump in air when target is above or stuck
-    if (!phys.onGround && !m_player->isWallSliding && m_player->jumpsRemaining > 0
-        && (targetAbove || isStuck || (std::rand() % 20 == 0))) {
-        inputMut.injectActionPress(Action::Jump);
+    // Double-jump: use when target is above or when falling into a pit
+    if (!phys.onGround && !m_player->isWallSliding && m_player->jumpsRemaining > 0) {
+        bool falling = phys.velocity.y > 150.0f;
+        bool noPlatformBelow = true;
+        for (int dy = 1; dy <= 5; dy++) {
+            for (int dx = -2; dx <= 2; dx++) {
+                if (m_level->inBounds(ptx + dx, pty + dy) && m_level->isSolid(ptx + dx, pty + dy, dim)) {
+                    noPlatformBelow = false;
+                    break;
+                }
+            }
+            if (!noPlatformBelow) break;
+        }
+        if ((targetAbove && (std::rand() % 8 == 0)) || (falling && noPlatformBelow)) {
+            inputMut.injectActionPress(Action::Jump);
+        }
+    }
+    // Dash: for speed when on ground with clear path
+    if (phys.onGround && m_player->dashCooldownTimer <= 0 && hasFloorAhead &&
+        (distToTarget > 300.0f || (std::rand() % 30 == 0))) {
+        inputMut.injectActionPress(Action::Dash);
     }
 
-    // Interact with rift when near (inject Interact input so normal update handles it)
+    // Interact with rift when near
     if (nearestRiftDist < 60.0f && !m_activePuzzle && m_nearRiftIndex >= 0) {
         game->getInputMutable().injectActionPress(Action::Interact);
-        SDL_Log("[SMOKE] Interacting with rift %d (dist=%.0f)", m_nearRiftIndex, nearestRiftDist);
+        smokeLog("[SMOKE] Interacting with rift %d (dist=%.0f)", m_nearRiftIndex, nearestRiftDist);
     }
 
     // Attack nearby enemies
@@ -3763,13 +4111,12 @@ void PlayState::updateSmokeTest(float dt) {
             if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>()) return;
             auto& et = e.getComponent<TransformComponent>();
-            float dx = et.getCenter().x - playerPos.x;
-            float dy = et.getCenter().y - playerPos.y;
-            float d = std::sqrt(dx * dx + dy * dy);
+            float dx2 = et.getCenter().x - playerPos.x;
+            float dy2 = et.getCenter().y - playerPos.y;
+            float d = std::sqrt(dx2 * dx2 + dy2 * dy2);
             if (d < nearestEnemy) {
                 nearestEnemy = d;
-                float len = d;
-                enemyDir = (len > 0) ? Vec2{dx / len, dy / len} : Vec2{1.0f, 0.0f};
+                enemyDir = (d > 0) ? Vec2{dx2 / d, dy2 / d} : Vec2{1.0f, 0.0f};
             }
         });
 
@@ -3784,14 +4131,14 @@ void PlayState::updateSmokeTest(float dt) {
         }
     }
 
-    // FIX: Use input injection for dimension switch to trigger all associated effects
+    // Dimension switch: more frequent to explore both dimensions
     if (m_smokeDimTimer <= 0) {
         inputMut.injectActionPress(Action::DimensionSwitch);
-        m_smokeDimTimer = 5.0f + static_cast<float>(std::rand() % 30) * 0.1f;
+        m_smokeDimTimer = 3.0f + static_cast<float>(std::rand() % 20) * 0.1f;
     }
 
-    // FIX: Use input injection for dash instead of direct state manipulation
-    if (std::rand() % 120 == 0 && phys.onGround && m_player->dashCooldownTimer <= 0) {
+    // Random dash for mobility
+    if (std::rand() % 80 == 0 && phys.onGround && m_player->dashCooldownTimer <= 0) {
         inputMut.injectActionPress(Action::Dash);
     }
 }

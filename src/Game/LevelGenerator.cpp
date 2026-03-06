@@ -134,8 +134,11 @@ Level LevelGenerator::generate(int difficulty, int seed) {
     }
 
     // Connect rooms with corridors
+    // FIX: x1 was rooms[i-1].x + rooms[i-1].w (one past the right wall),
+    // so corridors never carved through room A's right wall. Now includes
+    // the wall tile so both room exits are opened.
     for (size_t i = 1; i < rooms.size(); i++) {
-        int x1 = rooms[i-1].x + rooms[i-1].w;
+        int x1 = rooms[i-1].x + rooms[i-1].w - 1;
         int y1 = rooms[i-1].y + rooms[i-1].h / 2;
         int x2 = rooms[i].x;
         int y2 = rooms[i].y + rooms[i].h / 2;
@@ -199,6 +202,18 @@ Level LevelGenerator::generate(int difficulty, int seed) {
                         empty.type = TileType::Empty;
                         level.setTile(cx, cy, dim, empty);
                     }
+                }
+            }
+            // FIX: Ensure floor below exit (same guarantee as spawn point)
+            if (level.inBounds(exitTX, exitTY + 1)) {
+                const auto& floorTile = level.getTile(exitTX, exitTY + 1, dim);
+                if (!floorTile.isSolid()) {
+                    Tile floor;
+                    floor.type = TileType::Solid;
+                    floor.color = (dim == 1) ? m_themeA.colors.solid : m_themeB.colors.solid;
+                    level.setTile(exitTX, exitTY + 1, dim, floor);
+                    level.setTile(exitTX - 1, exitTY + 1, dim, floor);
+                    level.setTile(exitTX + 1, exitTY + 1, dim, floor);
                 }
             }
         }
@@ -415,41 +430,113 @@ void LevelGenerator::generateRoom(Level& level, int roomX, int roomY,
 
 void LevelGenerator::connectRooms(Level& level, int x1, int y1, int x2, int y2,
                                     int dim, const WorldTheme& theme) {
-    int minX = std::min(x1, x2);
-    int maxX = std::max(x1, x2);
-    int corridorH = 4;
+    // FIX: Redesigned corridor system. Previous approach carved a single horizontal
+    // corridor at min(y1,y2) which left the lower room's wall opening unreachable.
+    // New approach: two horizontal segments at each room's center height, connected
+    // by a vertical shaft at the midpoint. This guarantees both rooms have accessible
+    // corridor openings at their center heights.
 
-    for (int x = minX; x <= maxX; x++) {
-        for (int dy = -1; dy < corridorH + 1; dy++) {
-            int y = std::min(y1, y2) + dy;
-            if (dy == -1 || dy == corridorH) {
-                Tile wall;
-                wall.type = TileType::Solid;
-                wall.color = theme.colors.solid;
-                level.setTile(x, y, dim, wall);
-            } else {
-                Tile empty;
-                empty.type = TileType::Empty;
-                level.setTile(x, y, dim, empty);
+    int corridorH = 4;
+    int midX = (x1 + x2) / 2;
+
+    // Helper to carve a horizontal corridor segment
+    auto carveHorizontal = [&](int fromX, int toX, int atY) {
+        int lo = std::min(fromX, toX);
+        int hi = std::max(fromX, toX);
+        for (int x = lo; x <= hi; x++) {
+            for (int dy = -1; dy < corridorH + 1; dy++) {
+                int y = atY + dy;
+                if (!level.inBounds(x, y)) continue;
+                if (dy == -1 || dy == corridorH) {
+                    // Only place wall if tile is empty (don't overwrite room interiors)
+                    if (level.getTile(x, y, dim).type == TileType::Empty) {
+                        Tile wall;
+                        wall.type = TileType::Solid;
+                        wall.color = theme.colors.solid;
+                        level.setTile(x, y, dim, wall);
+                    }
+                } else {
+                    Tile empty;
+                    empty.type = TileType::Empty;
+                    level.setTile(x, y, dim, empty);
+                }
             }
         }
-    }
+    };
 
-    if (std::abs(y1 - y2) > 2) {
-        int midX = (x1 + x2) / 2;
+    if (std::abs(y1 - y2) <= 2) {
+        // Rooms at similar height: simple horizontal corridor at y1
+        carveHorizontal(x1, x2, y1);
+    } else {
+        // Rooms at different heights:
+        // Segment 1: horizontal from x1 at y1 to midX
+        carveHorizontal(x1, midX, y1);
+        // Segment 2: horizontal from midX at y2 to x2
+        carveHorizontal(midX, x2, y2);
+
+        // Vertical shaft at midX connecting y1 and y2
         int minY = std::min(y1, y2);
-        int maxY = std::max(y1, y2);
-        for (int y = minY; y <= maxY; y++) {
+        int maxY = std::max(y1, y2) + corridorH - 1;
+        for (int y = minY - 1; y <= maxY + 1; y++) {
+            if (!level.inBounds(midX - 1, y) || !level.inBounds(midX + 2, y)) continue;
             for (int dx = -1; dx <= 2; dx++) {
                 if (dx == -1 || dx == 2) {
-                    Tile wall;
-                    wall.type = TileType::Solid;
-                    wall.color = theme.colors.solid;
-                    level.setTile(midX + dx, y, dim, wall);
+                    auto& existing = level.getTile(midX + dx, y, dim);
+                    if (existing.type == TileType::Empty) {
+                        Tile wall;
+                        wall.type = TileType::Solid;
+                        wall.color = theme.colors.solid;
+                        level.setTile(midX + dx, y, dim, wall);
+                    }
                 } else {
                     Tile empty;
                     empty.type = TileType::Empty;
                     level.setTile(midX + dx, y, dim, empty);
+                }
+            }
+        }
+
+        // One-way platforms in shaft for easier climbing (every 4 tiles)
+        int shaftMinY = std::min(y1, y2);
+        int shaftMaxY = std::max(y1, y2);
+        for (int y = shaftMinY + 3; y < shaftMaxY; y += 4) {
+            Tile plat;
+            plat.type = TileType::OneWay;
+            plat.color = theme.colors.oneWay;
+            if (level.inBounds(midX, y)) level.setTile(midX, y, dim, plat);
+            if (level.inBounds(midX + 1, y)) level.setTile(midX + 1, y, dim, plat);
+        }
+    }
+
+    // Doorway: carve tall openings at room walls (x1 and x2) so players
+    // can find and enter the corridor from anywhere in the room.
+    // At x1: open from min(y1, y1-6) to y1+corridorH (generous 10-tile opening)
+    // At x2: open from min(y2, y2-6) to y2+corridorH
+    for (int doorX : {x1, x2}) {
+        int doorY = (doorX == x1) ? y1 : y2;
+        int doorTop = doorY - 6;
+        int doorBot = doorY + corridorH;
+        for (int y = doorTop; y <= doorBot; y++) {
+            if (level.inBounds(doorX, y)) {
+                Tile empty;
+                empty.type = TileType::Empty;
+                level.setTile(doorX, y, dim, empty);
+            }
+            // Also clear one tile to each side for wider doorway
+            if (level.inBounds(doorX - 1, y)) {
+                auto& t = level.getTile(doorX - 1, y, dim);
+                if (t.isSolid()) {
+                    Tile empty;
+                    empty.type = TileType::Empty;
+                    level.setTile(doorX - 1, y, dim, empty);
+                }
+            }
+            if (level.inBounds(doorX + 1, y)) {
+                auto& t = level.getTile(doorX + 1, y, dim);
+                if (t.isSolid()) {
+                    Tile empty;
+                    empty.type = TileType::Empty;
+                    level.setTile(doorX + 1, y, dim, empty);
                 }
             }
         }
@@ -547,10 +634,29 @@ void LevelGenerator::addRifts(Level& level, int count) {
             ry = std::clamp(ry, 4, h - 4);
         }
 
-        // Fallback
+        // FIX: Fallback validates position is not inside solid tile and has reachable floor
         if (!placed) {
             rx = static_cast<int>(w * fraction);
             ry = h / 2;
+            // Search downward for a valid open position with floor
+            for (int scan = 0; scan < h / 2; scan++) {
+                int testY = ry + scan;
+                if (testY >= h - 4) break;
+                if (!level.isSolid(rx, testY, 1) && !level.isSolid(rx, testY, 2)) {
+                    bool hasFloor = false;
+                    for (int below = 1; below <= 5; below++) {
+                        if (level.isSolid(rx, testY + below, 1) ||
+                            level.isSolid(rx, testY + below, 2)) {
+                            hasFloor = true;
+                            break;
+                        }
+                    }
+                    if (hasFloor) {
+                        ry = testY;
+                        break;
+                    }
+                }
+            }
             level.addRiftPosition({
                 static_cast<float>(rx * 32),
                 static_cast<float>(ry * 32)

@@ -39,6 +39,9 @@ public:
     void setSpawnPoint(Vec2 pos) { m_spawnPoint = pos; }
     Vec2 getExitPoint() const { return m_exitPoint; }
     void setExitPoint(Vec2 pos) { m_exitPoint = pos; }
+    // FIX: Exit active state for visual feedback (locked until all rifts repaired)
+    void setExitActive(bool active) { m_exitActive = active; }
+    bool isExitActive() const { return m_exitActive; }
 
     // Rift locations
     std::vector<Vec2> getRiftPositions() const { return m_riftPositions; }
@@ -83,6 +86,7 @@ private:
     std::vector<Tile> m_tilesB; // Dimension B
     Vec2 m_spawnPoint;
     Vec2 m_exitPoint;
+    bool m_exitActive = false;
     std::vector<Vec2> m_riftPositions;
     std::vector<SpawnPoint> m_enemySpawns;
     std::vector<SecretRoom> m_secretRooms;

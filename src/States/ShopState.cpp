@@ -5,7 +5,16 @@
 #include <cstdio>
 #include <cmath>
 
+extern bool g_autoSmokeTest;
+
 void ShopState::enter() {
+    // Auto-skip shop during smoke test
+    if (g_autoSmokeTest) {
+        // (smokeLog not available here - just skip silently)
+        game->popState();
+        return;
+    }
+
     auto& buffs = game->getRunBuffSystem();
     // Difficulty from PlayState (stored in Game)
     m_offerings = buffs.generateShopOffering(game->getShopDifficulty());
