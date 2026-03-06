@@ -86,6 +86,7 @@ struct RelicComponent : public Component {
 
     // Synergy state
     bool phaseHunterBuffActive = false; // Phase Hunter: next attack 2x DMG after dim-switch
+    float phaseHunterBuffTimer = 0;     // Phase Hunter: buff expires after 3s
 
     bool hasRelic(RelicID id) const {
         for (auto& r : relics) {

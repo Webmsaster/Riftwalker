@@ -114,7 +114,7 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
     SDL_RenderFillRect(renderer, &er);
 
     // Draw player position
-    if (player && player->getEntity()->hasComponent<TransformComponent>()) {
+    if (player && player->getEntity() && player->getEntity()->hasComponent<TransformComponent>()) {
         auto& pt = player->getEntity()->getComponent<TransformComponent>();
         int playerMX = offsetX + static_cast<int>((pt.getCenter().x / tileSize) * scale);
         int playerMY = offsetY + static_cast<int>((pt.getCenter().y / tileSize) * scale);
@@ -203,7 +203,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     int hpBarOffset = 26; // offset HP bar to the right of class icon
 
     // HP Bar
-    if (player && player->getEntity()->hasComponent<HealthComponent>()) {
+    if (player && player->getEntity() && player->getEntity()->hasComponent<HealthComponent>()) {
         auto& hp = player->getEntity()->getComponent<HealthComponent>();
         float pct = hp.getPercent();
 
@@ -286,7 +286,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     }
 
     // Ability bar with cooldown indicators
-    if (player && player->getEntity()->hasComponent<CombatComponent>()) {
+    if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>()) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();
         int abY = margin + (barH + 6) * 3;
         int iconSize = 22;
@@ -299,14 +299,10 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         };
 
         // Calculate cooldown percentages
-        float meleePct = 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.meleeAttack.cooldown));
-        if (!combat.isAttacking || combat.currentAttack != AttackType::Melee) {
-            if (combat.cooldownTimer <= 0) meleePct = 1.0f;
-        }
-        float rangedPct = 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.rangedAttack.cooldown));
-        if (!combat.isAttacking || combat.currentAttack != AttackType::Ranged) {
-            if (combat.cooldownTimer <= 0) rangedPct = 1.0f;
-        }
+        float meleePct = (combat.cooldownTimer <= 0) ? 1.0f
+            : 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.meleeAttack.cooldown));
+        float rangedPct = (combat.cooldownTimer <= 0) ? 1.0f
+            : 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.rangedAttack.cooldown));
         float dashPct = 1.0f - (player->dashCooldownTimer / player->dashCooldown);
         if (dashPct > 1.0f) dashPct = 1.0f;
         float dimPct = dimMgr ? 1.0f - (dimMgr->getCooldownTimer() / dimMgr->switchCooldown) : 1.0f;
@@ -423,7 +419,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     }
 
     // Ability icons (below active buffs)
-    if (player && player->getEntity()->hasComponent<AbilityComponent>()) {
+    if (player && player->getEntity() && player->getEntity()->hasComponent<AbilityComponent>()) {
         auto& abil = player->getEntity()->getComponent<AbilityComponent>();
         int abStartY = margin + (barH + 6) * 3 + 58;
         int abIconSize = 26;
@@ -515,7 +511,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     }
 
     // Combo counter (center top, only when combo > 1)
-    if (player && player->getEntity()->hasComponent<CombatComponent>() && font) {
+    if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>() && font) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();
         if (combat.comboCount > 1 && combat.comboTimer > 0) {
             char comboText[32];
@@ -581,7 +577,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     }
 
     // Weapon display (bottom center)
-    if (player && player->getEntity()->hasComponent<CombatComponent>()) {
+    if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>()) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();
         int wpnY = screenH - 50;
         int wpnX = screenW / 2 - 100;

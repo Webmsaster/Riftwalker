@@ -933,6 +933,17 @@ void PlayState::update(float dt) {
         auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
         RelicSystem::updateTimedEffects(relics, dt);
 
+        // ChaosRift buff effects (type 0=speed, 3=regen)
+        if (relics.chaosRiftBuffTimer > 0) {
+            if (relics.chaosRiftBuffType == 0) {
+                m_player->speedBoostTimer = std::max(m_player->speedBoostTimer, dt + 0.01f);
+                m_player->speedBoostMultiplier = 1.3f;
+            } else if (relics.chaosRiftBuffType == 3) {
+                auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+                playerHP.heal(5.0f * dt); // 5 HP/sec regen
+            }
+        }
+
         // Phase Cloak: invincibility during cloak
         if (relics.phaseCloakTimer > 0) {
             auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();

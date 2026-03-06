@@ -65,7 +65,7 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                 float dy = tt.getCenter().y - slamCenter.y;
                 float dist = std::sqrt(dx * dx + dy * dy);
 
-                if (dist < radius) {
+                if (dist < radius && radius > 0.0f) {
                     float dmgScale = 1.0f - (dist / radius) * 0.4f; // 60-100% based on distance
                     float finalDmg = damage * dmgScale;
                     target.getComponent<HealthComponent>().takeDamage(finalDmg);

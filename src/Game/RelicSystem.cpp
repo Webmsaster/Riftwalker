@@ -172,6 +172,10 @@ float RelicSystem::getDamageMultiplier(const RelicComponent& relics, float curre
             default: break;
         }
     }
+    // ChaosRift buff: type 1 = +40% DMG for 15s after 10 kills
+    if (relics.hasRelic(RelicID::ChaosRift) && relics.chaosRiftBuffTimer > 0 && relics.chaosRiftBuffType == 1) {
+        mult += 0.40f;
+    }
     // PhaseHunter synergy: 2x damage on first attack after dimension switch
     mult *= RelicSynergy::getPhaseHunterDamageMult(relics);
     return std::min(mult, MAX_DMG_MULT);
@@ -281,6 +285,17 @@ float RelicSystem::getEntropyMultiplier(const RelicComponent& relics, bool isBos
 }
 
 void RelicSystem::updateTimedEffects(RelicComponent& relics, float dt) {
+    // ChaosRift: tick down buff timer
+    if (relics.chaosRiftBuffTimer > 0) {
+        relics.chaosRiftBuffTimer -= dt;
+    }
+    // PhaseHunter: expire buff after timeout
+    if (relics.phaseHunterBuffActive && relics.phaseHunterBuffTimer > 0) {
+        relics.phaseHunterBuffTimer -= dt;
+        if (relics.phaseHunterBuffTimer <= 0) {
+            relics.phaseHunterBuffActive = false;
+        }
+    }
     // ChaosOrb: random relic effect every 30s
     if (relics.hasRelic(RelicID::ChaosOrb)) {
         relics.chaosOrbTimer -= dt;
@@ -315,9 +330,10 @@ void RelicSystem::onDimensionSwitch(RelicComponent& relics, HealthComponent* hp)
     if (relics.hasRelic(RelicID::PhaseCloak)) {
         relics.phaseCloakTimer = 1.0f;
     }
-    // PhaseHunter synergy: activate 2x damage buff after dimension switch
+    // PhaseHunter synergy: activate 2x damage buff after dimension switch (3s window)
     if (RelicSynergy::isActive(relics, SynergyID::PhaseHunter)) {
         relics.phaseHunterBuffActive = true;
+        relics.phaseHunterBuffTimer = 3.0f;
     }
     // RiftConduit: stack attack speed buff on switch
     if (relics.hasRelic(RelicID::RiftConduit)) {
@@ -372,6 +388,10 @@ float RelicSystem::getDamageTakenMult(const RelicComponent& relics, int currentD
     if (relics.hasRelic(RelicID::DualityGem) &&
         (currentDimension == 2 || RelicSynergy::isDualNatureActive(relics))) {
         mult *= 0.75f;
+    }
+    // ChaosRift buff: type 2 = -30% damage taken for 15s
+    if (relics.hasRelic(RelicID::ChaosRift) && relics.chaosRiftBuffTimer > 0 && relics.chaosRiftBuffType == 2) {
+        mult *= 0.70f;
     }
     return mult;
 }

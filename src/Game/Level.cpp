@@ -672,9 +672,9 @@ bool Level::isInLaserBeam(float worldX, float worldY, int dimension) const {
     int playerTY = static_cast<int>(worldY) / m_tileSize;
 
     for (auto& ep : m_laserEmitters) {
-        if (ep.dim != dimension) continue;
+        if (dimension != 0 && ep.dim != dimension) continue;
         int x = ep.x, y = ep.y;
-        const Tile& tile = getTile(x, y, dimension);
+        const Tile& tile = getTile(x, y, ep.dim);
 
         int dx = 0, dy = 0;
         if (tile.variant == 0) dx = 1;
