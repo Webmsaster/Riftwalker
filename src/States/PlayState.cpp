@@ -254,6 +254,9 @@ void PlayState::applyUpgrades() {
 
     m_dimManager.switchCooldown = 0.5f * upgrades.getSwitchCooldownMultiplier();
     m_entropy.passiveDecay = upgrades.getEntropyDecay();
+    // FIX: EntropyResistance upgrade was purchased but never applied (same pattern as WallSlide)
+    // Cap at 0.8 so entropy never becomes completely trivial
+    m_entropy.upgradeResistance = 1.0f - std::min(upgrades.getEntropyResistance(), 0.8f);
     m_combatSystem.setCritChance(upgrades.getCritChance());
     m_combatSystem.setComboBonus(upgrades.getComboBonus());
 

@@ -6,8 +6,9 @@
 SuitEntropy::SuitEntropy() {}
 
 void SuitEntropy::update(float dt) {
-    // Passive entropy gain (modified by relics)
-    m_entropy += m_passiveGain * passiveGainModifier * dt;
+    // Passive entropy gain (modified by relics and upgrade)
+    // FIX: Apply upgradeResistance so EntropyResistance upgrade actually works
+    m_entropy += m_passiveGain * passiveGainModifier * upgradeResistance * dt;
 
     // Passive decay (upgradeable)
     if (passiveDecay > 0) {
@@ -113,7 +114,8 @@ void SuitEntropy::applyVisualEffects(SDL_Renderer* renderer, int screenW, int sc
 }
 
 void SuitEntropy::addEntropy(float amount) {
-    m_entropy = std::min(m_entropy + amount * entropyGainMultiplier, m_maxEntropy);
+    // FIX: Apply upgradeResistance so EntropyResistance upgrade reduces all entropy gain
+    m_entropy = std::min(m_entropy + amount * entropyGainMultiplier * upgradeResistance, m_maxEntropy);
 }
 
 void SuitEntropy::reduceEntropy(float amount) {

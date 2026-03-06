@@ -17,7 +17,8 @@ void Enemy::makeMiniBoss(Entity& e) {
     hp.maxHP *= 3.0f;
     hp.currentHP = hp.maxHP;
     // FIX: Armor is 0-1 range (fraction of damage reduction), not absolute
-    hp.armor += 0.3f;
+    // FIX: Clamp to 0.75 so minibosses always take at least 25% damage
+    hp.armor = std::min(hp.armor + 0.3f, 0.75f);
 
     auto& combat = e.getComponent<CombatComponent>();
     combat.meleeAttack.damage *= 1.5f;
@@ -610,7 +611,8 @@ Entity& Enemy::createVoidWyrm(EntityManager& entities, Vec2 pos, int dimension, 
     hp.maxHP = 180.0f + difficulty * 70.0f;
     hp.currentHP = hp.maxHP;
     // FIX: Armor is 0-1 range; was 1.0+diff*1.5 making boss immune
-    hp.armor = 0.2f + difficulty * 0.1f;
+    // FIX: Cap at 0.75 so bosses always take at least 25% damage at high difficulty
+    hp.armor = std::min(0.2f + difficulty * 0.1f, 0.75f);
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 20.0f + difficulty * 4.0f;
@@ -667,7 +669,8 @@ Entity& Enemy::createBoss(EntityManager& entities, Vec2 pos, int dimension, int 
     hp.maxHP = 200.0f + difficulty * 80.0f;
     hp.currentHP = hp.maxHP;
     // FIX: Armor is 0-1 range; was 2.0+diff*2.0 making boss immune
-    hp.armor = 0.3f + difficulty * 0.1f;
+    // FIX: Cap at 0.75 so bosses always take at least 25% damage at high difficulty
+    hp.armor = std::min(0.3f + difficulty * 0.1f, 0.75f);
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 25.0f + difficulty * 5.0f;
@@ -782,7 +785,8 @@ Entity& Enemy::createTemporalWeaver(EntityManager& entities, Vec2 pos, int dimen
     hp.maxHP = 280.0f + difficulty * 90.0f;
     hp.currentHP = hp.maxHP;
     // FIX: Armor is 0-1 range; was 2.0+diff*1.5 making boss immune
-    hp.armor = 0.25f + difficulty * 0.1f;
+    // FIX: Cap at 0.75 so bosses always take at least 25% damage at high difficulty
+    hp.armor = std::min(0.25f + difficulty * 0.1f, 0.75f);
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 20.0f + difficulty * 4.0f;
@@ -842,7 +846,8 @@ Entity& Enemy::createDimensionalArchitect(EntityManager& entities, Vec2 pos, int
     hp.maxHP = 250.0f + difficulty * 80.0f;
     hp.currentHP = hp.maxHP;
     // FIX: Armor is 0-1 range; was 2.0+diff*2.0 making boss immune
-    hp.armor = 0.3f + difficulty * 0.1f;
+    // FIX: Cap at 0.75 so bosses always take at least 25% damage at high difficulty
+    hp.armor = std::min(0.3f + difficulty * 0.1f, 0.75f);
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 18.0f + difficulty * 3.0f;
@@ -901,7 +906,8 @@ Entity& Enemy::createVoidSovereign(EntityManager& entities, Vec2 pos, int dimens
     hp.maxHP = 350.0f + difficulty * 60.0f;
     hp.currentHP = hp.maxHP;
     // FIX: Armor is 0-1 range; was 3.0+diff*1.5 making final boss immune
-    hp.armor = 0.4f + difficulty * 0.1f;
+    // FIX: Cap at 0.75 so bosses always take at least 25% damage at high difficulty
+    hp.armor = std::min(0.4f + difficulty * 0.1f, 0.75f);
 
     auto& combat = e.addComponent<CombatComponent>();
     combat.meleeAttack.damage = 25.0f + difficulty * 5.0f;
