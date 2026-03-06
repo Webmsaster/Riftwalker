@@ -85,6 +85,14 @@ void InputManager::clearPressedBuffers() {
     std::memset(m_releasedBuffer, 0, sizeof(m_releasedBuffer));
 }
 
+void InputManager::injectActionPress(Action action) {
+    auto it = m_keyBindings.find(action);
+    if (it != m_keyBindings.end()) {
+        m_pressedBuffer[it->second] = 1;
+        m_currKeyState[it->second] = 1;
+    }
+}
+
 void InputManager::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_CONTROLLERDEVICEADDED && !m_gamepad) {
         m_gamepad = SDL_GameControllerOpen(event.cdevice.which);

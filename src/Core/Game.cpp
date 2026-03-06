@@ -99,8 +99,9 @@ bool Game::init() {
     // Load custom keybindings (falls back to defaults if file missing)
     m_input.loadBindings("riftwalker_bindings.cfg");
 
-    // Start at menu
-    changeState(StateID::Menu);
+    // Start at menu (or directly at play for smoke test)
+    extern bool g_autoSmokeTest;
+    changeState(g_autoSmokeTest ? StateID::Play : StateID::Menu);
 
     m_running = true;
     return true;

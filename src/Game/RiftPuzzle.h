@@ -32,6 +32,13 @@ public:
 
     std::function<void(bool success)> onComplete;
 
+    // Expose puzzle state for smoke test auto-solve
+    const std::vector<int>& getSequence() const { return m_sequence; }
+    const std::vector<int>& getPlayerInput() const { return m_playerInput; }
+    bool isShowingSequence() const { return m_showingSequence; }
+    int getCurrentRotation() const { return m_currentRotation; }
+    int getTargetRotation() const { return m_targetRotation; }
+
 private:
     void initTiming();
     void initSequence();

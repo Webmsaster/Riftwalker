@@ -24,7 +24,14 @@
 #include <cstdio>
 #include <algorithm>
 
+extern bool g_autoSmokeTest;
+
 void PlayState::enter() {
+    if (g_autoSmokeTest) {
+        m_smokeTest = true;
+        m_showDebugOverlay = true;
+        SDL_Log("[SMOKE] Smoke test auto-enabled via --smoke flag");
+    }
     startNewRun();
 }
 
@@ -3556,9 +3563,50 @@ void PlayState::updateSmokeTest(float dt) {
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     hp.currentHP = hp.maxHP;
 
+    // Periodic status log every 5 seconds
+    static float lastStatusLog = 0;
+    if (m_smokeRunTime - lastStatusLog >= 5.0f) {
+        lastStatusLog = m_smokeRunTime;
+        Vec2 pos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+        auto rifts = m_level->getRiftPositions();
+        SDL_Log("[SMOKE] t=%.0fs pos=(%.0f,%.0f) vel=(%.0f,%.0f) rifts=%d ground=%d",
+                m_smokeRunTime, pos.x, pos.y, phys.velocity.x, phys.velocity.y,
+                static_cast<int>(rifts.size()), phys.onGround ? 1 : 0);
+        fflush(stderr);
+    }
+
+    // Log level start once
+    static int lastLoggedLevel = -1;
+    if (m_currentDifficulty != lastLoggedLevel) {
+        lastLoggedLevel = m_currentDifficulty;
+        auto rifts = m_level->getRiftPositions();
+        SDL_Log("[SMOKE] Level %d started | %d rifts | %.0f,%.0f exit",
+                m_currentDifficulty, static_cast<int>(rifts.size()),
+                m_level->getExitPoint().x, m_level->getExitPoint().y);
+    }
+
+    // Auto-quit after completing level 1 (level 2 starts = level 1 done)
+    if (m_currentDifficulty > 1) {
+        SDL_Log("[SMOKE] Level 1 completed successfully in %.1fs! Quitting.", m_smokeRunTime);
+        writeBalanceSnapshot();
+        game->quit();
+        return;
+    }
+
+    // Timeout safety: quit if stuck for 120s
+    if (m_smokeRunTime > 120.0f) {
+        SDL_Log("[SMOKE] TIMEOUT after 120s on level %d — possible stuck/bug", m_currentDifficulty);
+        writeBalanceSnapshot();
+        game->quit();
+        return;
+    }
+
     // Auto-select relic when choice appears
     if (m_showRelicChoice && !m_relicChoices.empty()) {
-        selectRelic(std::rand() % static_cast<int>(m_relicChoices.size()));
+        int pick = std::rand() % static_cast<int>(m_relicChoices.size());
+        SDL_Log("[SMOKE] Picked relic: %d", static_cast<int>(m_relicChoices[pick]));
+        selectRelic(pick);
         return;
     }
 
@@ -3568,25 +3616,55 @@ void PlayState::updateSmokeTest(float dt) {
         return;
     }
 
+    // Auto-solve active puzzle
+    if (m_activePuzzle && m_activePuzzle->isActive()) {
+        switch (m_activePuzzle->getType()) {
+            case PuzzleType::Timing:
+                // Press confirm (action 4) — even if not in sweet spot,
+                // it just won't count. Spam it every frame.
+                m_activePuzzle->handleInput(4);
+                break;
+            case PuzzleType::Sequence:
+                // Feed the correct sequence directly
+                if (!m_activePuzzle->isShowingSequence()) {
+                    int idx = static_cast<int>(m_activePuzzle->getPlayerInput().size());
+                    if (idx < static_cast<int>(m_activePuzzle->getSequence().size())) {
+                        m_activePuzzle->handleInput(m_activePuzzle->getSequence()[idx]);
+                    }
+                }
+                break;
+            case PuzzleType::Alignment:
+                // Rotate until aligned
+                if (m_activePuzzle->getCurrentRotation() != m_activePuzzle->getTargetRotation()) {
+                    m_activePuzzle->handleInput(1); // rotate right
+                }
+                break;
+        }
+        return; // Don't move while solving puzzle
+    }
+
     // Navigate toward exit or nearest rift
     Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
     Vec2 target = m_level->getExitPoint();
 
-    // If rifts remain, go to nearest rift first
+    // If rifts remain and not collapsing, go to nearest rift first
     auto rifts = m_level->getRiftPositions();
     float nearestRiftDist = 99999.0f;
-    for (auto& r : rifts) {
-        float dx = r.x - playerPos.x;
-        float dy = r.y - playerPos.y;
-        float d = std::sqrt(dx * dx + dy * dy);
-        if (d < nearestRiftDist) {
-            nearestRiftDist = d;
-            target = r;
+    if (!m_collapsing) {
+        for (auto& r : rifts) {
+            float dx = r.x - playerPos.x;
+            float dy = r.y - playerPos.y;
+            float d = std::sqrt(dx * dx + dy * dy);
+            if (d < nearestRiftDist) {
+                nearestRiftDist = d;
+                target = r;
+            }
         }
     }
 
     // Move toward target
     float dirX = target.x - playerPos.x;
+    float dirY = target.y - playerPos.y;
     auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
 
     if (dirX > 30.0f) {
@@ -3595,15 +3673,22 @@ void PlayState::updateSmokeTest(float dt) {
         phys.velocity.x = -m_player->moveSpeed;
     }
 
-    // Jump when blocked or periodically
-    if (phys.onGround && (std::abs(phys.velocity.x) < 10.0f || (std::rand() % 60 == 0))) {
+    // Jump when blocked, target above, or periodically
+    bool blocked = std::abs(phys.velocity.x) < 10.0f && std::abs(dirX) > 50.0f;
+    bool targetAbove = dirY < -40.0f;
+    if (phys.onGround && (blocked || targetAbove || (std::rand() % 60 == 0))) {
         phys.velocity.y = -m_player->jumpForce;
+    }
+
+    // Interact with rift when near (inject Interact input so normal update handles it)
+    if (nearestRiftDist < 60.0f && !m_activePuzzle && m_nearRiftIndex >= 0) {
+        game->getInputMutable().injectActionPress(Action::Interact);
+        SDL_Log("[SMOKE] Interacting with rift %d (dist=%.0f)", m_nearRiftIndex, nearestRiftDist);
     }
 
     // Attack nearby enemies
     if (m_smokeActionTimer <= 0) {
         auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
-        // Find nearest enemy
         float nearestEnemy = 99999.0f;
         Vec2 enemyDir = {1.0f, 0.0f};
         m_entities.forEach([&](Entity& e) {
@@ -3615,18 +3700,15 @@ void PlayState::updateSmokeTest(float dt) {
             float d = std::sqrt(dx * dx + dy * dy);
             if (d < nearestEnemy) {
                 nearestEnemy = d;
-                enemyDir = {dx, dy};
-                float len = std::sqrt(dx * dx + dy * dy);
-                if (len > 0) enemyDir = enemyDir * (1.0f / len);
+                float len = d;
+                enemyDir = (len > 0) ? Vec2{dx / len, dy / len} : Vec2{1.0f, 0.0f};
             }
         });
 
         if (nearestEnemy < 80.0f) {
-            // Melee attack
             combat.startAttack(AttackType::Melee, enemyDir);
             m_smokeActionTimer = 0.25f;
         } else if (nearestEnemy < 300.0f) {
-            // Ranged attack
             combat.startAttack(AttackType::Ranged, enemyDir);
             m_smokeActionTimer = 0.4f;
         } else {
@@ -3638,26 +3720,6 @@ void PlayState::updateSmokeTest(float dt) {
     if (m_smokeDimTimer <= 0) {
         m_dimManager.switchDimension();
         m_smokeDimTimer = 5.0f + static_cast<float>(std::rand() % 30) * 0.1f;
-    }
-
-    // Interact with rift if near
-    if (nearestRiftDist < 60.0f && !m_activePuzzle) {
-        // Auto-interact
-        m_nearRiftIndex = 0;
-        for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
-            float dx = rifts[i].x - playerPos.x;
-            float dy = rifts[i].y - playerPos.y;
-            if (std::sqrt(dx * dx + dy * dy) < 60.0f) {
-                m_nearRiftIndex = i;
-                break;
-            }
-        }
-    }
-
-    // Auto-solve puzzle
-    if (m_activePuzzle && m_activePuzzle->isActive()) {
-        // Brute force: spam correct inputs
-        m_activePuzzle->handleInput(1); // Try action 1
     }
 
     // Dash occasionally

@@ -56,6 +56,9 @@ public:
     // Call after each fixed update step to clear buffered press/release events
     void clearPressedBuffers();
 
+    // Simulate a key press for one frame (used by smoke test)
+    void injectActionPress(Action action);
+
 private:
     void setupDefaultBindings();
     bool checkBinding(Action action, bool (InputManager::*check)(SDL_Scancode) const) const;
