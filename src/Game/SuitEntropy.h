@@ -28,10 +28,11 @@ public:
     void clearForceSwitch() { m_forceSwitch = false; }
 
     // Upgradeable stats
-    float passiveDecay = 0.0f;      // Entropy decay per second
-    float switchCost = 5.0f;         // Entropy per dimension switch
-    float damageCostMultiplier = 0.2f; // Entropy per damage point
-    float repairReduction = 15.0f;   // Entropy reduced per rift repair
+    // BALANCE: Playtest Round 2 - still 100% entropy death. Switch cost is main killer.
+    float passiveDecay = 0.15f;      // Entropy decay per second (was 0)
+    float switchCost = 0.5f;         // Entropy per dimension switch (was 5 -> 3 -> 1.5 -> 0.5)
+    float damageCostMultiplier = 0.1f; // Entropy per damage point (was 0.2)
+    float repairReduction = 30.0f;   // Entropy reduced per rift repair (was 15)
     float entropyGainMultiplier = 1.0f; // Run buff: reduces entropy gain
     float passiveGainModifier = 1.0f;   // Relic: Entropy Anchor modifier
     // FIX: EntropyResistance upgrade was purchased but never applied
@@ -40,15 +41,15 @@ public:
 private:
     float m_entropy = 0;
     float m_maxEntropy = 100.0f;
-    // BALANCE: Passive entropy gain 1.0 -> 0.5 (less time pressure, more focus on combat)
-    float m_passiveGain = 0.5f; // per second
+    // BALANCE: Passive entropy gain 0.5 -> 0.2 (playtest: entropy kills 100% runs before L1 clear)
+    float m_passiveGain = 0.2f; // per second
 
     // Visual effect timers
     float m_flickerTimer = 0;
     float m_glitchTimer = 0;
 
-    // Forced dimension switch at high entropy
+    // Forced dimension switch at high entropy (playtest: was triggering death spiral)
     bool m_forceSwitch = false;
     float m_forceSwitchTimer = 0;
-    float m_forceSwitchInterval = 5.0f; // gets shorter at higher entropy
+    float m_forceSwitchInterval = 8.0f; // was 5.0f - longer interval = less entropy from forced switches
 };

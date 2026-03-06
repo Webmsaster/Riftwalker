@@ -6,11 +6,11 @@
 #include <cmath>
 
 extern bool g_autoSmokeTest;
+extern bool g_autoPlaytest;
 
 void ShopState::enter() {
-    // Auto-skip shop during smoke test
-    if (g_autoSmokeTest) {
-        // (smokeLog not available here - just skip silently)
+    // Auto-skip shop during automated test modes
+    if (g_autoSmokeTest || g_autoPlaytest) {
         game->popState();
         return;
     }

@@ -219,6 +219,38 @@ private:
     float m_smokeRunTime = 0;
     void updateSmokeTest(float dt);
 
+    // Human-like playtest mode (--playtest)
+    bool m_playtest = false;
+    int m_playtestRun = 0;           // Current run number
+    int m_playtestMaxRuns = 10;      // Max attempts before giving up
+    float m_playtestReactionTimer = 0; // Human reaction delay
+    float m_playtestThinkTimer = 0;    // Pause between decisions
+    float m_playtestLastHP = 0;        // Track HP changes for logging
+    int m_playtestDeaths = 0;          // Total deaths across runs
+    int m_playtestBestLevel = 0;       // Highest level reached
+    float m_playtestRunTimer = 0;      // Time in current run
+    bool m_playtestRunActive = false;  // Is a run currently in progress
+    void updatePlaytest(float dt);
+    void playtestLog(const char* fmt, ...);
+    void playtestStartRun();
+    void playtestOnDeath();
+    void playtestWriteReport();
+    // Per-run tracking (reset in playtestStartRun)
+    int m_ptLastLoggedLevel = 0;
+    int m_ptLastLoggedRifts = 0;
+    int m_ptLastCompletedLevel = 0;
+    float m_ptStuckTimer = 0;
+    Vec2 m_ptLastCheckPos = {0, 0};
+    float m_ptDimSwitchCD = 0;
+    float m_ptDimExploreTimer = 0;
+    float m_ptLastEntropyLog = 0;
+    int m_ptFallCount = 0;
+    // Progress tracking for smart teleport
+    float m_ptNoProgressTimer = 0;
+    float m_ptBestDistToTarget = 99999.0f;
+    int m_ptNoProgressSkips = 0;
+    int m_ptSkipRiftMask = 0;
+
     // Visual polish (Stufe 4)
     TrailSystem m_trails;
     ScreenEffects m_screenEffects;

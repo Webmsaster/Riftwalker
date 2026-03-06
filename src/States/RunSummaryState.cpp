@@ -7,10 +7,11 @@
 #include <algorithm>
 
 extern bool g_autoSmokeTest;
+extern bool g_autoPlaytest;
 
 void RunSummaryState::enter() {
-    // Smoke test: auto-skip run summary — go back to menu then quit
-    if (g_autoSmokeTest) {
+    // Automated modes: auto-skip run summary
+    if (g_autoSmokeTest || g_autoPlaytest) {
         game->quit();
         return;
     }

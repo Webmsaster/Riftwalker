@@ -4,9 +4,10 @@
 #include <cstdlib>
 
 extern bool g_autoSmokeTest;
+extern bool g_autoPlaytest;
 
 void GameOverState::enter() {
-    if (g_autoSmokeTest) {
+    if (g_autoSmokeTest || g_autoPlaytest) {
         game->quit();
         return;
     }
