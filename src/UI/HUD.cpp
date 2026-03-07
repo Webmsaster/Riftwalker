@@ -819,7 +819,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             renderText(renderer, font, mName, wpnX + 30, wpnY + 8, {220, 180, 100, 220});
             renderText(renderer, font, rName, wpnX + 134, wpnY + 8, {100, 180, 220, 220});
             renderText(renderer, font, "[Q]", wpnX + 2, wpnY - 14, {150, 150, 160, 120});
-            renderText(renderer, font, "[E]", wpnX + 172, wpnY - 14, {150, 150, 160, 120});
+            renderText(renderer, font, "[R]", wpnX + 172, wpnY - 14, {150, 150, 160, 120});
 
             // Weapon Mastery indicators
             if (m_combatSystem) {
@@ -892,7 +892,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Controls hint (bottom left)
     if (font) {
         renderText(renderer, font,
-                   "WASD Move  SPACE Jump  SHIFT Dash  J/K Attack  Q/E Weapon  F Interact  1/2/3 Abilities",
+                   "WASD Move  SPACE Jump  SHIFT Dash  J/K Attack  Q/R Weapon  E Dim  F Interact  1/2/3 Abilities",
                    15, screenH - 22, {60, 60, 80, 100});
     }
 }

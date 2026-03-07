@@ -166,10 +166,10 @@ void Player::update(float dt, const InputManager& input) {
     handleAbilities(dt, input);
     updateAnimation();
 
-    // Weapon switch: Q = melee, E = ranged
+    // Weapon switch: Q = melee, R = ranged
     if (weaponSwitchCooldown > 0) weaponSwitchCooldown -= dt;
     if (input.isKeyPressed(SDL_SCANCODE_Q)) switchMelee();
-    if (input.isKeyPressed(SDL_SCANCODE_E)) switchRanged();
+    if (input.isKeyPressed(SDL_SCANCODE_R)) switchRanged();
 
     // Advance animation timer
     auto& sprite = m_entity->getComponent<SpriteComponent>();
