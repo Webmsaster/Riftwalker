@@ -18,11 +18,12 @@ class Camera {
 public:
     Camera(int screenW, int screenH);
 
-    void follow(Vec2 target, float dt, Vec2 velocity = {0, 0});
+    void follow(Vec2 target, float dt, Vec2 velocity = {0, 0}, bool grounded = false);
     void shake(float intensity, float duration);
     void update(float dt);
 
     float lookAheadStrength = 60.0f;
+    float verticalDeadZone = 40.0f;  // pixels above/below center before camera follows vertically
 
     Vec2 worldToScreen(Vec2 worldPos) const;
     SDL_Rect worldToScreen(SDL_FRect worldRect) const;

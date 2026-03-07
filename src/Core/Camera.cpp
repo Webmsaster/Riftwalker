@@ -16,7 +16,7 @@ Vec2 Vec2::normalized() const {
 Camera::Camera(int screenW, int screenH)
     : m_screenW(screenW), m_screenH(screenH) {}
 
-void Camera::follow(Vec2 target, float dt, Vec2 velocity) {
+void Camera::follow(Vec2 target, float dt, Vec2 velocity, bool grounded) {
     // Calculate look-ahead offset based on movement direction
     Vec2 targetLookAhead = {0, 0};
     float speed = velocity.length();
@@ -33,9 +33,25 @@ void Camera::follow(Vec2 target, float dt, Vec2 velocity) {
 
     m_target = target + m_lookAheadSmooth;
 
-    // Smooth camera follow
-    Vec2 diff = m_target - m_position;
-    m_position += diff * (m_smoothSpeed * dt);
+    // Horizontal: always smooth follow
+    float diffX = m_target.x - m_position.x;
+    m_position.x += diffX * (m_smoothSpeed * dt);
+
+    // Vertical dead zone: only follow when player leaves the band
+    float diffY = m_target.y - m_position.y;
+    if (grounded) {
+        // On ground: gently re-center vertically (smooth return to center)
+        m_position.y += diffY * (3.0f * dt);
+    } else if (diffY > verticalDeadZone) {
+        // Player below dead zone: follow to keep them at zone edge
+        float overshoot = diffY - verticalDeadZone;
+        m_position.y += overshoot * (m_smoothSpeed * 1.5f * dt);
+    } else if (diffY < -verticalDeadZone) {
+        // Player above dead zone: follow to keep them at zone edge
+        float overshoot = diffY + verticalDeadZone;
+        m_position.y += overshoot * (m_smoothSpeed * 1.5f * dt);
+    }
+    // Inside dead zone + airborne: camera stays still vertically
 }
 
 void Camera::shake(float intensity, float duration) {

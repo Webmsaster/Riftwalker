@@ -1476,11 +1476,16 @@ void PlayState::update(float dt) {
     // Check if player reached exit
     checkExitReached();
 
-    // Camera follow player with look-ahead
+    // Camera follow player with look-ahead + vertical dead zone
     Vec2 camTarget = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
-    Vec2 playerVel = m_player->getEntity()->hasComponent<PhysicsBody>() ?
-        m_player->getEntity()->getComponent<PhysicsBody>().velocity : Vec2{0, 0};
-    m_camera.follow(camTarget, dt, playerVel);
+    bool playerGrounded = false;
+    Vec2 playerVel = {0, 0};
+    if (m_player->getEntity()->hasComponent<PhysicsBody>()) {
+        auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+        playerVel = phys.velocity;
+        playerGrounded = phys.onGround;
+    }
+    m_camera.follow(camTarget, dt, playerVel, playerGrounded);
     m_camera.update(dt);
 
     // Spawn waves
