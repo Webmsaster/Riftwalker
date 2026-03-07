@@ -2274,8 +2274,8 @@ void PlayState::render(SDL_Renderer* renderer) {
         }
     }
 
-    // Off-screen exit direction indicator (visible during collapse/escape phase)
-    if (m_level && m_collapsing && !m_levelComplete) {
+    // Off-screen exit direction indicator (visible when exit is active OR during collapse)
+    if (m_level && (m_level->isExitActive() || m_collapsing) && !m_levelComplete) {
         Vec2 exitPos = m_level->getExitPoint();
         Vec2 camPos = m_camera.getPosition();
         float halfW = 640.0f, halfH = 360.0f;
@@ -2289,15 +2289,22 @@ void PlayState::render(SDL_Renderer* renderer) {
             float cx = std::max(30.0f, std::min(1250.0f, sx));
             float cy = std::max(30.0f, std::min(690.0f, sy));
 
-            // Urgency-based pulsing: faster pulse as collapse timer increases
-            float urgency = m_collapseTimer / m_collapseMaxTime;
-            float pulseSpeed = 0.006f + urgency * 0.012f; // Pulse faster as time runs out
-            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * pulseSpeed);
-            Uint8 pa = static_cast<Uint8>(160 + 95 * pulse);
-
-            // Green-gold indicator (distinct from purple rift indicators)
-            Uint8 gr = static_cast<Uint8>(80 + 175 * urgency);  // More red as urgent
-            Uint8 gg = static_cast<Uint8>(255 - 80 * urgency);  // Less green as urgent
+            Uint8 pa, gr, gg;
+            if (m_collapsing) {
+                // Urgency-based pulsing during collapse
+                float urgency = m_collapseTimer / std::max(1.0f, m_collapseMaxTime);
+                float pulseSpeed = 0.006f + urgency * 0.012f;
+                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * pulseSpeed);
+                pa = static_cast<Uint8>(160 + 95 * pulse);
+                gr = static_cast<Uint8>(80 + 175 * urgency);
+                gg = static_cast<Uint8>(255 - 80 * urgency);
+            } else {
+                // Calm green pulsing when exit is simply active
+                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.004f);
+                pa = static_cast<Uint8>(120 + 80 * pulse);
+                gr = 60;
+                gg = 220;
+            }
             SDL_SetRenderDrawColor(renderer, gr, gg, 60, pa);
 
             // Larger diamond for exit (8px vs 5px for rifts)
