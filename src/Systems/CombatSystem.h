@@ -56,6 +56,9 @@ public:
     // Hit-freeze: returns accumulated freeze time and resets
     float consumeHitFreeze();
     void addHitFreeze(float amount) { m_pendingHitFreeze += amount; }
+    void addDamageEvent(Vec2 pos, float dmg, bool isPlayerDmg, bool isCrit = false) {
+        m_damageEvents.push_back({pos, dmg, isPlayerDmg, isCrit});
+    }
 
     // Damage events for floating numbers
     std::vector<DamageEvent> consumeDamageEvents() {

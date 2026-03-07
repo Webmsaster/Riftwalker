@@ -13,6 +13,8 @@
 #include "Game/SpriteConfig.h"
 #include "Game/RelicSynergy.h"
 #include "Game/DimensionManager.h"
+#include "Game/ItemDrop.h"
+#include "Game/Bestiary.h"
 #include <cmath>
 
 Player::Player(EntityManager& entities) {
@@ -360,11 +362,13 @@ void Player::handleJump(const InputManager& input) {
 
     if (wantsJump) {
         if (isWallSliding) {
-            // Wall jump
-            float dir = facingRight ? -1.0f : 1.0f;
+            // Wall jump — direction based on actual wall contact, not facingRight
+            // (facingRight can be wrong if player pressed away from wall before jumping)
+            float dir = phys.onWallRight ? -1.0f : 1.0f;
             phys.velocity.x = dir * wallJumpForceX;
             phys.velocity.y = wallJumpForceY;
-            facingRight = !facingRight;
+            facingRight = (dir > 0);
+            m_entity->getComponent<SpriteComponent>().flipX = !facingRight;
             isWallSliding = false;
             jumpBufferTimer = 0;
             AudioManager::instance().play(SFX::PlayerJump);
@@ -389,6 +393,14 @@ void Player::handleJump(const InputManager& input) {
                 }
             } else {
                 jumpsRemaining = maxJumps - 1;
+                // Ground jump dust puff at feet — spreads sideways
+                if (particles) {
+                    auto& t = m_entity->getComponent<TransformComponent>();
+                    Vec2 feetPos = {t.getCenter().x, t.position.y + t.height};
+                    SDL_Color dustColor = {180, 160, 130, 180};
+                    particles->directionalBurst(feetPos, 3, dustColor, 180.0f, 50.0f, 50.0f, 2.5f);
+                    particles->directionalBurst(feetPos, 3, dustColor, 0.0f, 50.0f, 50.0f, 2.5f);
+                }
             }
         }
     }
@@ -898,17 +910,62 @@ void Player::handleAbilities(float dt, const InputManager& input) {
             phaseTintTimer = 0.3f;
             isPhaseStriking = true;
 
-            // Kill check for CD refund
-            if (enemyHP.currentHP <= 0) {
+            // Report damage + hit freeze to combat system
+            if (combatSystemRef) {
+                Vec2 hitPos = et.getCenter();
+                combatSystemRef->addDamageEvent(hitPos, damage, false, true); // always crit
+                combatSystemRef->addHitFreeze(0.08f);
+
+                // Kill check for CD refund + proper kill tracking
+                if (enemyHP.currentHP <= 0) {
+                    abil.reduceCooldown(2, abil.phaseStrikeCDRefund);
+
+                    // Track kill with context for combat challenges
+                    combatSystemRef->killCount++;
+                    auto& phys2 = m_entity->getComponent<PhysicsBody>();
+                    KillEvent ke;
+                    ke.wasAerial = !phys2.onGround;
+                    combatSystemRef->killEvents.push_back(ke);
+
+                    // Weapon mastery: Phase Strike kills count for current melee weapon
+                    int wIdx = static_cast<int>(combat.currentMelee);
+                    if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT))
+                        combatSystemRef->weaponKills[wIdx]++;
+
+                    // Mini-boss / elemental tracking + bestiary
+                    if (nearestEnemy->hasComponent<AIComponent>()) {
+                        auto& tAI = nearestEnemy->getComponent<AIComponent>();
+                        if (tAI.isMiniBoss) combatSystemRef->killedMiniBoss = true;
+                        if (tAI.element != EnemyElement::None) combatSystemRef->killedElemental = true;
+                        Bestiary::onEnemyKill(tAI.enemyType);
+                    }
+
+                    // Berserker momentum
+                    addMomentumStack();
+
+                    // Item drops (mini-bosses 3x, elites 2x)
+                    Vec2 deathPos = et.getCenter();
+                    int dropCount = 1;
+                    if (nearestEnemy->hasComponent<AIComponent>()) {
+                        auto& tAI = nearestEnemy->getComponent<AIComponent>();
+                        if (tAI.isMiniBoss) dropCount = 3;
+                        else if (tAI.isElite) dropCount = 2;
+                    }
+                    ItemDrop::spawnRandomDrop(*entityManager, deathPos,
+                        nearestEnemy->dimension, dropCount, this);
+
+                    AudioManager::instance().play(SFX::EnemyDeath);
+                    if (particles) {
+                        particles->burst(deathPos, 30, {200, 100, 255, 255}, 250.0f, 5.0f);
+                    }
+                    nearestEnemy->destroy();
+                }
+            } else if (enemyHP.currentHP <= 0) {
+                // Fallback if no combat system ref
                 abil.reduceCooldown(2, abil.phaseStrikeCDRefund);
                 if (particles) {
                     particles->burst(et.getCenter(), 30, {200, 100, 255, 255}, 250.0f, 5.0f);
                 }
-            }
-
-            // Report damage event to combat system
-            if (combatSystemRef) {
-                combatSystemRef->addHitFreeze(0.08f);
             }
         }
     }
