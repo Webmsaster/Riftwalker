@@ -129,19 +129,12 @@ bool InputManager::checkBinding(Action action, bool (InputManager::*check)(SDL_S
 }
 
 bool InputManager::isActionDown(Action action) const {
-    // Suit entropy distortion: randomly ignore inputs
-    if (m_distortion > 0.5f) {
-        float roll = static_cast<float>(std::rand()) / RAND_MAX;
-        if (roll < (m_distortion - 0.5f) * 0.3f) return false;
-    }
+    // Input distortion disabled: it felt frustrating, not fun.
+    // Entropy already punishes via visual glitches, forced switches, and death at 100%.
     return checkBinding(action, &InputManager::isKeyDown);
 }
 
 bool InputManager::isActionPressed(Action action) const {
-    if (m_distortion > 0.5f) {
-        float roll = static_cast<float>(std::rand()) / RAND_MAX;
-        if (roll < (m_distortion - 0.5f) * 0.3f) return false;
-    }
     return checkBinding(action, &InputManager::isKeyPressed);
 }
 

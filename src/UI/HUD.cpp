@@ -653,6 +653,16 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
+    // Weapon names (bottom-left, always visible)
+    if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>() && font) {
+        auto& combat = player->getEntity()->getComponent<CombatComponent>();
+        const auto& meleeData = WeaponSystem::getWeaponData(combat.currentMelee);
+        const auto& rangedData = WeaponSystem::getWeaponData(combat.currentRanged);
+        char weaponText[64];
+        std::snprintf(weaponText, sizeof(weaponText), "[Q] %s  [R] %s", meleeData.name, rangedData.name);
+        renderText(renderer, font, weaponText, margin, screenH - 22, {180, 180, 200, 180});
+    }
+
     // Combo counter (center top, only when combo > 1)
     if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>() && font) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();

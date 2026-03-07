@@ -15,22 +15,23 @@ RiftPuzzle::RiftPuzzle(PuzzleType type, int difficulty)
 }
 
 void RiftPuzzle::initTiming() {
-    m_cycleSpeed = 1.5f + m_difficulty * 0.8f; // Faster scaling
-    float halfSize = 0.10f - m_difficulty * 0.015f;
-    halfSize = std::max(halfSize, 0.04f); // Minimum 4% sweet spot
+    m_cycleSpeed = 1.2f + m_difficulty * 0.4f; // Gentler speed scaling
+    float halfSize = 0.15f - m_difficulty * 0.012f;
+    halfSize = std::max(halfSize, 0.07f); // Minimum 7% sweet spot (was 4%)
     m_sweetSpotStart = 0.5f - halfSize;
     m_sweetSpotEnd = 0.5f + halfSize;
-    m_timingRequired = 3 + m_difficulty; // More hits required
-    m_timeLimit = 8.0f + m_difficulty * 1.5f;
+    m_timingRequired = 2 + m_difficulty / 2; // Fewer hits required
+    m_timeLimit = 10.0f + m_difficulty * 2.0f; // More time
 }
 
 void RiftPuzzle::initSequence() {
-    int seqLen = 3 + m_difficulty;
+    int seqLen = 3 + m_difficulty / 2; // Shorter sequences (was 3 + difficulty)
+    seqLen = std::min(seqLen, 6); // Cap at 6 max
     m_sequence.clear();
     for (int i = 0; i < seqLen; i++) {
         m_sequence.push_back(std::rand() % 4); // 0-3 directions
     }
-    m_timeLimit = 5.0f + seqLen * 2.0f;
+    m_timeLimit = 6.0f + seqLen * 2.5f; // More time per step
 }
 
 void RiftPuzzle::initAlignment() {
@@ -47,7 +48,7 @@ void RiftPuzzle::initPattern() {
             m_patternPlayer[y][x] = false;
         }
     // Number of cells to memorize scales with difficulty: 2-5
-    m_patternCellCount = std::min(2 + m_difficulty / 2, 5);
+    m_patternCellCount = std::min(2 + m_difficulty / 3, 4); // Fewer cells, cap at 4
     // Place random cells
     int placed = 0;
     while (placed < m_patternCellCount) {
@@ -60,10 +61,10 @@ void RiftPuzzle::initPattern() {
     }
     m_patternShowing = true;
     m_patternShowTimer = 0;
-    m_patternShowDuration = std::max(1.5f, 3.0f - m_difficulty * 0.2f);
+    m_patternShowDuration = std::max(2.5f, 4.0f - m_difficulty * 0.15f); // Longer reveal time
     m_patternCursorX = 1;
     m_patternCursorY = 1;
-    m_timeLimit = 8.0f + m_difficulty * 1.5f;
+    m_timeLimit = 10.0f + m_difficulty * 2.0f; // More time
 }
 
 void RiftPuzzle::activate() {
@@ -154,8 +155,8 @@ void RiftPuzzle::handleInput(int action) {
                 m_playerInput.push_back(action);
                 int idx = static_cast<int>(m_playerInput.size()) - 1;
                 if (idx >= static_cast<int>(m_sequence.size()) || m_playerInput[idx] != m_sequence[idx]) {
-                    m_state = PuzzleState::Failed;
-                    if (onComplete) onComplete(false);
+                    // Wrong input: reset progress instead of instant fail
+                    m_playerInput.clear();
                     return;
                 }
                 if (m_playerInput.size() == m_sequence.size()) {

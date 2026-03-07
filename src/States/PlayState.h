@@ -153,11 +153,18 @@ private:
     float m_tutorialTimer = 0;
     int m_tutorialHintIndex = 0;      // Current hint to show
     float m_tutorialHintShowTimer = 0; // Time current hint has been visible
-    bool m_tutorialHintDone[8] = {};   // Track completed hints
+    bool m_tutorialHintDone[20] = {};  // Track completed hints (expanded)
     bool m_hasMovedThisRun = false;
     bool m_hasJumpedThisRun = false;
     bool m_hasDashedThisRun = false;
     bool m_hasAttackedThisRun = false;
+    bool m_hasRangedThisRun = false;
+    bool m_hasUsedAbilityThisRun = false;
+    bool m_shownEntropyWarning = false;
+    bool m_shownConveyorHint = false;
+    bool m_shownDimPlatformHint = false;
+    bool m_shownRelicHint = false;
+    bool m_shownWallSlideHint = false;
     int m_dashCount = 0; // for dash master achievement
 
     // Skill achievement tracking (per-run)

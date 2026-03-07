@@ -170,7 +170,8 @@ void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int cu
 
             if (isOneWay) {
                 // Only resolve downward collision for one-way platforms
-                if (phys.velocity.y > 0 && overlapTop < 8.0f) {
+                // Allow larger overlap so fast-falling players still land (was 8.0f)
+                if (phys.velocity.y > 0 && overlapTop < 16.0f) {
                     transform.position.y -= overlapTop;
                     phys.velocity.y = 0;
                     phys.onGround = true;

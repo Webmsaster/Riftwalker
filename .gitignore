@@ -1,37 +1,19 @@
-# Build output
-build/
-out/
+# Build
+Riftwalker/build/
 
-# Binaries
-*.exe
-*.dll
-*.obj
-*.pdb
-*.ilk
-*.lib
-*.exp
-
-# IDE
-.vs/
-.vscode/
-*.vcxproj.user
-CMakeSettings.json
-
-# Save data
+# Save files & config (user-specific)
 riftwalker_save.dat
-riftwalker_lore.dat
-bestiary_save.dat
-ascension_save.dat
-daily_run.dat
+riftwalker_bindings.cfg
 
-# Logs
-*.log
-
-# Python
-__pycache__/
-*.pyc
+# Claude Code project settings
+.claude/
 
 # OS
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# IDE
+.vs/
+.vscode/
+*.user

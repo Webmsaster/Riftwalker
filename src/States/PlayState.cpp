@@ -110,6 +110,13 @@ void PlayState::startNewRun() {
     m_hasJumpedThisRun = false;
     m_hasDashedThisRun = false;
     m_hasAttackedThisRun = false;
+    m_hasRangedThisRun = false;
+    m_hasUsedAbilityThisRun = false;
+    m_shownEntropyWarning = false;
+    m_shownConveyorHint = false;
+    m_shownDimPlatformHint = false;
+    m_shownRelicHint = false;
+    m_shownWallSlideHint = false;
     m_dashCount = 0;
     m_aerialKillsThisRun = 0;
     m_dashKillsThisRun = 0;
@@ -1330,11 +1337,14 @@ void PlayState::update(float dt) {
         }
 
         // Conveyor belt push (always active, no damage)
-        if (m_player->getEntity()->hasComponent<PhysicsBody>() && m_level->inBounds(footX, footY)) {
+        // Check tile at feet AND tile below feet (conveyor is the surface tile)
+        if (m_player->getEntity()->hasComponent<PhysicsBody>()) {
             int convDir = 0;
-            if (m_level->isOnConveyor(footX, footY, dim, convDir)) {
+            bool onConveyor = (m_level->inBounds(footX, footY) && m_level->isOnConveyor(footX, footY, dim, convDir))
+                || (m_level->inBounds(footX, footY + 1) && m_level->isOnConveyor(footX, footY + 1, dim, convDir));
+            if (onConveyor) {
                 auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
-                phys.velocity.x += convDir * 120.0f * dt;
+                phys.velocity.x += convDir * 350.0f * dt; // Stronger push (was 120)
                 // Subtle wind particles in conveyor direction
                 m_conveyorParticleTimer -= dt;
                 if (m_conveyorParticleTimer <= 0) {
@@ -1443,7 +1453,15 @@ void PlayState::update(float dt) {
     }
     if (m_player && m_player->isDashing) m_hasDashedThisRun = true;
     if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
-        if (m_player->getEntity()->getComponent<CombatComponent>().isAttacking) m_hasAttackedThisRun = true;
+        auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+        if (combat.isAttacking) m_hasAttackedThisRun = true;
+    }
+    if (game->getInput().isActionPressed(Action::RangedAttack)) m_hasRangedThisRun = true;
+    if (m_player && m_player->getEntity()->hasComponent<AbilityComponent>()) {
+        auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
+        for (int i = 0; i < 3; i++) {
+            if (abil.abilities[i].active) m_hasUsedAbilityThisRun = true;
+        }
     }
 
     // Entropy
@@ -3441,31 +3459,31 @@ void PlayState::renderKeyBox(SDL_Renderer* renderer, TTF_Font* font,
 }
 
 void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
-    if (!font || m_currentDifficulty > 3) return;
+    if (!font) return;
 
     // Context-based hint system: show hints when conditions are met
     const char* hint = nullptr;
     const char* keyLabel = nullptr;
-    bool conditionMet = false; // True = hint should be dismissed
+    int hintSlot = -1; // which slot to mark done
+    bool conditionMet = false;
 
+    // === LEVEL 1: Basic controls (sequential) ===
     if (m_currentDifficulty == 1) {
         if (!m_tutorialHintDone[0]) {
-            // Show movement hint after 1.5s of inactivity
             if (m_tutorialTimer > 1.5f && !m_hasMovedThisRun) {
-                hint = "to move";
+                hint = "Move";
                 keyLabel = "WASD";
             }
-            if (m_hasMovedThisRun) conditionMet = true;
+            if (m_hasMovedThisRun) { conditionMet = true; hintSlot = 0; }
         } else if (!m_tutorialHintDone[1]) {
-            hint = "to jump";
+            hint = "Jump";
             keyLabel = "SPACE";
-            if (m_hasJumpedThisRun) conditionMet = true;
+            if (m_hasJumpedThisRun) { conditionMet = true; hintSlot = 1; }
         } else if (!m_tutorialHintDone[2]) {
-            hint = "to dash through danger";
+            hint = "Dash through danger (also in air!)";
             keyLabel = "SHIFT";
-            if (m_hasDashedThisRun) conditionMet = true;
+            if (m_hasDashedThisRun) { conditionMet = true; hintSlot = 2; }
         } else if (!m_tutorialHintDone[3]) {
-            // Show attack hint when any enemy is nearby
             bool enemyNear = false;
             if (m_player) {
                 Vec2 pp = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
@@ -3479,57 +3497,135 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
                 });
             }
             if (enemyNear) {
-                hint = "melee attack    ";
+                hint = "Melee Attack";
                 keyLabel = "J";
             }
-            if (m_hasAttackedThisRun) conditionMet = true;
+            if (m_hasAttackedThisRun) { conditionMet = true; hintSlot = 3; }
         } else if (!m_tutorialHintDone[4]) {
-            hint = "to switch dimensions - some walls only exist in one!";
+            hint = "Ranged Attack (hold for charged shot!)";
+            keyLabel = "K";
+            if (m_hasRangedThisRun) { conditionMet = true; hintSlot = 4; }
+        } else if (!m_tutorialHintDone[5]) {
+            hint = "Switch Dimension - paths differ between worlds!";
             keyLabel = "E";
-            if (m_dimManager.getSwitchCount() > 0) conditionMet = true;
+            if (m_dimManager.getSwitchCount() > 0) { conditionMet = true; hintSlot = 5; }
         }
-    } else if (m_currentDifficulty == 2) {
-        if (!m_tutorialHintDone[5]) {
-            // Show rift hint when near a rift
-            if (m_nearRiftIndex >= 0) {
-                hint = "to repair the rift";
-                keyLabel = "F";
-            } else if (m_tutorialTimer > 5.0f) {
-                hint = "Find glowing rifts on the map";
-                keyLabel = nullptr;
-            }
-            if (riftsRepaired > 0) conditionMet = true;
-        } else if (!m_tutorialHintDone[6]) {
-            if (m_entropy.getPercent() > 0.4f) {
-                hint = "Watch your Entropy bar - too much and your suit crashes!";
-                keyLabel = nullptr;
-                m_tutorialHintShowTimer += 1.0f / 60.0f;
-                if (m_tutorialHintShowTimer > 5.0f) conditionMet = true;
-            }
+    }
+
+    // === CONTEXT-BASED HINTS (any level, triggered by situation) ===
+    if (!hint) {
+        // Near a rift: explain how to repair
+        if (!m_tutorialHintDone[6] && m_nearRiftIndex >= 0) {
+            hint = "Repair this Rift! Solve the puzzle to reduce Entropy.";
+            keyLabel = "F";
+            if (riftsRepaired > 0) { conditionMet = true; hintSlot = 6; }
         }
-    } else if (m_currentDifficulty == 3) {
-        if (!m_tutorialHintDone[7]) {
-            hint = "Chain attacks for combos - more hits = more damage!";
+        // Entropy getting high
+        else if (!m_tutorialHintDone[7] && !m_shownEntropyWarning && m_entropy.getPercent() > 0.5f) {
+            hint = "Entropy rising! Repair Rifts to lower it. At 100% your suit fails!";
             keyLabel = nullptr;
-            if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
-                if (m_player->getEntity()->getComponent<CombatComponent>().comboCount >= 3)
-                    conditionMet = true;
+            m_shownEntropyWarning = true;
+            m_tutorialHintShowTimer = 0;
+            hintSlot = 7;
+            // Auto-dismiss after 6s
+            if (m_tutorialHintShowTimer > 6.0f) conditionMet = true;
+        }
+        // On/near a conveyor
+        else if (!m_tutorialHintDone[8] && !m_shownConveyorHint && m_player) {
+            auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+            int ts = m_level ? m_level->getTileSize() : 32;
+            int fx = static_cast<int>(pt.getCenter().x) / ts;
+            int fy = static_cast<int>(pt.position.y + pt.height) / ts;
+            int dim = m_dimManager.getCurrentDimension();
+            int cdir = 0;
+            if (m_level && (m_level->isOnConveyor(fx, fy, dim, cdir) || m_level->isOnConveyor(fx, fy+1, dim, cdir))) {
+                hint = "Conveyor Belt - pushes you along. Use it for speed!";
+                m_shownConveyorHint = true;
+                hintSlot = 8;
+                m_tutorialHintShowTimer = 0;
             }
-            m_tutorialHintShowTimer += 1.0f / 60.0f;
-            if (m_tutorialHintShowTimer > 8.0f) conditionMet = true;
+        }
+        // Near a dimension-exclusive platform
+        else if (!m_tutorialHintDone[9] && !m_shownDimPlatformHint && m_player && m_level) {
+            auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+            int ts = m_level->getTileSize();
+            int px = static_cast<int>(pt.getCenter().x) / ts;
+            int py = static_cast<int>(pt.getCenter().y) / ts;
+            int dim = m_dimManager.getCurrentDimension();
+            // Check nearby tiles for dim-exclusive platforms
+            for (int dy = -2; dy <= 2 && !hint; dy++) {
+                for (int dx = -3; dx <= 3 && !hint; dx++) {
+                    if (m_level->isDimensionExclusive(px+dx, py+dy, dim)) {
+                        hint = "Glowing platform - only exists in one dimension! Switch with [E]";
+                        m_shownDimPlatformHint = true;
+                        hintSlot = 9;
+                        m_tutorialHintShowTimer = 0;
+                    }
+                }
+            }
+        }
+        // Show wall slide hint if next to wall in air
+        else if (!m_tutorialHintDone[10] && !m_shownWallSlideHint && m_player) {
+            auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+            if ((phys.onWallLeft || phys.onWallRight) && !phys.onGround) {
+                hint = "Wall Slide! Jump off walls to reach higher areas.";
+                keyLabel = "SPACE";
+                m_shownWallSlideHint = true;
+                hintSlot = 10;
+                m_tutorialHintShowTimer = 0;
+            }
+        }
+        // Show abilities hint (level 1, after combat basics done)
+        else if (!m_tutorialHintDone[11] && m_hasAttackedThisRun && !m_hasUsedAbilityThisRun
+                 && m_tutorialTimer > 30.0f) {
+            hint = "Use special abilities: Slam / Shield / Phase Strike";
+            keyLabel = "1 2 3";
+            if (m_hasUsedAbilityThisRun) { conditionMet = true; hintSlot = 11; }
+        }
+        // Relic choice hint
+        else if (!m_tutorialHintDone[12] && !m_shownRelicHint && m_showRelicChoice) {
+            hint = "Choose a Relic! Each gives a unique passive bonus for this run.";
+            m_shownRelicHint = true;
+            hintSlot = 12;
+            m_tutorialHintShowTimer = 0;
+        }
+        // Combo hint when first combo reaches 3
+        else if (!m_tutorialHintDone[13] && m_player &&
+                 m_player->getEntity()->hasComponent<CombatComponent>()) {
+            auto& cb = m_player->getEntity()->getComponent<CombatComponent>();
+            if (cb.comboCount >= 3) {
+                hint = "Combo x3! Chain hits without pause for bonus damage!";
+                conditionMet = true;
+                hintSlot = 13;
+            }
+        }
+        // Exit hint when all rifts repaired
+        else if (!m_tutorialHintDone[14] && m_levelComplete && !m_collapsing) {
+            hint = "All Rifts repaired! Find the EXIT before the dimension collapses!";
+            conditionMet = false;
+            hintSlot = 14;
+            m_tutorialHintShowTimer = 0;
+        }
+        // Weapon switch hint after a few levels
+        else if (!m_tutorialHintDone[15] && m_currentDifficulty >= 2 && m_tutorialTimer > 10.0f
+                 && m_tutorialHintDone[3]) {
+            hint = "Switch weapons: [Q] Melee  [R] Ranged - try different styles!";
+            hintSlot = 15;
+            m_tutorialHintShowTimer = 0;
+        }
+    }
+
+    // Auto-dismiss timed hints after showing
+    if (hint && hintSlot >= 7 && !conditionMet) {
+        if (m_tutorialHintShowTimer > 5.0f) {
+            conditionMet = true;
         }
     }
 
     // Mark completed hints
-    if (conditionMet) {
-        // Find current hint index and mark it
-        for (int i = 0; i < 8; i++) {
-            if (!m_tutorialHintDone[i]) {
-                m_tutorialHintDone[i] = true;
-                m_tutorialHintShowTimer = 0;
-                break;
-            }
-        }
+    if (conditionMet && hintSlot >= 0 && hintSlot < 20) {
+        m_tutorialHintDone[hintSlot] = true;
+        m_tutorialHintShowTimer = 0;
     }
 
     if (!hint) return;
@@ -3545,9 +3641,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_Rect bg = {240, 140, 800, 36};
     SDL_RenderFillRect(renderer, &bg);
 
-    int textX = 640;
     if (keyLabel) {
-        // Render key box + hint text side by side
         SDL_Surface* hintSurf = TTF_RenderText_Blended(font, hint, {180, 220, 255, a});
         SDL_Surface* keySurf = TTF_RenderText_Blended(font, keyLabel, {255, 255, 255, 255});
         int totalW = (keySurf ? keySurf->w + 16 : 0) + (hintSurf ? hintSurf->w : 0);
@@ -3569,7 +3663,6 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_FreeSurface(hintSurf);
         }
     } else {
-        // Just hint text centered
         SDL_Color color = {180, 220, 255, a};
         SDL_Surface* surface = TTF_RenderText_Blended(font, hint, color);
         if (surface) {
