@@ -11,6 +11,7 @@ struct DamageEvent {
     float damage;
     bool isPlayerDamage; // true = player took damage, false = enemy took damage
     bool isCritical = false;
+    bool feedbackHandled = false; // true = source already did shake/flash/SFX
 };
 
 struct KillEvent {
@@ -57,8 +58,8 @@ public:
     // Hit-freeze: returns accumulated freeze time and resets
     float consumeHitFreeze();
     void addHitFreeze(float amount) { m_pendingHitFreeze += amount; }
-    void addDamageEvent(Vec2 pos, float dmg, bool isPlayerDmg, bool isCrit = false) {
-        m_damageEvents.push_back({pos, dmg, isPlayerDmg, isCrit});
+    void addDamageEvent(Vec2 pos, float dmg, bool isPlayerDmg, bool isCrit = false, bool fbHandled = false) {
+        m_damageEvents.push_back({pos, dmg, isPlayerDmg, isCrit, fbHandled});
     }
 
     // Damage events for floating numbers

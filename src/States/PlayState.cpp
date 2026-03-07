@@ -570,6 +570,9 @@ void PlayState::update(float dt) {
         }
 
         generateLevel();
+        // Update system pointers to new Player and Level (prevent dangling after regeneration)
+        m_combatSystem.setPlayer(m_player.get());
+        m_aiSystem.setLevel(m_level.get());
         applyRunBuffs();
 
         // Restore relics and HP to new player entity
@@ -1038,9 +1041,12 @@ void PlayState::update(float dt) {
             m_tookDamageThisLevel = true;
             m_tookDamageThisWave = true;
             // Screen shake + damage flash + hurt SFX on enemy combat hits
-            m_camera.shake(6.0f, 0.15f);
-            m_hud.triggerDamageFlash();
-            AudioManager::instance().play(SFX::PlayerHurt);
+            // Skip if source already handled feedback (hazards, DoT)
+            if (!evt.feedbackHandled) {
+                m_camera.shake(6.0f, 0.15f);
+                m_hud.triggerDamageFlash();
+                AudioManager::instance().play(SFX::PlayerHurt);
+            }
         }
     }
 
@@ -1211,7 +1217,9 @@ void PlayState::update(float dt) {
             auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
             if (tile.type == TileType::Spike && !playerHP.isInvincible()) {
                 // BALANCE: Spike DMG 15 -> 10, entropy 5 -> 3 (playtest: main death cause in L1)
-                playerHP.takeDamage(hazardDmg(10.0f));
+                float spikeDmg = hazardDmg(10.0f);
+                playerHP.takeDamage(spikeDmg);
+                m_combatSystem.addDamageEvent(playerT.getCenter(), spikeDmg, true, false, true);
                 m_tookDamageThisLevel = true;
                 m_tookDamageThisWave = true;
                 m_entropy.addEntropy(3.0f);
@@ -1225,7 +1233,9 @@ void PlayState::update(float dt) {
                 m_particles.burst(playerT.getCenter(), 15, {255, 80, 40, 255}, 150.0f, 3.0f);
                 m_hud.triggerDamageFlash();
             } else if (tile.type == TileType::Fire && !playerHP.isInvincible()) {
-                playerHP.takeDamage(hazardDmg(10.0f));
+                float fireDmg = hazardDmg(10.0f);
+                playerHP.takeDamage(fireDmg);
+                m_combatSystem.addDamageEvent(playerT.getCenter(), fireDmg, true, false, true);
                 m_tookDamageThisLevel = true;
                 m_tookDamageThisWave = true;
                 m_entropy.addEntropy(3.0f);
@@ -1247,7 +1257,9 @@ void PlayState::update(float dt) {
             auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
             if (!playerHP.isInvincible() &&
                 m_level->isInLaserBeam(playerT.getCenter().x, playerT.getCenter().y, dim)) {
-                playerHP.takeDamage(hazardDmg(20.0f));
+                float laserDmg = hazardDmg(20.0f);
+                playerHP.takeDamage(laserDmg);
+                m_combatSystem.addDamageEvent(playerT.getCenter(), laserDmg, true, false, true);
                 m_tookDamageThisLevel = true;
                 m_tookDamageThisWave = true;
                 m_entropy.addEntropy(8.0f);
@@ -1265,6 +1277,15 @@ void PlayState::update(float dt) {
             if (m_level->isOnConveyor(footX, footY, dim, convDir)) {
                 auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
                 phys.velocity.x += convDir * 120.0f * dt;
+                // Subtle wind particles in conveyor direction
+                m_conveyorParticleTimer -= dt;
+                if (m_conveyorParticleTimer <= 0) {
+                    Vec2 feet = {playerT.getCenter().x, playerT.position.y + playerT.height};
+                    m_particles.burst(feet, 2, {180, 200, 220, 120}, 50.0f, 1.0f);
+                    m_conveyorParticleTimer = 0.25f;
+                }
+            } else {
+                m_conveyorParticleTimer = 0;
             }
         }
 
@@ -1323,7 +1344,9 @@ void PlayState::update(float dt) {
         if (m_player->isBurning()) {
             m_player->burnDmgTimer -= dt;
             if (m_player->burnDmgTimer <= 0) {
-                playerHP.takeDamage(dotDmg(5.0f));
+                float burnDmg = dotDmg(5.0f);
+                playerHP.takeDamage(burnDmg);
+                m_combatSystem.addDamageEvent(playerT.getCenter(), burnDmg, true, false, true);
                 m_tookDamageThisLevel = true;
                 m_tookDamageThisWave = true;
                 m_player->burnDmgTimer = 0.3f;
@@ -1333,7 +1356,9 @@ void PlayState::update(float dt) {
         if (m_player->isPoisoned()) {
             m_player->poisonDmgTimer -= dt;
             if (m_player->poisonDmgTimer <= 0) {
-                playerHP.takeDamage(dotDmg(3.0f));
+                float poisonDmg = dotDmg(3.0f);
+                playerHP.takeDamage(poisonDmg);
+                m_combatSystem.addDamageEvent(playerT.getCenter(), poisonDmg, true, false, true);
                 m_tookDamageThisLevel = true;
                 m_tookDamageThisWave = true;
                 m_player->poisonDmgTimer = 0.5f;
@@ -5320,6 +5345,8 @@ void PlayState::updateSmokeTest(float dt) {
         m_pendingLevelGen = false;
         m_collapsing = false;
         generateLevel();
+        m_combatSystem.setPlayer(m_player.get());
+        m_aiSystem.setLevel(m_level.get());
         levelTimer = 0;
         return;
     }
