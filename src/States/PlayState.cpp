@@ -395,6 +395,7 @@ void PlayState::applyThemeVariant(Entity& e, int dimension) {
     sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.8f + accent.r * 0.2f);
     sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.8f + accent.g * 0.2f);
     sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.8f + accent.b * 0.2f);
+    sprite.baseColor = sprite.color; // update base for wind-up restore
 }
 
 void PlayState::applyUpgrades() {

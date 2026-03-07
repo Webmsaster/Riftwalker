@@ -34,6 +34,7 @@ private:
 
     void explode(Entity& entity, EntityManager& entities);
     void updateEnemyAnimation(Entity& entity);
+    void attackWindupEffect(Entity& entity, float timer, float windupTime);
 
     float distanceTo(Vec2 a, Vec2 b) const;
 

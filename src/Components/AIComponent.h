@@ -77,6 +77,7 @@ struct AIComponent : public Component {
     // Attack
     float attackCooldown = 1.0f;
     float attackTimer = 0.0f;
+    float attackWindup = 0.35f;  // wind-up delay before first melee attack (visual telegraph)
 
     // Stun
     float stunDuration = 0.5f;

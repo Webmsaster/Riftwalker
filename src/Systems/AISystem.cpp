@@ -15,6 +15,36 @@
 #include <cmath>
 #include <cstdlib>
 
+void AISystem::attackWindupEffect(Entity& entity, float timer, float windupTime) {
+    if (windupTime <= 0) return;
+    if (!entity.hasComponent<TransformComponent>()) return;
+
+    float progress = 1.0f - (timer / windupTime); // 0→1 as attack approaches
+
+    // Color pulse: flash from base color toward bright red as attack nears
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        auto& base = sprite.baseColor;
+        float flash = std::sin(progress * 15.0f) * 0.5f + 0.5f;
+        float blend = progress * flash; // 0→1, pulsing
+        Uint8 r = static_cast<Uint8>(base.r + (255 - base.r) * blend);
+        Uint8 g = static_cast<Uint8>(base.g * (1.0f - blend * 0.7f));
+        Uint8 b = static_cast<Uint8>(base.b * (1.0f - blend * 0.7f));
+        sprite.color = {r, g, b, base.a};
+    }
+
+    // Warning particles: red-orange sparks above enemy, intensifying
+    if (m_particles && progress > 0.3f) {
+        auto& t = entity.getComponent<TransformComponent>();
+        Vec2 aboveHead = {t.getCenter().x, t.position.y - 4.0f};
+        float offsetX = (static_cast<float>(std::rand() % 20) - 10.0f);
+        aboveHead.x += offsetX;
+        SDL_Color warnColor = {255, static_cast<Uint8>(80 + 100 * (1.0f - progress)), 40, 200};
+        float size = 1.5f + progress * 2.0f;
+        m_particles->burst(aboveHead, 1, warnColor, 20.0f + progress * 40.0f, size);
+    }
+}
+
 void AISystem::updateEnemyAnimation(Entity& entity) {
     if (!entity.hasComponent<SpriteComponent>() || !entity.hasComponent<AnimationComponent>())
         return;
@@ -241,17 +271,28 @@ void AISystem::updateWalker(Entity& entity, float dt, Vec2 playerPos) {
             phys.velocity.x = dirX * effectiveChase;
             ai.facingRight = dirX > 0;
 
-            if (dist < ai.attackRange) ai.state = AIState::Attack;
+            if (dist < ai.attackRange) {
+                ai.state = AIState::Attack;
+                ai.attackTimer = ai.attackWindup; // wind-up before first attack
+            }
             if (dist > ai.loseRange) ai.state = AIState::Patrol;
             break;
         }
         case AIState::Attack: {
             ai.attackTimer -= dt;
+
+            // Visual wind-up telegraph: warning particles + color pulse before attack
+            if (ai.attackTimer > 0 && ai.attackTimer < ai.attackWindup) {
+                attackWindupEffect(entity, ai.attackTimer, ai.attackWindup);
+            }
+
             if (ai.attackTimer <= 0) {
                 auto& combat = entity.getComponent<CombatComponent>();
                 Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
                 combat.startAttack(AttackType::Melee, dir);
                 ai.attackTimer = ai.attackCooldown / ai.dimSpeedMod; // Faster attacks in dim B
+                if (entity.hasComponent<SpriteComponent>())
+                    entity.getComponent<SpriteComponent>().restoreColor();
             }
             if (dist > ai.attackRange * 1.5f) ai.state = AIState::Chase;
             break;
@@ -280,7 +321,10 @@ void AISystem::updateFlyer(Entity& entity, float dt, Vec2 playerPos) {
             phys.velocity = dir * ai.patrolSpeed * ai.dimSpeedMod;
 
             if (distanceTo(pos, target) < 10.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < effectiveDetect) ai.state = AIState::Chase;
+            if (dist < effectiveDetect) {
+                ai.state = AIState::Chase;
+                ai.attackTimer = ai.attackCooldown * 0.5f; // brief hover before first swoop
+            }
             break;
         }
         case AIState::Chase: {
@@ -290,6 +334,13 @@ void AISystem::updateFlyer(Entity& entity, float dt, Vec2 playerPos) {
             phys.velocity = dir * effectiveChase;
 
             ai.attackTimer -= dt;
+
+            // Visual wind-up telegraph before swoop
+            if (ai.attackTimer > 0 && ai.attackTimer < ai.attackWindup && dist < effectiveDetect) {
+                attackWindupEffect(entity, ai.attackTimer, ai.attackWindup);
+                phys.velocity = phys.velocity * 0.5f; // slow down while winding up
+            }
+
             if (ai.attackTimer <= 0 && dist < effectiveDetect) {
                 ai.state = AIState::Attack;
                 ai.targetPosition = playerPos;
@@ -307,6 +358,8 @@ void AISystem::updateFlyer(Entity& entity, float dt, Vec2 playerPos) {
                 ai.attackTimer = ai.attackCooldown / ai.dimSpeedMod;
                 auto& combat = entity.getComponent<CombatComponent>();
                 combat.startAttack(AttackType::Melee, dir);
+                if (entity.hasComponent<SpriteComponent>())
+                    entity.getComponent<SpriteComponent>().restoreColor();
             }
             break;
         }
@@ -447,12 +500,22 @@ void AISystem::updatePhaser(Entity& entity, float dt, Vec2 playerPos, int player
 
             if (dist < ai.attackRange) {
                 ai.attackTimer -= dt;
+
+                // Visual wind-up telegraph
+                if (ai.attackTimer > 0 && ai.attackTimer < ai.attackWindup) {
+                    attackWindupEffect(entity, ai.attackTimer, ai.attackWindup);
+                }
+
                 if (ai.attackTimer <= 0) {
                     auto& combat = entity.getComponent<CombatComponent>();
                     Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
                     combat.startAttack(AttackType::Melee, dir);
                     ai.attackTimer = ai.attackCooldown;
+                    // Phaser has its own flicker colors; don't restore here
                 }
+            } else {
+                // Reset timer for next approach wind-up
+                if (ai.attackTimer <= 0) ai.attackTimer = ai.attackWindup;
             }
         } else {
             // Patrol
@@ -605,7 +668,10 @@ void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
             ai.facingRight = dirX > 0;
             ai.shieldUp = true;
 
-            if (dist < ai.attackRange) ai.state = AIState::Attack;
+            if (dist < ai.attackRange) {
+                ai.state = AIState::Attack;
+                ai.attackTimer = ai.attackWindup; // wind-up before first attack
+            }
             if (dist > ai.loseRange) {
                 ai.state = AIState::Patrol;
                 ai.shieldUp = false;
@@ -614,6 +680,12 @@ void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
         }
         case AIState::Attack: {
             ai.attackTimer -= dt;
+
+            // Visual wind-up telegraph
+            if (ai.attackTimer > 0 && ai.attackTimer < ai.attackWindup) {
+                attackWindupEffect(entity, ai.attackTimer, ai.attackWindup);
+            }
+
             if (ai.attackTimer <= 0) {
                 // Lower shield briefly to attack
                 ai.shieldUp = false;
@@ -622,6 +694,8 @@ void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
                 Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
                 combat.startAttack(AttackType::Melee, dir);
                 ai.attackTimer = ai.attackCooldown;
+                if (entity.hasComponent<SpriteComponent>())
+                    entity.getComponent<SpriteComponent>().restoreColor();
             }
 
             // Re-raise shield after attack animation ends
@@ -691,12 +765,23 @@ void AISystem::updateCrawler(Entity& entity, float dt, Vec2 playerPos) {
 
             if (dist < ai.attackRange) {
                 ai.attackTimer -= dt;
+
+                // Visual wind-up telegraph
+                if (ai.attackTimer > 0 && ai.attackTimer < ai.attackWindup) {
+                    attackWindupEffect(entity, ai.attackTimer, ai.attackWindup);
+                }
+
                 if (ai.attackTimer <= 0) {
                     auto& combat = entity.getComponent<CombatComponent>();
                     Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
                     combat.startAttack(AttackType::Melee, dir);
                     ai.attackTimer = ai.attackCooldown / ai.dimSpeedMod;
+                    if (entity.hasComponent<SpriteComponent>())
+                        entity.getComponent<SpriteComponent>().restoreColor();
                 }
+            } else {
+                // Reset timer for next approach wind-up
+                if (ai.attackTimer <= 0) ai.attackTimer = ai.attackWindup;
             }
         } else {
             // Try to climb back to ceiling (for simplicity, just patrol on ground)

@@ -74,6 +74,7 @@ void Enemy::applyElement(Entity& e, EnemyElement element) {
             break;
         default: break;
     }
+    sprite.baseColor = sprite.color; // update base for wind-up restore
 }
 
 Entity& Enemy::createByType(EntityManager& entities, int type, Vec2 pos, int dimension) {
@@ -794,6 +795,7 @@ void Enemy::makeElite(Entity& e, EliteModifier mod) {
             break;
         default: break;
     }
+    sprite.baseColor = sprite.color; // update base for wind-up restore
 }
 
 Entity& Enemy::createTemporalWeaver(EntityManager& entities, Vec2 pos, int dimension, int difficulty) {

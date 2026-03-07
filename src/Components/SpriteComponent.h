@@ -42,5 +42,10 @@ struct SpriteComponent : public Component {
 
     void setColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255) {
         color = {r, g, b, a};
+        if (!hasBaseColor) { baseColor = color; hasBaseColor = true; }
     }
+    void restoreColor() { color = baseColor; }
+
+    SDL_Color baseColor{255, 255, 255, 255};
+    bool hasBaseColor = false;
 };
