@@ -939,6 +939,10 @@ void PlayState::update(float dt) {
         if (evt.isPlayerDamage) {
             m_tookDamageThisLevel = true;
             m_tookDamageThisWave = true;
+            // Screen shake + damage flash + hurt SFX on enemy combat hits
+            m_camera.shake(6.0f, 0.15f);
+            m_hud.triggerDamageFlash();
+            AudioManager::instance().play(SFX::PlayerHurt);
         }
     }
     updateDamageNumbers(dt);

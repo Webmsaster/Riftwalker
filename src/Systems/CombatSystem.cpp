@@ -663,6 +663,9 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 AudioManager::instance().play(SFX::RiftFail);
                 if (m_camera) m_camera->shake(2.0f, 0.08f);
             } else {
+                // Skip if player has active i-frames (no phantom feedback)
+                bool targetIsPlayer = (!isPlayer && target.getTag() == "player");
+                if (targetIsPlayer && hp.isInvincible()) return;
                 hp.takeDamage(damage);
                 m_damageEvents.push_back({targetCenter, damage, !isPlayer, isCrit});
 
@@ -1199,20 +1202,24 @@ void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
     auto* cs = this;
     col.onTrigger = [damage, dimension, piercing, isPlayerOwned, cs](Entity* self, Entity* other) {
         if (other->hasComponent<HealthComponent>()) {
-            float finalDmg = damage;
-            bool isPlayerDamage = (other->getTag() == "player");
-            // Defensive relic multiplier when projectile hits the player
-            if (isPlayerDamage && other->hasComponent<RelicComponent>()) {
-                finalDmg *= RelicSystem::getDamageTakenMult(
-                    other->getComponent<RelicComponent>(), dimension);
-            }
-            other->getComponent<HealthComponent>().takeDamage(finalDmg);
-            // Track damage event for floating numbers + achievement tracking
-            if (other->hasComponent<TransformComponent>()) {
-                cs->m_damageEvents.push_back({
-                    other->getComponent<TransformComponent>().getCenter(),
-                    finalDmg, isPlayerDamage, false
-                });
+            auto& hp = other->getComponent<HealthComponent>();
+            // Only apply damage and track event if target has no active i-frames
+            if (!hp.isInvincible()) {
+                float finalDmg = damage;
+                bool isPlayerDamage = (other->getTag() == "player");
+                // Defensive relic multiplier when projectile hits the player
+                if (isPlayerDamage && other->hasComponent<RelicComponent>()) {
+                    finalDmg *= RelicSystem::getDamageTakenMult(
+                        other->getComponent<RelicComponent>(), dimension);
+                }
+                hp.takeDamage(finalDmg);
+                // Track damage event for floating numbers + achievement tracking
+                if (other->hasComponent<TransformComponent>()) {
+                    cs->m_damageEvents.push_back({
+                        other->getComponent<TransformComponent>().getCenter(),
+                        finalDmg, isPlayerDamage, false
+                    });
+                }
             }
         }
         // Piercing projectiles pass through enemies (still destroyed by tiles)
