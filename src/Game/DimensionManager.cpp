@@ -4,8 +4,9 @@
 
 DimensionManager::DimensionManager() {}
 
-void DimensionManager::switchDimension() {
-    if (m_switching || m_cooldownTimer > 0) return;
+bool DimensionManager::switchDimension(bool force) {
+    if (m_switching) return false;
+    if (!force && m_cooldownTimer > 0) return false;
 
     m_switching = true;
     m_switchTimer = 0;
@@ -13,12 +14,16 @@ void DimensionManager::switchDimension() {
     m_switchCount++;
     m_glitchIntensity = 1.0f;
 
+    // Build resonance on each switch
+    m_resonance = std::min(1.0f, m_resonance + m_resonancePerSwitch);
+
     // Particle effect at player position
     if (particles) {
         SDL_Color cA = m_dimColorA;
         SDL_Color cB = m_dimColorB;
         particles->dimensionSwitch(playerPos, cA, cB);
     }
+    return true;
 }
 
 void DimensionManager::update(float dt) {
@@ -52,6 +57,36 @@ void DimensionManager::update(float dt) {
     if (m_glitchIntensity > 0) {
         m_glitchIntensity -= dt * 3.0f;
         if (m_glitchIntensity < 0) m_glitchIntensity = 0;
+    }
+
+    // Decay resonance over time
+    if (m_resonance > 0) {
+        m_resonance -= m_resonanceDecay * dt;
+        if (m_resonance < 0) m_resonance = 0;
+    }
+}
+
+int DimensionManager::getResonanceTier() const {
+    if (m_resonance >= 0.85f) return 3; // High
+    if (m_resonance >= 0.5f) return 2;  // Mid
+    if (m_resonance >= 0.25f) return 1; // Low
+    return 0;
+}
+
+float DimensionManager::getResonanceDamageMult() const {
+    switch (getResonanceTier()) {
+        case 1: return 1.15f; // +15%
+        case 2: return 1.30f; // +30%
+        case 3: return 1.50f; // +50%
+        default: return 1.0f;
+    }
+}
+
+float DimensionManager::getResonanceSpeedMult() const {
+    switch (getResonanceTier()) {
+        case 2: return 1.10f; // +10%
+        case 3: return 1.20f; // +20%
+        default: return 1.0f;
     }
 }
 

@@ -685,7 +685,7 @@ void PlayState::update(float dt) {
             m_mutatorFluxTimer += dt;
             if (m_mutatorFluxTimer >= 15.0f) {
                 m_mutatorFluxTimer = 0;
-                m_dimManager.switchDimension();
+                m_dimManager.switchDimension(true);
                 m_camera.shake(6.0f, 0.2f);
             }
         }
@@ -711,84 +711,83 @@ void PlayState::update(float dt) {
         });
         if (dimLocked) {
             m_camera.shake(3.0f, 0.1f); // Feedback: can't switch
-        } else {
-        m_dimManager.switchDimension();
-        m_entropy.onDimensionSwitch();
-        AudioManager::instance().play(SFX::DimensionSwitch);
-        AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
-        m_screenEffects.triggerDimensionRipple();
+        } else if (m_dimManager.switchDimension()) {
+            m_entropy.onDimensionSwitch();
+            AudioManager::instance().play(SFX::DimensionSwitch);
+            AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+            m_screenEffects.triggerDimensionRipple();
 
-        // Relic dimension-switch effects
-        if (m_player->getEntity()->hasComponent<RelicComponent>()) {
-            auto& relicComp = m_player->getEntity()->getComponent<RelicComponent>();
-            auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
-            int prevDim = relicComp.lastSwitchDimension;
-            relicComp.lastSwitchDimension = m_dimManager.getCurrentDimension();
-            RelicSystem::onDimensionSwitch(relicComp, &playerHP);
+            // Relic dimension-switch effects
+            if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+                auto& relicComp = m_player->getEntity()->getComponent<RelicComponent>();
+                auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+                int prevDim = relicComp.lastSwitchDimension;
+                relicComp.lastSwitchDimension = m_dimManager.getCurrentDimension();
+                RelicSystem::onDimensionSwitch(relicComp, &playerHP);
 
-            // DimResidue: leave damage zone (with spawn ICD + zone cap)
-            if (relicComp.hasRelic(RelicID::DimResidue) && prevDim > 0
-                && relicComp.dimResidueSpawnCD <= 0) {
-                // Count existing zones
-                int zoneCount = 0;
-                m_entities.forEach([&](Entity& e) {
-                    if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
-                });
-                if (zoneCount < RelicSystem::getMaxResidueZones()) {
-                    Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
-                    float residueDur = RelicSynergy::getResidueDuration(relicComp);
-                    auto& zone = m_entities.addEntity("dim_residue");
-                    zone.dimension = prevDim;
-                    auto& zt = zone.addComponent<TransformComponent>();
-                    zt.position = {pPos.x - 24, pPos.y - 24};
-                    zt.width = 48;
-                    zt.height = 48;
-                    auto& zh = zone.addComponent<HealthComponent>();
-                    zh.maxHP = residueDur;
-                    zh.currentHP = residueDur;
-                    m_particles.burst(pPos, 12, {200, 80, 150, 255}, 80.0f, 2.0f);
-                    relicComp.dimResidueSpawnCD = RelicSystem::getDimResidueSpawnICD();
+                // DimResidue: leave damage zone (with spawn ICD + zone cap)
+                if (relicComp.hasRelic(RelicID::DimResidue) && prevDim > 0
+                    && relicComp.dimResidueSpawnCD <= 0) {
+                    // Count existing zones
+                    int zoneCount = 0;
+                    m_entities.forEach([&](Entity& e) {
+                        if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
+                    });
+                    if (zoneCount < RelicSystem::getMaxResidueZones()) {
+                        Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                        float residueDur = RelicSynergy::getResidueDuration(relicComp);
+                        auto& zone = m_entities.addEntity("dim_residue");
+                        zone.dimension = prevDim;
+                        auto& zt = zone.addComponent<TransformComponent>();
+                        zt.position = {pPos.x - 24, pPos.y - 24};
+                        zt.width = 48;
+                        zt.height = 48;
+                        auto& zh = zone.addComponent<HealthComponent>();
+                        zh.maxHP = residueDur;
+                        zh.currentHP = residueDur;
+                        m_particles.burst(pPos, 12, {200, 80, 150, 255}, 80.0f, 2.0f);
+                        relicComp.dimResidueSpawnCD = RelicSystem::getDimResidueSpawnICD();
+                    }
                 }
             }
-        }
 
-        // Voidwalker passive: Rift Affinity - heal on dim-switch + Dimensional Affinity
-        if (m_player && m_player->playerClass == PlayerClass::Voidwalker) {
-            const auto& voidData = ClassSystem::getData(PlayerClass::Voidwalker);
-            auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
-            hp.heal(voidData.switchHeal);
-            if (m_player->particles) {
-                Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
-                m_player->particles->burst(pPos, 8, {60, 200, 255, 200}, 60.0f, 2.0f);
+            // Voidwalker passive: Rift Affinity - heal on dim-switch + Dimensional Affinity
+            if (m_player && m_player->playerClass == PlayerClass::Voidwalker) {
+                const auto& voidData = ClassSystem::getData(PlayerClass::Voidwalker);
+                auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+                hp.heal(voidData.switchHeal);
+                if (m_player->particles) {
+                    Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                    m_player->particles->burst(pPos, 8, {60, 200, 255, 200}, 60.0f, 2.0f);
+                }
+                // Dimensional Affinity: activate Rift Charge damage buff
+                m_player->activateRiftCharge();
             }
-            // Dimensional Affinity: activate Rift Charge damage buff
-            m_player->activateRiftCharge();
-        }
 
-        // Lore: Echoes of Origin - first dimension switch
-        if (auto* lore = game->getLoreSystem()) {
-            if (!lore->isDiscovered(LoreID::DimensionOrigin)) {
-                lore->discover(LoreID::DimensionOrigin);
-                AudioManager::instance().play(SFX::LoreDiscover);
+            // Lore: Echoes of Origin - first dimension switch
+            if (auto* lore = game->getLoreSystem()) {
+                if (!lore->isDiscovered(LoreID::DimensionOrigin)) {
+                    lore->discover(LoreID::DimensionOrigin);
+                    AudioManager::instance().play(SFX::LoreDiscover);
+                }
             }
-        }
 
-        // Run buff: PhantomStep - invincible after dimension switch
-        float phantomDur = game->getRunBuffSystem().getPhantomStepDuration();
-        if (phantomDur > 0 && m_player) {
-            auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
-            hp.invincibilityTimer = std::max(hp.invincibilityTimer, phantomDur);
-            if (m_player->particles) {
-                Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
-                m_player->particles->burst(pPos, 15, {180, 150, 255, 200}, 120.0f, 2.0f);
+            // Run buff: PhantomStep - invincible after dimension switch
+            float phantomDur = game->getRunBuffSystem().getPhantomStepDuration();
+            if (phantomDur > 0 && m_player) {
+                auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+                hp.invincibilityTimer = std::max(hp.invincibilityTimer, phantomDur);
+                if (m_player->particles) {
+                    Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                    m_player->particles->burst(pPos, 15, {180, 150, 255, 200}, 120.0f, 2.0f);
+                }
             }
-        }
-        } // end else (not dimLocked)
+        } // end else if (switchDimension succeeded)
     }
 
-    // Forced dimension switch from entropy
+    // Forced dimension switch from entropy (bypasses cooldown)
     if (m_entropy.shouldForceSwitch()) {
-        m_dimManager.switchDimension();
+        m_dimManager.switchDimension(true);
         m_entropy.clearForceSwitch();
         m_camera.shake(8.0f, 0.3f);
         AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
@@ -907,7 +906,7 @@ void PlayState::update(float dt) {
         auto& bossAi = e.getComponent<AIComponent>();
         if (bossAi.bossType == 4 && bossAi.vsForceDimSwitch) {
             bossAi.vsForceDimSwitch = false;
-            m_dimManager.switchDimension();
+            m_dimManager.switchDimension(true);
             m_camera.shake(6.0f, 0.2f);
             AudioManager::instance().play(SFX::DimensionSwitch);
             m_screenEffects.triggerDimensionRipple();

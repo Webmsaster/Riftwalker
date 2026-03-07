@@ -7,7 +7,7 @@ class DimensionManager {
 public:
     DimensionManager();
 
-    void switchDimension();
+    bool switchDimension(bool force = false);
     void update(float dt);
     void applyVisualEffect(SDL_Renderer* renderer, int screenW, int screenH);
 
@@ -22,6 +22,12 @@ public:
     SDL_Color getDimColorA() const { return m_dimColorA; }
     SDL_Color getDimColorB() const { return m_dimColorB; }
     void setDimColors(SDL_Color a, SDL_Color b) { m_dimColorA = a; m_dimColorB = b; }
+
+    // Resonance: builds from rapid dimension switching
+    float getResonance() const { return m_resonance; }
+    int getResonanceTier() const; // 0=none, 1=low, 2=mid, 3=high
+    float getResonanceDamageMult() const;
+    float getResonanceSpeedMult() const;
 
     float switchCooldown = 0.5f;
     float switchDuration = 0.3f;
@@ -42,4 +48,9 @@ private:
 
     // Glitch effect
     float m_glitchIntensity = 0;
+
+    // Resonance meter (0.0 - 1.0)
+    float m_resonance = 0;
+    float m_resonanceDecay = 0.12f;   // decay per second
+    float m_resonancePerSwitch = 0.35f; // gained per dimension switch
 };
