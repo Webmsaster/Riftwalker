@@ -779,14 +779,21 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     }
                 }
 
-                // SFX
-                AudioManager::instance().play(isPlayer ? SFX::MeleeHit : SFX::EnemyHit);
+                // SFX: skip MeleeHit on crits (CriticalHit/ParryCounter already played)
+                if (isCrit && isPlayer) {
+                    // Crit SFX already played above — don't double up
+                } else {
+                    AudioManager::instance().play(isPlayer ? SFX::MeleeHit : SFX::EnemyHit);
+                }
 
-                // Screen shake scales with combo stage (dash attack gets extra shake)
+                // Screen shake scales with combo stage; crits get extra punch
                 if (m_camera) {
                     float shakeIntensity, shakeDuration;
                     if (isDashAttack) {
                         shakeIntensity = 10.0f;
+                        shakeDuration = 0.25f;
+                    } else if (isCrit && isPlayer) {
+                        shakeIntensity = 12.0f;
                         shakeDuration = 0.25f;
                     } else if (isPlayer) {
                         shakeIntensity = 5.0f + comboStage * 3.0f;
@@ -798,23 +805,26 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     m_camera->shake(shakeIntensity, shakeDuration);
                 }
 
-                // Hit-freeze scales with combo stage
+                // Hit-freeze scales with combo stage; crits freeze longer
                 if (isDashAttack) {
                     m_pendingHitFreeze += 0.1f;
                 } else if (isPlayer) {
-                    float freezeBase = isCrit ? 0.08f : 0.05f;
+                    float freezeBase = isCrit ? 0.1f : 0.05f;
                     m_pendingHitFreeze += freezeBase + comboStage * 0.03f;
                 } else {
                     m_pendingHitFreeze += 0.06f;
                 }
 
-                // Particles scale with combo stage
+                // Particles scale with combo stage; crits get bright white burst
                 if (m_particles) {
                     SDL_Color hitColor;
                     int particleCount;
                     if (isDashAttack) {
                         hitColor = {100, 200, 255, 255};
                         particleCount = 25;
+                    } else if (isCrit && isPlayer) {
+                        hitColor = {255, 255, 220, 255}; // bright white-gold
+                        particleCount = 22;
                     } else if (isPlayer) {
                         switch (comboStage) {
                             case 0: hitColor = {255, 80, 80, 255}; particleCount = 8; break;
@@ -830,20 +840,24 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
 
                     Vec2 hitPos = {(attackCenter.x + targetCenter.x) * 0.5f,
                                    (attackCenter.y + targetCenter.y) * 0.5f};
-                    float burstSpeed = isDashAttack ? 250.0f : (120.0f + comboStage * 60.0f);
-                    float burstLife = isDashAttack ? 5.0f : (2.0f + comboStage);
+                    float burstSpeed = isDashAttack ? 250.0f :
+                                       (isCrit && isPlayer) ? 220.0f : (120.0f + comboStage * 60.0f);
+                    float burstLife = isDashAttack ? 5.0f :
+                                     (isCrit && isPlayer) ? 4.0f : (2.0f + comboStage);
                     m_particles->burst(hitPos, particleCount / 2, {255, 220, 100, 255}, burstSpeed, burstLife);
 
                     // Directional impact particles: spray in hit direction
                     float hitDirDeg = std::atan2(targetCenter.y - attackCenter.y,
                                                  targetCenter.x - attackCenter.x) * 180.0f / 3.14159f;
-                    float dirSpread = isDashAttack ? 60.0f : 90.0f;
-                    float dirSpeed = isDashAttack ? 280.0f : (150.0f + comboStage * 50.0f);
-                    int dirCount = isDashAttack ? 15 : (5 + comboStage * 3);
+                    float dirSpread = isDashAttack ? 60.0f : (isCrit && isPlayer) ? 70.0f : 90.0f;
+                    float dirSpeed = isDashAttack ? 280.0f :
+                                     (isCrit && isPlayer) ? 260.0f : (150.0f + comboStage * 50.0f);
+                    int dirCount = isDashAttack ? 15 : (isCrit && isPlayer) ? 14 : (5 + comboStage * 3);
                     m_particles->directionalBurst(hitPos, dirCount, hitColor, hitDirDeg, dirSpread, dirSpeed, burstLife);
 
                     // Small white sparks at impact point
-                    m_particles->burst(hitPos, 3 + comboStage, {255, 255, 255, 255}, 80.0f, 1.5f);
+                    int sparkCount = (isCrit && isPlayer) ? 8 : (3 + comboStage);
+                    m_particles->burst(hitPos, sparkCount, {255, 255, 255, 255}, 80.0f, 1.5f);
                 }
             }
 

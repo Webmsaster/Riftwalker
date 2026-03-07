@@ -39,9 +39,14 @@ void Camera::follow(Vec2 target, float dt, Vec2 velocity) {
 }
 
 void Camera::shake(float intensity, float duration) {
-    m_shakeIntensity = intensity * shakeMultiplier;
-    m_shakeDuration = duration;
-    m_shakeTimer = 0;
+    float scaled = intensity * shakeMultiplier;
+    // Keep the stronger shake — don't let weaker calls overwrite a big hit
+    float remaining = m_shakeIntensity * std::max(0.0f, 1.0f - m_shakeTimer / std::max(m_shakeDuration, 0.001f));
+    if (scaled >= remaining) {
+        m_shakeIntensity = scaled;
+        m_shakeDuration = duration;
+        m_shakeTimer = 0;
+    }
 }
 
 void Camera::update(float dt) {
