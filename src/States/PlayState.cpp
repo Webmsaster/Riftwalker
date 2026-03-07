@@ -875,12 +875,23 @@ void PlayState::update(float dt) {
     // Physics - pass current dimension so player (dimension=0) collides with correct tiles
     m_physics.update(m_entities, dt, m_level.get(), m_dimManager.getCurrentDimension());
 
-    // Landing screen shake: proportional to fall speed (heavier falls = bigger shake)
+    // Landing effects: screen shake + dust particles proportional to fall speed
     {
         auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
         if (phys.onGround && !phys.wasOnGround && phys.landingImpactSpeed > 250.0f) {
             float t = std::min((phys.landingImpactSpeed - 250.0f) / 550.0f, 1.0f);
             m_camera.shake(2.0f + t * 6.0f, 0.08f + t * 0.12f);
+
+            // Landing dust cloud at feet — bigger for harder landings
+            auto& tr = m_player->getEntity()->getComponent<TransformComponent>();
+            Vec2 feetPos = {tr.getCenter().x, tr.position.y + tr.height};
+            int dustCount = 6 + static_cast<int>(t * 10);
+            float dustSpeed = 40.0f + t * 80.0f;
+            float dustSize = 2.0f + t * 3.0f;
+            SDL_Color dustColor = {180, 160, 130, static_cast<Uint8>(150 + t * 80)};
+            // Spread left and right from feet
+            m_particles.directionalBurst(feetPos, dustCount / 2, dustColor, 180.0f, 60.0f, dustSpeed, dustSize);
+            m_particles.directionalBurst(feetPos, dustCount / 2, dustColor, 0.0f, 60.0f, dustSpeed, dustSize);
         }
         if (phys.onGround) phys.landingImpactSpeed = 0;
     }
@@ -1491,6 +1502,18 @@ void PlayState::update(float dt) {
     // Track dash count for achievement
     if (m_player && m_player->isDashing && m_player->dashTimer >= m_player->dashDuration - 0.02f) {
         m_dashCount++;
+    }
+
+    // Consume shard pickups from item drops
+    if (m_player && m_player->riftShardsCollected > 0) {
+        int shards = m_player->riftShardsCollected;
+        float shardMult = game->getRunBuffSystem().getShardMultiplier() * m_achievementShardMult;
+        if (m_player->getEntity()->hasComponent<RelicComponent>())
+            shardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
+        int finalShards = static_cast<int>(shards * shardMult);
+        shardsCollected += finalShards;
+        game->getUpgradeSystem().addRiftShards(finalShards);
+        m_player->riftShardsCollected = 0;
     }
 
     // Consume kill tracking from combat system

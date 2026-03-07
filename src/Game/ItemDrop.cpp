@@ -42,7 +42,7 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
     return e;
 }
 
-Entity& ItemDrop::spawnRiftShard(EntityManager& entities, Vec2 pos, int dimension, int value) {
+Entity& ItemDrop::spawnRiftShard(EntityManager& entities, Vec2 pos, int dimension, int value, Player* player) {
     auto& e = entities.addEntity("pickup_shard");
     e.dimension = dimension;
 
@@ -63,11 +63,14 @@ Entity& ItemDrop::spawnRiftShard(EntityManager& entities, Vec2 pos, int dimensio
     col.layer = LAYER_PICKUP;
     col.mask = LAYER_TILE | LAYER_PLAYER;
     col.type = ColliderType::Trigger;
-    col.onTrigger = [value](Entity* self, Entity* other) {
+    col.onTrigger = [value, player](Entity* self, Entity* other) {
         if (other->getTag() == "player") {
+            // Add shards to player's pending counter (consumed by PlayState each frame)
+            if (player) {
+                player->riftShardsCollected += value;
+            }
             AudioManager::instance().play(SFX::Pickup);
             self->destroy();
-            // Shards collected via PlayState counting
         }
     };
 
@@ -180,7 +183,7 @@ void ItemDrop::spawnRandomDrop(EntityManager& entities, Vec2 pos, int dimension,
         spawnHealthOrb(entities, pos, dimension);
     } else if (roll < 55) {
         // 30% chance: rift shard (was 25%), higher value
-        spawnRiftShard(entities, pos, dimension, 5 + difficulty * 3);
+        spawnRiftShard(entities, pos, dimension, 5 + difficulty * 3, player);
     } else if (roll < 65) {
         // 10% chance: shield
         if (player) spawnShieldOrb(entities, pos, dimension, player);
