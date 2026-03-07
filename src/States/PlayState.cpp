@@ -207,6 +207,25 @@ void PlayState::generateLevel() {
     applyUpgrades();
     applyAscensionModifiers();
 
+    // Register heal callback for floating green numbers
+    {
+        auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+        hp.onHeal = [this](float amount) {
+            if (amount < 1.0f) return; // Skip tiny heals to avoid spam
+            if (!m_player) return;
+            auto& t = m_player->getEntity()->getComponent<TransformComponent>();
+            FloatingDamageNumber num;
+            num.position = t.getCenter();
+            num.position.x += static_cast<float>((std::rand() % 20) - 10); // Slight random offset
+            num.value = amount;
+            num.isPlayerDamage = false;
+            num.isHeal = true;
+            num.lifetime = 0.9f;
+            num.maxLifetime = num.lifetime;
+            m_damageNumbers.push_back(num);
+        };
+    }
+
     // Voidwalker: reduced switch cooldown
     if (g_selectedClass == PlayerClass::Voidwalker) {
         m_dimManager.switchCooldown = 0.5f * ClassSystem::getData(PlayerClass::Voidwalker).switchCDReduction;
@@ -853,6 +872,16 @@ void PlayState::update(float dt) {
 
     // Physics - pass current dimension so player (dimension=0) collides with correct tiles
     m_physics.update(m_entities, dt, m_level.get(), m_dimManager.getCurrentDimension());
+
+    // Landing screen shake: proportional to fall speed (heavier falls = bigger shake)
+    {
+        auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+        if (phys.onGround && !phys.wasOnGround && phys.landingImpactSpeed > 250.0f) {
+            float t = std::min((phys.landingImpactSpeed - 250.0f) / 550.0f, 1.0f);
+            m_camera.shake(2.0f + t * 6.0f, 0.08f + t * 0.12f);
+        }
+        if (phys.onGround) phys.landingImpactSpeed = 0;
+    }
 
     // AI
     Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
@@ -2883,6 +2912,14 @@ void PlayState::updateSpawnWaves(float dt) {
         if (e.getTag().find("enemy") != std::string::npos) aliveEnemies++;
     });
 
+    // NoDamageWave challenge: check BEFORE spawning next wave (otherwise new
+    // enemies make aliveEnemies > 0 and the later check in updateCombatChallenge fails)
+    if (aliveEnemies == 0 && enemiesKilled > 0 && !m_tookDamageThisWave &&
+        m_combatChallenge.active && !m_combatChallenge.completed &&
+        m_combatChallenge.type == CombatChallengeType::NoDamageWave) {
+        m_combatChallenge.currentCount = 1;
+    }
+
     // Spawn next wave when: most enemies dead OR timer expired
     m_waveTimer -= dt;
     if (aliveEnemies <= 1 || m_waveTimer <= 0) {
@@ -2925,9 +2962,11 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
         float t = dn.lifetime / dn.maxLifetime; // 1.0 → 0.0
         Uint8 alpha = static_cast<Uint8>(255 * t);
 
-        // Color: red for player damage, orange for crits, yellow for normal enemy damage
+        // Color: green for heals, red for player damage, orange for crits, yellow for normal
         SDL_Color color;
-        if (dn.isPlayerDamage) {
+        if (dn.isHeal) {
+            color = {50, 255, 80, alpha};
+        } else if (dn.isPlayerDamage) {
             color = {255, 60, 40, alpha};
         } else if (dn.isCritical) {
             color = {255, 180, 40, alpha};
@@ -2936,7 +2975,9 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
         }
 
         char buf[32];
-        if (dn.isCritical) {
+        if (dn.isHeal) {
+            std::snprintf(buf, sizeof(buf), "+%.0f", dn.value);
+        } else if (dn.isCritical) {
             std::snprintf(buf, sizeof(buf), "CRIT! %.0f", dn.value);
         } else {
             std::snprintf(buf, sizeof(buf), "%.0f", dn.value);

@@ -10,6 +10,9 @@
 #include "Components/AbilityComponent.h"
 #include "Game/WeaponSystem.h"
 #include "Game/ClassSystem.h"
+#include "Systems/CombatSystem.h"
+#include "Components/RelicComponent.h"
+#include "Game/RelicSynergy.h"
 #include <cstdio>
 #include <cmath>
 
@@ -198,6 +201,84 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             SDL_Rect rageRect = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
             SDL_RenderDrawRect(renderer, &rageRect);
         }
+
+        // Berserker: Momentum stacks indicator
+        if (player->hasMomentum()) {
+            int mY = iconY + iconSize + 4;
+            float intensity = static_cast<float>(player->momentumStacks) / player->momentumMaxStacks;
+
+            // Stack pips (small squares, filled per stack)
+            for (int s = 0; s < player->momentumMaxStacks; s++) {
+                int px = iconX + s * 5;
+                SDL_Rect pip = {px, mY, 4, 4};
+                if (s < player->momentumStacks) {
+                    // Filled: orange-red scaling with intensity
+                    Uint8 g = static_cast<Uint8>(140 - 80 * intensity);
+                    SDL_SetRenderDrawColor(renderer, 255, g, 40, 230);
+                    SDL_RenderFillRect(renderer, &pip);
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 50, 50, 60, 120);
+                    SDL_RenderFillRect(renderer, &pip);
+                }
+            }
+
+            // Timer bar below pips
+            float timerPct = player->momentumTimer / player->momentumDuration;
+            int timerW = static_cast<int>(24 * timerPct);
+            SDL_SetRenderDrawColor(renderer, 255, 120, 40, 160);
+            SDL_Rect timerBar = {iconX, mY + 6, timerW, 2};
+            SDL_RenderFillRect(renderer, &timerBar);
+
+            // Pulsing border at high stacks
+            if (player->momentumStacks >= 3) {
+                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.01f);
+                Uint8 a = static_cast<Uint8>(150 * pulse);
+                SDL_SetRenderDrawColor(renderer, 255, 100, 30, a);
+                SDL_Rect glowRect = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
+                SDL_RenderDrawRect(renderer, &glowRect);
+            }
+
+            if (font) {
+                char momText[16];
+                std::snprintf(momText, sizeof(momText), "x%d", player->momentumStacks);
+                SDL_Color momColor = {255, static_cast<Uint8>(180 - 100 * intensity), 40, 220};
+                renderText(renderer, font, momText, iconX + 26, mY - 1, momColor);
+            }
+        }
+
+        // Phantom Phase Through indicator (active during dash)
+        if (player->isPhaseThrough()) {
+            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.025f);
+            Uint8 a = static_cast<Uint8>(220 * pulse);
+            SDL_SetRenderDrawColor(renderer, 60, 220, 200, a);
+            SDL_Rect phaseRect = {iconX - 3, iconY - 3, iconSize + 6, iconSize + 6};
+            SDL_RenderDrawRect(renderer, &phaseRect);
+            SDL_Rect phaseRect2 = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
+            SDL_RenderDrawRect(renderer, &phaseRect2);
+        }
+        // Post-dash invis timer for Phantom
+        if (player->postDashInvisTimer > 0 && player->playerClass == PlayerClass::Phantom) {
+            float pct = player->postDashInvisTimer / ClassSystem::getData(PlayerClass::Phantom).postDashInvisTime;
+            int barW2 = static_cast<int>(iconSize * pct);
+            SDL_SetRenderDrawColor(renderer, 60, 220, 200, 160);
+            SDL_Rect invisBar = {iconX, iconY + iconSize + 2, barW2, 3};
+            SDL_RenderFillRect(renderer, &invisBar);
+        }
+
+        // Rift Charge indicator for Voidwalker (Dimensional Affinity)
+        if (player->isRiftChargeActive()) {
+            float pct = player->riftChargeTimer / player->riftChargeDuration;
+            float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.015f);
+            Uint8 a = static_cast<Uint8>(200 * pulse);
+            SDL_SetRenderDrawColor(renderer, 80, 160, 255, a);
+            SDL_Rect chargeRect = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
+            SDL_RenderDrawRect(renderer, &chargeRect);
+            // Small timer bar below class icon
+            int barW = static_cast<int>(iconSize * pct);
+            SDL_SetRenderDrawColor(renderer, 80, 160, 255, 200);
+            SDL_Rect chargeBar = {iconX, iconY + iconSize + 2, barW, 3};
+            SDL_RenderFillRect(renderer, &chargeBar);
+        }
     }
 
     int hpBarOffset = 26; // offset HP bar to the right of class icon
@@ -282,6 +363,37 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             char switchText[32];
             std::snprintf(switchText, sizeof(switchText), "[E] x%d", dimMgr->getSwitchCount());
             renderText(renderer, font, switchText, margin + 110, dimY + 3, {150, 150, 170, 180});
+        }
+
+        // Resonance bar (below dimension indicator)
+        float resonance = dimMgr->getResonance();
+        if (resonance > 0.01f) {
+            int resY = dimY + 24;
+            int resBarW = 110;
+            int resBarH = 8;
+
+            // Color by tier: cyan -> purple -> gold
+            int tier = dimMgr->getResonanceTier();
+            SDL_Color resColor;
+            if (tier >= 3) resColor = {255, 220, 80, 255};
+            else if (tier >= 2) resColor = {180, 100, 255, 255};
+            else resColor = {80, 200, 220, 255};
+
+            // Pulsing glow at high tiers
+            if (tier >= 2) {
+                float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
+                resColor.a = static_cast<Uint8>(200 + 55 * pulse);
+            }
+
+            renderBar(renderer, margin, resY, resBarW, resBarH, resonance, resColor, {15, 15, 25, 200});
+
+            if (font) {
+                const char* resLabel = (tier >= 3) ? "RESONANCE MAX" :
+                                       (tier >= 2) ? "RESONANCE++" :
+                                       (tier >= 1) ? "RESONANCE+" : "RESONANCE";
+                renderText(renderer, font, resLabel, margin + resBarW + 6, resY - 1,
+                           {resColor.r, resColor.g, resColor.b, 200});
+            }
         }
     }
 
@@ -416,6 +528,17 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         if (player->hasShield) {
             drawBuff("SH", player->shieldTimer, 8.0f, {100, 180, 255, 255});
         }
+
+        // Status effect indicators (debuffs - shown with distinct warning style)
+        if (player->isBurning()) {
+            drawBuff("FI", player->burnTimer, 3.0f, {255, 120, 30, 255});
+        }
+        if (player->isFrozen()) {
+            drawBuff("IC", player->freezeTimer, 2.0f, {80, 180, 255, 255});
+        }
+        if (player->isPoisoned()) {
+            drawBuff("PO", player->poisonTimer, 4.0f, {80, 220, 80, 255});
+        }
     }
 
     // Ability icons (below active buffs)
@@ -527,9 +650,10 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 comboColor = {255, 60, 30, 255};
             }
 
-            // Damage bonus text
+            // Damage bonus text (matches CombatSystem formula: comboCount * (0.15 + comboBonus))
+            float comboPctPerHit = 15.0f + (m_combatSystem ? m_combatSystem->getComboBonus() * 100.0f : 0.0f);
             char bonusText[32];
-            std::snprintf(bonusText, sizeof(bonusText), "+%d%% DMG", static_cast<int>(combat.comboCount * 15));
+            std::snprintf(bonusText, sizeof(bonusText), "+%d%% DMG", static_cast<int>(combat.comboCount * comboPctPerHit));
 
             int comboY = 60;
             renderText(renderer, font, comboText, screenW / 2 - 40, comboY, comboColor);
@@ -549,10 +673,30 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
-    // Rift Shards (top right)
+    // Floor indicator + Rift Shards (top right)
     {
         int shardX = screenW - 170;
         int shardY = margin;
+
+        // Floor indicator (above shards)
+        if (font) {
+            char floorText[32];
+            bool isBoss = (m_currentFloor % 3 == 0);
+            if (isBoss) {
+                std::snprintf(floorText, sizeof(floorText), "FLOOR %d - BOSS", m_currentFloor);
+                float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
+                Uint8 a = static_cast<Uint8>(255 * pulse);
+                renderText(renderer, font, floorText, shardX - 10, shardY - 20, {255, 80, 60, a});
+            } else {
+                std::snprintf(floorText, sizeof(floorText), "FLOOR %d", m_currentFloor);
+                renderText(renderer, font, floorText, shardX + 20, shardY - 20, {180, 180, 200, 200});
+            }
+
+            // Kill counter
+            char killText[32];
+            std::snprintf(killText, sizeof(killText), "Kills: %d", m_killCount);
+            renderText(renderer, font, killText, shardX + 100, shardY - 20, {200, 160, 160, 160});
+        }
 
         SDL_Rect shardBg = {shardX - 5, shardY - 3, 165, 26};
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 80);
@@ -579,18 +723,18 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Weapon display (bottom center)
     if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>()) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();
-        int wpnY = screenH - 50;
+        int wpnY = screenH - 60;
         int wpnX = screenW / 2 - 100;
 
-        // Background
-        SDL_Rect wpnBg = {wpnX, wpnY, 200, 36};
+        // Background (taller to fit mastery text)
+        SDL_Rect wpnBg = {wpnX, wpnY, 200, 46};
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);
         SDL_RenderFillRect(renderer, &wpnBg);
         SDL_SetRenderDrawColor(renderer, 80, 80, 100, 80);
         SDL_RenderDrawRect(renderer, &wpnBg);
 
         // Melee weapon (left side)
-        SDL_Rect meleeBg = {wpnX + 2, wpnY + 2, 96, 32};
+        SDL_Rect meleeBg = {wpnX + 2, wpnY + 2, 96, 42};
         SDL_SetRenderDrawColor(renderer, 180, 60, 60, 60);
         SDL_RenderFillRect(renderer, &meleeBg);
         // Sword icon
@@ -599,7 +743,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         SDL_RenderDrawLine(renderer, wpnX + 18, wpnY + 14, wpnX + 26, wpnY + 14);
 
         // Ranged weapon (right side)
-        SDL_Rect rangedBg = {wpnX + 102, wpnY + 2, 96, 32};
+        SDL_Rect rangedBg = {wpnX + 102, wpnY + 2, 96, 42};
         SDL_SetRenderDrawColor(renderer, 60, 60, 180, 60);
         SDL_RenderFillRect(renderer, &rangedBg);
         // Gun icon
@@ -615,6 +759,65 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             renderText(renderer, font, rName, wpnX + 134, wpnY + 8, {100, 180, 220, 220});
             renderText(renderer, font, "[Q]", wpnX + 2, wpnY - 14, {150, 150, 160, 120});
             renderText(renderer, font, "[E]", wpnX + 172, wpnY - 14, {150, 150, 160, 120});
+
+            // Weapon Mastery indicators
+            if (m_combatSystem) {
+                int mIdx = static_cast<int>(combat.currentMelee);
+                int rIdx = static_cast<int>(combat.currentRanged);
+                int mKills = m_combatSystem->weaponKills[mIdx];
+                int rKills = m_combatSystem->weaponKills[rIdx];
+                MasteryTier mTier = WeaponSystem::getMasteryTier(mKills);
+                MasteryTier rTier = WeaponSystem::getMasteryTier(rKills);
+
+                auto tierColor = [](MasteryTier t) -> SDL_Color {
+                    switch (t) {
+                        case MasteryTier::Mastered:   return {255, 220, 80, 255};
+                        case MasteryTier::Proficient: return {180, 100, 255, 255};
+                        case MasteryTier::Familiar:   return {80, 200, 180, 255};
+                        default: return {80, 80, 90, 120};
+                    }
+                };
+
+                // Melee mastery
+                if (mTier != MasteryTier::None) {
+                    const char* tName = WeaponSystem::getMasteryTierName(mTier);
+                    renderText(renderer, font, tName, wpnX + 30, wpnY + 22, tierColor(mTier));
+                } else {
+                    int next = WeaponSystem::getNextTierThreshold(mKills);
+                    char prog[16];
+                    std::snprintf(prog, sizeof(prog), "%d/%d", mKills, next);
+                    renderText(renderer, font, prog, wpnX + 30, wpnY + 22, {80, 80, 90, 120});
+                }
+
+                // Ranged mastery
+                if (rTier != MasteryTier::None) {
+                    const char* tName = WeaponSystem::getMasteryTierName(rTier);
+                    renderText(renderer, font, tName, wpnX + 134, wpnY + 22, tierColor(rTier));
+                } else {
+                    int next = WeaponSystem::getNextTierThreshold(rKills);
+                    char prog[16];
+                    std::snprintf(prog, sizeof(prog), "%d/%d", rKills, next);
+                    renderText(renderer, font, prog, wpnX + 134, wpnY + 22, {80, 80, 90, 120});
+                }
+            }
+
+            // Weapon-Relic Synergy indicator (show active synergy name below weapon panel)
+            if (player->getEntity()->hasComponent<RelicComponent>()) {
+                auto& relics = player->getEntity()->getComponent<RelicComponent>();
+                int synergyY = wpnY + 48;
+                for (int i = 0; i < static_cast<int>(SynergyID::COUNT); i++) {
+                    auto sid = static_cast<SynergyID>(i);
+                    if (RelicSynergy::isWeaponSynergyActive(relics, sid,
+                            combat.currentMelee, combat.currentRanged)) {
+                        const auto& sData = RelicSynergy::getData(sid);
+                        renderText(renderer, font, sData.name, wpnX + 10, synergyY,
+                                   {255, 200, 80, 220});
+                        renderText(renderer, font, sData.description, wpnX + 10, synergyY + 14,
+                                   {200, 180, 120, 160});
+                        synergyY += 28;
+                    }
+                }
+            }
         }
     }
 
