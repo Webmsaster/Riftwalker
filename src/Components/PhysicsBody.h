@@ -26,6 +26,9 @@ struct PhysicsBody : public Component {
     // Landing impact: captures fall speed before collision zeros it
     float landingImpactSpeed = 0.0f;
 
+    // Wall impact: captures horizontal speed when hitting a wall (for bounce/particles)
+    float wallImpactSpeed = 0.0f;
+
     // Coyote time
     float coyoteTime = 0.1f;
     float coyoteTimer = 0.0f;

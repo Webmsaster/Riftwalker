@@ -900,6 +900,53 @@ void PlayState::update(float dt) {
         if (phys.onGround) phys.landingImpactSpeed = 0;
     }
 
+    // Enemy wall impact: bounce particles + bonus damage + SFX
+    m_entities.forEach([&](Entity& e) {
+        if (e.getTag().find("enemy") == std::string::npos) return;
+        if (!e.hasComponent<PhysicsBody>()) return;
+        auto& phys = e.getComponent<PhysicsBody>();
+        if (phys.wallImpactSpeed <= 0) return;
+
+        float impact = phys.wallImpactSpeed;
+        phys.wallImpactSpeed = 0;
+
+        if (!e.hasComponent<TransformComponent>()) return;
+        auto& t = e.getComponent<TransformComponent>();
+        Vec2 center = t.getCenter();
+
+        // Wall side: left wall = particles go right, right wall = particles go left
+        float particleDir = phys.onWallLeft ? 0.0f : 180.0f;
+        Vec2 wallPoint = phys.onWallLeft ?
+            Vec2{t.position.x, center.y} :
+            Vec2{t.position.x + t.width, center.y};
+
+        // Impact intensity scales with speed (150-500+ range)
+        float intensity = std::min((impact - 150.0f) / 350.0f, 1.0f);
+
+        // Dust/spark particles at wall contact point
+        int particleCount = 4 + static_cast<int>(intensity * 8);
+        SDL_Color dustColor = {200, 180, 150, static_cast<Uint8>(180 + intensity * 75)};
+        m_particles.directionalBurst(wallPoint, particleCount, dustColor,
+                                      particleDir, 50.0f, 60.0f + intensity * 100.0f, 2.0f + intensity * 2.0f);
+        // White sparks for harder impacts
+        if (intensity > 0.4f) {
+            m_particles.burst(wallPoint, 3 + static_cast<int>(intensity * 5),
+                              {255, 255, 240, 220}, 80.0f + intensity * 80.0f, 1.5f);
+        }
+
+        // Bonus wall slam damage (5-15 based on impact speed)
+        if (e.hasComponent<HealthComponent>()) {
+            float wallDmg = 5.0f + intensity * 10.0f;
+            auto& hp = e.getComponent<HealthComponent>();
+            hp.takeDamage(wallDmg);
+            m_combatSystem.addDamageEvent(center, wallDmg, false, false);
+        }
+
+        // Camera shake + SFX
+        m_camera.shake(2.0f + intensity * 4.0f, 0.08f + intensity * 0.1f);
+        AudioManager::instance().play(SFX::GroundSlam);
+    });
+
     // AI
     Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
     m_aiSystem.update(m_entities, dt, playerPos, m_dimManager.getCurrentDimension());

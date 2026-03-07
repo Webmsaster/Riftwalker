@@ -180,7 +180,14 @@ void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int cu
                 transform.position.x += minOverlapX;
                 if (minOverlapX < 0) phys.onWallRight = true;
                 else phys.onWallLeft = true;
-                phys.velocity.x = 0;
+                // Wall impact: capture speed and bounce if bounciness > 0
+                float impactSpeed = std::abs(phys.velocity.x);
+                if (impactSpeed > 150.0f && phys.bounciness > 0) {
+                    phys.wallImpactSpeed = impactSpeed;
+                    phys.velocity.x = -phys.velocity.x * phys.bounciness;
+                } else {
+                    phys.velocity.x = 0;
+                }
             } else {
                 transform.position.y += minOverlapY;
                 if (minOverlapY < 0) {

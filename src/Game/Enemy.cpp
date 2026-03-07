@@ -113,6 +113,7 @@ Entity& Enemy::createWalker(EntityManager& entities, Vec2 pos, int dimension) {
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 980.0f;
     phys.friction = 800.0f;
+    phys.bounciness = 0.3f;
 
     auto& col = e.addComponent<ColliderComponent>();
     col.width = 24;
@@ -248,6 +249,7 @@ Entity& Enemy::createCharger(EntityManager& entities, Vec2 pos, int dimension) {
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 980.0f;
     phys.friction = 600.0f;
+    phys.bounciness = 0.35f;
 
     auto& col = e.addComponent<ColliderComponent>();
     col.width = 32;
@@ -294,6 +296,7 @@ Entity& Enemy::createPhaser(EntityManager& entities, Vec2 pos, int dimension) {
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 980.0f;
     phys.friction = 800.0f;
+    phys.bounciness = 0.3f;
 
     auto& col = e.addComponent<ColliderComponent>();
     col.width = 22;
@@ -339,6 +342,7 @@ Entity& Enemy::createExploder(EntityManager& entities, Vec2 pos, int dimension) 
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 980.0f;
     phys.friction = 600.0f;
+    phys.bounciness = 0.25f;
 
     auto& col = e.addComponent<ColliderComponent>();
     col.width = 20;
@@ -387,6 +391,7 @@ Entity& Enemy::createShielder(EntityManager& entities, Vec2 pos, int dimension) 
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 980.0f;
     phys.friction = 900.0f;
+    phys.bounciness = 0.2f;
 
     auto& col = e.addComponent<ColliderComponent>();
     col.width = 28;
@@ -483,6 +488,7 @@ Entity& Enemy::createSummoner(EntityManager& entities, Vec2 pos, int dimension) 
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 980.0f;
     phys.friction = 800.0f;
+    phys.bounciness = 0.25f;
 
     auto& col = e.addComponent<ColliderComponent>();
     col.width = 26;
@@ -529,6 +535,7 @@ Entity& Enemy::createSniper(EntityManager& entities, Vec2 pos, int dimension) {
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 980.0f;
     phys.friction = 800.0f;
+    phys.bounciness = 0.3f;
 
     auto& col = e.addComponent<ColliderComponent>();
     col.width = 20;
