@@ -192,6 +192,18 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         }
     }
 
+    // Freeze tint: blue overlay while enemy is slowed by ice weapon
+    if (tag.find("enemy") != std::string::npos && entity.hasComponent<AIComponent>()) {
+        float freezeT = entity.getComponent<AIComponent>().freezeTimer;
+        if (freezeT > 0) {
+            // Pulsing blue tint intensity
+            float pulse = 0.5f + 0.5f * std::sin(freezeT * 10.0f);
+            Uint8 fa = static_cast<Uint8>(80 * pulse * alpha);
+            fillRect(renderer, screenRect.x, screenRect.y, screenRect.w, screenRect.h,
+                     100, 180, 255, fa);
+        }
+    }
+
     // HP bar for regular enemies (visible briefly after taking damage)
     if (tag.find("enemy") != std::string::npos && entity.hasComponent<HealthComponent>()) {
         auto& hpShow = entity.getComponent<HealthComponent>();

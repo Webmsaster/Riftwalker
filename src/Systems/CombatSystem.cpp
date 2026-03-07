@@ -211,6 +211,24 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
         }
     });
 
+    // Process freeze slow decay on enemies
+    entities.forEach([&](Entity& e) {
+        if (e.getTag().find("enemy") == std::string::npos) return;
+        if (!e.hasComponent<AIComponent>()) return;
+        auto& ai = e.getComponent<AIComponent>();
+        if (ai.freezeTimer > 0) {
+            ai.freezeTimer -= dt;
+            // Periodic ice crystal particles while frozen
+            if (m_particles && e.hasComponent<TransformComponent>() && SDL_GetTicks() % 8 == 0) {
+                auto& t = e.getComponent<TransformComponent>();
+                Vec2 center = t.getCenter();
+                float ox = (static_cast<float>(std::rand() % 20) - 10.0f);
+                m_particles->burst({center.x + ox, center.y - 4.0f}, 1,
+                    {150, 210, 255, 160}, 20.0f, 1.0f);
+            }
+        }
+    });
+
     // Projectile lifetime: destroy stale projectiles
     entities.forEach([&](Entity& proj) {
         if (proj.getTag() != "projectile") return;
@@ -1011,10 +1029,17 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         m_particles->burst(targetCenter, 5, {255, 120, 30, 255}, 80.0f, 2.0f);
                     }
                 } else if (m_elementWeapon == 2 && target.hasComponent<AIComponent>()) {
-                    // Ice: slow (stun 0.3s)
-                    target.getComponent<AIComponent>().stun(0.3f);
+                    // Ice: apply freeze slow (50% speed reduction for 1.5s)
+                    auto& targetAI = target.getComponent<AIComponent>();
+                    targetAI.freezeTimer = std::max(targetAI.freezeTimer, 1.5f);
+                    // Brief stun on first application (when not already frozen)
+                    if (targetAI.freezeTimer <= 0.01f) {
+                        targetAI.stun(0.15f);
+                    }
                     if (m_particles) {
-                        m_particles->burst(targetCenter, 5, {100, 180, 255, 255}, 60.0f, 1.5f);
+                        m_particles->burst(targetCenter, 6, {100, 180, 255, 255}, 70.0f, 2.0f);
+                        // Snowflake-like particles spreading outward
+                        m_particles->burst(targetCenter, 3, {180, 220, 255, 200}, 40.0f, 1.0f);
                     }
                 } else if (m_elementWeapon == 3) {
                     // Electric: chain 30% damage to nearby enemies

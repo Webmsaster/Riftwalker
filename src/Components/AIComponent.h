@@ -211,6 +211,7 @@ struct AIComponent : public Component {
     // Element weapon debuffs (applied by player's weapon buffs)
     float burnTimer = 0;       // fire weapon DoT remaining
     float burnDmgTick = 0;     // burn damage tick timer
+    float freezeTimer = 0;     // ice weapon slow remaining (50% speed reduction)
 
     Vec2 targetPosition;
     bool facingRight = true;

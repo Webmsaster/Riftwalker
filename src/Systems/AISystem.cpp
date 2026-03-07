@@ -211,6 +211,11 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             ai.dimDetectMod = 1.0f;
         }
 
+        // Ice weapon freeze slow: 50% speed reduction while frozen
+        if (ai.freezeTimer > 0) {
+            ai.dimSpeedMod *= 0.5f;
+        }
+
         // Check if enemy is in the same dimension as player
         bool sameDim = (e->dimension == 0 || e->dimension == playerDimension);
 
