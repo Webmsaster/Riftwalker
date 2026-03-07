@@ -1030,6 +1030,51 @@ void PlayState::update(float dt) {
     // Collision
     m_collision.update(m_entities, m_dimManager.getCurrentDimension());
 
+    // Enemy hazard damage: enemies on spikes/fire/laser take damage
+    {
+        int curDim = m_dimManager.getCurrentDimension();
+        int ts = m_level->getTileSize();
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag().find("enemy") == std::string::npos) return;
+            if (!e.hasComponent<AIComponent>() || !e.hasComponent<HealthComponent>()) return;
+            if (!e.hasComponent<TransformComponent>()) return;
+            auto& ai = e.getComponent<AIComponent>();
+            if (ai.enemyType == EnemyType::Boss) return; // bosses immune to hazards
+            if (ai.spawnTimer > 0) return; // spawning enemies immune
+            if (ai.hazardDmgCooldown > 0) { ai.hazardDmgCooldown -= dt; return; }
+
+            auto& t = e.getComponent<TransformComponent>();
+            auto& hp = e.getComponent<HealthComponent>();
+            Vec2 center = t.getCenter();
+            int footX = static_cast<int>(center.x) / ts;
+            int footY = static_cast<int>(t.position.y + t.height - 2) / ts;
+            if (!m_level->inBounds(footX, footY)) return;
+
+            const auto& tile = m_level->getTile(footX, footY, (e.dimension == 0) ? curDim : e.dimension);
+
+            if (tile.type == TileType::Spike) {
+                hp.takeDamage(15.0f);
+                m_combatSystem.addDamageEvent(center, 15.0f, false, false, true);
+                ai.hazardDmgCooldown = 0.5f;
+                m_particles.burst(center, 8, {255, 80, 40, 255}, 100.0f, 2.0f);
+                if (e.hasComponent<PhysicsBody>()) {
+                    e.getComponent<PhysicsBody>().velocity.y = -200.0f;
+                }
+            } else if (tile.type == TileType::Fire) {
+                hp.takeDamage(12.0f);
+                m_combatSystem.addDamageEvent(center, 12.0f, false, false, true);
+                ai.hazardDmgCooldown = 0.5f;
+                ai.burnTimer = std::max(ai.burnTimer, 1.5f);
+                m_particles.burst(center, 6, {255, 150, 30, 255}, 80.0f, 2.0f);
+            } else if (m_level->isInLaserBeam(center.x, center.y, (e.dimension == 0) ? curDim : e.dimension)) {
+                hp.takeDamage(25.0f);
+                m_combatSystem.addDamageEvent(center, 25.0f, false, false, true);
+                ai.hazardDmgCooldown = 0.3f;
+                m_particles.burst(center, 10, {255, 50, 50, 255}, 120.0f, 2.5f);
+            }
+        });
+    }
+
     // Combat
     m_combatSystem.update(m_entities, dt, m_dimManager.getCurrentDimension());
 

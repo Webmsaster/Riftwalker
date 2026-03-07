@@ -192,6 +192,9 @@ struct AIComponent : public Component {
     Vec2 vsStormSafe2;               // Void Storm safe zone 2
     float vsVoidKernPulse = 0;       // Visual: pulsing core
 
+    // Environmental hazard damage cooldown (per-enemy)
+    float hazardDmgCooldown = 0;
+
     // Spawn animation: brief invulnerability + flicker when enemy appears
     float spawnTimer = 0;       // >0 = still spawning in (no AI, invulnerable, flickering)
 
