@@ -911,6 +911,27 @@ void PlayState::update(float dt) {
         if (phys.onGround) phys.landingImpactSpeed = 0;
     }
 
+    // Wall slide dust: small particles at wall contact while sliding
+    if (m_player->isWallSliding) {
+        m_wallSlideDustTimer -= dt;
+        if (m_wallSlideDustTimer <= 0) {
+            m_wallSlideDustTimer = 0.12f; // emit every 120ms
+            auto& tr = m_player->getEntity()->getComponent<TransformComponent>();
+            auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+            // Particles at the wall-contact side, near player's mid-height
+            bool onRight = phys.onWallRight;
+            float wx = onRight ? (tr.position.x + tr.width) : tr.position.x;
+            float wy = tr.position.y + tr.height * 0.4f;
+            Vec2 contactPoint = {wx, wy};
+            // Dust drifts away from wall (left if wall is right, right if wall is left)
+            float dir = onRight ? 180.0f : 0.0f;
+            SDL_Color dustColor = {190, 170, 140, 140};
+            m_particles.directionalBurst(contactPoint, 2, dustColor, dir, 50.0f, 25.0f, 2.0f);
+        }
+    } else {
+        m_wallSlideDustTimer = 0;
+    }
+
     // Enemy wall impact: bounce particles + bonus damage + SFX
     m_entities.forEach([&](Entity& e) {
         if (e.getTag().find("enemy") == std::string::npos) return;
