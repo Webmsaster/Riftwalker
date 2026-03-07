@@ -542,7 +542,15 @@ void AISystem::explode(Entity& entity, EntityManager& entities) {
 
         if (dist < ai.explodeRadius) {
             float falloff = 1.0f - (dist / ai.explodeRadius);
-            target.getComponent<HealthComponent>().takeDamage(ai.explodeDamage * falloff);
+            auto& hp = target.getComponent<HealthComponent>();
+            if (!hp.isInvincible()) {
+                float dmg = ai.explodeDamage * falloff;
+                hp.takeDamage(dmg);
+                if (m_combatSystem) {
+                    bool isPlayer = (target.getTag() == "player");
+                    m_combatSystem->addDamageEvent(targetPos, dmg, isPlayer);
+                }
+            }
 
             if (target.hasComponent<PhysicsBody>()) {
                 Vec2 knockDir = (targetPos - center).normalized();
@@ -877,9 +885,17 @@ void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityMana
                     pc.mask = LAYER_TILE | LAYER_PLAYER;
                     pc.type = ColliderType::Trigger;
                     float damage = entity.getComponent<CombatComponent>().rangedAttack.damage;
-                    pc.onTrigger = [damage](Entity* self, Entity* other) {
+                    auto* cs = m_combatSystem;
+                    pc.onTrigger = [damage, cs](Entity* self, Entity* other) {
                         if (other->hasComponent<HealthComponent>()) {
-                            other->getComponent<HealthComponent>().takeDamage(damage);
+                            auto& hp = other->getComponent<HealthComponent>();
+                            if (!hp.isInvincible()) {
+                                hp.takeDamage(damage);
+                                if (cs && other->hasComponent<TransformComponent>()) {
+                                    bool isPlayer = (other->getTag() == "player");
+                                    cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), damage, isPlayer);
+                                }
+                            }
                         }
                         self->destroy();
                     };
@@ -972,7 +988,12 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
                     target.getComponent<PhysicsBody>().velocity += knockDir * 400.0f;
                     target.getComponent<PhysicsBody>().velocity.y = -250.0f;
                     if (target.hasComponent<HealthComponent>()) {
-                        target.getComponent<HealthComponent>().takeDamage(15.0f);
+                        auto& hp = target.getComponent<HealthComponent>();
+                        if (!hp.isInvincible()) {
+                            hp.takeDamage(15.0f);
+                            if (m_combatSystem)
+                                m_combatSystem->addDamageEvent(tPos, 15.0f, true);
+                        }
                     }
                 }
             });
@@ -1211,7 +1232,13 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
                 float d = distanceTo(pos, tPos);
                 if (d < 120.0f) {
                     float falloff = 1.0f - (d / 120.0f);
-                    target.getComponent<HealthComponent>().takeDamage(20.0f * falloff);
+                    auto& hp = target.getComponent<HealthComponent>();
+                    if (!hp.isInvincible()) {
+                        float dmg = 20.0f * falloff;
+                        hp.takeDamage(dmg);
+                        if (m_combatSystem)
+                            m_combatSystem->addDamageEvent(tPos, dmg, true);
+                    }
                     if (target.hasComponent<PhysicsBody>()) {
                         target.getComponent<PhysicsBody>().velocity.y = -300.0f * falloff;
                     }
@@ -1335,7 +1362,12 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityMa
                         if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                         Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                         if (distanceTo(targetPos, tPos) < 100.0f) {
-                            target.getComponent<HealthComponent>().takeDamage(8.0f);
+                            auto& hp = target.getComponent<HealthComponent>();
+                            if (!hp.isInvincible()) {
+                                hp.takeDamage(8.0f);
+                                if (m_combatSystem)
+                                    m_combatSystem->addDamageEvent(tPos, 8.0f, true);
+                            }
                         }
                     });
                     break;
@@ -1393,7 +1425,13 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityMa
                     float d = distanceTo(pos, tPos);
                     if (d < 80.0f) {
                         float falloff = 1.0f - (d / 80.0f);
-                        target.getComponent<HealthComponent>().takeDamage(18.0f * falloff);
+                        auto& hp = target.getComponent<HealthComponent>();
+                        if (!hp.isInvincible()) {
+                            float dmg = 18.0f * falloff;
+                            hp.takeDamage(dmg);
+                            if (m_combatSystem)
+                                m_combatSystem->addDamageEvent(tPos, dmg, true);
+                        }
                         if (target.hasComponent<PhysicsBody>()) {
                             Vec2 knockDir = (tPos - pos).normalized();
                             knockDir.y = -0.5f;
@@ -1677,9 +1715,17 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
                     pc.layer = LAYER_PROJECTILE;
                     pc.mask = LAYER_TILE | LAYER_PLAYER;
                     pc.type = ColliderType::Trigger;
-                    pc.onTrigger = [damage](Entity* self, Entity* other) {
+                    auto* cs = m_combatSystem;
+                    pc.onTrigger = [damage, cs](Entity* self, Entity* other) {
                         if (other->hasComponent<HealthComponent>()) {
-                            other->getComponent<HealthComponent>().takeDamage(damage);
+                            auto& hp = other->getComponent<HealthComponent>();
+                            if (!hp.isInvincible()) {
+                                hp.takeDamage(damage);
+                                if (cs && other->hasComponent<TransformComponent>()) {
+                                    bool isPlayer = (other->getTag() == "player");
+                                    cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), damage, isPlayer);
+                                }
+                            }
                         }
                         self->destroy();
                     };
@@ -1706,9 +1752,16 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
                             spc.layer = LAYER_PROJECTILE;
                             spc.mask = LAYER_TILE | LAYER_PLAYER;
                             spc.type = ColliderType::Trigger;
-                            spc.onTrigger = [stormDmg](Entity* self, Entity* other) {
+                            spc.onTrigger = [stormDmg, cs](Entity* self, Entity* other) {
                                 if (other->hasComponent<HealthComponent>()) {
-                                    other->getComponent<HealthComponent>().takeDamage(stormDmg);
+                                    auto& hp = other->getComponent<HealthComponent>();
+                                    if (!hp.isInvincible()) {
+                                        hp.takeDamage(stormDmg);
+                                        if (cs && other->hasComponent<TransformComponent>()) {
+                                            bool isPlayer = (other->getTag() == "player");
+                                            cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), stormDmg, isPlayer);
+                                        }
+                                    }
                                 }
                                 self->destroy();
                             };
@@ -2143,8 +2196,14 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
                         Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                         float d = distanceTo(pos, tPos);
                         if (d < 150.0f) {
-                            if (target.hasComponent<HealthComponent>())
-                                target.getComponent<HealthComponent>().takeDamage(35.0f);
+                            if (target.hasComponent<HealthComponent>()) {
+                                auto& hp = target.getComponent<HealthComponent>();
+                                if (!hp.isInvincible()) {
+                                    hp.takeDamage(35.0f);
+                                    if (m_combatSystem)
+                                        m_combatSystem->addDamageEvent(tPos, 35.0f, true);
+                                }
+                            }
                             if (target.hasComponent<PhysicsBody>()) {
                                 Vec2 knockDir = (tPos - pos).normalized();
                                 target.getComponent<PhysicsBody>().velocity += knockDir * 400.0f;
@@ -2381,7 +2440,12 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
                 float cx = pos.x + proj * lx, cy = pos.y + proj * ly;
                 float d2 = std::sqrt((tPos.x - cx) * (tPos.x - cx) + (tPos.y - cy) * (tPos.y - cy));
                 if (d2 < 30.0f && target.hasComponent<HealthComponent>()) {
-                    target.getComponent<HealthComponent>().takeDamage(40.0f * dt);
+                    auto& hp = target.getComponent<HealthComponent>();
+                    if (!hp.isInvincible()) {
+                        float dmg = 40.0f * dt;
+                        hp.takeDamage(dmg);
+                        // No DamageEvent for continuous laser (would spam floating numbers)
+                    }
                 }
             });
             if (m_particles) {
@@ -2433,7 +2497,10 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
                 float safeRadius = 80.0f;
                 if (d1 > safeRadius && d2 > safeRadius) {
                     if (target.hasComponent<HealthComponent>()) {
-                        target.getComponent<HealthComponent>().takeDamage(25.0f * dt);
+                        auto& hp = target.getComponent<HealthComponent>();
+                        if (!hp.isInvincible()) {
+                            hp.takeDamage(25.0f * dt);
+                        }
                     }
                 }
             });
