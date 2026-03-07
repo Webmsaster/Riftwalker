@@ -34,6 +34,7 @@ enum class SFX {
     VoidSovereignDimLock, VoidSovereignStorm, VoidSovereignLaser,
     LoreDiscover,
     ChargeReady,
+    Heartbeat,
     COUNT
 };
 

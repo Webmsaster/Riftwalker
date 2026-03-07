@@ -844,6 +844,19 @@ void PlayState::update(float dt) {
     if (m_player && m_player->getEntity()->hasComponent<HealthComponent>()) {
         float hp = m_player->getEntity()->getComponent<HealthComponent>().getPercent();
         m_screenEffects.setHP(hp);
+
+        // Low HP heartbeat SFX
+        if (hp > 0 && hp < 0.25f) {
+            m_heartbeatTimer -= dt;
+            if (m_heartbeatTimer <= 0) {
+                AudioManager::instance().play(SFX::Heartbeat);
+                // Beat faster as HP gets lower (1.2s at 25% → 0.6s near 0%)
+                float urgency = 1.0f - (hp / 0.25f);
+                m_heartbeatTimer = 1.2f - urgency * 0.6f;
+            }
+        } else {
+            m_heartbeatTimer = 0; // Reset so it plays immediately when entering low HP
+        }
     }
     m_screenEffects.setEntropy(m_entropy.getEntropy());
     // Check if Void Storm is active

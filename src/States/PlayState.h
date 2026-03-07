@@ -120,6 +120,7 @@ private:
     float m_hitFreezeTimer = 0;
     float m_spikeDmgCooldown = 0;
     float m_conveyorParticleTimer = 0;
+    float m_heartbeatTimer = 0;  // Low HP heartbeat SFX interval
 
     // Wave/area clear celebration
     float m_waveClearTimer = 0;       // text overlay duration (2s)

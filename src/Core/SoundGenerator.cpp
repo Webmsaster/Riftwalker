@@ -804,6 +804,22 @@ Mix_Chunk* SoundGenerator::loreDiscover() {
     return toChunk(s);
 }
 
+Mix_Chunk* SoundGenerator::heartbeat() {
+    // Lub-dub heartbeat: two low-frequency thumps
+    auto s = generate(0.45f);
+    // First beat (lub): deep thump
+    addSine(s, 45.0f, 0.0f, 0.35f, 0.0f, 0.03f);
+    addSine(s, 45.0f, 0.35f, 0.0f, 0.03f, 0.15f);
+    addSine(s, 90.0f, 0.0f, 0.15f, 0.0f, 0.02f);
+    addSine(s, 90.0f, 0.15f, 0.0f, 0.02f, 0.1f);
+    // Second beat (dub): slightly lighter
+    addSine(s, 50.0f, 0.0f, 0.25f, 0.18f, 0.21f);
+    addSine(s, 50.0f, 0.25f, 0.0f, 0.21f, 0.32f);
+    addSine(s, 100.0f, 0.0f, 0.1f, 0.18f, 0.2f);
+    addSine(s, 100.0f, 0.1f, 0.0f, 0.2f, 0.28f);
+    return toChunk(s);
+}
+
 Mix_Chunk* SoundGenerator::chargeReady() {
     auto s = generate(0.2f);
     // Brief ascending shimmer: two quick tones + sparkle

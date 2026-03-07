@@ -91,6 +91,7 @@ void AudioManager::generateSounds() {
     m_sfx[static_cast<int>(SFX::VoidSovereignLaser)]     = SoundGenerator::voidSovereignLaser();
     m_sfx[static_cast<int>(SFX::LoreDiscover)]           = SoundGenerator::loreDiscover();
     m_sfx[static_cast<int>(SFX::ChargeReady)]            = SoundGenerator::chargeReady();
+    m_sfx[static_cast<int>(SFX::Heartbeat)]              = SoundGenerator::heartbeat();
 }
 
 void AudioManager::shutdown() {

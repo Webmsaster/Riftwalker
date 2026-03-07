@@ -103,6 +103,9 @@ public:
     // Charge attack ready cue
     static Mix_Chunk* chargeReady();
 
+    // Low HP warning heartbeat
+    static Mix_Chunk* heartbeat();
+
     // Ambient music loops (~4 seconds each)
     static Mix_Chunk* ambientDimA(); // Cool, ethereal drone
     static Mix_Chunk* ambientDimB(); // Warm, ominous drone
