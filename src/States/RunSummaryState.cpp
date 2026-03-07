@@ -1,6 +1,8 @@
 #include "RunSummaryState.h"
 #include "Core/Game.h"
 #include "Game/AchievementSystem.h"
+#include "Game/ClassSystem.h"
+#include "Game/WeaponSystem.h"
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
@@ -128,6 +130,31 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 140, 60, 60, static_cast<Uint8>(alpha * 0.4f));
     SDL_RenderDrawLine(renderer, 350, 145, 930, 145);
 
+    // Run info line (class, weapons, difficulty, time)
+    {
+        auto& cd = ClassSystem::getData(playerClass);
+        int mins = static_cast<int>(runTime) / 60;
+        int secs = static_cast<int>(runTime) % 60;
+        char infoLine[128];
+        std::snprintf(infoLine, sizeof(infoLine), "%s  |  %s / %s  |  Diff %d  |  %d:%02d",
+                      cd.name,
+                      WeaponSystem::getWeaponName(meleeWeapon),
+                      WeaponSystem::getWeaponName(rangedWeapon),
+                      difficulty, mins, secs);
+        SDL_Color infoColor = {cd.color.r, cd.color.g, cd.color.b, alpha};
+        SDL_Surface* is = TTF_RenderText_Blended(font, infoLine, infoColor);
+        if (is) {
+            SDL_Texture* it = SDL_CreateTextureFromSurface(renderer, is);
+            if (it) {
+                SDL_SetTextureAlphaMod(it, alpha);
+                SDL_Rect ir = {640 - is->w / 2, 152, is->w, is->h};
+                SDL_RenderCopy(renderer, it, nullptr, &ir);
+                SDL_DestroyTexture(it);
+            }
+            SDL_FreeSurface(is);
+        }
+    }
+
     // Grade
     const char* grade = getGrade(roomsCleared, enemiesKilled, riftsRepaired);
     SDL_Color gradeColor = getGradeColor(grade);
@@ -147,7 +174,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             if (gt) {
                 SDL_SetTextureAlphaMod(gt, alpha);
                 // Render grade larger
-                SDL_Rect gr = {640 - gs->w, 160, gs->w * 2, gs->h * 2};
+                SDL_Rect gr = {640 - gs->w, 178, gs->w * 2, gs->h * 2};
                 SDL_RenderCopy(renderer, gt, nullptr, &gr);
                 SDL_DestroyTexture(gt);
             }
@@ -162,13 +189,15 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         {"Enemies Defeated", enemiesKilled, {255, 100, 80, 255}},
         {"Rifts Repaired", riftsRepaired, {180, 100, 255, 255}},
         {"Shards Earned", shardsEarned, {255, 200, 80, 255}},
+        {"Relics Collected", relicsCollected, {200, 140, 255, 255}},
+        {"Best Combo", bestCombo, {255, 180, 60, 255}},
         {"Total Runs", game->getUpgradeSystem().totalRuns, {150, 150, 180, 255}},
     };
 
-    int statCount = 5;
-    int baseY = 240;
-    int statH = 45;
-    float revealDelay = 0.4f;
+    int statCount = 7;
+    int baseY = 250;
+    int statH = 38;
+    float revealDelay = 0.35f;
 
     for (int i = 0; i < statCount; i++) {
         float revealTime = 0.5f + i * revealDelay;
@@ -231,8 +260,8 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         || voidResProcs > 0 || peakResidueZones > 0 || peakVoidHunger > 0.1f;
     int balanceEndY = baseY + statCount * statH;
 
-    if (hasBalanceData && m_statsTimer > 2.2f) {
-        float bAlpha = std::min(1.0f, (m_statsTimer - 2.2f) * 2.0f) * m_fadeIn;
+    if (hasBalanceData && m_statsTimer > 3.0f) {
+        float bAlpha = std::min(1.0f, (m_statsTimer - 3.0f) * 2.0f) * m_fadeIn;
         Uint8 ba = static_cast<Uint8>(255 * bAlpha);
 
         int by = baseY + statCount * statH + 8;
@@ -318,8 +347,8 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
     // NEW RECORD banner
     int recordY = std::max(balanceEndY + 10, baseY + statCount * statH + 20);
-    if (isNewRecord && m_statsTimer > 2.5f) {
-        float recordAlpha = std::min(1.0f, (m_statsTimer - 2.5f) * 2.0f) * m_fadeIn;
+    if (isNewRecord && m_statsTimer > 3.3f) {
+        float recordAlpha = std::min(1.0f, (m_statsTimer - 3.3f) * 2.0f) * m_fadeIn;
         float pulse = 0.7f + 0.3f * std::sin(m_time * 6.0f);
         Uint8 ra = static_cast<Uint8>(255 * recordAlpha * pulse);
 
@@ -360,7 +389,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
     }
 
     // Continue prompt
-    if (m_fadeIn >= 1.0f && m_statsTimer > 3.0f) {
+    if (m_fadeIn >= 1.0f && m_statsTimer > 3.8f) {
         float pulse = 0.5f + 0.5f * std::sin(m_time * 4.0f);
         Uint8 pa = static_cast<Uint8>(200 * pulse);
         SDL_Color c = {150, 130, 200, pa};

@@ -334,5 +334,6 @@ private:
     MusicSystem m_musicSystem;
     float m_moveTrailTimer = 0.0f;
     float m_runTime = 0.0f; // Total run time
+    int m_bestCombo = 0;    // Peak combo count this run
     bool m_isDailyRun = false;
 };

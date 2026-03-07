@@ -127,6 +127,7 @@ void PlayState::startNewRun() {
     m_trails.clear();
     m_moveTrailTimer = 0.0f;
     m_runTime = 0.0f;
+    m_bestCombo = 0;
     m_nearNPCIndex = -1;
     m_showNPCDialog = false;
     m_npcDialogChoice = 0;
@@ -1771,6 +1772,7 @@ void PlayState::update(float dt) {
     // Combo check
     if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
         auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+        if (combat.comboCount > m_bestCombo) m_bestCombo = combat.comboCount;
         if (combat.comboCount >= 10) ach.unlock("combo_king");
         if (combat.comboCount >= 15) ach.unlock("combo_legend");
     }
@@ -4117,6 +4119,20 @@ void PlayState::endRun() {
             summary->enemiesKilled = enemiesKilled;
             summary->riftsRepaired = riftsRepaired;
             summary->roomsCleared = roomsCleared;
+            summary->runTime = m_runTime;
+            summary->playerClass = g_selectedClass;
+            summary->difficulty = m_currentDifficulty;
+            summary->bestCombo = m_bestCombo;
+            summary->relicsCollected = 0;
+            if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
+                summary->relicsCollected = static_cast<int>(
+                    m_player->getEntity()->getComponent<RelicComponent>().relics.size());
+            }
+            if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+                auto& cb = m_player->getEntity()->getComponent<CombatComponent>();
+                summary->meleeWeapon = cb.currentMelee;
+                summary->rangedWeapon = cb.currentRanged;
+            }
             summary->peakDmgRaw = m_balanceStats.peakDmgRaw;
             summary->peakDmgClamped = m_balanceStats.peakDmgClamped;
             summary->peakSpdRaw = m_balanceStats.peakSpdRaw;

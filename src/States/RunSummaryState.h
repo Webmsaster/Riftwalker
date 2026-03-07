@@ -1,5 +1,7 @@
 #pragma once
 #include "GameState.h"
+#include "Game/ClassSystem.h"
+#include "Game/WeaponSystem.h"
 
 class RunSummaryState : public GameState {
 public:
@@ -13,6 +15,15 @@ public:
     int roomsCleared = 0;
     int shardsEarned = 0;
     bool isNewRecord = false;
+
+    // Run context
+    float runTime = 0;              // seconds
+    PlayerClass playerClass = PlayerClass::Voidwalker;
+    WeaponID meleeWeapon = WeaponID::RiftBlade;
+    WeaponID rangedWeapon = WeaponID::ShardPistol;
+    int difficulty = 1;
+    int relicsCollected = 0;
+    int bestCombo = 0;
 
     // Balance summary
     float peakDmgRaw = 0;
