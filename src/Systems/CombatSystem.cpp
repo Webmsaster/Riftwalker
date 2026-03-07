@@ -109,10 +109,23 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                             auto& tAI = target.getComponent<AIComponent>();
                             if (tAI.isMiniBoss) killedMiniBoss = true;
                             if (tAI.element != EnemyElement::None) killedElemental = true;
+                            Bestiary::onEnemyKill(tAI.enemyType);
                         }
                         // Berserker: Momentum stack on slam kill
                         if (m_player) m_player->addMomentumStack();
-                        ItemDrop::spawnRandomDrop(entities, tt.getCenter(), target.dimension, 1, m_player);
+                        // Run buff: DashRefresh on kill
+                        if (m_dashRefreshOnKill && m_player) {
+                            m_player->dashCooldownTimer = 0;
+                        }
+                        // Drop items (mini-bosses 3x, elites 2x)
+                        int slamDropCount = 1;
+                        if (target.hasComponent<AIComponent>()) {
+                            auto& tAI2 = target.getComponent<AIComponent>();
+                            if (tAI2.isMiniBoss) slamDropCount = 3;
+                            else if (tAI2.isElite) slamDropCount = 2;
+                        }
+                        ItemDrop::spawnRandomDrop(entities, tt.getCenter(), target.dimension, slamDropCount, m_player);
+                        AudioManager::instance().play(SFX::EnemyDeath);
                         target.destroy();
                         if (m_particles) {
                             m_particles->burst(tt.getCenter(), 25, {255, 180, 60, 255}, 200.0f, 4.0f);
@@ -165,11 +178,21 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                     }
                     if (ai.isMiniBoss) killedMiniBoss = true;
                     if (ai.element != EnemyElement::None) killedElemental = true;
+                    Bestiary::onEnemyKill(ai.enemyType);
                     // Berserker: Momentum stack on burn kill
                     if (m_player) m_player->addMomentumStack();
+                    // Run buff: DashRefresh on kill
+                    if (m_dashRefreshOnKill && m_player) {
+                        m_player->dashCooldownTimer = 0;
+                    }
                     Vec2 deathPos = e.hasComponent<TransformComponent>() ?
                         e.getComponent<TransformComponent>().getCenter() : Vec2{0,0};
-                    ItemDrop::spawnRandomDrop(entities, deathPos, e.dimension, 1, m_player);
+                    // Drop items (mini-bosses 3x, elites 2x)
+                    int burnDropCount = 1;
+                    if (ai.isMiniBoss) burnDropCount = 3;
+                    else if (ai.isElite) burnDropCount = 2;
+                    ItemDrop::spawnRandomDrop(entities, deathPos, e.dimension, burnDropCount, m_player);
+                    AudioManager::instance().play(SFX::EnemyDeath);
                     e.destroy();
                     if (m_particles) {
                         m_particles->burst(deathPos, 15, {255, 100, 30, 255}, 180.0f, 3.0f);

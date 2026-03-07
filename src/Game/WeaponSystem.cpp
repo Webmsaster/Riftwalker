@@ -98,3 +98,37 @@ void WeaponSystem::resetUnlocks() {
     s_weapons[static_cast<int>(WeaponID::RiftBlade)].unlocked = true;
     s_weapons[static_cast<int>(WeaponID::ShardPistol)].unlocked = true;
 }
+
+MasteryTier WeaponSystem::getMasteryTier(int kills) {
+    if (kills >= 50) return MasteryTier::Mastered;
+    if (kills >= 25) return MasteryTier::Proficient;
+    if (kills >= 10) return MasteryTier::Familiar;
+    return MasteryTier::None;
+}
+
+MasteryBonus WeaponSystem::getMasteryBonus(int kills) {
+    MasteryBonus bonus;
+    switch (getMasteryTier(kills)) {
+        case MasteryTier::Mastered:   bonus.damageMult = 1.30f; bonus.cooldownMult = 0.85f; break;
+        case MasteryTier::Proficient: bonus.damageMult = 1.20f; bonus.cooldownMult = 0.90f; break;
+        case MasteryTier::Familiar:   bonus.damageMult = 1.10f; bonus.cooldownMult = 1.00f; break;
+        default: break;
+    }
+    return bonus;
+}
+
+const char* WeaponSystem::getMasteryTierName(MasteryTier tier) {
+    switch (tier) {
+        case MasteryTier::Familiar:   return "Familiar";
+        case MasteryTier::Proficient: return "Proficient";
+        case MasteryTier::Mastered:   return "Mastered";
+        default: return "";
+    }
+}
+
+int WeaponSystem::getNextTierThreshold(int kills) {
+    if (kills < 10) return 10;
+    if (kills < 25) return 25;
+    if (kills < 50) return 50;
+    return 0; // Already mastered
+}

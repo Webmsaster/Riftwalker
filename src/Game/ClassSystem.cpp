@@ -6,8 +6,8 @@ static const ClassData s_classData[] = {
         PlayerClass::Voidwalker,
         "Voidwalker",
         "Master of dimensional rifts. Switching dimensions heals and recharges faster.",
-        "Rift Affinity",
-        "Dim-switch heals 3 HP, -30% switch cooldown",
+        "Dimensional Affinity",
+        "Dim-switch heals 3 HP, -30% switch cooldown, +30% DMG for 2.5s",
         "Phase Strike: +50% range",
         {60, 120, 220, 255},  // Blue
         100.0f,   // HP
@@ -38,9 +38,9 @@ static const ClassData s_classData[] = {
     {
         PlayerClass::Phantom,
         "Phantom",
-        "Swift shadow. Longer dashes with brief invisibility. Rift Shield enhanced.",
+        "Swift shadow. Phases through enemies during dash. Rift Shield enhanced.",
         "Shadow Step",
-        "Dash 50% longer, 0.5s invisible after dash",
+        "Dash 50% longer, phase through enemies, 0.5s invisible after",
         "Rift Shield: +1 max hit, speed boost on absorb",
         {60, 220, 200, 255}, // Cyan
         90.0f,    // HP

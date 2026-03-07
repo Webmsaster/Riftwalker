@@ -37,6 +37,7 @@ struct FloatingDamageNumber {
     float maxLifetime;
     bool isPlayerDamage;
     bool isCritical = false;
+    bool isHeal = false;
 };
 
 class PlayState : public GameState {

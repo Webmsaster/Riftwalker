@@ -28,6 +28,8 @@ class NPCSystem {
 public:
     static NPCData createNPC(NPCType type, Vec2 pos, int dimension);
     static const char* getName(NPCType type);
-    static const char* getGreeting(NPCType type);
-    static std::vector<const char*> getDialogOptions(NPCType type);
+    // Stage-based dialog (storyStage 0-2 based on prior encounters this run)
+    static const char* getGreeting(NPCType type, int storyStage = 0);
+    static const char* getStoryLine(NPCType type, int storyStage);
+    static std::vector<const char*> getDialogOptions(NPCType type, int storyStage = 0);
 };

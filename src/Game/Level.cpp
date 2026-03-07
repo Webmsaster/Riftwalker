@@ -168,6 +168,10 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
                 renderTeleporter(renderer, sr, tile, ticks);
             } else if (tile.type == TileType::Crumbling) {
                 renderCrumblingTile(renderer, sr, tile, ticks);
+            } else if (tile.type == TileType::DimSwitch) {
+                renderDimSwitch(renderer, sr, tile, ticks);
+            } else if (tile.type == TileType::DimGate) {
+                renderDimGate(renderer, sr, tile, ticks);
             } else if (tile.type == TileType::Decoration) {
                 // Subtle accent dot/cross
                 Uint8 da = tile.color.a;
@@ -890,4 +894,112 @@ void Level::renderCrumblingTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile&
         SDL_RenderDrawLine(renderer, shaken.x + shaken.w - 3, shaken.y + 3,
                            shaken.x + 3, shaken.y + shaken.h - 3);
     }
+}
+
+void Level::renderDimSwitch(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    bool activated = tile.crumbled; // reuse crumbled as "activated" flag
+    float pulse = 0.5f + 0.5f * std::sin(ticks * 0.005f);
+
+    // Base plate
+    if (activated) {
+        SDL_SetRenderDrawColor(renderer, 60, 180, 60, 200);
+    } else {
+        SDL_SetRenderDrawColor(renderer, 80, 80, 120, 200);
+    }
+    SDL_Rect plate = {sr.x + 2, sr.y + sr.h / 2, sr.w - 4, sr.h / 2};
+    SDL_RenderFillRect(renderer, &plate);
+
+    // Diamond symbol on top
+    int cx = sr.x + sr.w / 2;
+    int cy = sr.y + sr.h / 4;
+    Uint8 symAlpha = activated ? static_cast<Uint8>(200) : static_cast<Uint8>(100 + 80 * pulse);
+    Uint8 symR = activated ? 100 : 180;
+    Uint8 symG = activated ? 255 : static_cast<Uint8>(120 + 60 * pulse);
+    Uint8 symB = activated ? 100 : 220;
+    SDL_SetRenderDrawColor(renderer, symR, symG, symB, symAlpha);
+    SDL_RenderDrawLine(renderer, cx, cy - 6, cx + 6, cy);
+    SDL_RenderDrawLine(renderer, cx + 6, cy, cx, cy + 6);
+    SDL_RenderDrawLine(renderer, cx, cy + 6, cx - 6, cy);
+    SDL_RenderDrawLine(renderer, cx - 6, cy, cx, cy - 6);
+
+    // Pair ID indicator dot
+    SDL_Rect idDot = {sr.x + sr.w - 6, sr.y + 2, 4, 4};
+    Uint8 idHue = static_cast<Uint8>((tile.variant * 67) % 256);
+    SDL_SetRenderDrawColor(renderer, idHue, 255 - idHue, 150, 200);
+    SDL_RenderFillRect(renderer, &idDot);
+}
+
+void Level::renderDimGate(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    bool open = tile.crumbled;
+    if (open) {
+        // Open gate: faint outline only
+        SDL_SetRenderDrawColor(renderer, 80, 200, 80, 60);
+        SDL_RenderDrawRect(renderer, &sr);
+        return;
+    }
+
+    float pulse = 0.5f + 0.5f * std::sin(ticks * 0.003f);
+
+    // Solid barrier with energy pattern
+    SDL_SetRenderDrawColor(renderer, 100, 50, 50, 220);
+    SDL_RenderFillRect(renderer, &sr);
+
+    // Horizontal energy lines
+    Uint8 lineAlpha = static_cast<Uint8>(120 + 80 * pulse);
+    SDL_SetRenderDrawColor(renderer, 255, 80, 80, lineAlpha);
+    for (int ly = sr.y + 4; ly < sr.y + sr.h; ly += 6) {
+        SDL_RenderDrawLine(renderer, sr.x + 2, ly, sr.x + sr.w - 2, ly);
+    }
+
+    // Lock symbol in center
+    int cx = sr.x + sr.w / 2;
+    int cy = sr.y + sr.h / 2;
+    SDL_SetRenderDrawColor(renderer, 255, 200, 60, static_cast<Uint8>(180 + 50 * pulse));
+    SDL_Rect lockBody = {cx - 4, cy - 2, 8, 6};
+    SDL_RenderFillRect(renderer, &lockBody);
+    SDL_RenderDrawLine(renderer, cx - 3, cy - 2, cx - 3, cy - 5);
+    SDL_RenderDrawLine(renderer, cx + 3, cy - 2, cx + 3, cy - 5);
+    SDL_RenderDrawLine(renderer, cx - 3, cy - 5, cx + 3, cy - 5);
+
+    // Pair ID indicator
+    Uint8 idHue = static_cast<Uint8>((tile.variant * 67) % 256);
+    SDL_SetRenderDrawColor(renderer, idHue, 255 - idHue, 150, 200);
+    SDL_Rect idDot = {sr.x + sr.w - 6, sr.y + 2, 4, 4};
+    SDL_RenderFillRect(renderer, &idDot);
+
+    // Border
+    SDL_SetRenderDrawColor(renderer, 200, 60, 60, static_cast<Uint8>(150 + 60 * pulse));
+    SDL_RenderDrawRect(renderer, &sr);
+}
+
+bool Level::isDimSwitchAt(int tileX, int tileY, int dimension) const {
+    if (!inBounds(tileX, tileY)) return false;
+    const Tile& tile = getTile(tileX, tileY, dimension);
+    return tile.type == TileType::DimSwitch && !tile.crumbled;
+}
+
+bool Level::activateDimSwitch(int pairId, int switchDim) {
+    // Mark the switch as activated
+    int gateDim = (switchDim == 1) ? 2 : 1;
+    auto& gateTiles = (gateDim == 1) ? m_tilesA : m_tilesB;
+    auto& switchTiles = (switchDim == 1) ? m_tilesA : m_tilesB;
+
+    bool activated = false;
+
+    // Activate matching switch tiles
+    for (auto& tile : switchTiles) {
+        if (tile.type == TileType::DimSwitch && tile.variant == pairId && !tile.crumbled) {
+            tile.crumbled = true;
+            activated = true;
+        }
+    }
+
+    // Open matching gate tiles
+    for (auto& tile : gateTiles) {
+        if (tile.type == TileType::DimGate && tile.variant == pairId && !tile.crumbled) {
+            tile.crumbled = true;
+        }
+    }
+
+    return activated;
 }

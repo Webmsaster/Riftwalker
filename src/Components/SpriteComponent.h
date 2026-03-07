@@ -26,6 +26,10 @@ struct SpriteComponent : public Component {
     AnimState animState = AnimState::Idle;
     float animTimer = 0;    // Time spent in current state
 
+    // Landing squash effect (set externally, decays over time)
+    float landingSquashTimer = 0;
+    float landingSquashIntensity = 0; // 0-1, scales with impact speed
+
     SpriteComponent() = default;
     SpriteComponent(SDL_Texture* tex, int layer = 2)
         : texture(tex), renderLayer(layer) {

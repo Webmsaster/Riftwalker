@@ -349,6 +349,25 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         case AnimState::Dash:
             squashX = 1.15f; stretchY = 0.85f;
             break;
+        case AnimState::Attack: {
+            // Forward lean during attack — quick squash then recover
+            float t = std::min(sprite.animTimer * 6.0f, 1.0f);
+            float attackSquash = (t < 0.3f) ? (t / 0.3f) * 0.12f : 0.12f * (1.0f - (t - 0.3f) / 0.7f);
+            squashX = 1.0f + attackSquash;
+            stretchY = 1.0f - attackSquash * 0.6f;
+            break;
+        }
+        case AnimState::WallSlide:
+            squashX = 0.88f; stretchY = 1.08f;
+            break;
+        case AnimState::Hurt: {
+            // Quick flinch squash
+            float t = std::min(sprite.animTimer * 8.0f, 1.0f);
+            float flinch = (1.0f - t) * 0.15f;
+            squashX = 1.0f + flinch;
+            stretchY = 1.0f - flinch;
+            break;
+        }
         case AnimState::Idle: {
             float breath = std::sin(sprite.animTimer * 2.0f);
             squashX = 1.0f + breath * 0.02f;
@@ -356,6 +375,14 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
             break;
         }
         default: break;
+    }
+
+    // Landing squash override: wide+short on impact, decays to normal
+    if (sprite.landingSquashTimer > 0) {
+        float t = sprite.landingSquashTimer / 0.15f; // 1.0 at start, 0.0 when done
+        float intensity = sprite.landingSquashIntensity * t;
+        squashX = 1.0f + intensity;       // wider
+        stretchY = 1.0f - intensity * 0.7f; // shorter
     }
 
     int w = static_cast<int>(rect.w * squashX);

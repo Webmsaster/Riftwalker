@@ -29,13 +29,14 @@ private:
     void addPlatforms(Level& level, int startX, int startY, int w, int h,
                       int dim, const WorldTheme& theme);
     void addEnemySpawns(Level& level, int startX, int startY, int w, int h,
-                        int dim, int difficulty);
+                        int dim, int difficulty, const WorldTheme& theme);
     void addRifts(Level& level, int count);
     void placeBorders(Level& level, int dim, const WorldTheme& theme);
     RoomTemplate getRandomRoom(int difficulty);
     void placeSecretRooms(Level& level, const std::vector<struct LGRoom>& rooms, int difficulty);
     void placeRandomEvents(Level& level, const std::vector<struct LGRoom>& rooms, int difficulty);
     void placeNPCs(Level& level, const std::vector<struct LGRoom>& rooms, int difficulty);
+    void placeDimPuzzles(Level& level, const std::vector<struct LGRoom>& rooms, int difficulty);
 
     WorldTheme m_themeA;
     WorldTheme m_themeB;

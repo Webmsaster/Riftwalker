@@ -79,6 +79,39 @@ WorldTheme WorldTheme::getTheme(ThemeID id) {
     return themes[0];
 }
 
+ThemeEnemyConfig ThemeEnemyConfig::getConfig(ThemeID id) {
+    // Each theme has 3 preferred enemy types, an element affinity, and stat mods
+    // Types: 0=Walker,1=Flyer,2=Turret,3=Charger,4=Phaser,5=Exploder,6=Shielder,7=Crawler,8=Summoner,9=Sniper
+    switch (id) {
+        case ThemeID::VictorianClockwork:
+            return {{2, 6, 9}, 0, 1.1f, 0.9f, 1.0f};   // Turret,Shielder,Sniper; no element; tanky+slow
+        case ThemeID::DeepOcean:
+            return {{1, 7, 4}, 2, 1.15f, 0.85f, 0.9f};  // Flyer,Crawler,Phaser; Ice; tanky+slow
+        case ThemeID::NeonCity:
+            return {{9, 2, 3}, 3, 0.9f, 1.15f, 1.1f};   // Sniper,Turret,Charger; Electric; fast+glass
+        case ThemeID::AncientRuins:
+            return {{0, 8, 6}, 0, 1.2f, 0.9f, 0.95f};   // Walker,Summoner,Shielder; no element; tanky
+        case ThemeID::CrystalCavern:
+            return {{4, 3, 1}, 3, 1.0f, 1.1f, 1.0f};    // Phaser,Charger,Flyer; Electric; agile
+        case ThemeID::BioMechanical:
+            return {{5, 7, 0}, 1, 1.0f, 1.0f, 1.15f};   // Exploder,Crawler,Walker; Fire; high damage
+        case ThemeID::FrozenWasteland:
+            return {{0, 6, 8}, 2, 1.25f, 0.8f, 0.85f};  // Walker,Shielder,Summoner; Ice; very tanky+slow
+        case ThemeID::VolcanicCore:
+            return {{3, 5, 7}, 1, 0.9f, 1.2f, 1.2f};    // Charger,Exploder,Crawler; Fire; fast+deadly
+        case ThemeID::FloatingIslands:
+            return {{1, 7, 4}, 0, 0.95f, 1.1f, 1.0f};   // Flyer,Crawler,Phaser; no element; agile
+        case ThemeID::VoidRealm:
+            return {{4, 8, 5}, 3, 1.1f, 1.05f, 1.1f};   // Phaser,Summoner,Exploder; Electric; balanced+strong
+        case ThemeID::SpaceWestern:
+            return {{9, 2, 0}, 1, 0.9f, 1.0f, 1.15f};   // Sniper,Turret,Walker; Fire; high damage
+        case ThemeID::Biopunk:
+            return {{7, 5, 8}, 1, 1.1f, 1.05f, 1.0f};   // Crawler,Exploder,Summoner; Fire(acid); slightly tanky
+        default:
+            return {{0, 1, 2}, 0, 1.0f, 1.0f, 1.0f};
+    }
+}
+
 std::pair<WorldTheme, WorldTheme> WorldTheme::getRandomPair(int seed) {
     auto& themes = getAllThemesRef();
     std::mt19937 rng(seed);

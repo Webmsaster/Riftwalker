@@ -64,6 +64,10 @@ public:
     void updateTiles(float dt);  // Update crumbling timers etc.
     void triggerCrumble(int tileX, int tileY, int dimension);
 
+    // Dimension puzzle: activate switch to open paired gate
+    bool activateDimSwitch(int pairId, int switchDim);
+    bool isDimSwitchAt(int tileX, int tileY, int dimension) const;
+
     // Secret rooms
     std::vector<SecretRoom>& getSecretRooms() { return m_secretRooms; }
     const std::vector<SecretRoom>& getSecretRooms() const { return m_secretRooms; }
@@ -125,4 +129,6 @@ private:
     void renderGravityWell(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
     void renderTeleporter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
     void renderCrumblingTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
+    void renderDimSwitch(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
+    void renderDimGate(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
 };

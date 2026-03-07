@@ -1,5 +1,6 @@
 #pragma once
 #include "Components/RelicComponent.h"
+#include "Game/WeaponSystem.h"
 
 enum class SynergyID {
     VampiricFrenzy = 0,  // BloodFrenzy + SoulSiphon
@@ -15,6 +16,13 @@ enum class SynergyID {
     RiftMaster,          // RiftConduit + StabilityMatrix
     DualNature,          // DualityGem + RiftMantle
     VoidEcho,            // VoidResonance + DimResidue
+    // Weapon-Relic Synergies
+    BloodRift,           // RiftBlade + BloodFrenzy
+    BerserkerSmash,      // VoidHammer + BerserkerCore
+    PhantomRush,         // PhaseDaggers + SwiftBoots
+    RapidShards,         // ShardPistol + QuickHands
+    StormScatter,        // RiftShotgun + ChainLightning
+    EntropyBeam,         // VoidBeam + EntropyAnchor
     COUNT
 };
 
@@ -24,6 +32,7 @@ struct SynergyData {
     const char* description;
     RelicID relicA;
     RelicID relicB;
+    WeaponID requiredWeapon = WeaponID::COUNT; // COUNT = no weapon required (relic-only synergy)
 };
 
 class RelicSynergy {
@@ -52,4 +61,24 @@ public:
     static bool isDualNatureActive(const RelicComponent& relics);
     static float getResidueDuration(const RelicComponent& relics);
     static float getResidueDamage(const RelicComponent& relics);
+
+    // Weapon-Relic synergy checks (need current weapon to evaluate)
+    static bool isWeaponSynergyActive(const RelicComponent& relics, SynergyID id, WeaponID melee, WeaponID ranged);
+    static int getActiveWeaponSynergyCount(const RelicComponent& relics, WeaponID melee, WeaponID ranged);
+
+    // BloodRift: RiftBlade + BloodFrenzy — melee kills under 50% HP heal 5
+    static float getBloodRiftHeal(const RelicComponent& relics, WeaponID melee, float hpPercent);
+    // BerserkerSmash: VoidHammer + BerserkerCore — +50% charged AoE radius, +0.5s stun
+    static float getBerserkerSmashRadiusMult(const RelicComponent& relics, WeaponID melee);
+    static float getBerserkerSmashStunBonus(const RelicComponent& relics, WeaponID melee);
+    // PhantomRush: PhaseDaggers + SwiftBoots — crit every 4th hit, +10% movespeed
+    static int getPhantomRushCritThreshold(const RelicComponent& relics, WeaponID melee);
+    static float getPhantomRushSpeedBonus(const RelicComponent& relics, WeaponID melee);
+    // RapidShards: ShardPistol + QuickHands — +30% proj speed, 25% double-shot
+    static float getRapidShardsSpeedMult(const RelicComponent& relics, WeaponID ranged);
+    static bool rollRapidShardsDoubleShot(const RelicComponent& relics, WeaponID ranged);
+    // StormScatter: RiftShotgun + ChainLightning — kills chain to 2 extra enemies
+    static bool isStormScatterActive(const RelicComponent& relics, WeaponID ranged);
+    // EntropyBeam: VoidBeam + EntropyAnchor — beam reduces entropy instead of gaining
+    static bool isEntropyBeamActive(const RelicComponent& relics, WeaponID ranged);
 };

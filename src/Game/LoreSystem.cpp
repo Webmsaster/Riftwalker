@@ -76,8 +76,23 @@ void LoreSystem::init() {
 void LoreSystem::discover(LoreID id) {
     int idx = static_cast<int>(id);
     if (idx >= 0 && idx < static_cast<int>(m_fragments.size())) {
-        m_fragments[idx].discovered = true;
+        if (!m_fragments[idx].discovered) {
+            m_fragments[idx].discovered = true;
+            m_notification.title = m_fragments[idx].title;
+            m_notification.timer = m_notification.duration;
+        }
     }
+}
+
+void LoreSystem::updateNotification(float dt) {
+    if (m_notification.timer > 0) {
+        m_notification.timer -= dt;
+    }
+}
+
+const LoreNotification* LoreSystem::getActiveNotification() const {
+    if (m_notification.timer > 0) return &m_notification;
+    return nullptr;
 }
 
 bool LoreSystem::isDiscovered(LoreID id) const {

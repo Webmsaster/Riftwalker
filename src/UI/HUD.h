@@ -7,6 +7,7 @@ class SuitEntropy;
 class DimensionManager;
 class Level;
 class EntityManager;
+class CombatSystem;
 struct AbilityComponent;
 
 class HUD {
@@ -15,6 +16,10 @@ public:
                 const Player* player, const SuitEntropy* entropy,
                 const DimensionManager* dimMgr,
                 int screenW, int screenH, int fps, int riftShards);
+
+    void setCombatSystem(const CombatSystem* cs) { m_combatSystem = cs; }
+    void setFloor(int floor) { m_currentFloor = floor; }
+    void setKillCount(int kills) { m_killCount = kills; }
 
     void renderMinimap(SDL_Renderer* renderer, const Level* level,
                        const Player* player, const DimensionManager* dimMgr,
@@ -33,4 +38,7 @@ private:
                     const char* text, int x, int y, SDL_Color color);
 
     float m_damageFlash = 0;
+    const CombatSystem* m_combatSystem = nullptr;
+    int m_currentFloor = 1;
+    int m_killCount = 0;
 };

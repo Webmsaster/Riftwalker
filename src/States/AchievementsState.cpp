@@ -186,6 +186,21 @@ void AchievementsState::render(SDL_Renderer* renderer) {
             }
             SDL_FreeSurface(ds);
         }
+
+        // Reward text (right-aligned, golden if unlocked, gray if locked)
+        if (!a.rewardDesc.empty()) {
+            SDL_Color rwColor = a.unlocked ? SDL_Color{255, 220, 80, 230} : SDL_Color{120, 100, 60, 120};
+            SDL_Surface* rws = TTF_RenderText_Blended(font, a.rewardDesc.c_str(), rwColor);
+            if (rws) {
+                SDL_Texture* rwt = SDL_CreateTextureFromSurface(renderer, rws);
+                if (rwt) {
+                    SDL_Rect rwr = {cardX + cardW - rws->w - 12, y + (cardH - rws->h) / 2, rws->w, rws->h};
+                    SDL_RenderCopy(renderer, rwt, nullptr, &rwr);
+                    SDL_DestroyTexture(rwt);
+                }
+                SDL_FreeSurface(rws);
+            }
+        }
     }
 
     SDL_RenderSetClipRect(renderer, nullptr);

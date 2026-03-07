@@ -26,6 +26,12 @@ struct LoreFragment {
     bool discovered = false;
 };
 
+struct LoreNotification {
+    std::string title;
+    float timer = 0;
+    float duration = 4.0f;
+};
+
 class LoreSystem {
 public:
     void init();
@@ -35,9 +41,13 @@ public:
     int totalCount() const { return static_cast<int>(LoreID::COUNT); }
     const std::vector<LoreFragment>& getFragments() const { return m_fragments; }
 
+    void updateNotification(float dt);
+    const LoreNotification* getActiveNotification() const;
+
     void save(const std::string& path) const;
     void load(const std::string& path);
 
 private:
     std::vector<LoreFragment> m_fragments;
+    LoreNotification m_notification;
 };

@@ -10,6 +10,7 @@ RiftPuzzle::RiftPuzzle(PuzzleType type, int difficulty)
         case PuzzleType::Timing: initTiming(); break;
         case PuzzleType::Sequence: initSequence(); break;
         case PuzzleType::Alignment: initAlignment(); break;
+        case PuzzleType::Pattern: initPattern(); break;
     }
 }
 
@@ -38,14 +39,47 @@ void RiftPuzzle::initAlignment() {
     m_timeLimit = 8.0f + m_difficulty * 2.0f;
 }
 
+void RiftPuzzle::initPattern() {
+    // Clear grids
+    for (int y = 0; y < PATTERN_GRID; y++)
+        for (int x = 0; x < PATTERN_GRID; x++) {
+            m_patternTarget[y][x] = false;
+            m_patternPlayer[y][x] = false;
+        }
+    // Number of cells to memorize scales with difficulty: 2-5
+    m_patternCellCount = std::min(2 + m_difficulty / 2, 5);
+    // Place random cells
+    int placed = 0;
+    while (placed < m_patternCellCount) {
+        int rx = std::rand() % PATTERN_GRID;
+        int ry = std::rand() % PATTERN_GRID;
+        if (!m_patternTarget[ry][rx]) {
+            m_patternTarget[ry][rx] = true;
+            placed++;
+        }
+    }
+    m_patternShowing = true;
+    m_patternShowTimer = 0;
+    m_patternShowDuration = std::max(1.5f, 3.0f - m_difficulty * 0.2f);
+    m_patternCursorX = 1;
+    m_patternCursorY = 1;
+    m_timeLimit = 8.0f + m_difficulty * 1.5f;
+}
+
 void RiftPuzzle::activate() {
     m_state = PuzzleState::Active;
     m_timer = 0;
     m_timingHits = 0;
     m_sequenceIndex = 0;
     m_showingSequence = (m_type == PuzzleType::Sequence);
+    m_patternShowing = (m_type == PuzzleType::Pattern);
+    m_patternShowTimer = 0;
     m_showTimer = 0;
     m_playerInput.clear();
+    // Clear player grid on activate
+    for (int y = 0; y < PATTERN_GRID; y++)
+        for (int x = 0; x < PATTERN_GRID; x++)
+            m_patternPlayer[y][x] = false;
 }
 
 void RiftPuzzle::update(float dt) {
@@ -62,6 +96,7 @@ void RiftPuzzle::update(float dt) {
         case PuzzleType::Timing: updateTiming(dt); break;
         case PuzzleType::Sequence: updateSequence(dt); break;
         case PuzzleType::Alignment: updateAlignment(dt); break;
+        case PuzzleType::Pattern: updatePattern(dt); break;
     }
 }
 
@@ -84,6 +119,15 @@ void RiftPuzzle::updateSequence(float dt) {
 
 void RiftPuzzle::updateAlignment(float dt) {
     // Nothing to update continuously
+}
+
+void RiftPuzzle::updatePattern(float dt) {
+    if (m_patternShowing) {
+        m_patternShowTimer += dt;
+        if (m_patternShowTimer >= m_patternShowDuration) {
+            m_patternShowing = false;
+        }
+    }
 }
 
 void RiftPuzzle::handleInput(int action) {
@@ -131,6 +175,40 @@ void RiftPuzzle::handleInput(int action) {
             }
             break;
         }
+        case PuzzleType::Pattern: {
+            if (m_patternShowing) return; // can't interact during reveal
+            // Navigate cursor
+            if (action == 0 && m_patternCursorY > 0) m_patternCursorY--;
+            else if (action == 2 && m_patternCursorY < PATTERN_GRID - 1) m_patternCursorY++;
+            else if (action == 3 && m_patternCursorX > 0) m_patternCursorX--;
+            else if (action == 1 && m_patternCursorX < PATTERN_GRID - 1) m_patternCursorX++;
+            else if (action == 4) {
+                // Toggle cell
+                m_patternPlayer[m_patternCursorY][m_patternCursorX] =
+                    !m_patternPlayer[m_patternCursorY][m_patternCursorX];
+                // Check if player has selected enough cells
+                int selected = 0;
+                for (int y = 0; y < PATTERN_GRID; y++)
+                    for (int x = 0; x < PATTERN_GRID; x++)
+                        if (m_patternPlayer[y][x]) selected++;
+                if (selected == m_patternCellCount) {
+                    // Check if pattern matches
+                    bool match = true;
+                    for (int y = 0; y < PATTERN_GRID; y++)
+                        for (int x = 0; x < PATTERN_GRID; x++)
+                            if (m_patternTarget[y][x] != m_patternPlayer[y][x])
+                                match = false;
+                    if (match) {
+                        m_state = PuzzleState::Success;
+                        if (onComplete) onComplete(true);
+                    } else {
+                        m_state = PuzzleState::Failed;
+                        if (onComplete) onComplete(false);
+                    }
+                }
+            }
+            break;
+        }
     }
 }
 
@@ -167,6 +245,7 @@ void RiftPuzzle::render(SDL_Renderer* renderer, int screenW, int screenH) {
         case PuzzleType::Timing: renderTiming(renderer, cx, cy); break;
         case PuzzleType::Sequence: renderSequence(renderer, cx, cy); break;
         case PuzzleType::Alignment: renderAlignment(renderer, cx, cy); break;
+        case PuzzleType::Pattern: renderPattern(renderer, cx, cy); break;
     }
 }
 
@@ -276,4 +355,75 @@ void RiftPuzzle::renderAlignment(SDL_Renderer* renderer, int cx, int cy) {
     SDL_SetRenderDrawColor(renderer, 100, 255, 100, 255);
     SDL_Rect target = {tX - 8, tY - 8, 16, 16};
     SDL_RenderDrawRect(renderer, &target);
+}
+
+void RiftPuzzle::renderPattern(SDL_Renderer* renderer, int cx, int cy) {
+    int cellSize = 40;
+    int gap = 4;
+    int gridPx = PATTERN_GRID * (cellSize + gap) - gap;
+    int startX = cx - gridPx / 2;
+    int startY = cy - gridPx / 2;
+
+    for (int y = 0; y < PATTERN_GRID; y++) {
+        for (int x = 0; x < PATTERN_GRID; x++) {
+            SDL_Rect cell = {
+                startX + x * (cellSize + gap),
+                startY + y * (cellSize + gap),
+                cellSize, cellSize
+            };
+
+            if (m_patternShowing) {
+                // Reveal phase: show target pattern
+                if (m_patternTarget[y][x]) {
+                    // Pulsing glow effect
+                    float pulse = 0.7f + 0.3f * std::sin(m_patternShowTimer * 4.0f);
+                    Uint8 brightness = static_cast<Uint8>(200 * pulse);
+                    SDL_SetRenderDrawColor(renderer, 120, brightness, 255, 255);
+                    SDL_RenderFillRect(renderer, &cell);
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 40, 35, 55, 255);
+                    SDL_RenderFillRect(renderer, &cell);
+                }
+            } else {
+                // Input phase
+                if (m_patternPlayer[y][x]) {
+                    SDL_SetRenderDrawColor(renderer, 100, 180, 255, 255);
+                    SDL_RenderFillRect(renderer, &cell);
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 40, 35, 55, 255);
+                    SDL_RenderFillRect(renderer, &cell);
+                }
+                // Cursor highlight
+                if (x == m_patternCursorX && y == m_patternCursorY) {
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 220);
+                    SDL_RenderDrawRect(renderer, &cell);
+                    // Inner border for visibility
+                    SDL_Rect inner = {cell.x + 1, cell.y + 1, cell.w - 2, cell.h - 2};
+                    SDL_RenderDrawRect(renderer, &inner);
+                }
+            }
+
+            // Subtle grid border
+            SDL_SetRenderDrawColor(renderer, 80, 60, 120, 150);
+            SDL_RenderDrawRect(renderer, &cell);
+        }
+    }
+
+    // Selection counter below grid
+    if (!m_patternShowing) {
+        int selected = 0;
+        for (int y = 0; y < PATTERN_GRID; y++)
+            for (int x = 0; x < PATTERN_GRID; x++)
+                if (m_patternPlayer[y][x]) selected++;
+        int dotY = startY + gridPx + 12;
+        for (int i = 0; i < m_patternCellCount; i++) {
+            SDL_Rect dot = {cx - m_patternCellCount * 10 + i * 20, dotY, 12, 12};
+            if (i < selected) {
+                SDL_SetRenderDrawColor(renderer, 100, 180, 255, 255);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 50, 45, 70, 255);
+            }
+            SDL_RenderFillRect(renderer, &dot);
+        }
+    }
 }

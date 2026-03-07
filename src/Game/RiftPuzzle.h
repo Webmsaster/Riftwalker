@@ -7,7 +7,8 @@
 enum class PuzzleType {
     Timing,     // Hit button at right moment in a cycle
     Sequence,   // Repeat a color/direction sequence
-    Alignment   // Align two dimensions by rotating pieces
+    Alignment,  // Align two dimensions by rotating pieces
+    Pattern     // Memorize and recreate a grid pattern
 };
 
 enum class PuzzleState {
@@ -40,19 +41,27 @@ public:
     int getTargetRotation() const { return m_targetRotation; }
     float getCyclePos() const { return m_cyclePos; }
     bool isInSweetSpot() const { return m_cyclePos >= m_sweetSpotStart && m_cyclePos <= m_sweetSpotEnd; }
+    bool isPatternShowing() const { return m_patternShowing; }
+    bool getPatternTarget(int x, int y) const { return m_patternTarget[y][x]; }
+    bool getPatternPlayer(int x, int y) const { return m_patternPlayer[y][x]; }
+    int getPatternCursorX() const { return m_patternCursorX; }
+    int getPatternCursorY() const { return m_patternCursorY; }
 
 private:
     void initTiming();
     void initSequence();
     void initAlignment();
+    void initPattern();
 
     void updateTiming(float dt);
     void updateSequence(float dt);
     void updateAlignment(float dt);
+    void updatePattern(float dt);
 
     void renderTiming(SDL_Renderer* renderer, int cx, int cy);
     void renderSequence(SDL_Renderer* renderer, int cx, int cy);
     void renderAlignment(SDL_Renderer* renderer, int cx, int cy);
+    void renderPattern(SDL_Renderer* renderer, int cx, int cy);
 
     PuzzleType m_type;
     PuzzleState m_state = PuzzleState::Inactive;
@@ -78,4 +87,15 @@ private:
     // Alignment puzzle
     int m_currentRotation = 0;
     int m_targetRotation = 0;
+
+    // Pattern puzzle (3x3 grid memory)
+    static const int PATTERN_GRID = 3;
+    bool m_patternTarget[3][3] = {};   // cells to memorize
+    bool m_patternPlayer[3][3] = {};   // player's selections
+    bool m_patternShowing = true;      // reveal phase
+    float m_patternShowTimer = 0;
+    float m_patternShowDuration = 2.0f;
+    int m_patternCursorX = 1;          // cursor position
+    int m_patternCursorY = 1;
+    int m_patternCellCount = 0;        // how many cells to memorize
 };

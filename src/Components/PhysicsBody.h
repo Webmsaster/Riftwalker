@@ -21,6 +21,10 @@ struct PhysicsBody : public Component {
     bool onWallRight = false;
     bool onCeiling = false;
     bool wasOnGround = false;
+    bool onIce = false;
+
+    // Landing impact: captures fall speed before collision zeros it
+    float landingImpactSpeed = 0.0f;
 
     // Coyote time
     float coyoteTime = 0.1f;

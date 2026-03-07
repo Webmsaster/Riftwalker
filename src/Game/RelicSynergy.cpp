@@ -51,7 +51,32 @@ static const SynergyData s_synergyData[] = {
 
     {SynergyID::VoidEcho, "Void Echo",
      "Residue zone 4s, 20 DMG/s",
-     RelicID::VoidResonance, RelicID::DimResidue}
+     RelicID::VoidResonance, RelicID::DimResidue},
+
+    // Weapon-Relic Synergies
+    {SynergyID::BloodRift, "Blood Rift",
+     "RiftBlade kills under 50% HP heal 5",
+     RelicID::BloodFrenzy, RelicID::None, WeaponID::RiftBlade},
+
+    {SynergyID::BerserkerSmash, "Berserker Smash",
+     "VoidHammer charged AoE +50%, stun +0.5s",
+     RelicID::BerserkerCore, RelicID::None, WeaponID::VoidHammer},
+
+    {SynergyID::PhantomRush, "Phantom Rush",
+     "PhaseDaggers crit every 4th hit, +10% speed",
+     RelicID::SwiftBoots, RelicID::None, WeaponID::PhaseDaggers},
+
+    {SynergyID::RapidShards, "Rapid Shards",
+     "ShardPistol +30% proj speed, 25% double-shot",
+     RelicID::QuickHands, RelicID::None, WeaponID::ShardPistol},
+
+    {SynergyID::StormScatter, "Storm Scatter",
+     "RiftShotgun kills chain lightning to 2 enemies",
+     RelicID::ChainLightning, RelicID::None, WeaponID::RiftShotgun},
+
+    {SynergyID::EntropyBeam, "Entropy Beam",
+     "VoidBeam reduces entropy instead of gaining",
+     RelicID::EntropyAnchor, RelicID::None, WeaponID::VoidBeam}
 };
 
 const SynergyData& RelicSynergy::getData(SynergyID id) {
@@ -67,12 +92,40 @@ bool RelicSynergy::isActive(const RelicComponent& relics, SynergyID id) {
     int idx = static_cast<int>(id);
     if (idx < 0 || idx >= static_cast<int>(SynergyID::COUNT)) return false;
     const auto& data = s_synergyData[idx];
+    // Weapon-relic synergies: only need the relic (weapon checked separately)
+    if (data.requiredWeapon != WeaponID::COUNT) {
+        return relics.hasRelic(data.relicA);
+    }
     return relics.hasRelic(data.relicA) && relics.hasRelic(data.relicB);
+}
+
+bool RelicSynergy::isWeaponSynergyActive(const RelicComponent& relics, SynergyID id, WeaponID melee, WeaponID ranged) {
+    int idx = static_cast<int>(id);
+    if (idx < 0 || idx >= static_cast<int>(SynergyID::COUNT)) return false;
+    const auto& data = s_synergyData[idx];
+    if (data.requiredWeapon == WeaponID::COUNT) return false; // Not a weapon synergy
+    if (!relics.hasRelic(data.relicA)) return false;
+    // Check if player has the required weapon equipped
+    return (data.requiredWeapon == melee || data.requiredWeapon == ranged);
+}
+
+int RelicSynergy::getActiveWeaponSynergyCount(const RelicComponent& relics, WeaponID melee, WeaponID ranged) {
+    int count = 0;
+    for (int i = 0; i < static_cast<int>(SynergyID::COUNT); i++) {
+        auto sid = static_cast<SynergyID>(i);
+        const auto& data = s_synergyData[i];
+        if (data.requiredWeapon != WeaponID::COUNT) {
+            if (isWeaponSynergyActive(relics, sid, melee, ranged)) count++;
+        }
+    }
+    return count;
 }
 
 int RelicSynergy::getActiveSynergyCount(const RelicComponent& relics) {
     int count = 0;
     for (int i = 0; i < static_cast<int>(SynergyID::COUNT); i++) {
+        // Skip weapon-relic synergies (they use getActiveWeaponSynergyCount)
+        if (s_synergyData[i].requiredWeapon != WeaponID::COUNT) continue;
         if (isActive(relics, static_cast<SynergyID>(i))) count++;
     }
     return count;
@@ -161,4 +214,65 @@ float RelicSynergy::getResidueDamage(const RelicComponent& relics) {
     // VoidEcho: 20 DMG/s instead of 15
     if (isActive(relics, SynergyID::VoidEcho)) return 20.0f;
     return 15.0f;
+}
+
+// --- Weapon-Relic Synergy Queries ---
+
+float RelicSynergy::getBloodRiftHeal(const RelicComponent& relics, WeaponID melee, float hpPercent) {
+    // BloodRift: RiftBlade + BloodFrenzy — melee kills under 50% HP heal 5
+    if (melee == WeaponID::RiftBlade && isActive(relics, SynergyID::BloodRift) && hpPercent < 0.5f) {
+        return 5.0f;
+    }
+    return 0;
+}
+
+float RelicSynergy::getBerserkerSmashRadiusMult(const RelicComponent& relics, WeaponID melee) {
+    if (melee == WeaponID::VoidHammer && isActive(relics, SynergyID::BerserkerSmash)) {
+        return 1.5f;
+    }
+    return 1.0f;
+}
+
+float RelicSynergy::getBerserkerSmashStunBonus(const RelicComponent& relics, WeaponID melee) {
+    if (melee == WeaponID::VoidHammer && isActive(relics, SynergyID::BerserkerSmash)) {
+        return 0.5f;
+    }
+    return 0;
+}
+
+int RelicSynergy::getPhantomRushCritThreshold(const RelicComponent& relics, WeaponID melee) {
+    if (melee == WeaponID::PhaseDaggers && isActive(relics, SynergyID::PhantomRush)) {
+        return 4; // Every 4th hit instead of 5th
+    }
+    return 5;
+}
+
+float RelicSynergy::getPhantomRushSpeedBonus(const RelicComponent& relics, WeaponID melee) {
+    if (melee == WeaponID::PhaseDaggers && isActive(relics, SynergyID::PhantomRush)) {
+        return 0.10f; // +10% extra movespeed on top of PhaseDaggers base
+    }
+    return 0;
+}
+
+float RelicSynergy::getRapidShardsSpeedMult(const RelicComponent& relics, WeaponID ranged) {
+    if (ranged == WeaponID::ShardPistol && isActive(relics, SynergyID::RapidShards)) {
+        return 1.3f; // +30% projectile speed
+    }
+    return 1.0f;
+}
+
+bool RelicSynergy::rollRapidShardsDoubleShot(const RelicComponent& relics, WeaponID ranged) {
+    if (ranged == WeaponID::ShardPistol && isActive(relics, SynergyID::RapidShards)) {
+        float roll = static_cast<float>(std::rand()) / RAND_MAX;
+        return roll < 0.25f; // 25% chance
+    }
+    return false;
+}
+
+bool RelicSynergy::isStormScatterActive(const RelicComponent& relics, WeaponID ranged) {
+    return ranged == WeaponID::RiftShotgun && isActive(relics, SynergyID::StormScatter);
+}
+
+bool RelicSynergy::isEntropyBeamActive(const RelicComponent& relics, WeaponID ranged) {
+    return ranged == WeaponID::VoidBeam && isActive(relics, SynergyID::EntropyBeam);
 }

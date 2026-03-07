@@ -24,6 +24,30 @@ public:
     // Phantom: post-dash invisibility
     float postDashInvisTimer = 0;
 
+    // Phantom: Phase Through — invulnerable during dash, damages enemies phased through
+    bool isPhaseThrough() const { return isDashing && playerClass == PlayerClass::Phantom; }
+    float phaseDamage = 15.0f;       // damage dealt to enemies phased through
+    float phaseSlowDuration = 0.4f;  // slow duration on phased enemies
+
+    // Voidwalker: Dimensional Affinity - Rift Charge buff after dim-switch
+    float riftChargeTimer = 0;
+    float riftChargeDuration = 2.5f;
+    float riftChargeDamageMult = 1.3f; // +30% damage
+    bool isRiftChargeActive() const { return riftChargeTimer > 0 && playerClass == PlayerClass::Voidwalker; }
+    void activateRiftCharge();
+
+    // Berserker: Momentum - kill streaks build stacks for speed/attack speed
+    int momentumStacks = 0;
+    int momentumMaxStacks = 5;
+    float momentumTimer = 0;
+    float momentumDuration = 5.0f;     // seconds per stack refresh
+    float momentumSpeedPerStack = 0.06f;  // +6% move speed per stack
+    float momentumAtkSpdPerStack = 0.05f; // +5% attack speed per stack
+    void addMomentumStack();
+    bool hasMomentum() const { return momentumStacks > 0 && playerClass == PlayerClass::Berserker; }
+    float getMomentumSpeedMult() const;
+    float getMomentumAtkSpeedMult() const;
+
     // Stats
     float moveSpeed = 250.0f;
     float jumpForce = -420.0f;
@@ -57,6 +81,10 @@ public:
     float dashMomentumTimer = 0;
     float dashMomentumTime = 0.15f; // 150ms momentum window after dash
 
+    // Melee attack lunge (brief forward push on melee start)
+    float attackLungeTimer = 0;
+    float attackLungeDir = 0; // +1.0 or -1.0
+
     ParticleSystem* particles = nullptr;
     bool wasInAir = false;
 
@@ -80,9 +108,10 @@ public:
     float poisonTimer = 0;
     float poisonDmgTimer = 0;    // ticks damage every 0.5s
 
-    void applyBurn(float duration) { burnTimer = std::max(burnTimer, duration); }
-    void applyFreeze(float duration) { freezeTimer = std::max(freezeTimer, duration); }
-    void applyPoison(float duration) { poisonTimer = std::max(poisonTimer, duration); }
+    float dotDurationMult = 1.0f; // Achievement bonus: < 1.0 = shorter DOTs
+    void applyBurn(float duration) { burnTimer = std::max(burnTimer, duration * dotDurationMult); }
+    void applyFreeze(float duration) { freezeTimer = std::max(freezeTimer, duration * dotDurationMult); }
+    void applyPoison(float duration) { poisonTimer = std::max(poisonTimer, duration * dotDurationMult); }
     bool isBurning() const { return burnTimer > 0; }
     bool isFrozen() const { return freezeTimer > 0; }
     bool isPoisoned() const { return poisonTimer > 0; }
@@ -96,6 +125,7 @@ public:
     // Entity manager reference for Phase Strike targeting
     class EntityManager* entityManager = nullptr;
     class CombatSystem* combatSystemRef = nullptr;
+    class DimensionManager* dimensionManager = nullptr;
 
 private:
     void handleMovement(float dt, const InputManager& input);

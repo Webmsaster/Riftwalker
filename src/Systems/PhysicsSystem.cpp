@@ -16,17 +16,18 @@ void PhysicsSystem::update(EntityManager& entities, float dt, Level* level, int 
 
         applyGravity(*e, dt);
         applyVelocity(*e, dt);
+        phys.onIce = false; // Reset before this frame's tile checks
 
         if (level && e->hasComponent<ColliderComponent>()) {
             resolveTerrainCollision(*e, level, currentDimension);
 
-            // Ice tile: reduce friction (slippery surface)
+            // Ice tile: set flag for next frame's friction reduction
             auto& t = e->getComponent<TransformComponent>();
             int tileX = static_cast<int>(t.getCenter().x) / level->getTileSize();
             int tileY = static_cast<int>(t.position.y + t.height + 1) / level->getTileSize();
             int dim = (e->dimension == 0) ? currentDimension : e->dimension;
             if (phys.onGround && level->isIceTile(tileX, tileY, dim)) {
-                phys.velocity.x *= 0.98f; // Very low friction per frame
+                phys.onIce = true;
             }
 
             // Gravity Well: attract/repel entities
@@ -96,8 +97,8 @@ void PhysicsSystem::applyVelocity(Entity& entity, float dt) {
     phys.velocity += phys.acceleration * dt;
     phys.acceleration = {0, 0};
 
-    // Apply friction
-    float fric = phys.onGround ? phys.friction : phys.airResistance;
+    // Apply friction (ice tiles reduce ground friction dramatically)
+    float fric = phys.onGround ? (phys.onIce ? phys.friction * 0.1f : phys.friction) : phys.airResistance;
     if (fric > 0 && std::abs(phys.velocity.x) > 0.01f) {
         float decel = fric * dt;
         if (std::abs(phys.velocity.x) < decel) {
@@ -183,6 +184,10 @@ void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int cu
             } else {
                 transform.position.y += minOverlapY;
                 if (minOverlapY < 0) {
+                    // Capture fall speed on first ground contact before zeroing
+                    if (!phys.onGround && phys.velocity.y > 0) {
+                        phys.landingImpactSpeed = phys.velocity.y;
+                    }
                     phys.onGround = true;
                     phys.velocity.y = 0;
                 } else {

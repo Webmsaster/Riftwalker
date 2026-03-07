@@ -31,6 +31,17 @@ enum class ThemeID {
     Biopunk
 };
 
+// Theme-specific enemy configuration
+struct ThemeEnemyConfig {
+    int preferredTypes[3] = {0, 1, 2};       // 3 preferred enemy type indices
+    int preferredElement = 0;                  // 0=None, 1=Fire, 2=Ice, 3=Electric
+    float hpMod = 1.0f;                       // HP multiplier for theme enemies
+    float speedMod = 1.0f;                    // Speed multiplier
+    float damageMod = 1.0f;                   // Damage multiplier
+
+    static ThemeEnemyConfig getConfig(ThemeID id);
+};
+
 struct WorldTheme {
     ThemeID id;
     std::string name;

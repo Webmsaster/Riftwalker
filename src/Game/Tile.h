@@ -20,7 +20,9 @@ enum class TileType {
     Ice,          // Reduced friction, sliding
     GravityWell,  // Attracts/repels entities, switches per dimension
     Teleporter,   // Pair tiles, teleports on contact (variant = pair ID)
-    Crumbling     // Breaks 1.5s after stepping on, respawns after 5s
+    Crumbling,    // Breaks 1.5s after stepping on, respawns after 5s
+    DimSwitch,    // Pressure plate in one dim, opens paired DimGate in other dim (variant = pair ID)
+    DimGate       // Solid barrier, opens when paired DimSwitch activated (variant = pair ID)
 };
 
 struct Tile {
@@ -36,9 +38,10 @@ struct Tile {
 
     bool isSolid() const {
         if (type == TileType::Crumbling && crumbled) return false;
+        if (type == TileType::DimGate && crumbled) return false; // crumbled = gate open
         return type == TileType::Solid || type == TileType::LaserEmitter ||
                type == TileType::Breakable || type == TileType::Ice ||
-               type == TileType::Crumbling;
+               type == TileType::Crumbling || type == TileType::DimGate;
     }
 
     bool isOneWay() const {

@@ -94,6 +94,11 @@ void Player::update(float dt, const InputManager& input) {
     if (jumpBufferTimer > 0) jumpBufferTimer -= dt;
     if (dashBufferTimer > 0) dashBufferTimer -= dt;
     if (dashMomentumTimer > 0) dashMomentumTimer -= dt;
+    if (attackLungeTimer > 0) attackLungeTimer -= dt;
+
+    // Decay landing squash visual effect
+    auto& spr = m_entity->getComponent<SpriteComponent>();
+    if (spr.landingSquashTimer > 0) spr.landingSquashTimer -= dt;
 
     handleDash(dt, input);
 
@@ -348,6 +353,11 @@ void Player::handleMovement(float dt, const InputManager& input) {
         facingRight = axis > 0;
         m_entity->getComponent<SpriteComponent>().flipX = !facingRight;
     }
+
+    // Melee attack lunge: additive forward boost during brief window after melee start
+    if (attackLungeTimer > 0) {
+        phys.velocity.x += attackLungeDir * 130.0f;
+    }
 }
 
 void Player::handleJump(const InputManager& input) {
@@ -541,6 +551,12 @@ void Player::handleAttack(const InputManager& input) {
 
                 combat.releaseCharged(dir);
 
+                // Charged attack lunge: stronger forward push
+                if (std::abs(dir.x) > 0.5f) {
+                    attackLungeTimer = 0.12f; // 120ms for charged
+                    attackLungeDir = dir.x > 0 ? 1.0f : -1.0f;
+                }
+
                 if (isVoidHammer) {
                     AudioManager::instance().play(SFX::GroundSlam);
                 } else {
@@ -620,6 +636,11 @@ void Player::handleAttack(const InputManager& input) {
                 MasteryBonus mb = WeaponSystem::getMasteryBonus(
                     combatSystemRef->weaponKills[static_cast<int>(combat.currentMelee)]);
                 combat.cooldownTimer *= mb.cooldownMult;
+            }
+            // Melee attack lunge: brief forward push scaling with combo
+            if (std::abs(dir.x) > 0.5f) {
+                attackLungeTimer = 0.08f; // 80ms lunge window
+                attackLungeDir = dir.x > 0 ? 1.0f : -1.0f;
             }
             if (particles) {
                 auto& t = m_entity->getComponent<TransformComponent>();
@@ -942,6 +963,10 @@ void Player::handleAbilities(float dt, const InputManager& input) {
 
                     // Berserker momentum
                     addMomentumStack();
+                    // Run buff: DashRefresh on kill
+                    if (combatSystemRef->getDashRefreshOnKill()) {
+                        dashCooldownTimer = 0;
+                    }
 
                     // Item drops (mini-bosses 3x, elites 2x)
                     Vec2 deathPos = et.getCenter();

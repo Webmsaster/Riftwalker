@@ -34,6 +34,7 @@ public:
     void setLifesteal(float pct) { m_lifesteal = pct; }
     void setElementWeapon(int type) { m_elementWeapon = type; } // 0=none 1=fire 2=ice 3=electric
     void setDashRefreshOnKill(bool v) { m_dashRefreshOnKill = v; }
+    bool getDashRefreshOnKill() const { return m_dashRefreshOnKill; }
     void setDimensionManager(class DimensionManager* dm) { m_dimMgr = dm; }
 
     // Reset per-run state (call on new run start)

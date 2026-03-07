@@ -13,6 +13,13 @@ enum class WeaponID {
     COUNT
 };
 
+enum class MasteryTier { None = 0, Familiar, Proficient, Mastered };
+
+struct MasteryBonus {
+    float damageMult = 1.0f;
+    float cooldownMult = 1.0f;
+};
+
 struct WeaponData {
     WeaponID id = WeaponID::RiftBlade;
     const char* name = "";
@@ -42,4 +49,10 @@ public:
     static bool isUnlocked(WeaponID id);
     static void unlock(WeaponID id);
     static void resetUnlocks(); // For new save
+
+    // Weapon Mastery (per-run progression)
+    static MasteryTier getMasteryTier(int kills);
+    static MasteryBonus getMasteryBonus(int kills);
+    static const char* getMasteryTierName(MasteryTier tier);
+    static int getNextTierThreshold(int kills);
 };

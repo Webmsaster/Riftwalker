@@ -881,6 +881,11 @@ void PlayState::update(float dt) {
             float t = std::min((phys.landingImpactSpeed - 250.0f) / 550.0f, 1.0f);
             m_camera.shake(2.0f + t * 6.0f, 0.08f + t * 0.12f);
 
+            // Landing squash: sprite goes wide+short on impact
+            auto& spr = m_player->getEntity()->getComponent<SpriteComponent>();
+            spr.landingSquashTimer = 0.15f;
+            spr.landingSquashIntensity = 0.1f + t * 0.15f; // 0.1-0.25 based on fall speed
+
             // Landing dust cloud at feet — bigger for harder landings
             auto& tr = m_player->getEntity()->getComponent<TransformComponent>();
             Vec2 feetPos = {tr.getCenter().x, tr.position.y + tr.height};
@@ -1085,11 +1090,11 @@ void PlayState::update(float dt) {
             return base;
         };
 
-        // Spike & fire damage (cooldown-based)
+        // Spike & fire damage (cooldown-based, skip during i-frames)
         if (m_spikeDmgCooldown <= 0 && m_level->inBounds(footX, footY)) {
             const auto& tile = m_level->getTile(footX, footY, dim);
-            if (tile.type == TileType::Spike) {
-                auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+            auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+            if (tile.type == TileType::Spike && !playerHP.isInvincible()) {
                 // BALANCE: Spike DMG 15 -> 10, entropy 5 -> 3 (playtest: main death cause in L1)
                 playerHP.takeDamage(hazardDmg(10.0f));
                 m_tookDamageThisLevel = true;
@@ -1104,8 +1109,7 @@ void PlayState::update(float dt) {
                 }
                 m_particles.burst(playerT.getCenter(), 15, {255, 80, 40, 255}, 150.0f, 3.0f);
                 m_hud.triggerDamageFlash();
-            } else if (tile.type == TileType::Fire) {
-                auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+            } else if (tile.type == TileType::Fire && !playerHP.isInvincible()) {
                 playerHP.takeDamage(hazardDmg(10.0f));
                 m_tookDamageThisLevel = true;
                 m_tookDamageThisWave = true;
@@ -1123,10 +1127,11 @@ void PlayState::update(float dt) {
             }
         }
 
-        // Laser beam damage (separate cooldown via same timer)
+        // Laser beam damage (separate cooldown via same timer, skip during i-frames)
         if (m_spikeDmgCooldown <= 0) {
-            if (m_level->isInLaserBeam(playerT.getCenter().x, playerT.getCenter().y, dim)) {
-                auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+            auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+            if (!playerHP.isInvincible() &&
+                m_level->isInLaserBeam(playerT.getCenter().x, playerT.getCenter().y, dim)) {
                 playerHP.takeDamage(hazardDmg(20.0f));
                 m_tookDamageThisLevel = true;
                 m_tookDamageThisWave = true;
@@ -2073,6 +2078,76 @@ void PlayState::render(SDL_Renderer* renderer) {
             int ay = static_cast<int>(cy + std::sin(angle) * 14);
             SDL_SetRenderDrawColor(renderer, 180, 120, 255, pa);
             SDL_RenderDrawLine(renderer, static_cast<int>(cx), static_cast<int>(cy), ax, ay);
+        }
+    }
+
+    // Off-screen exit direction indicator (visible during collapse/escape phase)
+    if (m_level && m_collapsing && !m_levelComplete) {
+        Vec2 exitPos = m_level->getExitPoint();
+        Vec2 camPos = m_camera.getPosition();
+        float halfW = 640.0f, halfH = 360.0f;
+
+        float sx = (exitPos.x - camPos.x) * m_camera.zoom + halfW;
+        float sy = (exitPos.y - camPos.y) * m_camera.zoom + halfH;
+
+        // Only show if exit is off-screen
+        if (sx < -10 || sx > 1290 || sy < -10 || sy > 730) {
+            // Clamp to screen edge with margin
+            float cx = std::max(30.0f, std::min(1250.0f, sx));
+            float cy = std::max(30.0f, std::min(690.0f, sy));
+
+            // Urgency-based pulsing: faster pulse as collapse timer increases
+            float urgency = m_collapseTimer / m_collapseMaxTime;
+            float pulseSpeed = 0.006f + urgency * 0.012f; // Pulse faster as time runs out
+            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * pulseSpeed);
+            Uint8 pa = static_cast<Uint8>(160 + 95 * pulse);
+
+            // Green-gold indicator (distinct from purple rift indicators)
+            Uint8 gr = static_cast<Uint8>(80 + 175 * urgency);  // More red as urgent
+            Uint8 gg = static_cast<Uint8>(255 - 80 * urgency);  // Less green as urgent
+            SDL_SetRenderDrawColor(renderer, gr, gg, 60, pa);
+
+            // Larger diamond for exit (8px vs 5px for rifts)
+            int icx = static_cast<int>(cx);
+            int icy = static_cast<int>(cy);
+            SDL_Rect ind = {icx - 8, icy - 8, 16, 16};
+            SDL_RenderFillRect(renderer, &ind);
+
+            // Inner glow
+            SDL_SetRenderDrawColor(renderer, 255, 255, 200, static_cast<Uint8>(pa * 0.6f));
+            SDL_Rect inner = {icx - 4, icy - 4, 8, 8};
+            SDL_RenderFillRect(renderer, &inner);
+
+            // Arrow pointing toward exit
+            float angle = std::atan2(sy - cy, sx - cx);
+            int ax = static_cast<int>(cx + std::cos(angle) * 18);
+            int ay = static_cast<int>(cy + std::sin(angle) * 18);
+            SDL_SetRenderDrawColor(renderer, gr, gg, 60, pa);
+            SDL_RenderDrawLine(renderer, icx, icy, ax, ay);
+            // Thicker arrow: draw offset lines
+            SDL_RenderDrawLine(renderer, icx + 1, icy, ax + 1, ay);
+            SDL_RenderDrawLine(renderer, icx, icy + 1, ax, ay + 1);
+
+            // "EXIT" label next to indicator
+            TTF_Font* font = game->getFont();
+            if (font) {
+                SDL_Color labelColor = {gr, gg, 60, pa};
+                SDL_Surface* ls = TTF_RenderText_Blended(font, "EXIT", labelColor);
+                if (ls) {
+                    SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
+                    if (lt) {
+                        // Position label offset from indicator, avoid going off-screen
+                        int lx = icx - ls->w / 2;
+                        int ly = icy - 22;
+                        if (ly < 5) ly = icy + 12; // Flip below if at top edge
+                        lx = std::max(5, std::min(SCREEN_WIDTH - ls->w - 5, lx));
+                        SDL_Rect lr = {lx, ly, ls->w, ls->h};
+                        SDL_RenderCopy(renderer, lt, nullptr, &lr);
+                        SDL_DestroyTexture(lt);
+                    }
+                    SDL_FreeSurface(ls);
+                }
+            }
         }
     }
 

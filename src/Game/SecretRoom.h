@@ -17,6 +17,9 @@ struct SecretRoom {
     bool completed = false;
     int dimension = 0;   // 0 = both dimensions
 
+    // Entrance position (breakable wall tiles)
+    int entranceX = 0, entranceY = 0;
+
     // Reward tracking
     int shardReward = 0;
     float hpReward = 0;
