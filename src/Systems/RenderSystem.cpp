@@ -94,6 +94,28 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
+    // Dash afterimage ghost trail: render fading copies behind the entity
+    {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        for (int i = 0; i < sprite.afterimageCount; i++) {
+            auto& ai = sprite.afterimages[i];
+            float t = ai.timer / Afterimage::MAX_LIFE; // 1.0 → 0.0
+            Uint8 ghostA = static_cast<Uint8>(t * 140 * alpha);
+            SDL_FRect ghostWorld = {ai.worldX, ai.worldY, ai.width, ai.height};
+            SDL_Rect ghostRect = camera.worldToScreen(ghostWorld);
+            // Slightly shrink ghost over time for dissolve feel
+            int shrink = static_cast<int>((1.0f - t) * 3);
+            ghostRect.x += shrink;
+            ghostRect.y += shrink;
+            ghostRect.w -= shrink * 2;
+            ghostRect.h -= shrink * 2;
+            if (ghostRect.w > 0 && ghostRect.h > 0) {
+                fillRect(renderer, ghostRect.x, ghostRect.y, ghostRect.w, ghostRect.h,
+                         ai.color.r, ai.color.g, ai.color.b, ghostA);
+            }
+        }
+    }
+
     // Spawn-in flicker: enemies fade in with rapid flashing during spawn animation
     if (tag.find("enemy") != std::string::npos && entity.hasComponent<AIComponent>()) {
         float spawnT = entity.getComponent<AIComponent>().spawnTimer;

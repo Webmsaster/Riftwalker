@@ -99,6 +99,7 @@ void Player::update(float dt, const InputManager& input) {
     // Decay landing squash visual effect
     auto& spr = m_entity->getComponent<SpriteComponent>();
     if (spr.landingSquashTimer > 0) spr.landingSquashTimer -= dt;
+    spr.updateAfterimages(dt);
 
     handleDash(dt, input);
 
@@ -431,18 +432,28 @@ void Player::handleDash(float dt, const InputManager& input) {
 
     if (isDashing) {
         dashTimer -= dt;
-        // Afterimage trail during dash (class-colored)
+        auto& t = m_entity->getComponent<TransformComponent>();
+        auto& spr = m_entity->getComponent<SpriteComponent>();
+        const auto& cc = ClassSystem::getData(playerClass).color;
+
+        // Spawn afterimage ghost copies every ~0.04s during dash
+        spr.afterimageSpawnTimer -= dt;
+        if (spr.afterimageSpawnTimer <= 0) {
+            spr.afterimageSpawnTimer = 0.04f;
+            SDL_Color ghostColor = {cc.r, cc.g, cc.b, 255};
+            if (isPhaseThrough()) ghostColor = {60, 220, 200, 255};
+            spr.addAfterimage(t.position.x, t.position.y,
+                              static_cast<float>(t.width), static_cast<float>(t.height),
+                              ghostColor, spr.flipX);
+        }
+
+        // Particle trail (smaller now that afterimages handle the main visual)
         if (particles) {
-            auto& t = m_entity->getComponent<TransformComponent>();
-            const auto& cc = ClassSystem::getData(playerClass).color;
-            SDL_Color ghostColor = {cc.r, cc.g, cc.b, 100};
-            particles->burst(t.getCenter(), 2, ghostColor, 20.0f, 6.0f);
-            // Phantom Phase Through: extra cyan phase trail + wider ghosting
+            SDL_Color ghostColor = {cc.r, cc.g, cc.b, 80};
+            particles->burst(t.getCenter(), 1, ghostColor, 15.0f, 4.0f);
+            // Phantom Phase Through: extra cyan phase particles
             if (isPhaseThrough()) {
-                particles->burst(t.getCenter(), 4, {60, 220, 200, 140}, 40.0f, 5.0f);
-                // Ghostly afterimage behind player
-                Vec2 behind = {t.getCenter().x + (facingRight ? -16.0f : 16.0f), t.getCenter().y};
-                particles->burst(behind, 3, {60, 220, 200, 80}, 15.0f, 8.0f);
+                particles->burst(t.getCenter(), 3, {60, 220, 200, 120}, 35.0f, 5.0f);
             }
         }
         if (dashTimer <= 0) {
