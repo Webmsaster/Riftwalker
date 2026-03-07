@@ -14,6 +14,10 @@ struct HealthComponent : public Component {
     float invincibilityTimer = 0.0f;
     bool isInvincible() const { return invincibilityTimer > 0 || invulnerable; }
 
+    // Damage display timer (for enemy HP bars — visible briefly after taking damage)
+    float damageShowTimer = 0;
+    static constexpr float DAMAGE_SHOW_DURATION = 2.5f;
+
     // Callbacks
     std::function<void(float damage)> onDamage;
     std::function<void()> onDeath;
@@ -25,6 +29,7 @@ struct HealthComponent : public Component {
         float actual = amount * (1.0f - clampedArmor);
         currentHP -= actual;
         invincibilityTimer = invincibilityTime;
+        damageShowTimer = DAMAGE_SHOW_DURATION;
         if (onDamage) onDamage(actual);
         if (currentHP <= 0) {
             currentHP = 0;
@@ -42,5 +47,6 @@ struct HealthComponent : public Component {
 
     void update(float dt) override {
         if (invincibilityTimer > 0) invincibilityTimer -= dt;
+        if (damageShowTimer > 0) damageShowTimer -= dt;
     }
 };

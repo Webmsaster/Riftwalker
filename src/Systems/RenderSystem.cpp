@@ -192,6 +192,36 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         }
     }
 
+    // HP bar for regular enemies (visible briefly after taking damage)
+    if (tag.find("enemy") != std::string::npos && entity.hasComponent<HealthComponent>()) {
+        auto& hpShow = entity.getComponent<HealthComponent>();
+        bool hasOwnBar = false;
+        if (entity.hasComponent<AIComponent>()) {
+            auto& aiCheck = entity.getComponent<AIComponent>();
+            hasOwnBar = aiCheck.isElite || aiCheck.isMiniBoss || tag == "enemy_boss";
+        }
+        if (!hasOwnBar && hpShow.damageShowTimer > 0 && hpShow.getPercent() < 1.0f) {
+            float fadeAlpha = std::min(1.0f, hpShow.damageShowTimer / 0.5f); // fade out in last 0.5s
+            int barW = screenRect.w + 4;
+            int barH = 3;
+            int barX = screenRect.x - 2;
+            int barY = screenRect.y - 6;
+            Uint8 barA = static_cast<Uint8>(180 * fadeAlpha * alpha);
+            // Background
+            fillRect(renderer, barX, barY, barW, barH, 20, 10, 10, barA);
+            // HP fill — green to yellow to red based on HP percent
+            float pct = hpShow.getPercent();
+            Uint8 hpR = pct > 0.5f ? static_cast<Uint8>((1.0f - pct) * 2 * 255) : 255;
+            Uint8 hpG = pct > 0.5f ? 220 : static_cast<Uint8>(pct * 2 * 220);
+            int fillW = std::max(1, static_cast<int>(barW * pct));
+            fillRect(renderer, barX, barY, fillW, barH, hpR, hpG, 20, barA);
+            // Thin border
+            SDL_SetRenderDrawColor(renderer, 40, 40, 40, static_cast<Uint8>(120 * fadeAlpha * alpha));
+            SDL_Rect barBorder = {barX, barY, barW, barH};
+            SDL_RenderDrawRect(renderer, &barBorder);
+        }
+    }
+
     // Element aura for elemental enemies
     if (tag.find("enemy") != std::string::npos && entity.hasComponent<AIComponent>()) {
         auto& ai = entity.getComponent<AIComponent>();
