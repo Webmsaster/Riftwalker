@@ -87,6 +87,7 @@ public:
 
 private:
     void processAttack(Entity& attacker, EntityManager& entities, int currentDim);
+    void emitElementDeathFX(Vec2 pos, int element); // element: 0=none, 1=fire, 2=ice, 3=electric
 
     ParticleSystem* m_particles = nullptr;
     Camera* m_camera = nullptr;

@@ -125,6 +125,9 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                             else if (tAI2.isElite) slamDropCount = 2;
                         }
                         ItemDrop::spawnRandomDrop(entities, tt.getCenter(), target.dimension, slamDropCount, m_player);
+                        int slamElem = 0;
+                        if (target.hasComponent<AIComponent>())
+                            slamElem = static_cast<int>(target.getComponent<AIComponent>().element);
                         AudioManager::instance().play(SFX::EnemyDeath);
                         target.destroy();
                         if (m_particles) {
@@ -135,6 +138,7 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                             m_particles->directionalBurst(tt.getCenter(), 8, {255, 200, 80, 255},
                                                            180.0f, 60.0f, 280.0f, 3.0f);
                         }
+                        emitElementDeathFX(tt.getCenter(), slamElem);
                     }
                 }
             });
@@ -261,6 +265,12 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
         }
         ItemDrop::spawnRandomDrop(entities, deathPos, e.dimension, dropCount, m_player);
 
+        // Read element before destroy for themed death FX
+        int elemType = 0;
+        if (e.hasComponent<AIComponent>()) {
+            elemType = static_cast<int>(e.getComponent<AIComponent>().element);
+        }
+
         AudioManager::instance().play(SFX::EnemyDeath);
         if (m_particles) {
             SDL_Color deathColor = {255, 255, 255, 255};
@@ -277,6 +287,7 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                                                launchDir, 45.0f, 250.0f, 3.5f);
             }
         }
+        emitElementDeathFX(deathPos, elemType);
         if (m_camera) m_camera->shake(8.0f, 0.2f);
         e.destroy();
     });
@@ -1207,8 +1218,15 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     deathColor = target.getComponent<SpriteComponent>().color;
                 }
                 // Read AI data before destroy
-                bool wasMB = target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isMiniBoss;
-                bool wasElite = target.hasComponent<AIComponent>() && target.getComponent<AIComponent>().isElite;
+                bool wasMB = false;
+                bool wasElite = false;
+                int targetElem = 0;
+                if (target.hasComponent<AIComponent>()) {
+                    auto& tAI = target.getComponent<AIComponent>();
+                    wasMB = tAI.isMiniBoss;
+                    wasElite = tAI.isElite;
+                    targetElem = static_cast<int>(tAI.element);
+                }
                 target.destroy();
                 if (m_particles) {
                     m_particles->burst(targetCenter, 25, deathColor, 200.0f, 4.0f);
@@ -1224,6 +1242,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                                                        launchDir, 45.0f, launchSpeed, 3.5f);
                     }
                 }
+                emitElementDeathFX(targetCenter, targetElem);
                 // Bigger shake on kill (extra for mini-bosses and elites)
                 if (m_camera && isPlayer) {
                     m_camera->shake(wasMB ? 12.0f : (wasElite ? 10.0f : 8.0f),
@@ -1306,5 +1325,23 @@ void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
     if (!piercing) {
         Entity* projPtr = &proj;
         hp.onDamage = [projPtr](float) { projPtr->destroy(); };
+    }
+}
+
+void CombatSystem::emitElementDeathFX(Vec2 pos, int element) {
+    if (!m_particles || element == 0) return;
+    switch (element) {
+        case 1: // Fire: rising flame particles
+            m_particles->burst(pos, 12, {255, 120, 20, 255}, 180.0f, 3.5f);
+            m_particles->directionalBurst(pos, 8, {255, 200, 50, 200}, 270.0f, 40.0f, 120.0f, 2.5f);
+            break;
+        case 2: // Ice: shattering ice shards spreading outward
+            m_particles->burst(pos, 14, {140, 200, 255, 255}, 220.0f, 3.0f);
+            m_particles->burst(pos, 6, {220, 240, 255, 200}, 160.0f, 4.0f);
+            break;
+        case 3: // Electric: sparking bolts in random directions
+            m_particles->burst(pos, 10, {255, 255, 80, 255}, 250.0f, 2.5f);
+            m_particles->burst(pos, 6, {200, 220, 255, 200}, 300.0f, 2.0f);
+            break;
     }
 }
