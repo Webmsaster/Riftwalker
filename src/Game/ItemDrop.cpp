@@ -33,7 +33,7 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
         if (other->getTag() == "player" && other->hasComponent<HealthComponent>()) {
             auto& hp = other->getComponent<HealthComponent>();
             // BALANCE: Health orb heal 20 -> 30 (25% of base HP, meaningful recovery)
-            hp.currentHP = std::min(hp.currentHP + 30.0f, hp.maxHP);
+            hp.heal(30.0f);
             AudioManager::instance().play(SFX::Pickup);
             self->destroy();
         }

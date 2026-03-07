@@ -16,6 +16,7 @@
 #include "Game/Enemy.h"
 #include "Game/Bestiary.h"
 #include "Game/ClassSystem.h"
+#include "Game/DimensionManager.h"
 #include <cmath>
 
 float CombatSystem::consumeHitFreeze() {
@@ -42,6 +43,7 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
     entities.forEach([&](Entity& e) {
         if (e.getTag() != "player") return;
         if (!e.hasComponent<AbilityComponent>()) return;
+        if (!e.hasComponent<TransformComponent>()) return;
         auto& abil = e.getComponent<AbilityComponent>();
 
         // Ground Slam AoE damage
@@ -89,11 +91,27 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                     // Kill tracking
                     if (target.getComponent<HealthComponent>().currentHP <= 0) {
                         killCount++;
+                        // Kill event for combat challenges
+                        {
+                            KillEvent ke;
+                            ke.wasSlam = true;
+                            if (m_player && m_player->getEntity()->hasComponent<PhysicsBody>())
+                                ke.wasAerial = !m_player->getEntity()->getComponent<PhysicsBody>().onGround;
+                            killEvents.push_back(ke);
+                        }
+                        // Weapon mastery: slam counts as melee weapon kill
+                        if (e.hasComponent<CombatComponent>()) {
+                            int wIdx = static_cast<int>(e.getComponent<CombatComponent>().currentMelee);
+                            if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT))
+                                weaponKills[wIdx]++;
+                        }
                         if (target.hasComponent<AIComponent>()) {
                             auto& tAI = target.getComponent<AIComponent>();
                             if (tAI.isMiniBoss) killedMiniBoss = true;
                             if (tAI.element != EnemyElement::None) killedElemental = true;
                         }
+                        // Berserker: Momentum stack on slam kill
+                        if (m_player) m_player->addMomentumStack();
                         ItemDrop::spawnRandomDrop(entities, tt.getCenter(), target.dimension, 1, m_player);
                         target.destroy();
                         if (m_particles) {
@@ -137,8 +155,18 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                 // Burn kill
                 if (e.getComponent<HealthComponent>().currentHP <= 0) {
                     killCount++;
+                    // Kill event for combat challenges (burn DOT kill)
+                    killEvents.push_back(KillEvent{});
+                    // Weapon mastery: burn kills attributed to current melee
+                    if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+                        int wIdx = static_cast<int>(m_player->getEntity()->getComponent<CombatComponent>().currentMelee);
+                        if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT))
+                            weaponKills[wIdx]++;
+                    }
                     if (ai.isMiniBoss) killedMiniBoss = true;
                     if (ai.element != EnemyElement::None) killedElemental = true;
+                    // Berserker: Momentum stack on burn kill
+                    if (m_player) m_player->addMomentumStack();
                     Vec2 deathPos = e.hasComponent<TransformComponent>() ?
                         e.getComponent<TransformComponent>().getCenter() : Vec2{0,0};
                     ItemDrop::spawnRandomDrop(entities, deathPos, e.dimension, 1, m_player);
@@ -164,6 +192,57 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
         if (sprite.animTimer > 2.0f) {
             sprite.color.a = static_cast<Uint8>(255 * (3.0f - sprite.animTimer));
         }
+    });
+
+    // Sweep: catch enemies killed by secondary damage (chain lightning, electric chain,
+    // explosive AoE, shield burst, etc.) that bypassed the normal death handler.
+    // Without this, enemies at HP <= 0 remain alive as "zombies".
+    entities.forEach([&](Entity& e) {
+        if (!e.isAlive()) return;
+        if (e.getTag().find("enemy") == std::string::npos) return;
+        if (!e.hasComponent<HealthComponent>()) return;
+        auto& hp = e.getComponent<HealthComponent>();
+        if (hp.currentHP > 0) return;
+
+        // This enemy was killed by secondary/chain damage
+        killCount++;
+        killEvents.push_back(KillEvent{});
+
+        if (e.hasComponent<AIComponent>()) {
+            auto& ai = e.getComponent<AIComponent>();
+            if (ai.isMiniBoss) killedMiniBoss = true;
+            if (ai.element != EnemyElement::None) killedElemental = true;
+            Bestiary::onEnemyKill(ai.enemyType);
+        }
+        if (m_player) m_player->addMomentumStack();
+
+        // Run buff: DashRefresh on kill
+        if (m_dashRefreshOnKill && m_player) {
+            m_player->dashCooldownTimer = 0;
+        }
+
+        Vec2 deathPos = e.hasComponent<TransformComponent>() ?
+            e.getComponent<TransformComponent>().getCenter() : Vec2{0,0};
+
+        // Drop items (mini-bosses 3x, elites 2x)
+        int dropCount = 1;
+        if (e.hasComponent<AIComponent>()) {
+            auto& ai = e.getComponent<AIComponent>();
+            if (ai.isMiniBoss) dropCount = 3;
+            else if (ai.isElite) dropCount = 2;
+        }
+        ItemDrop::spawnRandomDrop(entities, deathPos, e.dimension, dropCount, m_player);
+
+        AudioManager::instance().play(SFX::EnemyDeath);
+        if (m_particles) {
+            SDL_Color deathColor = {255, 255, 255, 255};
+            if (e.hasComponent<SpriteComponent>()) {
+                deathColor = e.getComponent<SpriteComponent>().color;
+            }
+            m_particles->burst(deathPos, 25, deathColor, 200.0f, 4.0f);
+        }
+        if (m_camera) m_camera->shake(8.0f, 0.2f);
+        e.destroy();
     });
 }
 
@@ -193,17 +272,32 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 for (int i = 0; i < 5; i++) {
                     float angle = baseAngle + (i - 2) * (spread / 4.0f);
                     Vec2 dir = {std::cos(angle), std::sin(angle)};
-                    createProjectile(entities, pos, dir, projDamage, 350.0f, attacker.dimension);
+                    createProjectile(entities, pos, dir, projDamage, 350.0f, attacker.dimension, false, isPlayer);
                 }
                 AudioManager::instance().play(SFX::RangedShot);
             } else if (isPlayer && combat.currentRanged == WeaponID::VoidBeam) {
-                // Continuous beam: create piercing projectile
+                // Continuous beam: piercing projectile passes through enemies
                 createProjectile(entities, pos, combat.attackDirection,
-                                projDamage, 500.0f, attacker.dimension);
+                                projDamage, 500.0f, attacker.dimension, true, isPlayer);
                 // No extra SFX each tick (too fast)
             } else {
+                // RapidShards: ShardPistol + QuickHands → +30% proj speed, 25% double-shot
+                float projSpeed = 400.0f;
+                bool doubleShot = false;
+                if (isPlayer && combat.currentRanged == WeaponID::ShardPistol &&
+                    attacker.hasComponent<RelicComponent>()) {
+                    auto& rel = attacker.getComponent<RelicComponent>();
+                    projSpeed *= RelicSynergy::getRapidShardsSpeedMult(rel, combat.currentRanged);
+                    doubleShot = RelicSynergy::rollRapidShardsDoubleShot(rel, combat.currentRanged);
+                }
                 createProjectile(entities, pos, combat.attackDirection,
-                                projDamage, 400.0f, attacker.dimension);
+                                projDamage, projSpeed, attacker.dimension, false, isPlayer);
+                if (doubleShot) {
+                    // Slight offset for second projectile
+                    Vec2 offset = {combat.attackDirection.y * 6.0f, -combat.attackDirection.x * 6.0f};
+                    createProjectile(entities, {pos.x + offset.x, pos.y + offset.y},
+                                    combat.attackDirection, projDamage, projSpeed, attacker.dimension, false, isPlayer);
+                }
                 AudioManager::instance().play(SFX::RangedShot);
             }
         }
@@ -215,6 +309,16 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
     // Melee / Dash: check all potential targets
     Vec2 attackCenter = transform.getCenter() + combat.attackDirection * atkData.range * 0.5f;
     float attackRadius = atkData.range;
+
+    // BerserkerSmash: VoidHammer + BerserkerCore → +50% charged AoE radius
+    bool isChargedVoidHammer = isPlayer && combat.currentMelee == WeaponID::VoidHammer
+        && combat.currentAttack == AttackType::Charged;
+    float berserkerSmashStunBonus = 0;
+    if (isChargedVoidHammer && attacker.hasComponent<RelicComponent>()) {
+        auto& rel = attacker.getComponent<RelicComponent>();
+        attackRadius *= RelicSynergy::getBerserkerSmashRadiusMult(rel, combat.currentMelee);
+        berserkerSmashStunBonus = RelicSynergy::getBerserkerSmashStunBonus(rel, combat.currentMelee);
+    }
 
     entities.forEach([&](Entity& target) {
         if (&target == &attacker) return;
@@ -247,6 +351,24 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
         float dist = std::sqrt(dx * dx + dy * dy);
 
         if (dist < attackRadius) {
+            // Phantom Phase Through: negate enemy hits during dash
+            if (!isPlayer && target.getTag() == "player" && m_player && m_player->isPhaseThrough()) {
+                // Deal phase damage back to the attacker
+                if (attacker.hasComponent<HealthComponent>()) {
+                    attacker.getComponent<HealthComponent>().takeDamage(m_player->phaseDamage);
+                    m_damageEvents.push_back({transform.getCenter(), m_player->phaseDamage, false, false});
+                }
+                // Brief slow on phased enemy
+                if (attacker.hasComponent<AIComponent>()) {
+                    attacker.getComponent<AIComponent>().stun(m_player->phaseSlowDuration);
+                }
+                // Cyan phase particles
+                if (m_particles) {
+                    m_particles->burst(targetCenter, 12, {60, 220, 200, 200}, 120.0f, 3.0f);
+                }
+                return; // Negate the hit
+            }
+
             // Rift Shield check: absorb hits while shield is active
             if (!isPlayer && target.getTag() == "player" && target.hasComponent<AbilityComponent>()) {
                 auto& targetAbil = target.getComponent<AbilityComponent>();
@@ -257,7 +379,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     // Heal player on absorb
                     if (target.hasComponent<HealthComponent>()) {
                         auto& hp = target.getComponent<HealthComponent>();
-                        hp.currentHP = std::min(hp.maxHP, hp.currentHP + targetAbil.shieldHealPerAbsorb);
+                        hp.heal(targetAbil.shieldHealPerAbsorb);
                     }
 
                     // Reflect projectiles
@@ -267,7 +389,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         Vec2 reflectDir = combat.attackDirection * -1.0f;
                         auto& targetT = target.getComponent<TransformComponent>();
                         createProjectile(entities, targetT.getCenter(), reflectDir,
-                                        atkData.damage * 1.5f, 500.0f, target.dimension);
+                                        atkData.damage * 1.5f, 500.0f, target.dimension, false, true);
                     } else {
                         AudioManager::instance().play(SFX::RiftShieldAbsorb);
                     }
@@ -359,6 +481,11 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             float comboMult = combat.comboCount * (0.15f + m_comboBonus);
             float damage = atkData.damage * (1.0f + comboMult);
 
+            // Dimension behavior damage modifier (enemy attacks only)
+            if (!isPlayer && attacker.hasComponent<AIComponent>()) {
+                damage *= attacker.getComponent<AIComponent>().dimDamageMod;
+            }
+
             // Relic damage multiplier (player attacks only)
             if (isPlayer && attacker.hasComponent<RelicComponent>()) {
                 auto& relics = attacker.getComponent<RelicComponent>();
@@ -384,6 +511,22 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 damage *= m_player->getClassDamageMultiplier();
             }
 
+            // Weapon mastery damage bonus (player only)
+            if (isPlayer) {
+                WeaponID masteryWeapon = (combat.currentAttack == AttackType::Ranged)
+                    ? combat.currentRanged : combat.currentMelee;
+                int wIdx = static_cast<int>(masteryWeapon);
+                if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT)) {
+                    MasteryBonus mb = WeaponSystem::getMasteryBonus(weaponKills[wIdx]);
+                    damage *= mb.damageMult;
+                }
+            }
+
+            // Resonance damage bonus from rapid dimension switching
+            if (isPlayer && m_dimMgr) {
+                damage *= m_dimMgr->getResonanceDamageMult();
+            }
+
             // Pogo bounce: downward attack bounces player up
             bool isDownwardAttack = isPlayer && combat.attackDirection.y > 0.5f;
             if (isDownwardAttack && attacker.hasComponent<PhysicsBody>()) {
@@ -399,7 +542,12 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 if (combat.currentMelee == WeaponID::PhaseDaggers &&
                     combat.currentAttack == AttackType::Melee) {
                     combat.daggerHitCount++;
-                    if (combat.daggerHitCount >= 5) {
+                    int critThreshold = 5;
+                    if (attacker.hasComponent<RelicComponent>()) {
+                        critThreshold = RelicSynergy::getPhantomRushCritThreshold(
+                            attacker.getComponent<RelicComponent>(), combat.currentMelee);
+                    }
+                    if (combat.daggerHitCount >= critThreshold) {
                         combat.daggerHitCount = 0;
                         damage *= 2.0f;
                         isCrit = true;
@@ -435,11 +583,31 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             // Charged attack: scale damage with charge percent
             bool isChargedAttack = (combat.currentAttack == AttackType::Charged);
             if (isChargedAttack) {
-                // Charged attacks already have scaled base damage from Player
-                if (m_camera) m_camera->shake(12.0f, 0.3f);
-                m_pendingHitFreeze += 0.12f;
-                if (m_particles) {
-                    m_particles->burst(targetCenter, 25, {255, 200, 50, 255}, 250.0f, 5.0f);
+                bool isVoidHammer = isPlayer && combat.currentMelee == WeaponID::VoidHammer;
+
+                if (isVoidHammer) {
+                    // VoidHammer shockwave: heavier impact
+                    if (m_camera) m_camera->shake(18.0f, 0.4f);
+                    m_pendingHitFreeze += 0.18f;
+                    if (m_particles) {
+                        // Purple shockwave ring at target
+                        for (int i = 0; i < 8; i++) {
+                            float angle = i * 45.0f;
+                            m_particles->directionalBurst(targetCenter, 3,
+                                {180, 100, 255, 255}, angle, 25.0f, 220.0f, 4.0f);
+                        }
+                        m_particles->burst(targetCenter, 30, {200, 160, 255, 255}, 280.0f, 5.0f);
+                        // Ground crack particles
+                        m_particles->directionalBurst(targetCenter, 8,
+                            {160, 140, 120, 200}, 0.0f, 180.0f, 120.0f, 2.5f);
+                    }
+                } else {
+                    // Normal charged attack
+                    if (m_camera) m_camera->shake(12.0f, 0.3f);
+                    m_pendingHitFreeze += 0.12f;
+                    if (m_particles) {
+                        m_particles->burst(targetCenter, 25, {255, 200, 50, 255}, 250.0f, 5.0f);
+                    }
                 }
             }
 
@@ -540,6 +708,10 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     auto& targetAI = target.getComponent<AIComponent>();
                     if (isDashAttack) {
                         targetAI.stun(1.0f);
+                        AudioManager::instance().play(SFX::EnemyStun);
+                    } else if (isChargedAttack) {
+                        // Charged attacks stun 0.3s base + BerserkerSmash bonus
+                        targetAI.stun(0.3f + berserkerSmashStunBonus);
                         AudioManager::instance().play(SFX::EnemyStun);
                     } else if (comboStage == 2) {
                         targetAI.stun(0.5f);
@@ -669,7 +841,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                             if (chainsLeft <= 0) return;
                             if (!e.isAlive() || &e == &attacker) return;
                             if (!e.hasComponent<AIComponent>() || !e.hasComponent<HealthComponent>()) return;
-                            auto& ePos = e.getComponent<TransformComponent>().getCenter();
+                            Vec2 ePos = e.getComponent<TransformComponent>().getCenter();
                             float dist = std::sqrt((ePos.x - attackerPos.x) * (ePos.x - attackerPos.x) +
                                                    (ePos.y - attackerPos.y) * (ePos.y - attackerPos.y));
                             if (dist < 150.0f) {
@@ -760,7 +932,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 float healAmount = damage * m_lifesteal;
                 if (attacker.hasComponent<HealthComponent>()) {
                     auto& attackerHP = attacker.getComponent<HealthComponent>();
-                    attackerHP.currentHP = std::min(attackerHP.maxHP, attackerHP.currentHP + healAmount);
+                    attackerHP.heal(healAmount);
                 }
             }
 
@@ -824,6 +996,27 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 // Track kills for achievements + bestiary
                 if (isPlayer && target.hasComponent<AIComponent>()) {
                     killCount++;
+                    // Kill event for combat challenges
+                    {
+                        KillEvent ke;
+                        ke.wasDash = isDashAttack;
+                        ke.wasCharged = isChargedAttack;
+                        ke.wasRanged = (combat.currentAttack == AttackType::Ranged);
+                        int ks = (combat.comboCount > 0) ? ((combat.comboCount - 1) % 3) : 0;
+                        ke.wasComboFinisher = (!isDashAttack && !isChargedAttack &&
+                            combat.currentAttack == AttackType::Melee && ks == 2);
+                        if (m_player && m_player->getEntity()->hasComponent<PhysicsBody>())
+                            ke.wasAerial = !m_player->getEntity()->getComponent<PhysicsBody>().onGround;
+                        killEvents.push_back(ke);
+                    }
+                    // Weapon mastery: attribute kill to attack weapon
+                    {
+                        WeaponID killWeapon = (combat.currentAttack == AttackType::Ranged)
+                            ? combat.currentRanged : combat.currentMelee;
+                        int wIdx = static_cast<int>(killWeapon);
+                        if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT))
+                            weaponKills[wIdx]++;
+                    }
                     auto& tAI = target.getComponent<AIComponent>();
                     if (tAI.isMiniBoss) killedMiniBoss = true;
                     if (tAI.element != EnemyElement::None) killedElemental = true;
@@ -832,6 +1025,11 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     // Run buff: DashRefresh - kill resets dash cooldown
                     if (m_dashRefreshOnKill && m_player) {
                         m_player->dashCooldownTimer = 0;
+                    }
+
+                    // Berserker: Momentum stack on kill
+                    if (m_player) {
+                        m_player->addMomentumStack();
                     }
                 }
 
@@ -973,13 +1171,18 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
 }
 
 void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
-                                      float damage, float speed, int dimension) {
+                                      float damage, float speed, int dimension,
+                                      bool piercing, bool isPlayerOwned) {
     auto& proj = entities.addEntity("projectile");
     proj.dimension = dimension;
 
     auto& t = proj.addComponent<TransformComponent>(pos.x - 4, pos.y - 4, 8, 8);
     auto& sprite = proj.addComponent<SpriteComponent>();
-    sprite.setColor(255, 230, 100);
+    if (piercing) {
+        sprite.setColor(160, 80, 255); // Purple beam color for piercing
+    } else {
+        sprite.setColor(255, 230, 100);
+    }
     sprite.renderLayer = 3;
 
     auto& phys = proj.addComponent<PhysicsBody>();
@@ -990,25 +1193,42 @@ void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
     col.width = 8;
     col.height = 8;
     col.layer = LAYER_PROJECTILE;
-    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_ENEMY;
+    // Ownership-based collision mask: player projectiles hit enemies only, enemy projectiles hit player only
+    col.mask = LAYER_TILE | (isPlayerOwned ? LAYER_ENEMY : LAYER_PLAYER);
     col.type = ColliderType::Trigger;
-    col.onTrigger = [damage, dimension](Entity* self, Entity* other) {
+    auto* cs = this;
+    col.onTrigger = [damage, dimension, piercing, isPlayerOwned, cs](Entity* self, Entity* other) {
         if (other->hasComponent<HealthComponent>()) {
             float finalDmg = damage;
+            bool isPlayerDamage = (other->getTag() == "player");
             // Defensive relic multiplier when projectile hits the player
-            if (other->getTag() == "player" && other->hasComponent<RelicComponent>()) {
+            if (isPlayerDamage && other->hasComponent<RelicComponent>()) {
                 finalDmg *= RelicSystem::getDamageTakenMult(
                     other->getComponent<RelicComponent>(), dimension);
             }
             other->getComponent<HealthComponent>().takeDamage(finalDmg);
+            // Track damage event for floating numbers + achievement tracking
+            if (other->hasComponent<TransformComponent>()) {
+                cs->m_damageEvents.push_back({
+                    other->getComponent<TransformComponent>().getCenter(),
+                    finalDmg, isPlayerDamage, false
+                });
+            }
+        }
+        // Piercing projectiles pass through enemies (still destroyed by tiles)
+        if (piercing && other->getTag() != "player") {
+            // Don't destroy on enemy hit — keep going
+            return;
         }
         self->destroy();
     };
 
     auto& hp = proj.addComponent<HealthComponent>();
-    hp.maxHP = 1;
-    hp.currentHP = 1;
+    hp.maxHP = piercing ? 999 : 1; // Piercing projectiles survive hits
+    hp.currentHP = piercing ? 999.0f : 1.0f;
     hp.invincibilityTime = 0;
-    Entity* projPtr = &proj;
-    hp.onDamage = [projPtr](float) { projPtr->destroy(); };
+    if (!piercing) {
+        Entity* projPtr = &proj;
+        hp.onDamage = [projPtr](float) { projPtr->destroy(); };
+    }
 }

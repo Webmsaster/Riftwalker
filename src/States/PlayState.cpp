@@ -1650,7 +1650,7 @@ void PlayState::update(float dt) {
             if (echoStage >= 2) {
                 // Stage 2 bonus: heal to full
                 auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
-                hp.currentHP = hp.maxHP;
+                hp.heal(hp.maxHP);
             }
             AudioManager::instance().play(SFX::LevelComplete);
             m_camera.shake(10.0f + echoStage * 5.0f, 0.4f);
@@ -3477,7 +3477,7 @@ void PlayState::checkSecretRoomDiscovery() {
                         shards = static_cast<int>(shards * game->getRunBuffSystem().getShardMultiplier());
                         shardsCollected += shards;
                         game->getUpgradeSystem().addRiftShards(shards);
-                        hp.currentHP = std::min(hp.maxHP, hp.currentHP + sr.hpReward);
+                        hp.heal(static_cast<float>(sr.hpReward));
                         break;
                     }
                     case SecretRoomType::ShrineRoom: {
@@ -3485,7 +3485,7 @@ void PlayState::checkSecretRoomDiscovery() {
                         AudioManager::instance().play(SFX::ShrineActivate);
                         AudioManager::instance().play(SFX::ShrineBlessing);
                         hp.maxHP += 20;
-                        hp.currentHP = std::min(hp.maxHP, hp.currentHP + 20);
+                        hp.heal(20.0f);
                         m_player->damageBoostTimer = 30.0f;
                         m_player->damageBoostMultiplier = 1.2f;
                         m_particles.burst(roomCenter, 25, {180, 120, 255, 255}, 180.0f, 3.0f);
@@ -3653,7 +3653,7 @@ void PlayState::checkEventInteraction() {
                             case ShrineType::Vitality:
                                 AudioManager::instance().play(SFX::ShrineBlessing);
                                 hp.maxHP += 25;
-                                hp.currentHP = std::min(hp.maxHP, hp.currentHP + 25);
+                                hp.heal(25.0f);
                                 m_entropy.addEntropy(8.0f);
                                 m_particles.burst(event.position, 20, sc, 150.0f, 3.0f);
                                 break;
@@ -3683,7 +3683,7 @@ void PlayState::checkEventInteraction() {
                             }
                             case ShrineType::Renewal:
                                 AudioManager::instance().play(SFX::ShrineBlessing);
-                                hp.currentHP = hp.maxHP;
+                                hp.heal(hp.maxHP);
                                 m_entropy.addEntropy(5.0f);
                                 m_particles.burst(event.position, 25, sc, 150.0f, 3.0f);
                                 break;
@@ -3717,7 +3717,7 @@ void PlayState::checkEventInteraction() {
                     }
 
                     case RandomEventType::SuitRepairStation:
-                        hp.currentHP = hp.maxHP;
+                        hp.heal(hp.maxHP);
                         m_entropy.reduceEntropy(30.0f);
                         AudioManager::instance().play(SFX::RiftRepair);
                         m_particles.burst(event.position, 25, {100, 255, 100, 255}, 150.0f, 3.0f);
@@ -4621,7 +4621,7 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
                 AudioManager::instance().play(SFX::LoreDiscover);
                 game->getUpgradeSystem().addRiftShards(40);
                 shardsCollected += 40;
-                hp.currentHP = hp.maxHP;
+                hp.heal(hp.maxHP);
                 m_player->damageBoostTimer = 20.0f;
                 m_player->damageBoostMultiplier = 1.2f;
                 m_particles.burst(npc.position, 25, {180, 120, 255, 255}, 200.0f, 4.0f);
@@ -6001,7 +6001,7 @@ void PlayState::completeChain() {
             // Heal to full
             if (m_player) {
                 auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
-                hp.currentHP = hp.maxHP;
+                hp.heal(hp.maxHP);
             }
             break;
         case EventChainType::EntropySurge:
