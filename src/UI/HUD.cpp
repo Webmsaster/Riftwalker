@@ -650,24 +650,65 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 comboColor = {255, 60, 30, 255};
             }
 
+            // Scale: grows with combo count, pulses at 7+
+            float comboScale = 1.0f;
+            if (combat.comboCount >= 10) comboScale = 1.6f;
+            else if (combat.comboCount >= 7) comboScale = 1.4f;
+            else if (combat.comboCount >= 4) comboScale = 1.2f;
+            // Pulsing at high combos
+            if (combat.comboCount >= 5) {
+                float pulseRate = 0.008f + (combat.comboCount - 5) * 0.002f;
+                float pulse = 0.05f * std::sin(SDL_GetTicks() * pulseRate);
+                comboScale += pulse;
+            }
+
             // Damage bonus text (matches CombatSystem formula: comboCount * (0.15 + comboBonus))
             float comboPctPerHit = 15.0f + (m_combatSystem ? m_combatSystem->getComboBonus() * 100.0f : 0.0f);
             char bonusText[32];
             std::snprintf(bonusText, sizeof(bonusText), "+%d%% DMG", static_cast<int>(combat.comboCount * comboPctPerHit));
 
             int comboY = 60;
-            renderText(renderer, font, comboText, screenW / 2 - 40, comboY, comboColor);
-            renderText(renderer, font, bonusText, screenW / 2 - 30, comboY + 22,
-                       {comboColor.r, comboColor.g, comboColor.b, 180});
 
-            // Combo timer bar (shrinking)
+            // Render scaled combo text
+            SDL_Surface* comboSurf = TTF_RenderText_Blended(font, comboText, comboColor);
+            if (comboSurf) {
+                SDL_Texture* comboTex = SDL_CreateTextureFromSurface(renderer, comboSurf);
+                if (comboTex) {
+                    int tw = static_cast<int>(comboSurf->w * comboScale);
+                    int th = static_cast<int>(comboSurf->h * comboScale);
+                    SDL_Rect dst = {screenW / 2 - tw / 2, comboY, tw, th};
+                    SDL_RenderCopy(renderer, comboTex, nullptr, &dst);
+                    SDL_DestroyTexture(comboTex);
+                }
+                SDL_FreeSurface(comboSurf);
+            }
+
+            // Bonus text (slightly scaled at high combos)
+            float bonusScale = comboScale > 1.2f ? 1.1f : 1.0f;
+            SDL_Color bonusColor = {comboColor.r, comboColor.g, comboColor.b, 180};
+            SDL_Surface* bonusSurf = TTF_RenderText_Blended(font, bonusText, bonusColor);
+            if (bonusSurf) {
+                SDL_Texture* bonusTex = SDL_CreateTextureFromSurface(renderer, bonusSurf);
+                if (bonusTex) {
+                    int bw = static_cast<int>(bonusSurf->w * bonusScale);
+                    int bh = static_cast<int>(bonusSurf->h * bonusScale);
+                    int bonusY = comboY + static_cast<int>(20 * comboScale) + 2;
+                    SDL_Rect dst = {screenW / 2 - bw / 2, bonusY, bw, bh};
+                    SDL_RenderCopy(renderer, bonusTex, nullptr, &dst);
+                    SDL_DestroyTexture(bonusTex);
+                }
+                SDL_FreeSurface(bonusSurf);
+            }
+
+            // Combo timer bar (shrinking, width scales with combo)
             float timerPct = combat.comboTimer / std::max(0.01f, combat.comboWindow);
-            int barW = 80;
+            int barW = static_cast<int>(80 * comboScale);
             int barX = screenW / 2 - barW / 2;
-            SDL_Rect timerBg = {barX, comboY + 42, barW, 4};
+            int barY = comboY + static_cast<int>(40 * comboScale) + 4;
+            SDL_Rect timerBg = {barX, barY, barW, 4};
             SDL_SetRenderDrawColor(renderer, 40, 40, 50, 150);
             SDL_RenderFillRect(renderer, &timerBg);
-            SDL_Rect timerFill = {barX, comboY + 42, static_cast<int>(barW * timerPct), 4};
+            SDL_Rect timerFill = {barX, barY, static_cast<int>(barW * timerPct), 4};
             SDL_SetRenderDrawColor(renderer, comboColor.r, comboColor.g, comboColor.b, 200);
             SDL_RenderFillRect(renderer, &timerFill);
         }
