@@ -693,6 +693,9 @@ void PlayState::update(float dt) {
                 m_mutatorFluxTimer = 0;
                 m_dimManager.switchDimension(true);
                 m_camera.shake(6.0f, 0.2f);
+                AudioManager::instance().play(SFX::DimensionSwitch);
+                AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+                m_screenEffects.triggerDimensionRipple();
             }
         }
     }
@@ -796,7 +799,9 @@ void PlayState::update(float dt) {
         m_dimManager.switchDimension(true);
         m_entropy.clearForceSwitch();
         m_camera.shake(8.0f, 0.3f);
+        AudioManager::instance().play(SFX::DimensionSwitch);
         AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+        m_screenEffects.triggerDimensionRipple();
     }
 
     m_dimManager.playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
@@ -967,6 +972,7 @@ void PlayState::update(float dt) {
             m_dimManager.switchDimension(true);
             m_camera.shake(6.0f, 0.2f);
             AudioManager::instance().play(SFX::DimensionSwitch);
+            AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
             m_screenEffects.triggerDimensionRipple();
         }
     });
@@ -1940,6 +1946,12 @@ void PlayState::checkExitReached() {
             smokeLog("[SMOKE] LEVEL %d COMPLETE! (%.1fs)", m_currentDifficulty, m_smokeRunTime);
         }
         AudioManager::instance().play(SFX::LevelComplete);
+        m_camera.shake(10.0f, 0.3f);
+        m_combatSystem.addHitFreeze(0.1f);
+        // Celebration particles at player position
+        Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        m_particles.burst(pPos, 40, {140, 255, 180, 255}, 250.0f, 5.0f);
+        m_particles.burst(pPos, 20, {255, 215, 100, 255}, 180.0f, 3.0f);
         float shardMult = (g_selectedDifficulty == GameDifficulty::Easy) ? 1.5f :
                           (g_selectedDifficulty == GameDifficulty::Hard) ? 0.75f : 1.0f;
         shardMult *= game->getRunBuffSystem().getShardMultiplier();
