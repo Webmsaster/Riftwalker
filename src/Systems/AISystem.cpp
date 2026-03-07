@@ -68,6 +68,22 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
         if (!e->hasComponent<TransformComponent>()) continue;
         auto& ai = e->getComponent<AIComponent>();
 
+        // Spawn animation: skip AI and keep invulnerable while spawning in
+        if (ai.spawnTimer > 0) {
+            ai.spawnTimer -= dt;
+            if (e->hasComponent<HealthComponent>()) {
+                e->getComponent<HealthComponent>().invincibilityTimer = 0.1f;
+            }
+            // Spawn particles (brief flash at start)
+            if (ai.spawnTimer > 0 && m_particles) {
+                auto& t = e->getComponent<TransformComponent>();
+                if (static_cast<int>(ai.spawnTimer * 20) % 3 == 0) {
+                    m_particles->burst(t.getCenter(), 2, {255, 255, 255, 150}, 40.0f, 1.5f);
+                }
+            }
+            continue;
+        }
+
         // Update stun
         if (ai.state == AIState::Stunned) {
             ai.stunTimer -= dt;
@@ -132,6 +148,39 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             // Vampiric: heal percentage of damage dealt is handled in CombatSystem
         }
 
+        // Dimension behavior modifiers for dim-0 enemies
+        if (e->dimension == 0) {
+            if (playerDimension == 1) {
+                // Dim A (blue/calm): enemies are calmer
+                ai.dimSpeedMod = 0.75f;
+                ai.dimDamageMod = 0.85f;
+                ai.dimDetectMod = 1.3f;
+            } else {
+                // Dim B (red/hostile): enemies are aggressive
+                ai.dimSpeedMod = 1.3f;
+                ai.dimDamageMod = 1.25f;
+                ai.dimDetectMod = 0.8f;
+            }
+
+            // Visual: periodic particle aura indicating dimension state
+            if (m_particles && e->hasComponent<TransformComponent>()) {
+                auto& t = e->getComponent<TransformComponent>();
+                // Emit a small particle every ~2s (stagger by entity position)
+                Uint32 ticks = SDL_GetTicks();
+                int hash = static_cast<int>(t.position.x * 7 + t.position.y * 13) & 0x7FF;
+                if (((ticks + hash) % 2000) < static_cast<Uint32>(dt * 1000)) {
+                    SDL_Color auraColor = (playerDimension == 1)
+                        ? SDL_Color{80, 120, 220, 120}   // Blue aura (calm)
+                        : SDL_Color{220, 80, 60, 120};   // Red aura (aggressive)
+                    m_particles->burst(t.getCenter(), 3, auraColor, 30.0f, 0.8f);
+                }
+            }
+        } else {
+            ai.dimSpeedMod = 1.0f;
+            ai.dimDamageMod = 1.0f;
+            ai.dimDetectMod = 1.0f;
+        }
+
         // Check if enemy is in the same dimension as player
         bool sameDim = (e->dimension == 0 || e->dimension == playerDimension);
 
@@ -173,21 +222,23 @@ void AISystem::updateWalker(Entity& entity, float dt, Vec2 playerPos) {
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
     float dist = distanceTo(pos, playerPos);
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
 
     switch (ai.state) {
         case AIState::Patrol: {
             Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
             float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
-            phys.velocity.x = dirX * ai.patrolSpeed;
+            phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
             ai.facingRight = dirX > 0;
 
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < ai.detectRange) ai.state = AIState::Chase;
+            if (dist < effectiveDetect) ai.state = AIState::Chase;
             break;
         }
         case AIState::Chase: {
             float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
-            phys.velocity.x = dirX * ai.chaseSpeed;
+            phys.velocity.x = dirX * effectiveChase;
             ai.facingRight = dirX > 0;
 
             if (dist < ai.attackRange) ai.state = AIState::Attack;
@@ -200,7 +251,7 @@ void AISystem::updateWalker(Entity& entity, float dt, Vec2 playerPos) {
                 auto& combat = entity.getComponent<CombatComponent>();
                 Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
                 combat.startAttack(AttackType::Melee, dir);
-                ai.attackTimer = ai.attackCooldown;
+                ai.attackTimer = ai.attackCooldown / ai.dimSpeedMod; // Faster attacks in dim B
             }
             if (dist > ai.attackRange * 1.5f) ai.state = AIState::Chase;
             break;
@@ -219,25 +270,27 @@ void AISystem::updateFlyer(Entity& entity, float dt, Vec2 playerPos) {
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
     float dist = distanceTo(pos, playerPos);
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
 
     switch (ai.state) {
         case AIState::Patrol: {
             Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
             Vec2 dir = (target - pos).normalized();
-            phys.velocity = dir * ai.patrolSpeed;
+            phys.velocity = dir * ai.patrolSpeed * ai.dimSpeedMod;
 
             if (distanceTo(pos, target) < 10.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < ai.detectRange) ai.state = AIState::Chase;
+            if (dist < effectiveDetect) ai.state = AIState::Chase;
             break;
         }
         case AIState::Chase: {
             // Hover above player, then swoop
             Vec2 hoverTarget = {playerPos.x, playerPos.y - ai.flyHeight};
             Vec2 dir = (hoverTarget - pos).normalized();
-            phys.velocity = dir * ai.chaseSpeed;
+            phys.velocity = dir * effectiveChase;
 
             ai.attackTimer -= dt;
-            if (ai.attackTimer <= 0 && dist < ai.detectRange) {
+            if (ai.attackTimer <= 0 && dist < effectiveDetect) {
                 ai.state = AIState::Attack;
                 ai.targetPosition = playerPos;
             }
@@ -247,11 +300,11 @@ void AISystem::updateFlyer(Entity& entity, float dt, Vec2 playerPos) {
         case AIState::Attack: {
             // Swoop down toward player
             Vec2 dir = (ai.targetPosition - pos).normalized();
-            phys.velocity = dir * ai.swoopSpeed;
+            phys.velocity = dir * ai.swoopSpeed * ai.dimSpeedMod;
 
             if (distanceTo(pos, ai.targetPosition) < 20.0f || pos.y > ai.targetPosition.y + 30.0f) {
                 ai.state = AIState::Chase;
-                ai.attackTimer = ai.attackCooldown;
+                ai.attackTimer = ai.attackCooldown / ai.dimSpeedMod;
                 auto& combat = entity.getComponent<CombatComponent>();
                 combat.startAttack(AttackType::Melee, dir);
             }
@@ -269,13 +322,13 @@ void AISystem::updateTurret(Entity& entity, float dt, Vec2 playerPos) {
 
     ai.facingRight = playerPos.x > pos.x;
 
-    if (dist < ai.detectRange) {
+    if (dist < ai.detectRange * ai.dimDetectMod) {
         ai.attackTimer -= dt;
         if (ai.attackTimer <= 0) {
             auto& combat = entity.getComponent<CombatComponent>();
             Vec2 dir = (playerPos - pos).normalized();
             combat.startAttack(AttackType::Ranged, dir);
-            ai.attackTimer = ai.attackCooldown;
+            ai.attackTimer = ai.attackCooldown / ai.dimSpeedMod;
         }
     }
 
@@ -290,18 +343,19 @@ void AISystem::updateCharger(Entity& entity, float dt, Vec2 playerPos) {
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
     float dist = distanceTo(pos, playerPos);
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
 
     switch (ai.state) {
         case AIState::Patrol: {
             Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
             float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
-            phys.velocity.x = dirX * ai.patrolSpeed;
+            phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
             ai.facingRight = dirX > 0;
 
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < ai.detectRange) {
+            if (dist < effectiveDetect) {
                 ai.state = AIState::Chase;
-                ai.attackTimer = ai.chargeWindup;
+                ai.attackTimer = ai.chargeWindup / ai.dimSpeedMod;
             }
             break;
         }
@@ -311,8 +365,9 @@ void AISystem::updateCharger(Entity& entity, float dt, Vec2 playerPos) {
             ai.attackTimer -= dt;
 
             // Visual warning: flash
+            float windupTime = ai.chargeWindup / ai.dimSpeedMod;
             auto& sprite = entity.getComponent<SpriteComponent>();
-            sprite.setColor(255, static_cast<Uint8>(120 + 135 * (ai.attackTimer / ai.chargeWindup)), 40);
+            sprite.setColor(255, static_cast<Uint8>(120 + 135 * (ai.attackTimer / windupTime)), 40);
 
             if (ai.attackTimer <= 0) {
                 ai.state = AIState::Attack;
@@ -324,7 +379,7 @@ void AISystem::updateCharger(Entity& entity, float dt, Vec2 playerPos) {
         }
         case AIState::Attack: {
             // CHARGE!
-            phys.velocity.x = (ai.facingRight ? 1.0f : -1.0f) * ai.chargeSpeed;
+            phys.velocity.x = (ai.facingRight ? 1.0f : -1.0f) * ai.chargeSpeed * ai.dimSpeedMod;
             ai.attackTimer -= dt;
 
             auto& combat = entity.getComponent<CombatComponent>();
@@ -425,21 +480,24 @@ void AISystem::updateExploder(Entity& entity, float dt, Vec2 playerPos, EntityMa
         }
     }
 
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
+
     switch (ai.state) {
         case AIState::Patrol: {
             Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
             float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
-            phys.velocity.x = dirX * ai.patrolSpeed;
+            phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
             ai.facingRight = dirX > 0;
 
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < ai.detectRange) ai.state = AIState::Chase;
+            if (dist < effectiveDetect) ai.state = AIState::Chase;
             break;
         }
         case AIState::Chase: {
             // Rush toward player at high speed
             float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
-            phys.velocity.x = dirX * ai.chaseSpeed;
+            phys.velocity.x = dirX * effectiveChase;
             ai.facingRight = dirX > 0;
 
             // Explode on contact
@@ -515,16 +573,18 @@ void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
     float dist = distanceTo(pos, playerPos);
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
 
     switch (ai.state) {
         case AIState::Patrol: {
             Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
             float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
-            phys.velocity.x = dirX * ai.patrolSpeed * 0.6f;
+            phys.velocity.x = dirX * ai.patrolSpeed * 0.6f * ai.dimSpeedMod;
             ai.facingRight = dirX > 0;
 
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < ai.detectRange) {
+            if (dist < effectiveDetect) {
                 ai.state = AIState::Chase;
                 ai.shieldUp = true;
             }
@@ -533,7 +593,7 @@ void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
         case AIState::Chase: {
             // Slow advance with shield raised, always face player
             float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
-            phys.velocity.x = dirX * ai.chaseSpeed;
+            phys.velocity.x = dirX * effectiveChase;
             ai.facingRight = dirX > 0;
             ai.shieldUp = true;
 
@@ -582,11 +642,13 @@ void AISystem::updateCrawler(Entity& entity, float dt, Vec2 playerPos) {
     Vec2 pos = transform.getCenter();
     float dist = distanceTo(pos, playerPos);
 
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+
     if (ai.onCeiling && !ai.dropping) {
         // Patrol on ceiling
         Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
         float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
-        phys.velocity.x = dirX * ai.patrolSpeed;
+        phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
         phys.velocity.y = 0;
         ai.facingRight = dirX > 0;
 
@@ -594,7 +656,7 @@ void AISystem::updateCrawler(Entity& entity, float dt, Vec2 playerPos) {
 
         // Drop when player is directly below and close
         float horizDist = std::abs(pos.x - playerPos.x);
-        if (horizDist < 30.0f && playerPos.y > pos.y && dist < ai.detectRange) {
+        if (horizDist < 30.0f && playerPos.y > pos.y && dist < effectiveDetect) {
             ai.dropping = true;
             ai.onCeiling = false;
             phys.useGravity = true;
@@ -614,9 +676,9 @@ void AISystem::updateCrawler(Entity& entity, float dt, Vec2 playerPos) {
         }
     } else {
         // On ground: chase like a walker
-        if (dist < ai.detectRange) {
+        if (dist < effectiveDetect) {
             float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
-            phys.velocity.x = dirX * ai.chaseSpeed;
+            phys.velocity.x = dirX * ai.chaseSpeed * ai.dimSpeedMod;
             ai.facingRight = dirX > 0;
 
             if (dist < ai.attackRange) {
@@ -625,14 +687,14 @@ void AISystem::updateCrawler(Entity& entity, float dt, Vec2 playerPos) {
                     auto& combat = entity.getComponent<CombatComponent>();
                     Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
                     combat.startAttack(AttackType::Melee, dir);
-                    ai.attackTimer = ai.attackCooldown;
+                    ai.attackTimer = ai.attackCooldown / ai.dimSpeedMod;
                 }
             }
         } else {
             // Try to climb back to ceiling (for simplicity, just patrol on ground)
             Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
             float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
-            phys.velocity.x = dirX * ai.patrolSpeed;
+            phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
             ai.facingRight = dirX > 0;
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
         }
@@ -750,15 +812,17 @@ void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityMana
     Vec2 pos = transform.getCenter();
     float dist = distanceTo(pos, playerPos);
 
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+
     switch (ai.state) {
         case AIState::Patrol: {
             Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
             float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
-            phys.velocity.x = dirX * ai.patrolSpeed;
+            phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
             ai.facingRight = dirX > 0;
 
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < ai.detectRange) ai.state = AIState::Chase;
+            if (dist < effectiveDetect) ai.state = AIState::Chase;
             break;
         }
         case AIState::Chase: {
@@ -768,11 +832,11 @@ void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityMana
             if (dist < ai.preferredRange - 50.0f) {
                 // Too close, retreat
                 float dirX = (playerPos.x > pos.x) ? -1.0f : 1.0f;
-                phys.velocity.x = dirX * ai.retreatSpeed;
+                phys.velocity.x = dirX * ai.retreatSpeed * ai.dimSpeedMod;
             } else if (dist > ai.preferredRange + 50.0f) {
                 // Too far, approach
                 float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
-                phys.velocity.x = dirX * ai.patrolSpeed;
+                phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
             } else {
                 // In sweet spot, stop and aim
                 phys.velocity.x *= 0.8f;
@@ -780,9 +844,9 @@ void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityMana
 
             // Start telegraph when in range
             ai.attackTimer -= dt;
-            if (ai.attackTimer <= 0 && dist < ai.sniperRange && !ai.isTelegraphing) {
+            if (ai.attackTimer <= 0 && dist < ai.sniperRange * ai.dimDetectMod && !ai.isTelegraphing) {
                 ai.isTelegraphing = true;
-                ai.telegraphTimer = ai.telegraphDuration;
+                ai.telegraphTimer = ai.telegraphDuration / ai.dimSpeedMod;
                 AudioManager::instance().play(SFX::SniperTelegraph);
             }
 
@@ -915,6 +979,124 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
         }
     }
 
+    // --- Boss Telegraph Processing ---
+    if (ai.bossTelegraphTimer > 0) {
+        ai.bossTelegraphTimer -= dt;
+        phys.velocity.x = 0; // Boss stops during telegraph
+        ai.facingRight = playerPos.x > pos.x;
+
+        // Visual warning: pulsing color + particles
+        float telegraphMax = 0.5f - (ai.bossPhase - 1) * 0.1f;
+        float flashRate = 15.0f + (1.0f - ai.bossTelegraphTimer / telegraphMax) * 20.0f;
+        float flash = std::sin(ai.bossTelegraphTimer * flashRate) * 0.5f + 0.5f;
+
+        if (entity.hasComponent<SpriteComponent>()) {
+            auto& sprite = entity.getComponent<SpriteComponent>();
+            switch (ai.bossTelegraphAttack) {
+                case 3: sprite.setColor(255, 100 + (int)(flash * 155), (int)(flash * 100)); break;
+                case 4: sprite.setColor(255, (int)(flash * 100), 200); break;
+                case 5: sprite.setColor(100 + (int)(flash * 155), 200 + (int)(flash * 55), 255); break;
+                case 6: sprite.setColor(150 + (int)(flash * 105), 50, 200 + (int)(flash * 55)); break;
+                default: break;
+            }
+        }
+
+        if (m_particles) {
+            SDL_Color warnColor;
+            switch (ai.bossTelegraphAttack) {
+                case 3: warnColor = {255, 200, 50, 200}; break;
+                case 4: warnColor = {255, 80, 200, 200}; break;
+                case 5: warnColor = {100, 200, 255, 200}; break;
+                case 6: warnColor = {180, 50, 255, 200}; break;
+                default: warnColor = {255, 255, 255, 200};
+            }
+            for (int i = 0; i < 2; i++) {
+                float angle = (float)(rand() % 628) / 100.0f;
+                Vec2 offset = {std::cos(angle) * 30.0f, std::sin(angle) * 30.0f};
+                m_particles->burst(pos + offset, 1, warnColor, 60.0f, 3.0f);
+            }
+        }
+
+        // Execute attack when telegraph expires
+        if (ai.bossTelegraphTimer <= 0) {
+            float dirX = ai.facingRight ? 1.0f : -1.0f;
+            switch (ai.bossTelegraphAttack) {
+                case 3: {
+                    // Ground slam leap - execute
+                    phys.velocity.y = -500.0f;
+                    phys.velocity.x = dirX * 250.0f;
+                    ai.bossLeapTimer = 3.0f * phaseCooldownMult;
+                    ai.bossAttackTimer = 0.8f;
+                    if (m_particles) m_particles->burst(pos, 15, {200, 40, 180, 255}, 200.0f, 3.0f);
+                    AudioManager::instance().play(SFX::PlayerDash);
+                    break;
+                }
+                case 4: {
+                    // Multi-projectile fan - execute
+                    if (m_combatSystem) {
+                        auto& combat = entity.getComponent<CombatComponent>();
+                        int projCount = 2 + ai.bossPhase;
+                        float spreadAngle = 0.4f + ai.bossPhase * 0.15f;
+                        Vec2 baseDir = ai.bossTelegraphDir;
+                        for (int p = 0; p < projCount; p++) {
+                            float angle = -spreadAngle / 2.0f + spreadAngle * p / std::max(1, projCount - 1);
+                            Vec2 dir = {
+                                baseDir.x * std::cos(angle) - baseDir.y * std::sin(angle),
+                                baseDir.x * std::sin(angle) + baseDir.y * std::cos(angle)
+                            };
+                            m_combatSystem->createProjectile(entities, pos, dir,
+                                combat.rangedAttack.damage, 400.0f, entity.dimension);
+                        }
+                        if (m_particles) m_particles->burst(pos, 20, {255, 100, 200, 255}, 200.0f, 3.0f);
+                        AudioManager::instance().play(SFX::BossMultiShot);
+                    }
+                    ai.bossAttackTimer = 2.0f * phaseCooldownMult;
+                    break;
+                }
+                case 5: {
+                    // Shield burst - execute
+                    if (entity.hasComponent<HealthComponent>()) {
+                        entity.getComponent<HealthComponent>().invulnerable = true;
+                    }
+                    ai.bossShieldActiveTimer = 1.2f;
+                    ai.bossShieldTimer = 5.0f * phaseCooldownMult;
+                    ai.bossAttackTimer = 1.5f;
+                    if (m_camera) m_camera->shake(8.0f, 0.3f);
+                    if (m_particles) m_particles->burst(pos, 35, {100, 200, 255, 255}, 250.0f, 4.0f);
+                    AudioManager::instance().play(SFX::BossShieldBurst);
+                    break;
+                }
+                case 6: {
+                    // Teleport strike - execute
+                    if (m_particles) m_particles->burst(pos, 25, {150, 50, 200, 255}, 200.0f, 3.0f);
+                    float behindDir = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+                    transform.position.x = playerPos.x + behindDir * 80.0f;
+                    transform.position.y = playerPos.y - 20.0f;
+                    ai.facingRight = behindDir < 0;
+                    Vec2 newPos = transform.getCenter();
+                    if (m_particles) m_particles->burst(newPos, 25, {200, 50, 150, 255}, 200.0f, 3.0f);
+                    auto& combat = entity.getComponent<CombatComponent>();
+                    Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
+                    combat.cooldownTimer = 0;
+                    combat.startAttack(AttackType::Melee, dir);
+                    ai.bossTeleportTimer = 5.0f * phaseCooldownMult;
+                    ai.bossAttackTimer = 0.8f;
+                    if (m_camera) m_camera->shake(6.0f, 0.2f);
+                    if (m_combatSystem) m_combatSystem->addHitFreeze(0.05f);
+                    AudioManager::instance().play(SFX::BossTeleport);
+                    break;
+                }
+                default: break;
+            }
+            ai.bossTelegraphAttack = -1;
+            // Reset sprite color
+            if (entity.hasComponent<SpriteComponent>()) {
+                entity.getComponent<SpriteComponent>().setColor(255, 255, 255);
+            }
+        }
+        return; // Skip normal AI during telegraph
+    }
+
     if (dist < ai.detectRange) {
         float dirX = ai.facingRight ? 1.0f : -1.0f;
         float speed = ai.chaseSpeed * phaseSpeedMult;
@@ -922,11 +1104,12 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
         if (ai.bossAttackTimer <= 0) {
             // More patterns available in higher phases
             ai.bossAttackPattern = (ai.bossAttackPattern + 1) % (ai.bossPhase + 4);
+            float telegraphTime = 0.5f - (ai.bossPhase - 1) * 0.1f; // 0.5s, 0.4s, 0.3s per phase
 
             switch (ai.bossAttackPattern) {
                 case 0:
                 case 1: {
-                    // Melee attack
+                    // Melee attack - no telegraph (fast, short range)
                     if (dist < ai.attackRange * 2.0f) {
                         auto& combat = entity.getComponent<CombatComponent>();
                         Vec2 dir = {dirX, 0.0f};
@@ -938,7 +1121,7 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
                     break;
                 }
                 case 2: {
-                    // Single ranged projectile
+                    // Single ranged projectile - no telegraph (weak)
                     auto& combat = entity.getComponent<CombatComponent>();
                     Vec2 dir = (playerPos - pos).normalized();
                     combat.startAttack(AttackType::Ranged, dir);
@@ -946,100 +1129,51 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
                     break;
                 }
                 case 3: {
-                    // Ground slam leap
+                    // Ground slam leap - TELEGRAPH
                     if (ai.bossLeapTimer <= 0 && phys.onGround) {
-                        phys.velocity.y = -500.0f;
-                        phys.velocity.x = dirX * 250.0f;
-                        ai.bossLeapTimer = 3.0f * phaseCooldownMult;
-                        ai.bossAttackTimer = 0.8f;
-                        if (m_particles) {
-                            m_particles->burst(pos, 15, {200, 40, 180, 255}, 200.0f, 3.0f);
-                        }
-                        AudioManager::instance().play(SFX::PlayerDash);
+                        ai.bossTelegraphTimer = telegraphTime;
+                        ai.bossTelegraphAttack = 3;
+                        ai.bossTelegraphDir = {dirX, 0.0f};
+                        ai.bossAttackTimer = 0.3f;
+                        AudioManager::instance().play(SFX::CollapseWarning);
                     } else {
                         ai.bossAttackTimer = 0.5f;
                     }
                     break;
                 }
                 case 4: {
-                    // Multi-projectile fan
+                    // Multi-projectile fan - TELEGRAPH
                     if (m_combatSystem) {
-                        auto& combat = entity.getComponent<CombatComponent>();
-                        int projCount = 2 + ai.bossPhase; // 3, 4, or 5
-                        float spreadAngle = 0.4f + ai.bossPhase * 0.15f;
-                        Vec2 baseDir = (playerPos - pos).normalized();
-
-                        for (int p = 0; p < projCount; p++) {
-                            float angle = -spreadAngle / 2.0f + spreadAngle * p / std::max(1, projCount - 1);
-                            Vec2 dir = {
-                                baseDir.x * std::cos(angle) - baseDir.y * std::sin(angle),
-                                baseDir.x * std::sin(angle) + baseDir.y * std::cos(angle)
-                            };
-                            m_combatSystem->createProjectile(entities, pos, dir,
-                                combat.rangedAttack.damage, 400.0f, entity.dimension);
-                        }
-                        ai.bossAttackTimer = 2.0f * phaseCooldownMult;
-                        if (m_particles) {
-                            m_particles->burst(pos, 20, {255, 100, 200, 255}, 200.0f, 3.0f);
-                        }
-                        AudioManager::instance().play(SFX::BossMultiShot);
+                        ai.bossTelegraphTimer = telegraphTime;
+                        ai.bossTelegraphAttack = 4;
+                        ai.bossTelegraphDir = (playerPos - pos).normalized();
+                        ai.bossAttackTimer = 0.3f;
+                        AudioManager::instance().play(SFX::SniperTelegraph);
                     } else {
                         ai.bossAttackTimer = 0.5f;
                     }
                     break;
                 }
                 case 5: {
-                    // Shield burst (Phase 2+)
+                    // Shield burst (Phase 2+) - TELEGRAPH
                     if (ai.bossPhase >= 2 && ai.bossShieldTimer <= 0) {
-                        if (entity.hasComponent<HealthComponent>()) {
-                            entity.getComponent<HealthComponent>().invulnerable = true;
-                        }
-                        ai.bossShieldActiveTimer = 1.2f;
-                        ai.bossShieldTimer = 5.0f * phaseCooldownMult;
-                        ai.bossAttackTimer = 1.5f;
-                        if (m_camera) m_camera->shake(8.0f, 0.3f);
-                        if (m_particles) {
-                            m_particles->burst(pos, 35, {100, 200, 255, 255}, 250.0f, 4.0f);
-                        }
-                        AudioManager::instance().play(SFX::BossShieldBurst);
+                        ai.bossTelegraphTimer = telegraphTime;
+                        ai.bossTelegraphAttack = 5;
+                        ai.bossAttackTimer = 0.3f;
+                        AudioManager::instance().play(SFX::CollapseWarning);
                     } else {
                         ai.bossAttackTimer = 0.5f;
                     }
                     break;
                 }
                 case 6: {
-                    // Teleport strike (Phase 3)
+                    // Teleport strike (Phase 3) - TELEGRAPH
                     if (ai.bossPhase >= 3 && ai.bossTeleportTimer <= 0) {
-                        // Vanish particles at old position
-                        if (m_particles) {
-                            m_particles->burst(pos, 25, {150, 50, 200, 255}, 200.0f, 3.0f);
-                        }
-
-                        // Teleport behind player
-                        float behindDir = (playerPos.x > pos.x) ? 1.0f : -1.0f;
-                        transform.position.x = playerPos.x + behindDir * 80.0f;
-                        transform.position.y = playerPos.y - 20.0f;
-                        ai.facingRight = behindDir < 0;
-
-                        // Appear particles at new position
-                        Vec2 newPos = transform.getCenter();
-                        if (m_particles) {
-                            m_particles->burst(newPos, 25, {200, 50, 150, 255}, 200.0f, 3.0f);
-                        }
-
-                        // Immediate melee attack
-                        auto& combat = entity.getComponent<CombatComponent>();
-                        Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
-                        combat.cooldownTimer = 0;
-                        combat.startAttack(AttackType::Melee, dir);
-
-                        ai.bossTeleportTimer = 5.0f * phaseCooldownMult;
-                        ai.bossAttackTimer = 0.8f;
-                        if (m_camera) m_camera->shake(6.0f, 0.2f);
-                        if (m_combatSystem) m_combatSystem->addHitFreeze(0.05f);
-                        AudioManager::instance().play(SFX::BossTeleport);
+                        ai.bossTelegraphTimer = telegraphTime;
+                        ai.bossTelegraphAttack = 6;
+                        ai.bossAttackTimer = 0.3f;
+                        AudioManager::instance().play(SFX::SniperTelegraph);
                     } else {
-                        // Fallback melee if teleport on cooldown
                         if (dist < ai.attackRange * 1.5f) {
                             auto& combat = entity.getComponent<CombatComponent>();
                             Vec2 dir = {dirX, 0.0f};
@@ -1139,6 +1273,103 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityMa
     ai.wyrmPoisonTimer -= dt;
     ai.wyrmBarrageTimer -= dt;
 
+    // --- VoidWyrm Telegraph Processing ---
+    if (ai.bossTelegraphTimer > 0) {
+        ai.bossTelegraphTimer -= dt;
+        phys.velocity.x *= 0.8f;
+        phys.velocity.y *= 0.8f;
+
+        float telegraphMax = 0.5f - (ai.bossPhase - 1) * 0.1f;
+        float flashRate = 15.0f + (1.0f - ai.bossTelegraphTimer / telegraphMax) * 20.0f;
+        float flash = std::sin(ai.bossTelegraphTimer * flashRate) * 0.5f + 0.5f;
+
+        if (entity.hasComponent<SpriteComponent>()) {
+            auto& sprite = entity.getComponent<SpriteComponent>();
+            switch (ai.bossTelegraphAttack) {
+                case 2: sprite.setColor(255, 150 + (int)(flash * 105), (int)(flash * 50)); break; // divebomb: orange
+                case 3: sprite.setColor((int)(flash * 100), 200 + (int)(flash * 55), (int)(flash * 60)); break; // poison: green
+                case 4: sprite.setColor((int)(flash * 80), 200 + (int)(flash * 55), 200 + (int)(flash * 55)); break; // spiral: cyan
+                case 5: sprite.setColor(200 + (int)(flash * 55), (int)(flash * 80), (int)(flash * 80)); break; // barrage: red
+                default: break;
+            }
+        }
+
+        if (m_particles) {
+            SDL_Color warnColor;
+            switch (ai.bossTelegraphAttack) {
+                case 2: warnColor = {255, 200, 50, 200}; break;
+                case 3: warnColor = {100, 255, 80, 200}; break;
+                case 4: warnColor = {80, 255, 220, 200}; break;
+                case 5: warnColor = {255, 80, 80, 200}; break;
+                default: warnColor = {255, 255, 255, 200};
+            }
+            for (int i = 0; i < 2; i++) {
+                float angle = (float)(rand() % 628) / 100.0f;
+                Vec2 offset = {std::cos(angle) * 35.0f, std::sin(angle) * 35.0f};
+                m_particles->burst(pos + offset, 1, warnColor, 60.0f, 3.0f);
+            }
+        }
+
+        if (ai.bossTelegraphTimer <= 0) {
+            switch (ai.bossTelegraphAttack) {
+                case 2: {
+                    // Divebomb - execute
+                    ai.wyrmDiving = true;
+                    ai.wyrmDiveTarget = ai.bossTelegraphDir; // stored target pos
+                    ai.wyrmDiveTimer = 4.0f * phaseCooldownMult;
+                    ai.bossAttackTimer = 1.0f;
+                    AudioManager::instance().play(SFX::WyrmDive);
+                    if (m_particles) m_particles->burst(pos, 15, {40, 255, 140, 255}, 200.0f, 3.0f);
+                    break;
+                }
+                case 3: {
+                    // Poison cloud - execute
+                    ai.wyrmPoisonTimer = 5.0f * phaseCooldownMult;
+                    ai.bossAttackTimer = 2.0f * phaseCooldownMult;
+                    AudioManager::instance().play(SFX::WyrmPoison);
+                    Vec2 targetPos = ai.bossTelegraphDir; // stored player pos
+                    if (m_particles) m_particles->burst(targetPos, 30, {100, 220, 60, 180}, 120.0f, 5.0f);
+                    if (m_camera) m_camera->shake(4.0f, 0.15f);
+                    entities.forEach([&](Entity& target) {
+                        if (target.getTag() != "player") return;
+                        if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
+                        Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
+                        if (distanceTo(targetPos, tPos) < 100.0f) {
+                            target.getComponent<HealthComponent>().takeDamage(8.0f);
+                        }
+                    });
+                    break;
+                }
+                case 4: {
+                    // Spiral projectile ring - execute
+                    if (m_combatSystem) {
+                        int projCount = 5 + ai.bossPhase * 2;
+                        float projDmg = entity.getComponent<CombatComponent>().rangedAttack.damage;
+                        for (int p = 0; p < projCount; p++) {
+                            float angle = (6.283185f / projCount) * p + ai.wyrmOrbitAngle;
+                            Vec2 shotDir = {std::cos(angle), std::sin(angle)};
+                            m_combatSystem->createProjectile(entities, pos, shotDir, projDmg, 280.0f, entity.dimension);
+                        }
+                        ai.bossAttackTimer = 2.5f * phaseCooldownMult;
+                        AudioManager::instance().play(SFX::BossMultiShot);
+                        if (m_particles) m_particles->burst(pos, 20, {60, 255, 180, 255}, 200.0f, 3.0f);
+                    }
+                    break;
+                }
+                case 5: {
+                    // Rapid barrage - execute
+                    ai.wyrmBarrageCount = 5 + ai.bossPhase * 2;
+                    ai.wyrmBarrageTimer = 0;
+                    AudioManager::instance().play(SFX::WyrmBarrage);
+                    break;
+                }
+                default: break;
+            }
+            ai.bossTelegraphAttack = -1;
+        }
+        return; // Skip normal AI during telegraph
+    }
+
     if (dist < ai.detectRange) {
         // Handle active divebomb
         if (ai.wyrmDiving) {
@@ -1222,71 +1453,54 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityMa
                         break;
                     }
                     case 2: {
-                        // Divebomb
+                        // Divebomb - TELEGRAPH
                         if (ai.wyrmDiveTimer <= 0) {
-                            ai.wyrmDiving = true;
-                            ai.wyrmDiveTarget = playerPos;
-                            ai.wyrmDiveTimer = 4.0f * phaseCooldownMult;
-                            ai.bossAttackTimer = 1.0f;
-                            AudioManager::instance().play(SFX::WyrmDive);
-                            if (m_particles) {
-                                m_particles->burst(pos, 15, {40, 255, 140, 255}, 200.0f, 3.0f);
-                            }
+                            float telegraphTime = 0.5f - (ai.bossPhase - 1) * 0.1f;
+                            ai.bossTelegraphTimer = telegraphTime;
+                            ai.bossTelegraphAttack = 2;
+                            ai.bossTelegraphDir = playerPos; // store target position
+                            ai.bossAttackTimer = 0.3f;
+                            AudioManager::instance().play(SFX::CollapseWarning);
                         } else {
                             ai.bossAttackTimer = 0.5f;
                         }
                         break;
                     }
                     case 3: {
-                        // Poison cloud at player position
+                        // Poison cloud - TELEGRAPH
                         if (ai.wyrmPoisonTimer <= 0 && m_combatSystem) {
-                            ai.wyrmPoisonTimer = 5.0f * phaseCooldownMult;
-                            ai.bossAttackTimer = 2.0f * phaseCooldownMult;
-                            AudioManager::instance().play(SFX::WyrmPoison);
-                            if (m_particles) {
-                                m_particles->burst(playerPos, 30, {100, 220, 60, 180}, 120.0f, 5.0f);
-                            }
-                            if (m_camera) m_camera->shake(4.0f, 0.15f);
-                            // Damage + poison in area
-                            entities.forEach([&](Entity& target) {
-                                if (target.getTag() != "player") return;
-                                if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
-                                Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
-                                if (distanceTo(playerPos, tPos) < 100.0f) {
-                                    target.getComponent<HealthComponent>().takeDamage(8.0f);
-                                }
-                            });
+                            float telegraphTime = 0.5f - (ai.bossPhase - 1) * 0.1f;
+                            ai.bossTelegraphTimer = telegraphTime;
+                            ai.bossTelegraphAttack = 3;
+                            ai.bossTelegraphDir = playerPos; // store target position
+                            ai.bossAttackTimer = 0.3f;
+                            AudioManager::instance().play(SFX::SniperTelegraph);
                         } else {
                             ai.bossAttackTimer = 0.5f;
                         }
                         break;
                     }
                     case 4: {
-                        // Spiral projectile ring
+                        // Spiral projectile ring - TELEGRAPH
                         if (m_combatSystem) {
-                            int projCount = 5 + ai.bossPhase * 2;
-                            float projDmg = entity.getComponent<CombatComponent>().rangedAttack.damage;
-                            for (int p = 0; p < projCount; p++) {
-                                float angle = (6.283185f / projCount) * p + ai.wyrmOrbitAngle;
-                                Vec2 shotDir = {std::cos(angle), std::sin(angle)};
-                                m_combatSystem->createProjectile(entities, pos, shotDir, projDmg, 280.0f, entity.dimension);
-                            }
-                            ai.bossAttackTimer = 2.5f * phaseCooldownMult;
-                            AudioManager::instance().play(SFX::BossMultiShot);
-                            if (m_particles) {
-                                m_particles->burst(pos, 20, {60, 255, 180, 255}, 200.0f, 3.0f);
-                            }
+                            float telegraphTime = 0.5f - (ai.bossPhase - 1) * 0.1f;
+                            ai.bossTelegraphTimer = telegraphTime;
+                            ai.bossTelegraphAttack = 4;
+                            ai.bossAttackTimer = 0.3f;
+                            AudioManager::instance().play(SFX::CollapseWarning);
                         } else {
                             ai.bossAttackTimer = 0.5f;
                         }
                         break;
                     }
                     case 5: {
-                        // Rapid barrage (Phase 2+)
+                        // Rapid barrage (Phase 2+) - TELEGRAPH
                         if (ai.bossPhase >= 2) {
-                            ai.wyrmBarrageCount = 5 + ai.bossPhase * 2;
-                            ai.wyrmBarrageTimer = 0;
-                            AudioManager::instance().play(SFX::WyrmBarrage);
+                            float telegraphTime = 0.5f - (ai.bossPhase - 1) * 0.1f;
+                            ai.bossTelegraphTimer = telegraphTime;
+                            ai.bossTelegraphAttack = 5;
+                            ai.bossAttackTimer = 0.3f;
+                            AudioManager::instance().play(SFX::SniperTelegraph);
                         } else {
                             ai.bossAttackTimer = 0.5f;
                         }
@@ -1406,9 +1620,164 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
     if (ai.archBeamAngle > 6.283185f) ai.archBeamAngle -= 6.283185f;
 
     float phaseCooldownMult = 1.0f - (ai.bossPhase - 1) * 0.2f; // 1.0, 0.8, 0.6
+    float telegraphTime = 0.6f - (ai.bossPhase - 1) * 0.1f; // 0.6, 0.5, 0.4
+
+    // --- Dimensional Architect Telegraph Processing ---
+    if (ai.bossTelegraphTimer > 0) {
+        ai.bossTelegraphTimer -= dt;
+        phys.velocity.x *= 0.8f;
+        phys.velocity.y *= 0.8f;
+
+        float telegraphMax = 0.6f - (ai.bossPhase - 1) * 0.1f;
+        float flashRate = 12.0f + (1.0f - ai.bossTelegraphTimer / telegraphMax) * 25.0f;
+        float flash = std::sin(ai.bossTelegraphTimer * flashRate) * 0.5f + 0.5f;
+
+        if (entity.hasComponent<SpriteComponent>()) {
+            auto& sprite = entity.getComponent<SpriteComponent>();
+            switch (ai.bossTelegraphAttack) {
+                case 1: sprite.setColor(static_cast<Uint8>(80 + 80 * flash), static_cast<Uint8>(160 + 60 * flash), 255); break; // beam: bright blue
+                case 2: sprite.setColor(static_cast<Uint8>(200 + 55 * flash), static_cast<Uint8>(60 * flash), static_cast<Uint8>(120 + 60 * flash)); break; // rift: red-magenta
+                case 3: sprite.setColor(static_cast<Uint8>(180 + 75 * flash), static_cast<Uint8>(100 * flash), 255); break; // collapse: deep purple
+                default: break;
+            }
+        }
+
+        if (m_particles) {
+            SDL_Color warnColor;
+            switch (ai.bossTelegraphAttack) {
+                case 1: warnColor = {100, 180, 255, 200}; break;
+                case 2: warnColor = {255, 80, 140, 200}; break;
+                case 3: warnColor = {200, 120, 255, 200}; break;
+                default: warnColor = {255, 255, 255, 200};
+            }
+            for (int i = 0; i < 2; i++) {
+                float angle = (float)(rand() % 628) / 100.0f;
+                Vec2 offset = {std::cos(angle) * 35.0f, std::sin(angle) * 35.0f};
+                m_particles->burst(pos + offset, 1, warnColor, 60.0f, 3.0f);
+            }
+        }
+
+        if (ai.bossTelegraphTimer <= 0) {
+            switch (ai.bossTelegraphAttack) {
+                case 1: {
+                    // Construct Beam - execute
+                    float damage = entity.getComponent<CombatComponent>().rangedAttack.damage;
+                    Vec2 dir = ai.bossTelegraphDir;
+                    auto& proj = entities.addEntity("projectile");
+                    proj.dimension = entity.dimension;
+                    proj.addComponent<TransformComponent>(pos.x - 6, pos.y - 6, 12, 12);
+                    auto& ps = proj.addComponent<SpriteComponent>();
+                    ps.setColor(80, 160, 255);
+                    ps.renderLayer = 5;
+                    auto& pp = proj.addComponent<PhysicsBody>();
+                    pp.useGravity = false;
+                    pp.velocity = dir * 220.0f;
+                    auto& pc = proj.addComponent<ColliderComponent>();
+                    pc.width = 10; pc.height = 10;
+                    pc.layer = LAYER_PROJECTILE;
+                    pc.mask = LAYER_TILE | LAYER_PLAYER;
+                    pc.type = ColliderType::Trigger;
+                    pc.onTrigger = [damage](Entity* self, Entity* other) {
+                        if (other->hasComponent<HealthComponent>()) {
+                            other->getComponent<HealthComponent>().takeDamage(damage);
+                        }
+                        self->destroy();
+                    };
+                    AudioManager::instance().play(SFX::ArchBeam);
+                    ai.archConstructTimer = 3.0f * phaseCooldownMult;
+
+                    // Phase 3: Construct Storm extra projectiles alongside beam
+                    if (ai.bossPhase >= 3) {
+                        float stormDmg = damage * 0.6f;
+                        for (int si = -1; si <= 1; si += 2) {
+                            float sAngle = std::atan2(dir.y, dir.x) + si * 0.4f;
+                            Vec2 sDir = {std::cos(sAngle), std::sin(sAngle)};
+                            auto& sproj = entities.addEntity("projectile");
+                            sproj.dimension = entity.dimension;
+                            sproj.addComponent<TransformComponent>(pos.x - 5, pos.y - 5, 10, 10);
+                            auto& sps = sproj.addComponent<SpriteComponent>();
+                            sps.setColor(150, 100, 255);
+                            sps.renderLayer = 5;
+                            auto& spp = sproj.addComponent<PhysicsBody>();
+                            spp.useGravity = false;
+                            spp.velocity = sDir * 180.0f;
+                            auto& spc = sproj.addComponent<ColliderComponent>();
+                            spc.width = 8; spc.height = 8;
+                            spc.layer = LAYER_PROJECTILE;
+                            spc.mask = LAYER_TILE | LAYER_PLAYER;
+                            spc.type = ColliderType::Trigger;
+                            spc.onTrigger = [stormDmg](Entity* self, Entity* other) {
+                                if (other->hasComponent<HealthComponent>()) {
+                                    other->getComponent<HealthComponent>().takeDamage(stormDmg);
+                                }
+                                self->destroy();
+                            };
+                        }
+                        AudioManager::instance().play(SFX::ArchConstruct);
+                    }
+                    break;
+                }
+                case 2: {
+                    // Rift Zones - execute
+                    if (m_level) {
+                        Vec2 targetPos = ai.bossTelegraphDir;
+                        int ts = m_level->getTileSize();
+                        int cx = static_cast<int>(targetPos.x) / ts;
+                        int cy = static_cast<int>(targetPos.y) / ts + 2;
+                        for (int dx = -1; dx <= 1; dx++) {
+                            int tx = cx + dx;
+                            int ty = cy;
+                            if (!m_level->inBounds(tx, ty)) continue;
+                            Tile spikeTile;
+                            spikeTile.type = TileType::Spike;
+                            spikeTile.color = {200, 60, 120, 255};
+                            m_level->setTile(tx, ty, 1, spikeTile);
+                            m_level->setTile(tx, ty, 2, spikeTile);
+                        }
+                    }
+                    AudioManager::instance().play(SFX::ArchRiftOpen);
+                    if (m_particles) {
+                        m_particles->burst(ai.bossTelegraphDir + Vec2{0, 64.0f}, 20, {255, 60, 100, 200}, 100.0f, 5.0f);
+                    }
+                    ai.archRiftTimer = 6.0f * phaseCooldownMult;
+                    break;
+                }
+                case 3: {
+                    // Dimension Collapse - execute
+                    if (m_level) {
+                        int ts = m_level->getTileSize();
+                        int bx = static_cast<int>(pos.x) / ts;
+                        int by = static_cast<int>(pos.y) / ts;
+                        for (int tx = bx - 10; tx <= bx + 10; tx++) {
+                            for (int ty = by - 5; ty <= by + 5; ty++) {
+                                if (!m_level->inBounds(tx, ty)) continue;
+                                if (std::rand() % 3 == 0) continue;
+                                Tile tileA = m_level->getTile(tx, ty, 1);
+                                Tile tileB = m_level->getTile(tx, ty, 2);
+                                m_level->setTile(tx, ty, 1, tileB);
+                                m_level->setTile(tx, ty, 2, tileA);
+                            }
+                        }
+                    }
+                    AudioManager::instance().play(SFX::ArchCollapse);
+                    if (m_particles) {
+                        m_particles->burst(pos, 50, {180, 100, 255, 220}, 300.0f, 8.0f);
+                    }
+                    if (m_camera) {
+                        m_camera->shake(12.0f, 0.6f);
+                    }
+                    ai.archCollapseTimer = 12.0f * phaseCooldownMult;
+                    break;
+                }
+                default: break;
+            }
+            ai.bossTelegraphAttack = -1;
+        }
+        return; // Skip normal AI during telegraph
+    }
 
     if (dist < ai.detectRange || hpPct < 1.0f) {
-        // --- Tile Swap Attack ---
+        // --- Tile Swap Attack (instant, no telegraph) ---
         ai.archSwapTimer -= dt;
         if (ai.archSwapTimer <= 0 && m_level) {
             int ts = m_level->getTileSize();
@@ -1433,123 +1802,36 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
             ai.archSwapTimer = 4.0f * phaseCooldownMult;
         }
 
-        // --- Construct Beam (ranged) ---
+        // --- Construct Beam (telegraphed) ---
         ai.archConstructTimer -= dt;
-        if (ai.archConstructTimer <= 0 && dist < 350.0f) {
-            float damage = entity.getComponent<CombatComponent>().rangedAttack.damage;
-            Vec2 dir = (playerPos - pos).normalized();
-            auto& proj = entities.addEntity("projectile");
-            proj.dimension = entity.dimension;
-            proj.addComponent<TransformComponent>(pos.x - 6, pos.y - 6, 12, 12);
-            auto& ps = proj.addComponent<SpriteComponent>();
-            ps.setColor(80, 160, 255);
-            ps.renderLayer = 5;
-            auto& pp = proj.addComponent<PhysicsBody>();
-            pp.useGravity = false;
-            pp.velocity = dir * 220.0f;
-            auto& pc = proj.addComponent<ColliderComponent>();
-            pc.width = 10; pc.height = 10;
-            pc.layer = LAYER_PROJECTILE;
-            pc.mask = LAYER_TILE | LAYER_PLAYER;
-            pc.type = ColliderType::Trigger;
-            pc.onTrigger = [damage](Entity* self, Entity* other) {
-                if (other->hasComponent<HealthComponent>()) {
-                    other->getComponent<HealthComponent>().takeDamage(damage);
-                }
-                self->destroy();
-            };
-
-            AudioManager::instance().play(SFX::ArchBeam);
-            ai.archConstructTimer = 3.0f * phaseCooldownMult;
+        if (ai.archConstructTimer <= 0 && dist < 350.0f && ai.bossTelegraphAttack < 0) {
+            ai.bossTelegraphTimer = telegraphTime;
+            ai.bossTelegraphAttack = 1;
+            ai.bossTelegraphDir = (playerPos - pos).normalized();
+            AudioManager::instance().play(SFX::SniperTelegraph);
         }
 
-        // --- Dimensional Rift Zones (Phase 2+) ---
+        // --- Dimensional Rift Zones (Phase 2+, telegraphed) ---
         if (ai.bossPhase >= 2) {
             ai.archRiftTimer -= dt;
-            if (ai.archRiftTimer <= 0 && m_level) {
-                // Create rift zone: spike tiles around player area
-                int ts = m_level->getTileSize();
-                int cx = static_cast<int>(playerPos.x) / ts;
-                int cy = static_cast<int>(playerPos.y) / ts + 2; // Below player
-                for (int dx = -1; dx <= 1; dx++) {
-                    int tx = cx + dx;
-                    int ty = cy;
-                    if (!m_level->inBounds(tx, ty)) continue;
-                    Tile spikeTile;
-                    spikeTile.type = TileType::Spike;
-                    spikeTile.color = {200, 60, 120, 255}; // Rift spike color
-                    // Place in both dimensions so player can't dodge by switching
-                    m_level->setTile(tx, ty, 1, spikeTile);
-                    m_level->setTile(tx, ty, 2, spikeTile);
-                }
-                AudioManager::instance().play(SFX::ArchRiftOpen);
-                if (m_particles) {
-                    m_particles->burst({playerPos.x, playerPos.y + 64.0f}, 20, {255, 60, 100, 200}, 100.0f, 5.0f);
-                }
-                ai.archRiftTimer = 6.0f * phaseCooldownMult;
+            if (ai.archRiftTimer <= 0 && m_level && ai.bossTelegraphAttack < 0) {
+                ai.bossTelegraphTimer = telegraphTime;
+                ai.bossTelegraphAttack = 2;
+                ai.bossTelegraphDir = playerPos;
+                AudioManager::instance().play(SFX::CollapseWarning);
             }
         }
 
-        // --- Dimension Collapse (Phase 3) ---
+        // --- Dimension Collapse (Phase 3, telegraphed) ---
         if (ai.bossPhase >= 3) {
             ai.archCollapseTimer -= dt;
-            if (ai.archCollapseTimer <= 0 && m_level) {
-                // Large-scale tile swap across the whole arena
-                int ts = m_level->getTileSize();
-                int bx = static_cast<int>(pos.x) / ts;
-                int by = static_cast<int>(pos.y) / ts;
-                for (int tx = bx - 10; tx <= bx + 10; tx++) {
-                    for (int ty = by - 5; ty <= by + 5; ty++) {
-                        if (!m_level->inBounds(tx, ty)) continue;
-                        if (std::rand() % 3 == 0) continue; // Skip some for visual variety
-                        Tile tileA = m_level->getTile(tx, ty, 1);
-                        Tile tileB = m_level->getTile(tx, ty, 2);
-                        m_level->setTile(tx, ty, 1, tileB);
-                        m_level->setTile(tx, ty, 2, tileA);
-                    }
-                }
-                AudioManager::instance().play(SFX::ArchCollapse);
-                if (m_particles) {
-                    m_particles->burst(pos, 50, {180, 100, 255, 220}, 300.0f, 8.0f);
-                }
-                if (m_camera) {
-                    m_camera->shake(12.0f, 0.6f);
-                }
-                ai.archCollapseTimer = 12.0f * phaseCooldownMult;
+            if (ai.archCollapseTimer <= 0 && m_level && ai.bossTelegraphAttack < 0) {
+                ai.bossTelegraphTimer = telegraphTime;
+                ai.bossTelegraphAttack = 3;
+                AudioManager::instance().play(SFX::CollapseWarning);
+                if (m_camera) m_camera->shake(4.0f, 0.2f); // Pre-warning shake
             }
         }
-
-        // --- Construct Storm (Phase 3 extra projectiles on beam fire) ---
-        if (ai.bossPhase >= 3 && ai.archConstructTimer <= 0 && !ai.archConstructing) {
-            ai.archConstructing = true;
-            float stormDmg = entity.getComponent<CombatComponent>().rangedAttack.damage * 0.6f;
-            for (int i = -1; i <= 1; i += 2) {
-                float angle = std::atan2(playerPos.y - pos.y, playerPos.x - pos.x) + i * 0.4f;
-                Vec2 dir = {std::cos(angle), std::sin(angle)};
-                auto& proj = entities.addEntity("projectile");
-                proj.dimension = entity.dimension;
-                proj.addComponent<TransformComponent>(pos.x - 5, pos.y - 5, 10, 10);
-                auto& ps = proj.addComponent<SpriteComponent>();
-                ps.setColor(150, 100, 255);
-                ps.renderLayer = 5;
-                auto& pp = proj.addComponent<PhysicsBody>();
-                pp.useGravity = false;
-                pp.velocity = dir * 180.0f;
-                auto& pc = proj.addComponent<ColliderComponent>();
-                pc.width = 8; pc.height = 8;
-                pc.layer = LAYER_PROJECTILE;
-                pc.mask = LAYER_TILE | LAYER_PLAYER;
-                pc.type = ColliderType::Trigger;
-                pc.onTrigger = [stormDmg](Entity* self, Entity* other) {
-                    if (other->hasComponent<HealthComponent>()) {
-                        other->getComponent<HealthComponent>().takeDamage(stormDmg);
-                    }
-                    self->destroy();
-                };
-            }
-            AudioManager::instance().play(SFX::ArchConstruct);
-        }
-        if (ai.archConstructTimer > 1.0f) ai.archConstructing = false;
 
         // Movement: slow hover toward player, maintaining distance
         float idealDist = 180.0f;
@@ -1619,14 +1901,112 @@ void AISystem::updateTemporalWeaver(Entity& entity, float dt, Vec2 playerPos, En
 
     // Attack pattern timer
     ai.bossAttackTimer += dt;
+    float twTelegraphTime = 0.5f - (ai.bossPhase - 1) * 0.1f; // 0.5, 0.4, 0.3
 
-    // Phase 1: Time Slow Zones + Clock Hand Sweep + Chrono Shards
+    // --- Temporal Weaver Telegraph Processing ---
+    if (ai.bossTelegraphTimer > 0) {
+        ai.bossTelegraphTimer -= dt;
+        phys.velocity.x *= 0.8f;
+        phys.velocity.y *= 0.8f;
+
+        float telegraphMax = 0.5f - (ai.bossPhase - 1) * 0.1f;
+        float flashRate = 15.0f + (1.0f - ai.bossTelegraphTimer / telegraphMax) * 20.0f;
+        float flash = std::sin(ai.bossTelegraphTimer * flashRate) * 0.5f + 0.5f;
+
+        if (entity.hasComponent<SpriteComponent>()) {
+            auto& sprite = entity.getComponent<SpriteComponent>();
+            switch (ai.bossTelegraphAttack) {
+                case 1: sprite.setColor(static_cast<Uint8>(220 + 35 * flash), static_cast<Uint8>(180 + 40 * flash), static_cast<Uint8>(40 * flash)); break; // sweep: golden
+                case 2: sprite.setColor(static_cast<Uint8>(80 * flash), static_cast<Uint8>(180 + 75 * flash), 255); break; // rewind: cyan
+                case 3: sprite.setColor(static_cast<Uint8>(220 + 35 * flash), static_cast<Uint8>(100 * flash), static_cast<Uint8>(50 * flash)); break; // time stop: red-gold
+                default: break;
+            }
+        }
+
+        if (m_particles) {
+            SDL_Color warnColor;
+            switch (ai.bossTelegraphAttack) {
+                case 1: warnColor = {255, 200, 60, 200}; break;
+                case 2: warnColor = {80, 200, 255, 200}; break;
+                case 3: warnColor = {255, 120, 50, 200}; break;
+                default: warnColor = {255, 255, 255, 200};
+            }
+            for (int i = 0; i < 2; i++) {
+                float angle = (float)(rand() % 628) / 100.0f;
+                Vec2 offset = {std::cos(angle) * 35.0f, std::sin(angle) * 35.0f};
+                m_particles->burst(center + offset, 1, warnColor, 60.0f, 3.0f);
+            }
+        }
+
+        if (ai.bossTelegraphTimer <= 0) {
+            switch (ai.bossTelegraphAttack) {
+                case 1: {
+                    // Clock Hand Sweep - execute
+                    if (m_combatSystem) {
+                        Vec2 dir = ai.bossTelegraphDir;
+                        int shotCount = ai.bossPhase >= 3 ? 7 : (ai.bossPhase >= 2 ? 5 : 3);
+                        float spread = 0.4f;
+                        for (int i = 0; i < shotCount; i++) {
+                            float angleOff = (i - shotCount / 2.0f + 0.5f) * spread;
+                            Vec2 shotDir = {
+                                dir.x * std::cos(angleOff) - dir.y * std::sin(angleOff),
+                                dir.x * std::sin(angleOff) + dir.y * std::cos(angleOff)
+                            };
+                            m_combatSystem->createProjectile(entities, center, shotDir,
+                                entity.getComponent<CombatComponent>().rangedAttack.damage, 300.0f, entity.dimension);
+                        }
+                    }
+                    AudioManager::instance().play(SFX::BossMultiShot);
+                    if (m_particles) {
+                        m_particles->burst(center, 20, {255, 200, 80, 255}, 180.0f, 3.0f);
+                    }
+                    ai.twSweepTimer = (ai.bossPhase >= 2) ? 4.0f : 6.0f;
+                    break;
+                }
+                case 2: {
+                    // Time Rewind - execute
+                    float healAmount = hp.maxHP * 0.08f;
+                    hp.currentHP = std::min(hp.maxHP, hp.currentHP + healAmount);
+                    AudioManager::instance().play(SFX::RiftShieldActivate);
+                    if (m_particles) {
+                        m_particles->burst(center, 25, {100, 200, 255, 255}, 200.0f, 4.0f);
+                    }
+                    if (m_camera) m_camera->shake(6.0f, 0.3f);
+                    ai.twRewindTimer = 15.0f;
+                    break;
+                }
+                case 3: {
+                    // Time Stop - execute
+                    if (m_combatSystem) {
+                        for (int i = 0; i < 12; i++) {
+                            float angle = i * 6.283185f / 12.0f;
+                            Vec2 dir = {std::cos(angle), std::sin(angle)};
+                            m_combatSystem->createProjectile(entities, center, dir,
+                                entity.getComponent<CombatComponent>().rangedAttack.damage * 1.5f,
+                                200.0f, entity.dimension);
+                        }
+                    }
+                    AudioManager::instance().play(SFX::BossShieldBurst);
+                    if (m_particles) {
+                        m_particles->burst(center, 40, {255, 200, 50, 255}, 300.0f, 5.0f);
+                    }
+                    if (m_camera) m_camera->shake(12.0f, 0.4f);
+                    ai.twStopTimer = 8.0f;
+                    break;
+                }
+                default: break;
+            }
+            ai.bossTelegraphAttack = -1;
+        }
+        return; // Skip normal AI during telegraph
+    }
+
+    // Phase 1: Time Slow Zones (instant, no telegraph) + Clock Hand Sweep + Chrono Shards
     ai.twSlowZoneTimer -= dt;
     ai.twSweepTimer -= dt;
 
     if (ai.twSlowZoneTimer <= 0) {
         ai.twSlowZoneTimer = (ai.bossPhase >= 3) ? 3.0f : 5.0f;
-        // Spawn "slow zone" projectile at player position
         if (m_combatSystem) {
             Vec2 zonePos = playerPos;
             for (int i = 0; i < 4; i++) {
@@ -1641,68 +2021,35 @@ void AISystem::updateTemporalWeaver(Entity& entity, float dt, Vec2 playerPos, En
         }
     }
 
-    // Clock Hand Sweep: beam attack
-    if (ai.twSweepTimer <= 0) {
-        ai.twSweepTimer = (ai.bossPhase >= 2) ? 4.0f : 6.0f;
-        // Sweep ranged attack
-        if (m_combatSystem) {
-            Vec2 dir = {playerPos.x - center.x, playerPos.y - center.y};
-            float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
-            if (len > 0) dir = dir * (1.0f / len);
-            // Fan of projectiles
-            int shotCount = ai.bossPhase >= 3 ? 7 : (ai.bossPhase >= 2 ? 5 : 3);
-            float spread = 0.4f;
-            for (int i = 0; i < shotCount; i++) {
-                float angleOff = (i - shotCount / 2.0f + 0.5f) * spread;
-                Vec2 shotDir = {
-                    dir.x * std::cos(angleOff) - dir.y * std::sin(angleOff),
-                    dir.x * std::sin(angleOff) + dir.y * std::cos(angleOff)
-                };
-                m_combatSystem->createProjectile(entities, center, shotDir,
-                    entity.getComponent<CombatComponent>().rangedAttack.damage, 300.0f, entity.dimension);
-            }
-        }
-        AudioManager::instance().play(SFX::BossMultiShot);
-        if (m_particles) {
-            m_particles->burst(center, 20, {255, 200, 80, 255}, 180.0f, 3.0f);
-        }
+    // Clock Hand Sweep (telegraphed)
+    if (ai.twSweepTimer <= 0 && ai.bossTelegraphAttack < 0) {
+        Vec2 dir = {playerPos.x - center.x, playerPos.y - center.y};
+        float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+        if (len > 0) dir = dir * (1.0f / len);
+        ai.bossTelegraphTimer = twTelegraphTime;
+        ai.bossTelegraphAttack = 1;
+        ai.bossTelegraphDir = dir;
+        AudioManager::instance().play(SFX::SniperTelegraph);
     }
 
-    // Phase 2+: Time Rewind (partial heal)
+    // Phase 2+: Time Rewind (telegraphed)
     if (ai.bossPhase >= 2) {
         ai.twRewindTimer -= dt;
-        if (ai.twRewindTimer <= 0) {
-            ai.twRewindTimer = 15.0f;
-            float healAmount = hp.maxHP * 0.08f;
-            hp.currentHP = std::min(hp.maxHP, hp.currentHP + healAmount);
-            AudioManager::instance().play(SFX::RiftShieldActivate);
-            if (m_particles) {
-                m_particles->burst(center, 25, {100, 200, 255, 255}, 200.0f, 4.0f);
-            }
-            if (m_camera) m_camera->shake(6.0f, 0.3f);
+        if (ai.twRewindTimer <= 0 && ai.bossTelegraphAttack < 0) {
+            ai.bossTelegraphTimer = twTelegraphTime;
+            ai.bossTelegraphAttack = 2;
+            AudioManager::instance().play(SFX::CollapseWarning);
         }
     }
 
-    // Phase 3: Time Stop (freeze player briefly - represented by heavy slow projectiles)
+    // Phase 3: Time Stop (telegraphed)
     if (ai.bossPhase >= 3) {
         ai.twStopTimer -= dt;
-        if (ai.twStopTimer <= 0) {
-            ai.twStopTimer = 8.0f;
-            // Massive AoE burst
-            if (m_combatSystem) {
-                for (int i = 0; i < 12; i++) {
-                    float angle = i * 6.283185f / 12.0f;
-                    Vec2 dir = {std::cos(angle), std::sin(angle)};
-                    m_combatSystem->createProjectile(entities, center, dir,
-                        entity.getComponent<CombatComponent>().rangedAttack.damage * 1.5f,
-                        200.0f, entity.dimension);
-                }
-            }
-            AudioManager::instance().play(SFX::BossShieldBurst);
-            if (m_particles) {
-                m_particles->burst(center, 40, {255, 200, 50, 255}, 300.0f, 5.0f);
-            }
-            if (m_camera) m_camera->shake(12.0f, 0.4f);
+        if (ai.twStopTimer <= 0 && ai.bossTelegraphAttack < 0) {
+            ai.bossTelegraphTimer = twTelegraphTime;
+            ai.bossTelegraphAttack = 3;
+            AudioManager::instance().play(SFX::CollapseWarning);
+            if (m_camera) m_camera->shake(4.0f, 0.2f); // Pre-warning shake
         }
     }
 
@@ -1746,6 +2093,111 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
     float dist = distanceTo(pos, playerPos);
     ai.vsVoidKernPulse = std::fmod(ai.vsVoidKernPulse + dt * (2.0f + ai.bossPhase), 6.283185f);
 
+    // --- VoidSovereign Telegraph Processing ---
+    if (ai.bossTelegraphTimer > 0) {
+        ai.bossTelegraphTimer -= dt;
+        phys.velocity.x *= 0.7f;
+        phys.velocity.y *= 0.7f;
+
+        float telegraphMax = 0.6f - (ai.bossPhase - 1) * 0.1f;
+        float flashRate = 12.0f + (1.0f - ai.bossTelegraphTimer / telegraphMax) * 25.0f;
+        float flash = std::sin(ai.bossTelegraphTimer * flashRate) * 0.5f + 0.5f;
+
+        if (entity.hasComponent<SpriteComponent>()) {
+            auto& sprite = entity.getComponent<SpriteComponent>();
+            switch (ai.bossTelegraphAttack) {
+                case 1: sprite.setColor(200 + (int)(flash * 55), (int)(flash * 50), 150 + (int)(flash * 105)); break; // slam: red-purple
+                case 2: sprite.setColor(200 + (int)(flash * 55), 0, 200 + (int)(flash * 55)); break; // dimlock: magenta
+                case 3: sprite.setColor(150 + (int)(flash * 105), 0, 200 + (int)(flash * 55)); break; // laser: deep purple
+                case 4: sprite.setColor(100 + (int)(flash * 60), 0, 180 + (int)(flash * 75)); break; // storm: void purple
+                default: break;
+            }
+        }
+
+        if (m_particles) {
+            SDL_Color warnColor;
+            switch (ai.bossTelegraphAttack) {
+                case 1: warnColor = {255, 50, 150, 200}; break;
+                case 2: warnColor = {255, 0, 255, 200}; break;
+                case 3: warnColor = {200, 0, 255, 200}; break;
+                case 4: warnColor = {160, 0, 200, 200}; break;
+                default: warnColor = {255, 255, 255, 200};
+            }
+            for (int i = 0; i < 3; i++) {
+                float angle = (float)(rand() % 628) / 100.0f;
+                Vec2 offset = {std::cos(angle) * 40.0f, std::sin(angle) * 40.0f};
+                m_particles->burst(pos + offset, 1, warnColor, 70.0f, 3.0f);
+            }
+        }
+
+        if (ai.bossTelegraphTimer <= 0) {
+            switch (ai.bossTelegraphAttack) {
+                case 1: {
+                    // Rift Slam - execute
+                    ai.vsSlamTimer = 5.0f - ai.bossPhase * 0.6f;
+                    if (m_camera) m_camera->shake(12.0f, 0.4f);
+                    AudioManager::instance().play(SFX::VoidSovereignSlam);
+                    entities.forEach([&](Entity& target) {
+                        if (target.getTag() != "player") return;
+                        if (!target.hasComponent<TransformComponent>()) return;
+                        Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
+                        float d = distanceTo(pos, tPos);
+                        if (d < 150.0f) {
+                            if (target.hasComponent<HealthComponent>())
+                                target.getComponent<HealthComponent>().takeDamage(35.0f);
+                            if (target.hasComponent<PhysicsBody>()) {
+                                Vec2 knockDir = (tPos - pos).normalized();
+                                target.getComponent<PhysicsBody>().velocity += knockDir * 400.0f;
+                                target.getComponent<PhysicsBody>().velocity.y = -300.0f;
+                            }
+                        }
+                    });
+                    if (m_particles) {
+                        m_particles->burst(pos, 30, {150, 50, 200, 255}, 200.0f, 5.0f);
+                        for (int i = 0; i < 16; i++) {
+                            float angle = i * 6.283185f / 16.0f;
+                            Vec2 ring = {pos.x + std::cos(angle) * 75.0f, pos.y + std::sin(angle) * 75.0f};
+                            m_particles->burst(ring, 3, {100, 20, 160, 200}, 80.0f, 2.0f);
+                        }
+                    }
+                    break;
+                }
+                case 2: {
+                    // Dimension Lock - execute
+                    ai.vsDimLockTimer = 15.0f;
+                    ai.vsDimLockActive = 5.0f;
+                    if (m_particles) m_particles->burst(pos, 25, {200, 0, 200, 255}, 180.0f, 5.0f);
+                    if (m_camera) m_camera->shake(8.0f, 0.3f);
+                    AudioManager::instance().play(SFX::VoidSovereignDimLock);
+                    break;
+                }
+                case 3: {
+                    // Reality Tear laser - execute
+                    ai.vsLaserActive = true;
+                    ai.vsLaserTimer = 3.0f;
+                    ai.vsLaserAngle = std::atan2(playerPos.y - pos.y, playerPos.x - pos.x);
+                    AudioManager::instance().play(SFX::VoidSovereignLaser);
+                    break;
+                }
+                case 4: {
+                    // Void Storm - execute
+                    ai.vsStormTimer = 20.0f;
+                    ai.vsStormActive = 5.0f;
+                    ai.vsStormSafe1 = {playerPos.x + static_cast<float>((std::rand() % 200) - 100),
+                                        playerPos.y + static_cast<float>((std::rand() % 80) - 40)};
+                    ai.vsStormSafe2 = {playerPos.x + static_cast<float>((std::rand() % 200) - 100),
+                                        playerPos.y + static_cast<float>((std::rand() % 80) - 40)};
+                    if (m_camera) m_camera->shake(10.0f, 0.5f);
+                    AudioManager::instance().play(SFX::VoidSovereignStorm);
+                    break;
+                }
+                default: break;
+            }
+            ai.bossTelegraphAttack = -1;
+        }
+        return; // Skip normal AI during telegraph
+    }
+
     // Hover movement toward player
     float targetX = playerPos.x;
     float targetY = playerPos.y - 120.0f; // hover above
@@ -1765,7 +2217,7 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
 
     // --- Phase 1 attacks: Void Orbs + Rift Slam + Teleport ---
 
-    // Void Orbs (3 projectiles)
+    // Void Orbs (3 projectiles - no telegraph, frequent weak attack)
     ai.vsOrbTimer -= dt;
     if (ai.vsOrbTimer <= 0 && dist < 500.0f) {
         ai.vsOrbTimer = 3.0f - ai.bossPhase * 0.3f;
@@ -1788,37 +2240,13 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
         AudioManager::instance().play(SFX::VoidSovereignOrb);
     }
 
-    // Rift Slam (AoE 150px)
+    // Rift Slam (AoE 150px) - TELEGRAPH
     ai.vsSlamTimer -= dt;
     if (ai.vsSlamTimer <= 0 && dist < 200.0f) {
-        ai.vsSlamTimer = 5.0f - ai.bossPhase * 0.6f;
-        if (m_camera) m_camera->shake(12.0f, 0.4f);
-        AudioManager::instance().play(SFX::VoidSovereignSlam);
-        // AoE damage to player
-        entities.forEach([&](Entity& target) {
-            if (target.getTag() != "player") return;
-            if (!target.hasComponent<TransformComponent>()) return;
-            Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
-            float d = distanceTo(pos, tPos);
-            if (d < 150.0f) {
-                if (target.hasComponent<HealthComponent>()) {
-                    target.getComponent<HealthComponent>().takeDamage(35.0f);
-                }
-                if (target.hasComponent<PhysicsBody>()) {
-                    Vec2 knockDir = (tPos - pos).normalized();
-                    target.getComponent<PhysicsBody>().velocity += knockDir * 400.0f;
-                    target.getComponent<PhysicsBody>().velocity.y = -300.0f;
-                }
-            }
-        });
-        if (m_particles) {
-            m_particles->burst(pos, 30, {150, 50, 200, 255}, 200.0f, 5.0f);
-            for (int i = 0; i < 16; i++) {
-                float angle = i * 6.283185f / 16.0f;
-                Vec2 ring = {pos.x + std::cos(angle) * 75.0f, pos.y + std::sin(angle) * 75.0f};
-                m_particles->burst(ring, 3, {100, 20, 160, 200}, 80.0f, 2.0f);
-            }
-        }
+        float telegraphTime = 0.6f - (ai.bossPhase - 1) * 0.1f;
+        ai.bossTelegraphTimer = telegraphTime;
+        ai.bossTelegraphAttack = 1;
+        AudioManager::instance().play(SFX::CollapseWarning);
     }
 
     // Teleport
@@ -1842,13 +2270,11 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
     if (ai.bossPhase >= 2) {
         ai.vsDimLockTimer -= dt;
         if (ai.vsDimLockTimer <= 0 && ai.vsDimLockActive <= 0) {
-            ai.vsDimLockTimer = 15.0f;
-            ai.vsDimLockActive = 5.0f; // 5 second dimension lock
-            if (m_particles) {
-                m_particles->burst(pos, 25, {200, 0, 200, 255}, 180.0f, 5.0f);
-            }
-            if (m_camera) m_camera->shake(8.0f, 0.3f);
-            AudioManager::instance().play(SFX::VoidSovereignDimLock);
+            // Dimension Lock - TELEGRAPH
+            float telegraphTime = 0.6f - (ai.bossPhase - 1) * 0.1f;
+            ai.bossTelegraphTimer = telegraphTime;
+            ai.bossTelegraphAttack = 2;
+            AudioManager::instance().play(SFX::SniperTelegraph);
         }
         if (ai.vsDimLockActive > 0) {
             ai.vsDimLockActive -= dt;
@@ -1920,15 +2346,16 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
             ai.vsForceDimSwitch = true;
         }
 
-        // Reality Tear laser
+        // Reality Tear laser - TELEGRAPH
         if (!ai.vsLaserActive) {
             ai.vsLaserTimer -= dt;
         }
         if (ai.vsLaserTimer <= 0 && !ai.vsLaserActive) {
-            ai.vsLaserActive = true;
-            ai.vsLaserTimer = 3.0f; // laser duration
-            ai.vsLaserAngle = std::atan2(playerPos.y - pos.y, playerPos.x - pos.x);
-            AudioManager::instance().play(SFX::VoidSovereignLaser);
+            float telegraphTime = 0.6f - (ai.bossPhase - 1) * 0.1f;
+            ai.bossTelegraphTimer = telegraphTime;
+            ai.bossTelegraphAttack = 3;
+            ai.vsLaserTimer = 1.0f; // prevent re-trigger during telegraph
+            AudioManager::instance().play(SFX::SniperTelegraph);
         }
         if (ai.vsLaserActive) {
             ai.vsLaserAngle += dt * 1.5f; // slow sweep
@@ -1967,18 +2394,14 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
             }
         }
 
-        // Void Storm: periodic AoE with safe zones
+        // Void Storm: periodic AoE with safe zones - TELEGRAPH
         ai.vsStormTimer -= dt;
         if (ai.vsStormTimer <= 0 && ai.vsStormActive <= 0) {
-            ai.vsStormTimer = 20.0f;
-            ai.vsStormActive = 5.0f; // 5 second storm
-            // Place 2 safe zones near player area
-            ai.vsStormSafe1 = {playerPos.x + static_cast<float>((std::rand() % 200) - 100),
-                                playerPos.y + static_cast<float>((std::rand() % 80) - 40)};
-            ai.vsStormSafe2 = {playerPos.x + static_cast<float>((std::rand() % 200) - 100),
-                                playerPos.y + static_cast<float>((std::rand() % 80) - 40)};
-            if (m_camera) m_camera->shake(10.0f, 0.5f);
-            AudioManager::instance().play(SFX::VoidSovereignStorm);
+            float telegraphTime = 0.6f - (ai.bossPhase - 1) * 0.1f;
+            ai.bossTelegraphTimer = telegraphTime;
+            ai.bossTelegraphAttack = 4;
+            ai.vsStormTimer = 1.0f; // prevent re-trigger during telegraph
+            AudioManager::instance().play(SFX::CollapseWarning);
         }
         if (ai.vsStormActive > 0) {
             ai.vsStormActive -= dt;

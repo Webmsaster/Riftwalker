@@ -135,6 +135,11 @@ struct AIComponent : public Component {
     float bossShieldActiveTimer = 0; // remaining shield duration
     float bossTeleportTimer = 0;    // teleport cooldown
 
+    // Boss telegraph system
+    float bossTelegraphTimer = 0;      // countdown until telegraphed attack fires
+    int bossTelegraphAttack = -1;      // which attack pattern is being telegraphed (-1 = none)
+    Vec2 bossTelegraphDir;             // stored direction for telegraphed attack
+
     // Void Wyrm specific
     float wyrmOrbitAngle = 0;       // current orbit angle around player
     float wyrmOrbitRadius = 150.0f; // orbit distance
@@ -185,6 +190,14 @@ struct AIComponent : public Component {
     Vec2 vsStormSafe1;               // Void Storm safe zone 1
     Vec2 vsStormSafe2;               // Void Storm safe zone 2
     float vsVoidKernPulse = 0;       // Visual: pulsing core
+
+    // Spawn animation: brief invulnerability + flicker when enemy appears
+    float spawnTimer = 0;       // >0 = still spawning in (no AI, invulnerable, flickering)
+
+    // Dimension behavior modifiers (computed by AISystem each frame for dim-0 enemies)
+    float dimSpeedMod = 1.0f;   // Movement speed multiplier
+    float dimDamageMod = 1.0f;  // Damage multiplier
+    float dimDetectMod = 1.0f;  // Detection range multiplier
 
     // Juggle state
     float juggleTimer = 0;

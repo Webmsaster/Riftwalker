@@ -92,6 +92,12 @@ Entity& Enemy::createByType(EntityManager& entities, int type, Vec2 pos, int dim
         case EnemyType::Boss: e = &createBoss(entities, pos, dimension, 1); break;
         default: e = &createWalker(entities, pos, dimension); break;
     }
+    // Spawn animation: brief invulnerability + flicker
+    if (e && e->hasComponent<AIComponent>()) {
+        auto& ai = e->getComponent<AIComponent>();
+        bool isBoss = (static_cast<EnemyType>(type) == EnemyType::Boss);
+        ai.spawnTimer = isBoss ? 0.8f : 0.4f;
+    }
     return *e;
 }
 

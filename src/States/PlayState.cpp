@@ -314,6 +314,8 @@ void PlayState::spawnEnemies() {
     if (!m_spawnWaves.empty()) {
         for (auto& sp : m_spawnWaves[0]) {
             auto& e = Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
+            // Initial wave: no spawn flicker (enemies already present when level starts)
+            if (e.hasComponent<AIComponent>()) e.getComponent<AIComponent>().spawnTimer = 0;
             // Theme-specific variant: stat mods, element affinity, color tint
             applyThemeVariant(e, sp.dimension);
             // Elemental variant chance: 25% at difficulty 3+, only if theme didn't set element

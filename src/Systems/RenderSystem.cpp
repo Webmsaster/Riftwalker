@@ -94,6 +94,19 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
+    // Spawn-in flicker: enemies fade in with rapid flashing during spawn animation
+    if (tag.find("enemy") != std::string::npos && entity.hasComponent<AIComponent>()) {
+        float spawnT = entity.getComponent<AIComponent>().spawnTimer;
+        if (spawnT > 0) {
+            // Rapid flicker (on/off) that stabilizes as timer approaches 0
+            float flickerRate = 10.0f + spawnT * 30.0f; // faster flicker at start
+            bool visible = static_cast<int>(spawnT * flickerRate) % 2 == 0;
+            if (!visible) return; // skip rendering this frame (flicker off)
+            alpha *= (1.0f - spawnT * 1.5f); // fade in (0.4s -> starts at ~0.4 alpha)
+            alpha = std::max(alpha, 0.15f);   // never fully invisible
+        }
+    }
+
     // Hybrid rendering: try sprite first, fall back to procedural
     if (renderSprite(renderer, screenRect, entity, alpha)) {
         // Sprite rendered successfully — skip procedural, but still apply overlays below
