@@ -41,4 +41,8 @@ private:
     const CombatSystem* m_combatSystem = nullptr;
     int m_currentFloor = 1;
     int m_killCount = 0;
+
+    // Ability ready flash: brief glow when cooldown finishes
+    float m_abilityReadyFlash[4] = {};  // melee, ranged, dash, dim-switch
+    bool m_abilityWasOnCooldown[4] = {};
 };

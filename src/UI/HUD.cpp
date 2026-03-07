@@ -18,6 +18,9 @@
 
 void HUD::updateFlash(float dt) {
     if (m_damageFlash > 0) m_damageFlash -= dt;
+    for (int i = 0; i < 4; i++) {
+        if (m_abilityReadyFlash[i] > 0) m_abilityReadyFlash[i] -= dt;
+    }
 }
 
 void HUD::renderFlash(SDL_Renderer* renderer, int screenW, int screenH) {
@@ -430,6 +433,13 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         for (int i = 0; i < 4; i++) {
             int ix = margin + i * (iconSize + iconGap);
             bool ready = abilities[i].cooldownPct >= 1.0f;
+
+            // Detect cooldown-to-ready transition → trigger flash
+            if (ready && m_abilityWasOnCooldown[i]) {
+                m_abilityReadyFlash[i] = 0.35f;
+            }
+            m_abilityWasOnCooldown[i] = !ready;
+
             SDL_Color c = ready ? abilities[i].readyColor : SDL_Color{50, 50, 60, 200};
 
             // Icon background
@@ -483,6 +493,16 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             // Border (brighter when ready)
             SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(ready ? 180 : 60));
             SDL_RenderDrawRect(renderer, &bg);
+
+            // Ready flash: bright glow that fades out when ability comes off cooldown
+            if (m_abilityReadyFlash[i] > 0) {
+                float flashT = m_abilityReadyFlash[i] / 0.35f;
+                Uint8 flashA = static_cast<Uint8>(180 * flashT);
+                auto& rc = abilities[i].readyColor;
+                SDL_SetRenderDrawColor(renderer, rc.r, rc.g, rc.b, flashA);
+                SDL_Rect flashRect = {ix - 2, abY - 2, iconSize + 4, iconSize + 4};
+                SDL_RenderFillRect(renderer, &flashRect);
+            }
 
             // Key label below
             if (font) {
