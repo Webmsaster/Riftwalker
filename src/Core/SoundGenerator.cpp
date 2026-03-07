@@ -803,3 +803,14 @@ Mix_Chunk* SoundGenerator::loreDiscover() {
     addSine(s, 1568.0f, 0.05f, 0.0f, 0.4f, 0.8f);
     return toChunk(s);
 }
+
+Mix_Chunk* SoundGenerator::chargeReady() {
+    auto s = generate(0.2f);
+    // Brief ascending shimmer: two quick tones + sparkle
+    addSine(s, 880.0f, 0.0f, 0.3f, 0.0f, 0.05f);   // A5 quick rise
+    addSine(s, 880.0f, 0.3f, 0.0f, 0.05f, 0.12f);
+    addSine(s, 1320.0f, 0.0f, 0.25f, 0.04f, 0.1f);  // E6 shimmer
+    addSine(s, 1320.0f, 0.25f, 0.0f, 0.1f, 0.2f);
+    addSine(s, 1760.0f, 0.08f, 0.0f, 0.08f, 0.2f);  // A6 sparkle tail
+    return toChunk(s);
+}

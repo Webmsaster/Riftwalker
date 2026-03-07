@@ -589,6 +589,16 @@ void Player::handleAttack(const InputManager& input) {
             isChargingAttack = false;
             return;
         }
+        // Charge ready cue: play once when charge reaches minimum time
+        if (combat.chargeTimer >= combat.minChargeTime && !chargeReadyCued) {
+            chargeReadyCued = true;
+            AudioManager::instance().play(SFX::ChargeReady);
+            if (particles) {
+                auto& t = m_entity->getComponent<TransformComponent>();
+                // Bright inward-converging burst to signal "ready"
+                particles->burst(t.getCenter(), 14, {255, 230, 100, 255}, 80.0f, 2.0f);
+            }
+        }
         // Charge particles while holding
         if (particles && combat.chargeTimer >= combat.minChargeTime) {
             auto& t = m_entity->getComponent<TransformComponent>();
@@ -655,6 +665,7 @@ void Player::handleAttack(const InputManager& input) {
         && combat.cooldownTimer <= 0 && !isDashing) {
         combat.startCharging();
         isChargingAttack = true;
+        chargeReadyCued = false;
     }
 
     if (input.isActionPressed(Action::RangedAttack)) {

@@ -33,6 +33,7 @@ enum class SFX {
     VoidSovereignOrb, VoidSovereignSlam, VoidSovereignTeleport,
     VoidSovereignDimLock, VoidSovereignStorm, VoidSovereignLaser,
     LoreDiscover,
+    ChargeReady,
     COUNT
 };
 

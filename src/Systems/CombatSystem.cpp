@@ -1281,6 +1281,14 @@ void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
                         finalDmg, isPlayerDamage, false
                     });
                 }
+                // Impact particles at hit location
+                if (cs->m_particles && self->hasComponent<TransformComponent>()) {
+                    Vec2 hitPos = self->getComponent<TransformComponent>().getCenter();
+                    SDL_Color col = {255, 230, 100, 255};
+                    if (self->hasComponent<SpriteComponent>())
+                        col = self->getComponent<SpriteComponent>().color;
+                    cs->m_particles->burst(hitPos, 6, col, 120.0f, 2.5f);
+                }
             }
         }
         // Piercing projectiles pass through enemies (still destroyed by tiles)

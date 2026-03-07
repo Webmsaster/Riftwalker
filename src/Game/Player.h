@@ -85,6 +85,9 @@ public:
     float attackLungeTimer = 0;
     float attackLungeDir = 0; // +1.0 or -1.0
 
+    // Charge attack ready cue (played once when charge reaches min time)
+    bool chargeReadyCued = false;
+
     ParticleSystem* particles = nullptr;
     bool wasInAir = false;
 

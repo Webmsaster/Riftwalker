@@ -932,6 +932,19 @@ void PlayState::update(float dt) {
         m_wallSlideDustTimer = 0;
     }
 
+    // Projectile terrain impact: particles where projectiles hit walls
+    for (auto& impact : m_physics.getProjectileImpacts()) {
+        // Directional burst away from wall (opposite of projectile velocity)
+        float speed = Vec2(impact.velocity.x, impact.velocity.y).length();
+        if (speed > 0.01f) {
+            float dirRad = std::atan2(-impact.velocity.y, -impact.velocity.x);
+            float dirDeg = dirRad * 180.0f / 3.14159f;
+            m_particles.directionalBurst(impact.position, 8, impact.color, dirDeg, 90.0f, 100.0f, 2.5f);
+        } else {
+            m_particles.burst(impact.position, 8, impact.color, 100.0f, 2.5f);
+        }
+    }
+
     // Enemy wall impact: bounce particles + bonus damage + SFX
     m_entities.forEach([&](Entity& e) {
         if (e.getTag().find("enemy") == std::string::npos) return;

@@ -2,11 +2,13 @@
 #include "Components/TransformComponent.h"
 #include "Components/PhysicsBody.h"
 #include "Components/ColliderComponent.h"
+#include "Components/SpriteComponent.h"
 #include "Game/Level.h"
 #include <algorithm>
 #include <cmath>
 
 void PhysicsSystem::update(EntityManager& entities, float dt, Level* level, int currentDimension) {
+    m_projectileImpacts.clear();
     auto ents = entities.getEntitiesWithComponent<PhysicsBody>();
     for (auto* e : ents) {
         if (!e->hasComponent<TransformComponent>()) continue;
@@ -176,7 +178,32 @@ void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int cu
                 continue;
             }
 
-            if (std::abs(minOverlapX) < std::abs(minOverlapY)) {
+            // Projectile terrain hit: destroy immediately with impact effect
+            if (entity.getTag() == "projectile") {
+                SDL_Color col = {255, 230, 100, 255};
+                if (entity.hasComponent<SpriteComponent>())
+                    col = entity.getComponent<SpriteComponent>().color;
+                m_projectileImpacts.push_back({transform.getCenter(), phys.velocity, col});
+                entity.destroy();
+                return;
+            }
+
+            // Corner correction: when player jumps upward and clips a ceiling tile
+            // corner by only a few pixels, nudge horizontally instead of killing
+            // vertical momentum. Makes platforming feel much fairer.
+            const float cornerCorrectionThreshold = 6.0f;
+            bool doCeilingCornerCorrection = false;
+            if (std::abs(minOverlapX) >= std::abs(minOverlapY) &&
+                minOverlapY > 0 && phys.velocity.y < 0 &&
+                entity.getTag() == "player" &&
+                std::abs(minOverlapX) <= cornerCorrectionThreshold) {
+                doCeilingCornerCorrection = true;
+            }
+
+            if (doCeilingCornerCorrection) {
+                // Nudge player horizontally past the tile edge, preserve jump
+                transform.position.x += minOverlapX;
+            } else if (std::abs(minOverlapX) < std::abs(minOverlapY)) {
                 transform.position.x += minOverlapX;
                 if (minOverlapX < 0) phys.onWallRight = true;
                 else phys.onWallLeft = true;
