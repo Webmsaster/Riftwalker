@@ -38,6 +38,9 @@ struct FloatingDamageNumber {
     bool isPlayerDamage;
     bool isCritical = false;
     bool isHeal = false;
+    bool isShard = false;
+    bool isBuff = false;
+    const char* buffText = nullptr; // label for buff pickups
 };
 
 class PlayState : public GameState {

@@ -102,6 +102,7 @@ Entity& ItemDrop::spawnShieldOrb(EntityManager& entities, Vec2 pos, int dimensio
         if (other->getTag() == "player" && player) {
             player->hasShield = true;
             player->shieldTimer = 8.0f;
+            player->pickupShieldPending = true;
             AudioManager::instance().play(SFX::Pickup);
             self->destroy();
         }
@@ -134,6 +135,7 @@ Entity& ItemDrop::spawnSpeedBoost(EntityManager& entities, Vec2 pos, int dimensi
     col.onTrigger = [player](Entity* self, Entity* other) {
         if (other->getTag() == "player" && player) {
             player->speedBoostTimer = 6.0f;
+            player->pickupSpeedPending = true;
             AudioManager::instance().play(SFX::Pickup);
             self->destroy();
         }
@@ -166,6 +168,7 @@ Entity& ItemDrop::spawnDamageBoost(EntityManager& entities, Vec2 pos, int dimens
     col.onTrigger = [player](Entity* self, Entity* other) {
         if (other->getTag() == "player" && player) {
             player->damageBoostTimer = 8.0f;
+            player->pickupDamagePending = true;
             AudioManager::instance().play(SFX::Pickup);
             self->destroy();
         }

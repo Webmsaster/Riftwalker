@@ -1597,6 +1597,47 @@ void PlayState::update(float dt) {
         shardsCollected += finalShards;
         game->getUpgradeSystem().addRiftShards(finalShards);
         m_player->riftShardsCollected = 0;
+
+        // Pickup feedback: purple particles + floating shard count
+        Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        m_particles.burst(pPos, 6, {180, 130, 255, 220}, 60.0f, 2.5f);
+        FloatingDamageNumber num;
+        num.position = {pPos.x + (std::rand() % 10 - 5.0f), pPos.y - 10.0f};
+        num.value = static_cast<float>(finalShards);
+        num.isShard = true;
+        num.lifetime = 0.9f;
+        num.maxLifetime = 0.9f;
+        num.isPlayerDamage = false;
+        m_damageNumbers.push_back(num);
+    }
+
+    // Consume buff pickup effects (shield/speed/damage)
+    if (m_player) {
+        Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        auto emitBuffPickup = [&](SDL_Color color, const char* label) {
+            m_particles.burst(pPos, 10, color, 80.0f, 3.0f);
+            FloatingDamageNumber num;
+            num.position = {pPos.x, pPos.y - 16.0f};
+            num.value = 0;
+            num.isBuff = true;
+            num.buffText = label;
+            num.lifetime = 1.2f;
+            num.maxLifetime = 1.2f;
+            num.isPlayerDamage = false;
+            m_damageNumbers.push_back(num);
+        };
+        if (m_player->pickupShieldPending) {
+            emitBuffPickup({100, 180, 255, 220}, "SHIELD");
+            m_player->pickupShieldPending = false;
+        }
+        if (m_player->pickupSpeedPending) {
+            emitBuffPickup({255, 255, 80, 220}, "SPEED UP");
+            m_player->pickupSpeedPending = false;
+        }
+        if (m_player->pickupDamagePending) {
+            emitBuffPickup({255, 80, 80, 220}, "DMG UP");
+            m_player->pickupDamagePending = false;
+        }
     }
 
     // Consume kill tracking from combat system
@@ -3180,9 +3221,13 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
         float t = dn.lifetime / dn.maxLifetime; // 1.0 → 0.0
         Uint8 alpha = static_cast<Uint8>(255 * t);
 
-        // Color: green for heals, red for player damage, orange for crits, yellow for normal
+        // Color: green for heals, purple for shards, cyan for buffs, red for player damage, orange for crits, yellow for normal
         SDL_Color color;
-        if (dn.isHeal) {
+        if (dn.isShard) {
+            color = {200, 150, 255, alpha};
+        } else if (dn.isBuff) {
+            color = {100, 220, 255, alpha};
+        } else if (dn.isHeal) {
             color = {50, 255, 80, alpha};
         } else if (dn.isPlayerDamage) {
             color = {255, 60, 40, alpha};
@@ -3193,7 +3238,11 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
         }
 
         char buf[32];
-        if (dn.isHeal) {
+        if (dn.isShard) {
+            std::snprintf(buf, sizeof(buf), "+%.0f", dn.value);
+        } else if (dn.isBuff && dn.buffText) {
+            std::snprintf(buf, sizeof(buf), "%s", dn.buffText);
+        } else if (dn.isHeal) {
             std::snprintf(buf, sizeof(buf), "+%.0f", dn.value);
         } else if (dn.isCritical) {
             std::snprintf(buf, sizeof(buf), "CRIT! %.0f", dn.value);

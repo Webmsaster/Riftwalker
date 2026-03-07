@@ -96,6 +96,11 @@ public:
     float speedBoostMultiplier = 1.5f;
     float damageBoostMultiplier = 1.5f;
 
+    // Pickup effect flags (consumed by PlayState for particles)
+    bool pickupShieldPending = false;
+    bool pickupSpeedPending = false;
+    bool pickupDamagePending = false;
+
     // Ability state
     float slamFallStartY = 0;    // Y when slam initiated
     float phaseTintTimer = 0;    // visual tint after phase strike
