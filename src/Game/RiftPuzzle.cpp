@@ -233,7 +233,7 @@ void RiftPuzzle::render(SDL_Renderer* renderer, int screenW, int screenH) {
     SDL_RenderDrawRect(renderer, &frame);
 
     // Timer bar
-    float timePercent = 1.0f - m_timer / m_timeLimit;
+    float timePercent = 1.0f - m_timer / std::max(0.01f, m_timeLimit);
     SDL_Rect timerBar = {cx - frameW / 2 + 5, cy - frameH / 2 + 5,
                          static_cast<int>((frameW - 10) * timePercent), 6};
     Uint8 timerR = static_cast<Uint8>(255 * (1.0f - timePercent));

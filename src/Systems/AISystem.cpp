@@ -1007,7 +1007,7 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
         ai.facingRight = playerPos.x > pos.x;
 
         // Visual warning: pulsing color + particles
-        float telegraphMax = 0.5f - (ai.bossPhase - 1) * 0.1f;
+        float telegraphMax = std::max(0.1f, 0.5f - (ai.bossPhase - 1) * 0.1f);
         float flashRate = 15.0f + (1.0f - ai.bossTelegraphTimer / telegraphMax) * 20.0f;
         float flash = std::sin(ai.bossTelegraphTimer * flashRate) * 0.5f + 0.5f;
 
@@ -1306,7 +1306,7 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityMa
         phys.velocity.x *= 0.8f;
         phys.velocity.y *= 0.8f;
 
-        float telegraphMax = 0.5f - (ai.bossPhase - 1) * 0.1f;
+        float telegraphMax = std::max(0.1f, 0.5f - (ai.bossPhase - 1) * 0.1f);
         float flashRate = 15.0f + (1.0f - ai.bossTelegraphTimer / telegraphMax) * 20.0f;
         float flash = std::sin(ai.bossTelegraphTimer * flashRate) * 0.5f + 0.5f;
 
@@ -1666,7 +1666,7 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
         phys.velocity.x *= 0.8f;
         phys.velocity.y *= 0.8f;
 
-        float telegraphMax = 0.6f - (ai.bossPhase - 1) * 0.1f;
+        float telegraphMax = std::max(0.1f, 0.6f - (ai.bossPhase - 1) * 0.1f);
         float flashRate = 12.0f + (1.0f - ai.bossTelegraphTimer / telegraphMax) * 25.0f;
         float flash = std::sin(ai.bossTelegraphTimer * flashRate) * 0.5f + 0.5f;
 
@@ -1962,7 +1962,7 @@ void AISystem::updateTemporalWeaver(Entity& entity, float dt, Vec2 playerPos, En
         phys.velocity.x *= 0.8f;
         phys.velocity.y *= 0.8f;
 
-        float telegraphMax = 0.5f - (ai.bossPhase - 1) * 0.1f;
+        float telegraphMax = std::max(0.1f, 0.5f - (ai.bossPhase - 1) * 0.1f);
         float flashRate = 15.0f + (1.0f - ai.bossTelegraphTimer / telegraphMax) * 20.0f;
         float flash = std::sin(ai.bossTelegraphTimer * flashRate) * 0.5f + 0.5f;
 
@@ -2152,7 +2152,7 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
         phys.velocity.x *= 0.7f;
         phys.velocity.y *= 0.7f;
 
-        float telegraphMax = 0.6f - (ai.bossPhase - 1) * 0.1f;
+        float telegraphMax = std::max(0.1f, 0.6f - (ai.bossPhase - 1) * 0.1f);
         float flashRate = 12.0f + (1.0f - ai.bossTelegraphTimer / telegraphMax) * 25.0f;
         float flash = std::sin(ai.bossTelegraphTimer * flashRate) * 0.5f + 0.5f;
 

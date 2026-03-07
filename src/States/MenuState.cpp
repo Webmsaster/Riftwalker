@@ -258,7 +258,7 @@ void MenuState::render(SDL_Renderer* renderer) {
 
     // Background particles
     for (auto& p : m_bgParticles) {
-        float alpha = 1.0f - (p.life / p.maxLife);
+        float alpha = 1.0f - (p.life / std::max(0.01f, p.maxLife));
         Uint8 pa = static_cast<Uint8>(alpha * 140);
         int size = static_cast<int>(p.size * alpha);
         if (size < 1) size = 1;

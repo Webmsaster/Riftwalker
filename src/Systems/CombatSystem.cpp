@@ -129,6 +129,11 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                         target.destroy();
                         if (m_particles) {
                             m_particles->burst(tt.getCenter(), 25, {255, 180, 60, 255}, 200.0f, 4.0f);
+                            // Slam death launch: burst left+right from impact
+                            m_particles->directionalBurst(tt.getCenter(), 8, {255, 200, 80, 255},
+                                                           0.0f, 60.0f, 280.0f, 3.0f);
+                            m_particles->directionalBurst(tt.getCenter(), 8, {255, 200, 80, 255},
+                                                           180.0f, 60.0f, 280.0f, 3.0f);
                         }
                     }
                 }
@@ -263,6 +268,14 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                 deathColor = e.getComponent<SpriteComponent>().color;
             }
             m_particles->burst(deathPos, 25, deathColor, 200.0f, 4.0f);
+            // Death launch: directional burst away from player
+            if (m_player && m_player->getEntity()->hasComponent<TransformComponent>()) {
+                Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                float dx = deathPos.x - pPos.x;
+                float launchDir = dx >= 0 ? 0.0f : 180.0f;
+                m_particles->directionalBurst(deathPos, 10, deathColor,
+                                               launchDir, 45.0f, 250.0f, 3.5f);
+            }
         }
         if (m_camera) m_camera->shake(8.0f, 0.2f);
         e.destroy();
@@ -1199,6 +1212,17 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 target.destroy();
                 if (m_particles) {
                     m_particles->burst(targetCenter, 25, deathColor, 200.0f, 4.0f);
+                    // Death launch: directional burst in kill direction
+                    if (isPlayer) {
+                        float launchDir = combat.attackDirection.x >= 0 ? 0.0f : 180.0f;
+                        // Bias upward for charged/dash kills
+                        if (isChargedAttack) launchDir += (combat.attackDirection.x >= 0 ? -30.0f : 30.0f);
+                        else if (isDashAttack) launchDir += (combat.attackDirection.x >= 0 ? -15.0f : 15.0f);
+                        int launchCount = wasMB ? 20 : (wasElite ? 15 : 10);
+                        float launchSpeed = wasMB ? 350.0f : (wasElite ? 300.0f : 250.0f);
+                        m_particles->directionalBurst(targetCenter, launchCount, deathColor,
+                                                       launchDir, 45.0f, launchSpeed, 3.5f);
+                    }
                 }
                 // Bigger shake on kill (extra for mini-bosses and elites)
                 if (m_camera && isPlayer) {

@@ -415,9 +415,9 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             : 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.meleeAttack.cooldown));
         float rangedPct = (combat.cooldownTimer <= 0) ? 1.0f
             : 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.rangedAttack.cooldown));
-        float dashPct = 1.0f - (player->dashCooldownTimer / player->dashCooldown);
+        float dashPct = 1.0f - (player->dashCooldownTimer / std::max(0.01f, player->dashCooldown));
         if (dashPct > 1.0f) dashPct = 1.0f;
-        float dimPct = dimMgr ? 1.0f - (dimMgr->getCooldownTimer() / dimMgr->switchCooldown) : 1.0f;
+        float dimPct = dimMgr ? 1.0f - (dimMgr->getCooldownTimer() / std::max(0.01f, dimMgr->switchCooldown)) : 1.0f;
         if (dimPct > 1.0f) dimPct = 1.0f;
 
         AbilityInfo abilities[4] = {
@@ -501,7 +501,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
         auto drawBuff = [&](const char* label, float timer, float maxTime, SDL_Color color) {
             if (timer <= 0) return;
-            float pct = timer / maxTime;
+            float pct = timer / std::max(0.01f, maxTime);
             // Background
             SDL_SetRenderDrawColor(renderer, 10, 10, 20, 180);
             SDL_Rect bg = {buffX, buffY, buffSize, buffSize};
@@ -661,7 +661,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                        {comboColor.r, comboColor.g, comboColor.b, 180});
 
             // Combo timer bar (shrinking)
-            float timerPct = combat.comboTimer / combat.comboWindow;
+            float timerPct = combat.comboTimer / std::max(0.01f, combat.comboWindow);
             int barW = 80;
             int barX = screenW / 2 - barW / 2;
             SDL_Rect timerBg = {barX, comboY + 42, barW, 4};
