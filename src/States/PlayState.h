@@ -116,6 +116,10 @@ private:
     float m_hitFreezeTimer = 0;
     float m_spikeDmgCooldown = 0;
 
+    // Wave/area clear celebration
+    float m_waveClearTimer = 0;       // text overlay duration (2s)
+    bool m_waveClearTriggered = false; // prevent re-trigger until new enemies spawn
+
     // Death sequence: brief dramatic pause before endRun
     bool m_playerDying = false;
     float m_deathSequenceTimer = 0;

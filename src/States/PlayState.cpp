@@ -176,6 +176,8 @@ void PlayState::startNewRun() {
     m_aiSystem.setCombatSystem(&m_combatSystem);
     m_hitFreezeTimer = 0;
     m_spikeDmgCooldown = 0;
+    m_waveClearTriggered = false;
+    m_waveClearTimer = 0;
     m_playerDying = false;
     m_deathSequenceTimer = 0;
 
@@ -295,6 +297,8 @@ void PlayState::spawnEnemies() {
     m_currentWave = 0;
     m_waveTimer = 0;
     m_waveActive = false;
+    m_waveClearTriggered = false;
+    m_waveClearTimer = 0;
 
     int waveSize = 3 + (m_currentDifficulty > 3 ? 2 : m_currentDifficulty > 1 ? 1 : 0);
     std::vector<Level::SpawnPoint> wave;
@@ -997,6 +1001,28 @@ void PlayState::update(float dt) {
             AudioManager::instance().play(SFX::PlayerHurt);
         }
     }
+
+    // Wave/area clear celebration: all waves spawned + all enemies dead
+    if (m_combatSystem.killCount > 0 && !m_isBossLevel && !m_waveClearTriggered) {
+        int aliveAfterCombat = 0;
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag().find("enemy") != std::string::npos) aliveAfterCombat++;
+        });
+        if (aliveAfterCombat == 0 && m_currentWave >= static_cast<int>(m_spawnWaves.size())) {
+            m_waveClearTriggered = true;
+            m_waveClearTimer = 2.0f;
+            m_combatSystem.addHitFreeze(0.15f);
+            m_camera.shake(10.0f, 0.3f);
+            AudioManager::instance().play(SFX::ShrineBlessing);
+            if (m_player) {
+                Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                m_particles.burst(pPos, 40, {255, 215, 0, 255}, 300.0f, 5.0f);
+                m_particles.burst(pPos, 20, {255, 255, 200, 255}, 200.0f, 4.0f);
+            }
+        }
+    }
+    if (m_waveClearTimer > 0) m_waveClearTimer -= dt;
+
     updateDamageNumbers(dt);
 
     // Combo milestone check (3x, 5x, 7x, 10x)
@@ -2308,6 +2334,45 @@ void PlayState::render(SDL_Renderer* renderer) {
 
     // Damage flash overlay
     m_hud.renderFlash(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    // Wave/area clear celebration text
+    if (m_waveClearTimer > 0 && game->getFont()) {
+        float t = m_waveClearTimer / 2.0f; // 1.0 → 0.0
+        // Fade in fast (first 0.3s), then hold, then fade out (last 0.5s)
+        float alpha;
+        if (t > 0.85f) alpha = (1.0f - t) / 0.15f; // fade in
+        else if (t < 0.25f) alpha = t / 0.25f;       // fade out
+        else alpha = 1.0f;                             // hold
+        Uint8 a = static_cast<Uint8>(alpha * 255);
+
+        // Gold text "AREA CLEARED"
+        SDL_Color gold = {255, 215, 0, a};
+        SDL_Surface* surf = TTF_RenderText_Blended(game->getFont(), "AREA CLEARED", gold);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+            if (tex) {
+                // Scale up with slight pulse
+                float pulse = 1.0f + 0.05f * std::sin(m_waveClearTimer * 8.0f);
+                float scale = 2.0f * pulse;
+                int w = static_cast<int>(surf->w * scale);
+                int h = static_cast<int>(surf->h * scale);
+                SDL_Rect dst = {SCREEN_WIDTH / 2 - w / 2, SCREEN_HEIGHT / 3 - h / 2, w, h};
+                SDL_SetTextureAlphaMod(tex, a);
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(surf);
+        }
+
+        // Subtle gold line underneath
+        if (a > 30) {
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            int lineW = static_cast<int>(200 * alpha);
+            SDL_SetRenderDrawColor(renderer, 255, 215, 0, static_cast<Uint8>(a * 0.5f));
+            SDL_Rect line = {SCREEN_WIDTH / 2 - lineW / 2, SCREEN_HEIGHT / 3 + 14, lineW, 2};
+            SDL_RenderFillRect(renderer, &line);
+        }
+    }
 
     // HUD (on top of everything)
     m_hud.setFloor(m_currentDifficulty);
