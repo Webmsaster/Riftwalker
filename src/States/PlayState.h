@@ -57,6 +57,7 @@ private:
     void startNewRun();
     void generateLevel();
     void spawnEnemies();
+    void applyThemeVariant(Entity& e, int dimension);
     void handlePuzzleInput(int action);
     void checkRiftInteraction();
     void checkExitReached();
@@ -113,6 +114,12 @@ private:
     // Combat feel
     float m_hitFreezeTimer = 0;
     float m_spikeDmgCooldown = 0;
+
+    // Death sequence: brief dramatic pause before endRun
+    bool m_playerDying = false;
+    float m_deathSequenceTimer = 0;
+    float m_deathSequenceDuration = 1.2f; // seconds of death freeze
+    float m_achievementShardMult = 1.0f; // Achievement shard drop bonus
     int m_lastComboMilestone = 0;
     float m_comboMilestoneFlash = 0;
 
@@ -142,6 +149,12 @@ private:
     bool m_hasAttackedThisRun = false;
     int m_dashCount = 0; // for dash master achievement
 
+    // Skill achievement tracking (per-run)
+    int m_aerialKillsThisRun = 0;
+    int m_dashKillsThisRun = 0;
+    int m_chargedKillsThisRun = 0;
+    bool m_tookDamageThisLevel = false;
+
     // Teleporter cooldown (reset per run)
     float m_teleportCooldown = 0;
 
@@ -152,6 +165,8 @@ private:
     // Secret rooms & events
     void checkBreakableWalls();
     void checkSecretRoomDiscovery();
+    void updateSecretRoomHints(float dt);
+    float m_secretHintTimer = 0;
     void checkEventInteraction();
     void renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font);
     int m_nearEventIndex = -1;
@@ -180,10 +195,48 @@ private:
     void applyChallengeModifiers();   // Apply at run start
     void renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font);
 
+    // Combat Challenges (per-room micro-goals)
+    enum class CombatChallengeType {
+        AerialKill,       // Kill enemy while airborne
+        MultiKill,        // Kill 3+ enemies within 4 seconds
+        DashKill,         // Kill with dash attack
+        ComboFinisher,    // Kill with 3rd melee combo hit
+        ChargedKill,      // Kill with charged attack
+        NoDamageWave,     // Survive current wave without taking damage
+        COUNT
+    };
+    struct CombatChallenge {
+        CombatChallengeType type = CombatChallengeType::AerialKill;
+        const char* name = "";
+        const char* desc = "";
+        int targetCount = 1;
+        int currentCount = 0;
+        float timer = -1;       // countdown for timed challenges
+        float maxTimer = -1;
+        int shardReward = 25;
+        bool active = false;
+        bool completed = false;
+    };
+    CombatChallenge m_combatChallenge;
+    float m_challengeCompleteTimer = 0;  // show completion popup
+    int m_challengesCompleted = 0;
+    bool m_tookDamageThisWave = false;
+    void startCombatChallenge();
+    void updateCombatChallenge(float dt);
+    void renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font);
+
     // NPC system
     int m_nearNPCIndex = -1;
     bool m_showNPCDialog = false;
     int m_npcDialogChoice = 0;
+    bool m_echoSpawned = false;     // Echo of Self mirror enemy spawned
+    bool m_echoRewarded = false;    // Reward already given
+    int m_npcStoryProgress[static_cast<int>(NPCType::COUNT)] = {}; // per-type encounter count this run
+    int getNPCStoryStage(NPCType type) const {
+        int idx = static_cast<int>(type);
+        return (idx >= 0 && idx < static_cast<int>(NPCType::COUNT)) ?
+            std::min(m_npcStoryProgress[idx], 2) : 0;
+    }
     void checkNPCInteraction();
     void renderNPCs(SDL_Renderer* renderer, TTF_Font* font);
     void renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font);
@@ -250,6 +303,19 @@ private:
     float m_ptBestDistToTarget = 99999.0f;
     int m_ptNoProgressSkips = 0;
     int m_ptSkipRiftMask = 0;
+
+    // Event chains (multi-level quest lines)
+    EventChain m_eventChain;
+    bool m_chainEventSpawned = false;   // Chain event placed this level
+    int m_chainEventIndex = -1;         // Index in level's random events
+    float m_chainNotifyTimer = 0;       // Stage advance notification
+    float m_chainRewardTimer = 0;       // Completion reward popup
+    int m_chainRewardShards = 0;
+    void updateEventChain(float dt);
+    void spawnChainEvent();
+    void advanceChain();
+    void completeChain();
+    void renderEventChain(SDL_Renderer* renderer, TTF_Font* font);
 
     // Visual polish (Stufe 4)
     TrailSystem m_trails;

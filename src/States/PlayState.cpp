@@ -7,6 +7,7 @@
 #include "Components/PhysicsBody.h"
 #include "Game/Tile.h"
 #include "Components/AIComponent.h"
+#include "Components/SpriteComponent.h"
 #include "Components/AbilityComponent.h"
 #include "Core/AudioManager.h"
 #include "Game/AchievementSystem.h"
@@ -110,6 +111,10 @@ void PlayState::startNewRun() {
     m_hasDashedThisRun = false;
     m_hasAttackedThisRun = false;
     m_dashCount = 0;
+    m_aerialKillsThisRun = 0;
+    m_dashKillsThisRun = 0;
+    m_chargedKillsThisRun = 0;
+    m_tookDamageThisLevel = false;
     m_pendingLevelGen = false;
     m_showRelicChoice = false;
     m_relicChoices.clear();
@@ -121,8 +126,29 @@ void PlayState::startNewRun() {
     m_nearNPCIndex = -1;
     m_showNPCDialog = false;
     m_npcDialogChoice = 0;
+    m_echoSpawned = false;
+    m_echoRewarded = false;
+    std::memset(m_npcStoryProgress, 0, sizeof(m_npcStoryProgress));
+    m_combatChallenge = {};
+    m_challengeCompleteTimer = 0;
+    m_challengesCompleted = 0;
+    m_tookDamageThisWave = false;
     m_balanceStats = {};
     m_combatSystem.voidResonanceProcs = 0;
+
+    // Event chain: 30% chance to start a chain per run
+    m_eventChain = {};
+    m_chainEventSpawned = false;
+    m_chainEventIndex = -1;
+    m_chainNotifyTimer = 0;
+    m_chainRewardTimer = 0;
+    m_chainRewardShards = 0;
+    if (std::rand() % 100 < 30) {
+        m_eventChain.type = static_cast<EventChainType>(std::rand() % static_cast<int>(EventChainType::COUNT));
+        m_eventChain.stage = 1;
+        m_eventChain.startLevel = 1;
+        m_chainNotifyTimer = 4.0f; // Show intro notification
+    }
 
     // Reset run buffs
     game->getRunBuffSystem().reset();
@@ -138,6 +164,7 @@ void PlayState::startNewRun() {
     AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
 
     m_entropy = SuitEntropy();
+    m_combatSystem.resetRunState();
     m_combatSystem.setParticleSystem(&m_particles);
     m_combatSystem.setCamera(&m_camera);
     m_aiSystem.setParticleSystem(&m_particles);
@@ -145,9 +172,13 @@ void PlayState::startNewRun() {
     m_aiSystem.setCombatSystem(&m_combatSystem);
     m_hitFreezeTimer = 0;
     m_spikeDmgCooldown = 0;
+    m_playerDying = false;
+    m_deathSequenceTimer = 0;
 
     generateLevel();
     m_combatSystem.setPlayer(m_player.get());
+    m_combatSystem.setDimensionManager(&m_dimManager);
+    m_hud.setCombatSystem(&m_combatSystem);
     m_aiSystem.setLevel(m_level.get());
 }
 
@@ -166,6 +197,7 @@ void PlayState::generateLevel() {
     m_player->particles = &m_particles;
     m_player->entityManager = &m_entities;
     m_player->combatSystemRef = &m_combatSystem;
+    m_player->dimensionManager = &m_dimManager;
     m_player->playerClass = g_selectedClass;
     m_player->applyClassStats();
     applyUpgrades();
@@ -201,6 +233,15 @@ void PlayState::generateLevel() {
     // FIX: Reset collapse state for new level
     m_collapsing = false;
     m_collapseTimer = 0;
+    m_teleportCooldown = 0;
+    m_tookDamageThisLevel = false;
+
+    // Event chain: spawn chain-specific event this level
+    m_chainEventSpawned = false;
+    m_chainEventIndex = -1;
+    if (m_eventChain.stage > 0 && !m_eventChain.completed) {
+        spawnChainEvent();
+    }
 
     // Start ambient music
     AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
@@ -250,8 +291,11 @@ void PlayState::spawnEnemies() {
     if (!m_spawnWaves.empty()) {
         for (auto& sp : m_spawnWaves[0]) {
             auto& e = Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
-            // Elemental variant chance: 25% at difficulty 3+, type based on RNG
+            // Theme-specific variant: stat mods, element affinity, color tint
+            applyThemeVariant(e, sp.dimension);
+            // Elemental variant chance: 25% at difficulty 3+, only if theme didn't set element
             if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+                && e.getComponent<AIComponent>().element == EnemyElement::None
                 && std::rand() % 4 == 0) {
                 EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
                 Enemy::applyElement(e, el);
@@ -274,37 +318,91 @@ void PlayState::spawnEnemies() {
         m_waveActive = true;
         m_waveTimer = m_waveDelay;
     }
+
+    // Start first combat challenge for this level
+    startCombatChallenge();
+}
+
+void PlayState::applyThemeVariant(Entity& e, int dimension) {
+    // Apply theme-specific stat modifications and element affinity to enemies
+    if (!e.hasComponent<AIComponent>() || !e.hasComponent<HealthComponent>() ||
+        !e.hasComponent<CombatComponent>() || !e.hasComponent<SpriteComponent>()) return;
+
+    const auto& theme = (dimension == 1) ? m_themeA : m_themeB;
+    auto config = ThemeEnemyConfig::getConfig(theme.id);
+
+    auto& ai = e.getComponent<AIComponent>();
+    if (ai.enemyType == EnemyType::Boss) return; // Don't modify bosses
+
+    // Apply theme stat modifiers
+    auto& hp = e.getComponent<HealthComponent>();
+    hp.maxHP *= config.hpMod;
+    hp.currentHP = hp.maxHP;
+
+    ai.patrolSpeed *= config.speedMod;
+    ai.chaseSpeed *= config.speedMod;
+
+    auto& combat = e.getComponent<CombatComponent>();
+    combat.meleeAttack.damage *= config.damageMod;
+    combat.rangedAttack.damage *= config.damageMod;
+
+    // Theme element affinity: 40% chance theme element, 10% random other element (at diff 2+)
+    if (config.preferredElement > 0 && ai.element == EnemyElement::None && m_currentDifficulty >= 2) {
+        if (std::rand() % 100 < 40) {
+            Enemy::applyElement(e, static_cast<EnemyElement>(config.preferredElement));
+        }
+    } else if (config.preferredElement == 0 && ai.element == EnemyElement::None && m_currentDifficulty >= 3) {
+        // Themes without element affinity: small chance for random element
+        if (std::rand() % 100 < 15) {
+            Enemy::applyElement(e, static_cast<EnemyElement>(1 + std::rand() % 3));
+        }
+    }
+
+    // Tint enemy sprite toward theme accent color for visual cohesion
+    auto& sprite = e.getComponent<SpriteComponent>();
+    const auto& accent = theme.colors.accent;
+    // Blend 20% toward theme accent
+    sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.8f + accent.r * 0.2f);
+    sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.8f + accent.g * 0.2f);
+    sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.8f + accent.b * 0.2f);
 }
 
 void PlayState::applyUpgrades() {
     if (!m_player) return;
     auto& upgrades = game->getUpgradeSystem();
+    auto achBonus = game->getAchievements().getUnlockedBonuses();
 
-    m_player->moveSpeed = 250.0f * upgrades.getMoveSpeedMultiplier();
+    m_player->moveSpeed = 250.0f * upgrades.getMoveSpeedMultiplier() * achBonus.moveSpeedMult;
     m_player->jumpForce = -420.0f * upgrades.getJumpMultiplier();
-    m_player->dashCooldown = 0.5f * upgrades.getDashCooldownMultiplier();
+    m_player->dashCooldown = 0.5f * upgrades.getDashCooldownMultiplier() * achBonus.dashCooldownMult;
     m_player->maxJumps = 2 + upgrades.getExtraJumps();
     // FIX: Apply WallSlide upgrade (was purchased but had no effect)
     m_player->wallSlideSpeed = 60.0f * upgrades.getWallSlideSpeedMultiplier();
 
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     // BALANCE: Base HP 100 -> 120 (matches Player.cpp change)
-    hp.maxHP = 120.0f + upgrades.getMaxHPBonus();
+    hp.maxHP = 120.0f + upgrades.getMaxHPBonus() + achBonus.maxHPBonus;
     hp.currentHP = hp.maxHP;
-    hp.armor = upgrades.getArmorBonus();
+    hp.armor = upgrades.getArmorBonus() + achBonus.armorBonus;
 
     auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
     // BALANCE: Base melee 20 -> 25, ranged 12 -> 15 (matches Player.cpp change)
-    combat.meleeAttack.damage = 25.0f * upgrades.getMeleeDamageMultiplier();
-    combat.rangedAttack.damage = 15.0f * upgrades.getRangedDamageMultiplier();
+    combat.meleeAttack.damage = 25.0f * upgrades.getMeleeDamageMultiplier() * achBonus.meleeDamageMult * achBonus.allDamageMult;
+    combat.rangedAttack.damage = 15.0f * upgrades.getRangedDamageMultiplier() * achBonus.rangedDamageMult * achBonus.allDamageMult;
 
-    m_dimManager.switchCooldown = 0.5f * upgrades.getSwitchCooldownMultiplier();
+    m_dimManager.switchCooldown = 0.5f * upgrades.getSwitchCooldownMultiplier() * achBonus.switchCooldownMult;
     m_entropy.passiveDecay = upgrades.getEntropyDecay();
     // FIX: EntropyResistance upgrade was purchased but never applied (same pattern as WallSlide)
     // Cap at 0.8 so entropy never becomes completely trivial
     m_entropy.upgradeResistance = 1.0f - std::min(upgrades.getEntropyResistance(), 0.8f);
-    m_combatSystem.setCritChance(upgrades.getCritChance());
-    m_combatSystem.setComboBonus(upgrades.getComboBonus());
+    m_combatSystem.setCritChance(upgrades.getCritChance() + achBonus.critChanceBonus);
+    m_combatSystem.setComboBonus(upgrades.getComboBonus() + achBonus.comboDamageBonus);
+
+    // Achievement DOT reduction applied to player
+    m_player->dotDurationMult = achBonus.dotDurationMult;
+
+    // Store shard drop multiplier from achievements for use in shard calculations
+    m_achievementShardMult = achBonus.shardDropMult;
 
     // Ability upgrades
     if (m_player->getEntity()->hasComponent<AbilityComponent>()) {
@@ -314,8 +412,8 @@ void PlayState::applyUpgrades() {
         abil.abilities[0].cooldown = 6.0f * cdMult;
         abil.abilities[1].cooldown = 10.0f * cdMult;
         abil.abilities[2].cooldown = 8.0f * cdMult;
-        abil.slamDamage = 60.0f * pwrMult;
-        abil.shieldBurstDamage = 25.0f * pwrMult;
+        abil.slamDamage = 60.0f * pwrMult * achBonus.allDamageMult;
+        abil.shieldBurstDamage = 25.0f * pwrMult * achBonus.allDamageMult;
         abil.shieldMaxHits = 3 + upgrades.getShieldCapacityBonus();
     }
 }
@@ -375,7 +473,8 @@ void PlayState::handleEvent(const SDL_Event& event) {
         if (m_showNPCDialog && m_nearNPCIndex >= 0) {
             auto& npcs = m_level->getNPCs();
             if (m_nearNPCIndex >= static_cast<int>(npcs.size())) { m_showNPCDialog = false; return; }
-            auto options = NPCSystem::getDialogOptions(npcs[m_nearNPCIndex].type);
+            int stage = getNPCStoryStage(npcs[m_nearNPCIndex].type);
+            auto options = NPCSystem::getDialogOptions(npcs[m_nearNPCIndex].type, stage);
             int optCount = static_cast<int>(options.size());
             if (optCount == 0) { m_showNPCDialog = false; return; }
             switch (event.key.keysym.scancode) {
@@ -424,6 +523,38 @@ void PlayState::update(float dt) {
         generateLevel();
     }
 
+    // Death sequence: dramatic freeze before ending the run
+    if (m_playerDying) {
+        m_deathSequenceTimer -= dt;
+        m_camera.update(dt);       // camera shake continues
+        m_particles.update(dt);    // death particles animate
+        m_screenEffects.update(dt);
+
+        // Slow-motion particle drip during death
+        if (m_player && m_deathSequenceTimer > 0.3f) {
+            auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+            Vec2 center = pt.getCenter();
+            float progress = 1.0f - (m_deathSequenceTimer / m_deathSequenceDuration);
+            Uint8 alpha = static_cast<Uint8>(80 + 120 * progress);
+            m_particles.burst(
+                {center.x + static_cast<float>((std::rand() % 30) - 15),
+                 center.y + static_cast<float>((std::rand() % 20) - 10)},
+                1 + static_cast<int>(progress * 3),
+                {255, static_cast<Uint8>(60 + 100 * (1.0f - progress)), 40, alpha},
+                40.0f + progress * 80.0f, 2.0f + progress * 3.0f);
+        }
+
+        if (m_deathSequenceTimer <= 0) {
+            m_playerDying = false;
+            if (m_playtest) {
+                playtestOnDeath();
+            } else {
+                endRun();
+            }
+        }
+        return;
+    }
+
     // Track balance stats every frame
     updateBalanceTracking(dt);
 
@@ -457,8 +588,16 @@ void PlayState::update(float dt) {
     // Challenge mode: speedrun timer
     if (g_activeChallenge == ChallengeID::Speedrun && m_challengeTimer > 0) {
         m_challengeTimer -= dt;
-        if (m_challengeTimer <= 0) {
-            endRun(); // Time's up
+        if (m_challengeTimer <= 0 && !m_playerDying) {
+            m_playerDying = true;
+            m_deathSequenceTimer = m_deathSequenceDuration;
+            AudioManager::instance().play(SFX::PlayerDeath);
+            m_camera.shake(15.0f, 0.6f);
+            if (m_player) {
+                Vec2 pos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                m_particles.burst(pos, 30, {255, 200, 50, 255}, 250.0f, 5.0f);
+            }
+            m_hud.triggerDamageFlash();
             return;
         }
     }
@@ -536,7 +675,7 @@ void PlayState::update(float dt) {
             }
         }
 
-        // Voidwalker passive: Rift Affinity - heal on dim-switch
+        // Voidwalker passive: Rift Affinity - heal on dim-switch + Dimensional Affinity
         if (m_player && m_player->playerClass == PlayerClass::Voidwalker) {
             const auto& voidData = ClassSystem::getData(PlayerClass::Voidwalker);
             auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
@@ -545,6 +684,8 @@ void PlayState::update(float dt) {
                 Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
                 m_player->particles->burst(pPos, 8, {60, 200, 255, 200}, 60.0f, 2.0f);
             }
+            // Dimensional Affinity: activate Rift Charge damage buff
+            m_player->activateRiftCharge();
         }
 
         // Lore: Echoes of Origin - first dimension switch
@@ -578,6 +719,20 @@ void PlayState::update(float dt) {
 
     m_dimManager.playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
     m_dimManager.update(dt);
+
+    // Resonance particle aura around player
+    int resTier = m_dimManager.getResonanceTier();
+    if (resTier > 0) {
+        Vec2 pCenter = m_dimManager.playerPos;
+        float angle = static_cast<float>(std::rand() % 628) / 100.0f;
+        float dist = 12.0f + static_cast<float>(std::rand() % 10);
+        Vec2 sparkPos = {pCenter.x + std::cos(angle) * dist, pCenter.y + std::sin(angle) * dist};
+        SDL_Color auraColor;
+        if (resTier >= 3) auraColor = {255, 220, 80, 200};
+        else if (resTier >= 2) auraColor = {180, 100, 255, 180};
+        else auraColor = {80, 200, 220, 140};
+        m_particles.burst(sparkPos, resTier, auraColor, 30.0f, 2.0f);
+    }
 
     // Update input distortion from entropy
     game->getInputMutable().setInputDistortion(m_entropy.getInputDistortion());
@@ -682,6 +837,11 @@ void PlayState::update(float dt) {
         if (!evt.isPlayerDamage) {
             game->getAchievements().unlock("first_blood");
         }
+        // Track player damage for flawless floor achievement + NoDamageWave challenge
+        if (evt.isPlayerDamage) {
+            m_tookDamageThisLevel = true;
+            m_tookDamageThisWave = true;
+        }
     }
     updateDamageNumbers(dt);
 
@@ -752,6 +912,7 @@ void PlayState::update(float dt) {
             m_bossDefeated = true;
             // Boss kill rewards
             float bossShardMult = game->getRunBuffSystem().getShardMultiplier();
+            bossShardMult *= m_achievementShardMult;
             if (m_player->getEntity()->hasComponent<RelicComponent>())
                 bossShardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
             int bossShards = static_cast<int>((50 + m_currentDifficulty * 20) * bossShardMult);
@@ -792,6 +953,13 @@ void PlayState::update(float dt) {
                 m_voidSovereignDefeated = true;
             }
 
+            // Boss kill unlocks exit: trigger collapse so player can escape
+            if (!m_collapsing) {
+                m_collapsing = true;
+                m_collapseTimer = 0;
+                m_level->setExitActive(true);
+            }
+
             // Boss kill -> Relic choice (3 from pool)
             showRelicChoice();
         }
@@ -822,6 +990,8 @@ void PlayState::update(float dt) {
                 auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
                 // BALANCE: Spike DMG 15 -> 10, entropy 5 -> 3 (playtest: main death cause in L1)
                 playerHP.takeDamage(hazardDmg(10.0f));
+                m_tookDamageThisLevel = true;
+                m_tookDamageThisWave = true;
                 m_entropy.addEntropy(3.0f);
                 m_spikeDmgCooldown = 0.5f;
                 m_camera.shake(6.0f, 0.2f);
@@ -835,6 +1005,8 @@ void PlayState::update(float dt) {
             } else if (tile.type == TileType::Fire) {
                 auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
                 playerHP.takeDamage(hazardDmg(10.0f));
+                m_tookDamageThisLevel = true;
+                m_tookDamageThisWave = true;
                 m_entropy.addEntropy(3.0f);
                 m_spikeDmgCooldown = 0.4f;
                 m_camera.shake(4.0f, 0.15f);
@@ -854,6 +1026,8 @@ void PlayState::update(float dt) {
             if (m_level->isInLaserBeam(playerT.getCenter().x, playerT.getCenter().y, dim)) {
                 auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
                 playerHP.takeDamage(hazardDmg(20.0f));
+                m_tookDamageThisLevel = true;
+                m_tookDamageThisWave = true;
                 m_entropy.addEntropy(8.0f);
                 m_spikeDmgCooldown = 0.3f;
                 m_camera.shake(8.0f, 0.25f);
@@ -873,23 +1047,38 @@ void PlayState::update(float dt) {
         }
 
         // Teleporter: teleport player to paired tile
+        // Cooldown ticks down regardless of position to prevent ping-pong
+        if (m_teleportCooldown > 0) m_teleportCooldown -= dt;
         {
             int centerTX = static_cast<int>(playerT.getCenter().x) / m_level->getTileSize();
             int centerTY = static_cast<int>(playerT.getCenter().y) / m_level->getTileSize();
             if (m_level->inBounds(centerTX, centerTY)) {
                 const auto& tile = m_level->getTile(centerTX, centerTY, dim);
-                if (tile.type == TileType::Teleporter) {
-                    m_teleportCooldown -= dt;
-                    if (m_teleportCooldown <= 0) {
-                        Vec2 dest = m_level->getTeleporterDestination(centerTX, centerTY, dim);
-                        if (dest.x != 0 || dest.y != 0) {
-                            playerT.position = dest;
-                            m_teleportCooldown = 1.0f; // Prevent instant re-teleport
-                            m_particles.burst(playerT.getCenter(), 15, {50, 220, 100, 255}, 200.0f, 3.0f);
-                            AudioManager::instance().play(SFX::BossTeleport);
-                        }
+                if (tile.type == TileType::Teleporter && m_teleportCooldown <= 0) {
+                    Vec2 dest = m_level->getTeleporterDestination(centerTX, centerTY, dim);
+                    if (dest.x != 0 || dest.y != 0) {
+                        playerT.position = dest;
+                        m_teleportCooldown = 1.0f; // Prevent instant re-teleport
+                        m_particles.burst(playerT.getCenter(), 15, {50, 220, 100, 255}, 200.0f, 3.0f);
+                        AudioManager::instance().play(SFX::BossTeleport);
                     }
                 }
+            }
+        }
+    }
+
+    // Dimension switch plates: activate when player steps on them
+    if (m_player) {
+        auto& playerT = m_player->getEntity()->getComponent<TransformComponent>();
+        int dim = m_dimManager.getCurrentDimension();
+        int footX = static_cast<int>(playerT.getCenter().x) / m_level->getTileSize();
+        int footY = static_cast<int>(playerT.position.y + playerT.height + 1) / m_level->getTileSize();
+        if (m_level->isDimSwitchAt(footX, footY, dim)) {
+            int pairId = m_level->getTile(footX, footY, dim).variant;
+            if (m_level->activateDimSwitch(pairId, dim)) {
+                m_camera.shake(6.0f, 0.3f);
+                m_particles.burst(playerT.getCenter(), 20, {100, 255, 100, 255}, 150.0f, 3.0f);
+                AudioManager::instance().play(SFX::RiftRepair);
             }
         }
     }
@@ -913,6 +1102,8 @@ void PlayState::update(float dt) {
             m_player->burnDmgTimer -= dt;
             if (m_player->burnDmgTimer <= 0) {
                 playerHP.takeDamage(dotDmg(5.0f));
+                m_tookDamageThisLevel = true;
+                m_tookDamageThisWave = true;
                 m_player->burnDmgTimer = 0.3f;
                 m_particles.burst(playerT.getCenter(), 4, {255, 120, 30, 200}, 60.0f, 1.5f);
             }
@@ -921,6 +1112,8 @@ void PlayState::update(float dt) {
             m_player->poisonDmgTimer -= dt;
             if (m_player->poisonDmgTimer <= 0) {
                 playerHP.takeDamage(dotDmg(3.0f));
+                m_tookDamageThisLevel = true;
+                m_tookDamageThisWave = true;
                 m_player->poisonDmgTimer = 0.5f;
                 m_particles.burst(playerT.getCenter(), 3, {80, 200, 40, 200}, 40.0f, 1.5f);
             }
@@ -929,6 +1122,12 @@ void PlayState::update(float dt) {
 
     // HUD flash update
     m_hud.updateFlash(dt);
+
+    // Notification timers (achievement + lore)
+    game->getAchievements().update(dt);
+    if (auto* lore = game->getLoreSystem()) {
+        lore->updateNotification(dt);
+    }
 
     // Tutorial timer + action tracking
     m_tutorialTimer += dt;
@@ -944,15 +1143,23 @@ void PlayState::update(float dt) {
 
     // Entropy
     m_entropy.update(dt);
-    if (m_entropy.isCritical()) {
-        // Suit crash - run over
-        AudioManager::instance().play(SFX::SuitEntropyCritical);
-        if (m_playtest) {
-            playtestLog("  GESTORBEN: Suit-Entropy kritisch (Anzug kollabiert)");
-            playtestOnDeath();
-            return;
+    if (m_entropy.isCritical() && !m_playerDying) {
+        // Suit crash - run over with death sequence
+        if (!m_playerDying) {
+            m_playerDying = true;
+            m_deathSequenceTimer = m_deathSequenceDuration;
+            AudioManager::instance().play(SFX::SuitEntropyCritical);
+            m_camera.shake(15.0f, 0.6f);
+
+            // Entropy overload particles (purple/magenta)
+            if (m_player) {
+                Vec2 deathPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                m_particles.burst(deathPos, 35, {200, 50, 180, 255}, 280.0f, 5.0f);
+                m_particles.burst(deathPos, 20, {255, 80, 255, 255}, 200.0f, 4.0f);
+                m_particles.burst(deathPos, 15, {120, 40, 140, 200}, 350.0f, 6.0f);
+            }
+            m_hud.triggerDamageFlash();
         }
-        endRun();
         return;
     }
 
@@ -1035,13 +1242,29 @@ void PlayState::update(float dt) {
             m_particles.burst(pPos, 40, {255, 255, 200, 255}, 300.0f, 5.0f);
             m_particles.burst(pPos, 20, {200, 150, 255, 255}, 200.0f, 4.0f);
         } else {
-            AudioManager::instance().play(SFX::PlayerDeath);
-            if (m_playtest) {
-                playtestOnDeath();
-                return;
+            // Start death sequence: dramatic pause before ending run
+            if (!m_playerDying) {
+                m_playerDying = true;
+                m_deathSequenceTimer = m_deathSequenceDuration;
+                AudioManager::instance().play(SFX::PlayerDeath);
+                m_camera.shake(20.0f, 0.8f);
+
+                // Death explosion particles
+                Vec2 deathPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                const auto& classColor = ClassSystem::getData(m_player->playerClass).color;
+                m_particles.burst(deathPos, 40, {classColor.r, classColor.g, classColor.b, 255}, 300.0f, 6.0f);
+                m_particles.burst(deathPos, 25, {255, 60, 40, 255}, 200.0f, 5.0f);
+                m_particles.burst(deathPos, 15, {255, 255, 200, 255}, 250.0f, 4.0f);
+                // Expanding ring
+                for (int i = 0; i < 16; i++) {
+                    float angle = i * 6.283185f / 16.0f;
+                    Vec2 ringPos = {deathPos.x + std::cos(angle) * 8.0f, deathPos.y + std::sin(angle) * 8.0f};
+                    m_particles.burst(ringPos, 2, {255, 100, 60, 200}, 180.0f, 3.0f);
+                }
+
+                m_hud.triggerDamageFlash();
             }
-            endRun();
-            return;
+            return; // Wait for death sequence to finish
         }
     }
     skipDeath:
@@ -1051,6 +1274,9 @@ void PlayState::update(float dt) {
 
     // Check secret room discovery
     checkSecretRoomDiscovery();
+
+    // Secret room proximity hints (ambient particles near undiscovered rooms)
+    updateSecretRoomHints(dt);
 
     // Check random event interaction
     checkEventInteraction();
@@ -1158,8 +1384,17 @@ void PlayState::update(float dt) {
         if (urgency > 0.5f) {
             m_camera.shake(urgency * 3.0f, 0.1f);
         }
-        if (m_collapseTimer >= m_collapseMaxTime) {
-            endRun();
+        if (m_collapseTimer >= m_collapseMaxTime && !m_playerDying) {
+            m_playerDying = true;
+            m_deathSequenceTimer = m_deathSequenceDuration;
+            AudioManager::instance().play(SFX::PlayerDeath);
+            m_camera.shake(20.0f, 0.8f);
+            if (m_player) {
+                Vec2 deathPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                m_particles.burst(deathPos, 30, {255, 100, 30, 255}, 250.0f, 5.0f);
+                m_particles.burst(deathPos, 20, {255, 50, 20, 255}, 300.0f, 6.0f);
+            }
+            m_hud.triggerDamageFlash();
             return;
         }
     }
@@ -1210,6 +1445,51 @@ void PlayState::update(float dt) {
                 if (killEntropy > 0) {
                     m_entropy.addEntropy(killEntropy);
                 }
+
+                // Weapon-Relic Synergies on kill
+                auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+                auto& pHP = m_player->getEntity()->getComponent<HealthComponent>();
+
+                // BloodRift: RiftBlade + BloodFrenzy — melee kills under 50% HP heal 5
+                float bloodRiftHeal = RelicSynergy::getBloodRiftHeal(
+                    relics, combat.currentMelee, pHP.getPercent());
+                if (bloodRiftHeal > 0) {
+                    pHP.heal(bloodRiftHeal);
+                }
+
+                // EntropyBeam: VoidBeam + EntropyAnchor — kills reduce entropy by 5%
+                if (RelicSynergy::isEntropyBeamActive(relics, combat.currentRanged) &&
+                    combat.currentAttack == AttackType::Ranged) {
+                    m_entropy.reduceEntropy(m_entropy.getMaxEntropy() * 0.05f);
+                }
+
+                // StormScatter: RiftShotgun + ChainLightning — kills chain to 2 extra enemies
+                if (RelicSynergy::isStormScatterActive(relics, combat.currentRanged) &&
+                    combat.currentAttack == AttackType::Ranged) {
+                    float chainDmg = 15.0f;
+                    int chainsLeft = 2;
+                    auto& playerT = m_player->getEntity()->getComponent<TransformComponent>();
+                    Vec2 killPos = playerT.getCenter();
+                    int dim = m_dimManager.getCurrentDimension();
+                    m_entities.forEach([&](Entity& nearby) {
+                        if (chainsLeft <= 0) return;
+                        if (nearby.getTag().find("enemy") == std::string::npos) return;
+                        if (!nearby.isAlive()) return;
+                        if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
+                        if (nearby.dimension != 0 && nearby.dimension != dim) return;
+                        auto& nt = nearby.getComponent<TransformComponent>();
+                        float dx = nt.getCenter().x - killPos.x;
+                        float dy = nt.getCenter().y - killPos.y;
+                        if (dx * dx + dy * dy < 120.0f * 120.0f) {
+                            nearby.getComponent<HealthComponent>().takeDamage(chainDmg);
+                            chainsLeft--;
+                            m_particles.burst(nt.getCenter(), 8, {255, 255, 80, 255}, 150.0f, 2.0f);
+                        }
+                    });
+                    if (chainsLeft < 2) {
+                        AudioManager::instance().play(SFX::ElectricChain);
+                    }
+                }
             }
         }
     }
@@ -1241,11 +1521,55 @@ void PlayState::update(float dt) {
         game->getAchievements().unlock("elemental_slayer");
         m_combatSystem.killedElemental = false;
     }
+
+    // Echo of Self: reward when mirror enemy is defeated
+    if (m_echoSpawned && !m_echoRewarded) {
+        bool echoAlive = false;
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag() == "enemy_echo" && e.isAlive()) echoAlive = true;
+        });
+        if (!echoAlive) {
+            m_echoRewarded = true;
+            m_echoSpawned = false;
+            // Reward scales with story stage (stage already incremented after fight)
+            int echoStage = std::min(m_npcStoryProgress[static_cast<int>(NPCType::EchoOfSelf)] - 1, 2);
+            echoStage = std::max(0, echoStage);
+            int echoShards = 40 + echoStage * 25; // 40, 65, 90
+            game->getUpgradeSystem().addRiftShards(echoShards);
+            shardsCollected += echoShards;
+            m_player->damageBoostTimer = 30.0f + echoStage * 15.0f;
+            m_player->damageBoostMultiplier = 1.2f + echoStage * 0.1f;
+            if (echoStage >= 2) {
+                // Stage 2 bonus: heal to full
+                auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+                hp.currentHP = hp.maxHP;
+            }
+            AudioManager::instance().play(SFX::LevelComplete);
+            m_camera.shake(10.0f + echoStage * 5.0f, 0.4f);
+            Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+            m_particles.burst(pPos, 30 + echoStage * 10, {220, 120, 255, 255}, 250.0f + echoStage * 50.0f, 4.0f);
+            m_particles.burst(pPos, 15 + echoStage * 8, {255, 215, 0, 255}, 180.0f + echoStage * 40.0f, 3.0f);
+        }
+    }
+
+    // Skill achievement kill tracking (before clear)
+    for (auto& ke : m_combatSystem.killEvents) {
+        if (ke.wasAerial) m_aerialKillsThisRun++;
+        if (ke.wasDash) m_dashKillsThisRun++;
+        if (ke.wasCharged) m_chargedKillsThisRun++;
+    }
+
+    // Combat challenge tracking
+    updateCombatChallenge(dt);
+    m_combatSystem.killEvents.clear();
+
+    // Event chain tracking
+    updateEventChain(dt);
+
     m_combatSystem.killCount = 0;
 
-    // Achievement checks
+    // Achievement checks (update(dt) already called above at line ~1056)
     auto& ach = game->getAchievements();
-    ach.update(dt);
 
     if (roomsCleared >= 10) ach.unlock("room_clearer");
     if (roomsCleared >= 20) ach.unlock("survivor");
@@ -1258,7 +1582,14 @@ void PlayState::update(float dt) {
     if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
         auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
         if (combat.comboCount >= 10) ach.unlock("combo_king");
+        if (combat.comboCount >= 15) ach.unlock("combo_legend");
     }
+
+    // Skill achievements
+    if (m_aerialKillsThisRun >= 5) ach.unlock("aerial_ace");
+    if (m_dashKillsThisRun >= 10) ach.unlock("dash_slayer");
+    if (m_chargedKillsThisRun >= 3) ach.unlock("charged_fury");
+    if (m_dimManager.getResonanceTier() >= 3) ach.unlock("resonance_master");
 
     // Full upgrade check
     for (auto& u : game->getUpgradeSystem().getUpgrades()) {
@@ -1289,7 +1620,7 @@ void PlayState::checkRiftInteraction() {
     }
 
     if (m_nearRiftIndex >= 0 && game->getInput().isActionPressed(Action::Interact)) {
-        // Puzzle type progression: early = Timing (easiest), mid = Sequence, late = Alignment
+        // Puzzle type progression: early = Timing (easiest), mid = Sequence, late = Alignment/Pattern
         int puzzleType;
         if (m_currentDifficulty <= 1) {
             puzzleType = 0; // Always Timing for first levels
@@ -1297,9 +1628,10 @@ void PlayState::checkRiftInteraction() {
             puzzleType = (riftsRepaired % 2 == 0) ? 0 : 1; // Mix Timing and Sequence
         } else {
             int roll = std::rand() % 100;
-            if (roll < 20) puzzleType = 0;       // 20% Timing
-            else if (roll < 55) puzzleType = 1;  // 35% Sequence
-            else puzzleType = 2;                 // 45% Alignment
+            if (roll < 15) puzzleType = 0;       // 15% Timing
+            else if (roll < 40) puzzleType = 1;  // 25% Sequence
+            else if (roll < 70) puzzleType = 2;  // 30% Alignment
+            else puzzleType = 3;                 // 30% Pattern
         }
         m_activePuzzle = std::make_unique<RiftPuzzle>(
             static_cast<PuzzleType>(puzzleType), m_currentDifficulty);
@@ -1315,6 +1647,7 @@ void PlayState::checkRiftInteraction() {
                 m_entropy.onRiftRepaired();
                 game->getAchievements().unlock("rift_walker");
                 float riftShardMult = game->getRunBuffSystem().getShardMultiplier();
+                riftShardMult *= m_achievementShardMult;
                 if (m_player && m_player->getEntity()->hasComponent<RelicComponent>())
                     riftShardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
                 int riftShards = static_cast<int>((10 + m_currentDifficulty * 5) * riftShardMult);
@@ -1326,9 +1659,10 @@ void PlayState::checkRiftInteraction() {
                     {150, 80, 255, 255}, 250.0f, 6.0f);
                 m_camera.shake(5.0f, 0.3f);
 
-                // FIX: Start collapse after all rifts in THIS level repaired
+                // Start collapse after all rifts in THIS level repaired
+                // (skip if already collapsing, e.g. boss kill already triggered it)
                 int totalRifts = static_cast<int>(m_level->getRiftPositions().size());
-                if (m_levelRiftsRepaired >= totalRifts) {
+                if (m_levelRiftsRepaired >= totalRifts && !m_collapsing) {
                     m_collapsing = true;
                     m_collapseTimer = 0;
                     m_level->setExitActive(true);
@@ -1364,6 +1698,10 @@ void PlayState::checkExitReached() {
         }
         m_levelComplete = true;
         m_levelCompleteTimer = 0;
+        // Flawless Floor: completed level without taking damage
+        if (!m_tookDamageThisLevel) {
+            game->getAchievements().unlock("flawless_floor");
+        }
         if (m_smokeTest) {
             smokeLog("[SMOKE] LEVEL %d COMPLETE! (%.1fs)", m_currentDifficulty, m_smokeRunTime);
         }
@@ -1371,6 +1709,7 @@ void PlayState::checkExitReached() {
         float shardMult = (g_selectedDifficulty == GameDifficulty::Easy) ? 1.5f :
                           (g_selectedDifficulty == GameDifficulty::Hard) ? 0.75f : 1.0f;
         shardMult *= game->getRunBuffSystem().getShardMultiplier();
+        shardMult *= m_achievementShardMult;
         if (m_player->getEntity()->hasComponent<RelicComponent>())
             shardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
         int shards = static_cast<int>((20 + m_currentDifficulty * 10) * shardMult);
@@ -1553,7 +1892,10 @@ void PlayState::render(SDL_Renderer* renderer) {
         if (font) {
             Uint8 alpha = static_cast<Uint8>(std::min(1.0f, m_exitLockedHintTimer) * 255);
             SDL_Color hc = {255, 100, 80, alpha};
-            SDL_Surface* hs = TTF_RenderText_Blended(font, "Repair all rifts to unlock exit!", hc);
+            const char* hintText = (m_isBossLevel && !m_bossDefeated)
+                ? "Defeat the boss to unlock exit!"
+                : "Repair all rifts to unlock exit!";
+            SDL_Surface* hs = TTF_RenderText_Blended(font, hintText, hc);
             if (hs) {
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
                 if (ht) {
@@ -1731,6 +2073,8 @@ void PlayState::render(SDL_Renderer* renderer) {
     m_hud.renderFlash(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // HUD (on top of everything)
+    m_hud.setFloor(m_currentDifficulty);
+    m_hud.setKillCount(enemiesKilled);
     m_hud.render(renderer, game->getFont(), m_player.get(), &m_entropy, &m_dimManager,
                  SCREEN_WIDTH, SCREEN_HEIGHT, game->getFPS(), game->getUpgradeSystem().getRiftShards());
 
@@ -1739,6 +2083,12 @@ void PlayState::render(SDL_Renderer* renderer) {
 
     // Challenge HUD (left side, below main HUD)
     renderChallengeHUD(renderer, game->getFont());
+
+    // Combat challenge indicator (top center)
+    renderCombatChallenge(renderer, game->getFont());
+
+    // Event chain tracker (left side)
+    renderEventChain(renderer, game->getFont());
 
     // Minimap (bottom right corner)
     m_hud.renderMinimap(renderer, m_level.get(), m_player.get(), &m_dimManager, SCREEN_WIDTH, SCREEN_HEIGHT, &m_entities);
@@ -1753,9 +2103,10 @@ void PlayState::render(SDL_Renderer* renderer) {
         float alpha = slideIn * fadeOut;
         Uint8 a = static_cast<Uint8>(alpha * 220);
 
-        int popW = 300, popH = 40;
+        bool hasReward = !notif->rewardText.empty();
+        int popW = 300, popH = hasReward ? 56 : 40;
         int popX = 640 - popW / 2;
-        int popY = 660 - static_cast<int>(slideIn * 20);
+        int popY = 660 - popH - static_cast<int>(slideIn * 20);
 
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 20, 40, 25, a);
@@ -1766,10 +2117,10 @@ void PlayState::render(SDL_Renderer* renderer) {
 
         // Trophy icon
         SDL_SetRenderDrawColor(renderer, 255, 200, 50, a);
-        SDL_Rect trophy = {popX + 10, popY + 10, 16, 16};
+        SDL_Rect trophy = {popX + 10, popY + 8, 16, 16};
         SDL_RenderFillRect(renderer, &trophy);
 
-        // Text
+        // Achievement name
         char achText[128];
         snprintf(achText, sizeof(achText), "Achievement: %s", notif->name.c_str());
         SDL_Color tc = {200, 255, 210, a};
@@ -1778,11 +2129,148 @@ void PlayState::render(SDL_Renderer* renderer) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
                 SDL_SetTextureAlphaMod(tt, a);
-                SDL_Rect tr = {popX + 34, popY + (popH - ts->h) / 2, ts->w, ts->h};
+                SDL_Rect tr = {popX + 34, popY + 4, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }
             SDL_FreeSurface(ts);
+        }
+
+        // Reward text line (golden)
+        if (hasReward) {
+            char rewardText[128];
+            snprintf(rewardText, sizeof(rewardText), "Reward: %s", notif->rewardText.c_str());
+            SDL_Color rc = {255, 220, 80, a};
+            SDL_Surface* rs = TTF_RenderText_Blended(achFont, rewardText, rc);
+            if (rs) {
+                SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
+                if (rt) {
+                    SDL_SetTextureAlphaMod(rt, a);
+                    SDL_Rect rr = {popX + 34, popY + 28, rs->w, rs->h};
+                    SDL_RenderCopy(renderer, rt, nullptr, &rr);
+                    SDL_DestroyTexture(rt);
+                }
+                SDL_FreeSurface(rs);
+            }
+        }
+    }
+
+    // Lore discovery notification popup
+    if (auto* lore = game->getLoreSystem()) {
+        auto* loreNotif = lore->getActiveNotification();
+        TTF_Font* loreFont = game->getFont();
+        if (loreNotif && loreFont) {
+            float t = loreNotif->timer / loreNotif->duration;
+            float slideIn = std::min(1.0f, (1.0f - t) * 4.0f);
+            float fadeOut = std::min(1.0f, t * 2.5f);
+            float alpha = slideIn * fadeOut;
+            Uint8 a = static_cast<Uint8>(alpha * 230);
+
+            int popW = 320, popH = 44;
+            int popX = SCREEN_WIDTH / 2 - popW / 2;
+            int popY = 20 + static_cast<int>((1.0f - slideIn) * 30);
+
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            // Dark purple background
+            SDL_SetRenderDrawColor(renderer, 25, 15, 40, a);
+            SDL_Rect bg = {popX, popY, popW, popH};
+            SDL_RenderFillRect(renderer, &bg);
+            // Purple border with glow
+            float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.006f);
+            Uint8 borderA = static_cast<Uint8>(a * pulse);
+            SDL_SetRenderDrawColor(renderer, 160, 100, 255, borderA);
+            SDL_RenderDrawRect(renderer, &bg);
+            SDL_Rect innerBorder = {popX + 1, popY + 1, popW - 2, popH - 2};
+            SDL_SetRenderDrawColor(renderer, 120, 70, 200, static_cast<Uint8>(borderA * 0.5f));
+            SDL_RenderDrawRect(renderer, &innerBorder);
+
+            // Scroll/book icon (small rectangle with lines)
+            SDL_SetRenderDrawColor(renderer, 180, 140, 255, a);
+            SDL_Rect scrollIcon = {popX + 12, popY + 10, 12, 16};
+            SDL_RenderFillRect(renderer, &scrollIcon);
+            SDL_SetRenderDrawColor(renderer, 100, 60, 180, a);
+            for (int line = 0; line < 3; line++) {
+                SDL_RenderDrawLine(renderer, popX + 14, popY + 14 + line * 4,
+                                   popX + 22, popY + 14 + line * 4);
+            }
+
+            // "Lore Discovered" label
+            SDL_Color labelColor = {140, 110, 200, a};
+            SDL_Surface* labelSurf = TTF_RenderText_Blended(loreFont, "LORE DISCOVERED", labelColor);
+            if (labelSurf) {
+                SDL_Texture* labelTex = SDL_CreateTextureFromSurface(renderer, labelSurf);
+                if (labelTex) {
+                    SDL_SetTextureAlphaMod(labelTex, a);
+                    SDL_Rect lr = {popX + 32, popY + 4, labelSurf->w, labelSurf->h};
+                    SDL_RenderCopy(renderer, labelTex, nullptr, &lr);
+                    SDL_DestroyTexture(labelTex);
+                }
+                SDL_FreeSurface(labelSurf);
+            }
+
+            // Lore title
+            SDL_Color titleColor = {220, 200, 255, a};
+            SDL_Surface* titleSurf = TTF_RenderText_Blended(loreFont, loreNotif->title.c_str(), titleColor);
+            if (titleSurf) {
+                SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
+                if (titleTex) {
+                    SDL_SetTextureAlphaMod(titleTex, a);
+                    SDL_Rect tr = {popX + 32, popY + 22, titleSurf->w, titleSurf->h};
+                    SDL_RenderCopy(renderer, titleTex, nullptr, &tr);
+                    SDL_DestroyTexture(titleTex);
+                }
+                SDL_FreeSurface(titleSurf);
+            }
+        }
+    }
+
+    // Death sequence overlay: red vignette + desaturation effect
+    if (m_playerDying) {
+        float progress = 1.0f - (m_deathSequenceTimer / m_deathSequenceDuration);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+        // Full screen red-black fade (intensifies over time)
+        Uint8 overlayAlpha = static_cast<Uint8>(std::min(180.0f, progress * 220.0f));
+        SDL_SetRenderDrawColor(renderer, 40, 0, 0, overlayAlpha);
+        SDL_Rect fullScreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &fullScreen);
+
+        // Vignette border (thick red edges)
+        int borderW = static_cast<int>(20 + progress * 60);
+        Uint8 borderAlpha = static_cast<Uint8>(std::min(200.0f, progress * 250.0f));
+        SDL_SetRenderDrawColor(renderer, 180, 20, 0, borderAlpha);
+        SDL_Rect top = {0, 0, SCREEN_WIDTH, borderW};
+        SDL_Rect bot = {0, SCREEN_HEIGHT - borderW, SCREEN_WIDTH, borderW};
+        SDL_Rect lft = {0, 0, borderW, SCREEN_HEIGHT};
+        SDL_Rect rgt = {SCREEN_WIDTH - borderW, 0, borderW, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &top);
+        SDL_RenderFillRect(renderer, &bot);
+        SDL_RenderFillRect(renderer, &lft);
+        SDL_RenderFillRect(renderer, &rgt);
+
+        // "SUIT FAILURE" text (fades in)
+        TTF_Font* font = game->getFont();
+        if (font && progress > 0.2f) {
+            float textAlpha = std::min(1.0f, (progress - 0.2f) * 2.0f);
+            Uint8 ta = static_cast<Uint8>(textAlpha * 255);
+            float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.015f);
+            Uint8 tr = static_cast<Uint8>(200 * pulse + 55);
+            SDL_Color deathColor = {tr, 30, 20, ta};
+            SDL_Surface* ds = TTF_RenderText_Blended(font, "SUIT FAILURE", deathColor);
+            if (ds) {
+                SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
+                if (dt) {
+                    SDL_SetTextureAlphaMod(dt, ta);
+                    // Center of screen, slight upward drift
+                    int yOff = static_cast<int>(progress * 15.0f);
+                    SDL_Rect dr = {SCREEN_WIDTH / 2 - ds->w / 2,
+                                   SCREEN_HEIGHT / 2 - ds->h / 2 - yOff,
+                                   ds->w, ds->h};
+                    SDL_RenderCopy(renderer, dt, nullptr, &dr);
+                    SDL_DestroyTexture(dt);
+                }
+                SDL_FreeSurface(ds);
+            }
         }
     }
 
@@ -2343,7 +2831,10 @@ void PlayState::updateSpawnWaves(float dt) {
         // Spawn next wave
         for (auto& sp : m_spawnWaves[m_currentWave]) {
             auto& e = Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
+            // Theme-specific variant
+            applyThemeVariant(e, sp.dimension);
             if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+                && e.getComponent<AIComponent>().element == EnemyElement::None
                 && std::rand() % 4 == 0) {
                 EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
                 Enemy::applyElement(e, el);
@@ -2357,6 +2848,12 @@ void PlayState::updateSpawnWaves(float dt) {
         }
         m_currentWave++;
         m_waveTimer = m_waveDelay;
+        m_tookDamageThisWave = false;
+
+        // Start new combat challenge if previous one completed or inactive
+        if (!m_combatChallenge.active) {
+            startCombatChallenge();
+        }
 
         // Warning SFX for new wave
         AudioManager::instance().play(SFX::CollapseWarning);
@@ -2861,20 +3358,15 @@ void PlayState::checkSecretRoomDiscovery() {
                         break;
                     }
                     case SecretRoomType::ShrineRoom: {
-                        // 50/50 buff or curse
+                        // Secret shrine: guaranteed blessing (reward for discovery)
                         AudioManager::instance().play(SFX::ShrineActivate);
-                        if (std::rand() % 2 == 0) {
-                            // Blessing: +20 max HP
-                            AudioManager::instance().play(SFX::ShrineBlessing);
-                            hp.maxHP += 20;
-                            hp.currentHP = std::min(hp.maxHP, hp.currentHP + 20);
-                            m_particles.burst(roomCenter, 20, {100, 255, 100, 255}, 150.0f, 3.0f);
-                        } else {
-                            // Curse: +15% entropy
-                            AudioManager::instance().play(SFX::ShrineCurse);
-                            m_entropy.addEntropy(15.0f);
-                            m_particles.burst(roomCenter, 20, {200, 50, 50, 255}, 150.0f, 3.0f);
-                        }
+                        AudioManager::instance().play(SFX::ShrineBlessing);
+                        hp.maxHP += 20;
+                        hp.currentHP = std::min(hp.maxHP, hp.currentHP + 20);
+                        m_player->damageBoostTimer = 30.0f;
+                        m_player->damageBoostMultiplier = 1.2f;
+                        m_particles.burst(roomCenter, 25, {180, 120, 255, 255}, 180.0f, 3.0f);
+                        m_camera.shake(0.3f, 4.0f);
                         break;
                     }
                     case SecretRoomType::DimensionCache: {
@@ -2894,6 +3386,72 @@ void PlayState::checkSecretRoomDiscovery() {
                         break;
                 }
             }
+        }
+    }
+}
+
+void PlayState::updateSecretRoomHints(float dt) {
+    if (!m_player || !m_level) return;
+
+    m_secretHintTimer += dt;
+    if (m_secretHintTimer < 0.4f) return; // Emit every 0.4s
+    m_secretHintTimer = 0;
+
+    auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+    Vec2 pPos = pt.getCenter();
+    int tileSize = m_level->getTileSize();
+    float hintRadius = 6.0f * tileSize; // 6 tiles detection range
+
+    for (const auto& sr : m_level->getSecretRooms()) {
+        if (sr.discovered) continue;
+
+        // Check if breakable wall still exists (not already broken)
+        int currentDim = m_dimManager.getCurrentDimension();
+        if (!m_level->inBounds(sr.entranceX, sr.entranceY)) continue;
+        const auto& tile = m_level->getTile(sr.entranceX, sr.entranceY, currentDim);
+        if (tile.type != TileType::Breakable) continue;
+
+        // Entrance world position
+        Vec2 entrancePos = {
+            static_cast<float>(sr.entranceX * tileSize + tileSize / 2),
+            static_cast<float>(sr.entranceY * tileSize + tileSize / 2)
+        };
+
+        float dist = std::sqrt((pPos.x - entrancePos.x) * (pPos.x - entrancePos.x) +
+                                (pPos.y - entrancePos.y) * (pPos.y - entrancePos.y));
+        if (dist > hintRadius) continue;
+
+        // Intensity increases as player gets closer (0.0 at edge, 1.0 at wall)
+        float proximity = 1.0f - (dist / hintRadius);
+
+        // Emit subtle dust/sparkle particles from the breakable wall
+        int particleCount = 1 + static_cast<int>(proximity * 3); // 1-4 particles
+        SDL_Color hintColor;
+        switch (sr.type) {
+            case SecretRoomType::TreasureVault:
+                hintColor = {255, 215, 60, static_cast<Uint8>(40 + proximity * 60)};  // Gold
+                break;
+            case SecretRoomType::ChallengeRoom:
+                hintColor = {255, 80, 80, static_cast<Uint8>(40 + proximity * 60)};   // Red
+                break;
+            case SecretRoomType::ShrineRoom:
+                hintColor = {180, 120, 255, static_cast<Uint8>(40 + proximity * 60)}; // Purple
+                break;
+            case SecretRoomType::DimensionCache:
+                hintColor = {100, 200, 255, static_cast<Uint8>(40 + proximity * 60)}; // Cyan
+                break;
+            case SecretRoomType::AncientWeapon:
+                hintColor = {255, 180, 60, static_cast<Uint8>(40 + proximity * 60)};  // Orange
+                break;
+        }
+
+        // Floating motes rising from the wall
+        for (int i = 0; i < particleCount; i++) {
+            Vec2 spawnPos = {
+                entrancePos.x + (std::rand() % 20 - 10),
+                entrancePos.y + (std::rand() % 10 - 5)
+            };
+            m_particles.burst(spawnPos, 1, hintColor, 20.0f + proximity * 30.0f, 1.5f + proximity);
         }
     }
 }
@@ -2957,20 +3515,61 @@ void PlayState::checkEventInteraction() {
                         }
                         break;
 
-                    case RandomEventType::Shrine:
+                    case RandomEventType::Shrine: {
                         AudioManager::instance().play(SFX::ShrineActivate);
-                        if (std::rand() % 2 == 0) {
-                            AudioManager::instance().play(SFX::ShrineBlessing);
-                            hp.maxHP += 15;
-                            hp.currentHP = std::min(hp.maxHP, hp.currentHP + 15);
-                            m_particles.burst(event.position, 20, {100, 255, 150, 255}, 150.0f, 3.0f);
-                        } else {
-                            AudioManager::instance().play(SFX::ShrineCurse);
-                            m_entropy.addEntropy(10.0f);
-                            hp.currentHP = std::max(1.0f, hp.currentHP - 10);
-                            m_particles.burst(event.position, 15, {200, 50, 50, 255}, 150.0f, 3.0f);
+                        SDL_Color sc = event.getShrineColor();
+                        switch (event.shrineType) {
+                            case ShrineType::Power:
+                                AudioManager::instance().play(SFX::ShrineBlessing);
+                                m_player->damageBoostTimer = 60.0f;
+                                m_player->damageBoostMultiplier = 1.3f;
+                                hp.maxHP = std::max(1.0f, hp.maxHP - 15);
+                                hp.currentHP = std::min(hp.currentHP, hp.maxHP);
+                                m_particles.burst(event.position, 20, sc, 150.0f, 3.0f);
+                                break;
+                            case ShrineType::Vitality:
+                                AudioManager::instance().play(SFX::ShrineBlessing);
+                                hp.maxHP += 25;
+                                hp.currentHP = std::min(hp.maxHP, hp.currentHP + 25);
+                                m_entropy.addEntropy(8.0f);
+                                m_particles.burst(event.position, 20, sc, 150.0f, 3.0f);
+                                break;
+                            case ShrineType::Speed:
+                                AudioManager::instance().play(SFX::ShrineBlessing);
+                                m_player->speedBoostTimer = 45.0f;
+                                m_player->speedBoostMultiplier = 1.25f;
+                                hp.maxHP = std::max(1.0f, hp.maxHP - 10);
+                                hp.currentHP = std::min(hp.currentHP, hp.maxHP);
+                                m_particles.burst(event.position, 20, sc, 150.0f, 3.0f);
+                                break;
+                            case ShrineType::Entropy:
+                                AudioManager::instance().play(SFX::ShrineBlessing);
+                                m_entropy.reduceEntropy(25.0f);
+                                hp.currentHP = std::max(1.0f, hp.currentHP - 15);
+                                m_particles.burst(event.position, 20, sc, 150.0f, 3.0f);
+                                break;
+                            case ShrineType::Shards: {
+                                AudioManager::instance().play(SFX::Pickup);
+                                int shards = event.reward > 0 ? event.reward : 40;
+                                shards = static_cast<int>(shards * buffs.getShardMultiplier());
+                                shardsCollected += shards;
+                                game->getUpgradeSystem().addRiftShards(shards);
+                                m_entropy.addEntropy(12.0f);
+                                m_particles.burst(event.position, 25, sc, 180.0f, 3.0f);
+                                break;
+                            }
+                            case ShrineType::Renewal:
+                                AudioManager::instance().play(SFX::ShrineBlessing);
+                                hp.currentHP = hp.maxHP;
+                                m_entropy.addEntropy(5.0f);
+                                m_particles.burst(event.position, 25, sc, 150.0f, 3.0f);
+                                break;
+                            default:
+                                break;
                         }
+                        m_camera.shake(0.3f, 4.0f);
                         break;
+                    }
 
                     case RandomEventType::DimensionalAnomaly:
                         AudioManager::instance().play(SFX::AnomalySpawn);
@@ -3063,7 +3662,7 @@ void PlayState::renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Color npcColor;
         switch (event.type) {
             case RandomEventType::Merchant:           npcColor = {80, 200, 80, 255}; break;
-            case RandomEventType::Shrine:             npcColor = {180, 120, 255, 255}; break;
+            case RandomEventType::Shrine:             npcColor = event.getShrineColor(); break;
             case RandomEventType::DimensionalAnomaly: npcColor = {200, 50, 200, 255}; break;
             case RandomEventType::RiftEcho:           npcColor = {150, 150, 255, 255}; break;
             case RandomEventType::SuitRepairStation:  npcColor = {100, 255, 150, 255}; break;
@@ -3124,14 +3723,33 @@ void PlayState::renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font) {
             char hint[64];
             std::snprintf(hint, sizeof(hint), "[F] %s", event.getName());
             SDL_Surface* hs = TTF_RenderText_Blended(font, hint, hc);
+            int nameH = 0;
             if (hs) {
+                nameH = hs->h;
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
                 if (ht) {
-                    SDL_Rect hr = {sr.x + sr.w / 2 - hs->w / 2, sr.y - 24, hs->w, hs->h};
+                    int offy = (event.type == RandomEventType::Shrine) ? -36 : -24;
+                    SDL_Rect hr = {sr.x + sr.w / 2 - hs->w / 2, sr.y + offy, hs->w, hs->h};
                     SDL_RenderCopy(renderer, ht, nullptr, &hr);
                     SDL_DestroyTexture(ht);
                 }
                 SDL_FreeSurface(hs);
+            }
+
+            // Shrine: show effect preview below the name
+            if (event.type == RandomEventType::Shrine) {
+                SDL_Color ec = event.getShrineColor();
+                ec.a = static_cast<Uint8>(180 * blink);
+                SDL_Surface* es = TTF_RenderText_Blended(font, event.getShrineEffect(), ec);
+                if (es) {
+                    SDL_Texture* et = SDL_CreateTextureFromSurface(renderer, es);
+                    if (et) {
+                        SDL_Rect er = {sr.x + sr.w / 2 - es->w / 2, sr.y - 36 + nameH + 2, es->w, es->h};
+                        SDL_RenderCopy(renderer, et, nullptr, &er);
+                        SDL_DestroyTexture(et);
+                    }
+                    SDL_FreeSurface(es);
+                }
             }
         }
     }
@@ -3298,6 +3916,268 @@ void PlayState::renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font) {
     }
 }
 
+// ============ Combat Challenges ============
+
+void PlayState::startCombatChallenge() {
+    // Pick a random challenge type
+    int typeCount = static_cast<int>(CombatChallengeType::COUNT);
+    auto type = static_cast<CombatChallengeType>(std::rand() % typeCount);
+
+    m_combatChallenge = {};
+    m_combatChallenge.type = type;
+    m_combatChallenge.active = true;
+    m_tookDamageThisWave = false;
+
+    switch (type) {
+        case CombatChallengeType::AerialKill:
+            m_combatChallenge.name = "Aerial Kill";
+            m_combatChallenge.desc = "Kill an enemy while airborne";
+            m_combatChallenge.targetCount = 1;
+            m_combatChallenge.shardReward = 20;
+            break;
+        case CombatChallengeType::MultiKill:
+            m_combatChallenge.name = "Triple Kill";
+            m_combatChallenge.desc = "Kill 3 enemies within 4 seconds";
+            m_combatChallenge.targetCount = 3;
+            m_combatChallenge.timer = 4.0f;
+            m_combatChallenge.maxTimer = 4.0f;
+            m_combatChallenge.shardReward = 35;
+            break;
+        case CombatChallengeType::DashKill:
+            m_combatChallenge.name = "Dash Slayer";
+            m_combatChallenge.desc = "Kill an enemy with a dash attack";
+            m_combatChallenge.targetCount = 1;
+            m_combatChallenge.shardReward = 20;
+            break;
+        case CombatChallengeType::ComboFinisher:
+            m_combatChallenge.name = "Combo Finisher";
+            m_combatChallenge.desc = "Kill with a 3rd combo hit";
+            m_combatChallenge.targetCount = 1;
+            m_combatChallenge.shardReward = 25;
+            break;
+        case CombatChallengeType::ChargedKill:
+            m_combatChallenge.name = "Heavy Hitter";
+            m_combatChallenge.desc = "Kill with a charged attack";
+            m_combatChallenge.targetCount = 1;
+            m_combatChallenge.shardReward = 25;
+            break;
+        case CombatChallengeType::NoDamageWave:
+            m_combatChallenge.name = "Untouchable";
+            m_combatChallenge.desc = "Clear wave without taking damage";
+            m_combatChallenge.targetCount = 1;
+            m_combatChallenge.shardReward = 40;
+            break;
+        default: break;
+    }
+}
+
+void PlayState::updateCombatChallenge(float dt) {
+    // Completion popup timer
+    if (m_challengeCompleteTimer > 0) {
+        m_challengeCompleteTimer -= dt;
+    }
+
+    if (!m_combatChallenge.active || m_combatChallenge.completed) return;
+
+    // Note: m_tookDamageThisWave is set directly when player takes damage
+    // (combat hits, hazards, DOTs) — no framerate-dependent checks needed
+
+    // Process kill events from CombatSystem
+    for (auto& ke : m_combatSystem.killEvents) {
+        switch (m_combatChallenge.type) {
+            case CombatChallengeType::AerialKill:
+                if (ke.wasAerial) m_combatChallenge.currentCount++;
+                break;
+            case CombatChallengeType::MultiKill:
+                m_combatChallenge.currentCount++;
+                // Reset timer on first kill of the sequence
+                if (m_combatChallenge.currentCount == 1) {
+                    m_combatChallenge.timer = m_combatChallenge.maxTimer;
+                }
+                break;
+            case CombatChallengeType::DashKill:
+                if (ke.wasDash) m_combatChallenge.currentCount++;
+                break;
+            case CombatChallengeType::ComboFinisher:
+                if (ke.wasComboFinisher) m_combatChallenge.currentCount++;
+                break;
+            case CombatChallengeType::ChargedKill:
+                if (ke.wasCharged) m_combatChallenge.currentCount++;
+                break;
+            case CombatChallengeType::NoDamageWave:
+                // Tracked via wave clear, not per kill
+                break;
+            default: break;
+        }
+    }
+
+    // MultiKill timer countdown (only after first kill)
+    if (m_combatChallenge.type == CombatChallengeType::MultiKill &&
+        m_combatChallenge.currentCount > 0 && m_combatChallenge.currentCount < m_combatChallenge.targetCount) {
+        m_combatChallenge.timer -= dt;
+        if (m_combatChallenge.timer <= 0) {
+            // Failed: reset progress
+            m_combatChallenge.currentCount = 0;
+            m_combatChallenge.timer = m_combatChallenge.maxTimer;
+        }
+    }
+
+    // NoDamageWave: check on wave clear (all enemies dead)
+    if (m_combatChallenge.type == CombatChallengeType::NoDamageWave) {
+        int aliveEnemies = 0;
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag().find("enemy") != std::string::npos) aliveEnemies++;
+        });
+        if (aliveEnemies == 0 && enemiesKilled > 0 && !m_tookDamageThisWave) {
+            m_combatChallenge.currentCount = 1;
+        }
+    }
+
+    // Check completion
+    if (m_combatChallenge.currentCount >= m_combatChallenge.targetCount) {
+        m_combatChallenge.completed = true;
+        m_combatChallenge.active = false;
+        m_challengeCompleteTimer = 2.5f;
+        m_challengesCompleted++;
+
+        // Reward shards
+        if (game) {
+            game->getUpgradeSystem().addRiftShards(m_combatChallenge.shardReward);
+            shardsCollected += m_combatChallenge.shardReward;
+        }
+
+        // Particles + SFX
+        if (m_player) {
+            auto& t = m_player->getEntity()->getComponent<TransformComponent>();
+            m_particles.burst(t.getCenter(), 20, {255, 215, 0, 255}, 200.0f, 4.0f);
+            m_particles.burst(t.getCenter(), 12, {255, 255, 180, 255}, 120.0f, 3.0f);
+        }
+        AudioManager::instance().play(SFX::ShrineBlessing);
+        m_camera.shake(4.0f, 0.12f);
+    }
+}
+
+void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font) return;
+
+    // Active challenge indicator (top center, below boss bar)
+    if (m_combatChallenge.active && !m_combatChallenge.completed) {
+        int cx = SCREEN_WIDTH / 2;
+        int cy = m_isBossLevel ? 60 : 28;
+
+        // Background panel
+        int panelW = 240, panelH = 36;
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 20, 20, 30, 180);
+        SDL_Rect bg = {cx - panelW / 2, cy - panelH / 2, panelW, panelH};
+        SDL_RenderFillRect(renderer, &bg);
+
+        // Gold border
+        SDL_SetRenderDrawColor(renderer, 200, 170, 50, 200);
+        SDL_RenderDrawRect(renderer, &bg);
+
+        // Challenge name
+        SDL_Color gold = {255, 215, 0, 255};
+        SDL_Surface* ns = TTF_RenderText_Blended(font, m_combatChallenge.name, gold);
+        if (ns) {
+            SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
+            if (nt) {
+                SDL_Rect nr = {cx - ns->w / 2, cy - panelH / 2 + 2, ns->w, ns->h};
+                SDL_RenderCopy(renderer, nt, nullptr, &nr);
+                SDL_DestroyTexture(nt);
+            }
+            SDL_FreeSurface(ns);
+        }
+
+        // Description
+        SDL_Color desc = {180, 180, 200, 200};
+        SDL_Surface* ds = TTF_RenderText_Blended(font, m_combatChallenge.desc, desc);
+        if (ds) {
+            SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
+            if (dt) {
+                SDL_Rect dr = {cx - ds->w / 2, cy - panelH / 2 + 16, ds->w, ds->h};
+                SDL_RenderCopy(renderer, dt, nullptr, &dr);
+                SDL_DestroyTexture(dt);
+            }
+            SDL_FreeSurface(ds);
+        }
+
+        // Progress bar for multi-kill (timer)
+        if (m_combatChallenge.type == CombatChallengeType::MultiKill &&
+            m_combatChallenge.currentCount > 0 && m_combatChallenge.maxTimer > 0) {
+            float pct = m_combatChallenge.timer / m_combatChallenge.maxTimer;
+            int barW = panelW - 8;
+            SDL_Rect barBg = {cx - barW / 2, cy + panelH / 2 - 5, barW, 3};
+            SDL_SetRenderDrawColor(renderer, 40, 40, 50, 200);
+            SDL_RenderFillRect(renderer, &barBg);
+            SDL_Rect barFill = {cx - barW / 2, cy + panelH / 2 - 5,
+                                static_cast<int>(barW * pct), 3};
+            Uint8 r = static_cast<Uint8>(255 * (1.0f - pct));
+            Uint8 g = static_cast<Uint8>(255 * pct);
+            SDL_SetRenderDrawColor(renderer, r, g, 50, 230);
+            SDL_RenderFillRect(renderer, &barFill);
+
+            // Kill count indicator
+            char countBuf[16];
+            std::snprintf(countBuf, sizeof(countBuf), "%d/%d",
+                         m_combatChallenge.currentCount, m_combatChallenge.targetCount);
+            SDL_Surface* cs = TTF_RenderText_Blended(font, countBuf, gold);
+            if (cs) {
+                SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
+                if (ct) {
+                    SDL_Rect cr = {cx + panelW / 2 + 4, cy - cs->h / 2, cs->w, cs->h};
+                    SDL_RenderCopy(renderer, ct, nullptr, &cr);
+                    SDL_DestroyTexture(ct);
+                }
+                SDL_FreeSurface(cs);
+            }
+        }
+
+        // Shard reward preview
+        char rewardBuf[24];
+        std::snprintf(rewardBuf, sizeof(rewardBuf), "+%d", m_combatChallenge.shardReward);
+        SDL_Color shardCol = {100, 200, 255, 160};
+        SDL_Surface* rs = TTF_RenderText_Blended(font, rewardBuf, shardCol);
+        if (rs) {
+            SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
+            if (rt) {
+                SDL_Rect rr = {cx + panelW / 2 - rs->w - 4, cy - panelH / 2 + 2, rs->w, rs->h};
+                SDL_RenderCopy(renderer, rt, nullptr, &rr);
+                SDL_DestroyTexture(rt);
+            }
+            SDL_FreeSurface(rs);
+        }
+    }
+
+    // Completion popup (fades out)
+    if (m_challengeCompleteTimer > 0 && m_combatChallenge.completed) {
+        float alpha = std::min(1.0f, m_challengeCompleteTimer / 0.5f);
+        Uint8 a = static_cast<Uint8>(alpha * 255);
+
+        int cx = SCREEN_WIDTH / 2;
+        int cy = 80;
+
+        // Slide up as it fades
+        float slideUp = (1.0f - alpha) * 20.0f;
+        cy -= static_cast<int>(slideUp);
+
+        char completeBuf[64];
+        std::snprintf(completeBuf, sizeof(completeBuf), "CHALLENGE COMPLETE! +%d Shards",
+                     m_combatChallenge.shardReward);
+        SDL_Color compColor = {255, 215, 0, a};
+        SDL_Surface* cs = TTF_RenderText_Blended(font, completeBuf, compColor);
+        if (cs) {
+            SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
+            if (ct) {
+                SDL_Rect cr = {cx - cs->w / 2, cy, cs->w, cs->h};
+                SDL_RenderCopy(renderer, ct, nullptr, &cr);
+                SDL_DestroyTexture(ct);
+            }
+            SDL_FreeSurface(cs);
+        }
+    }
+}
+
 // ============ NPC System ============
 
 void PlayState::checkNPCInteraction() {
@@ -3451,8 +4331,9 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &full);
 
-    // Dialog box
-    int boxW = 500, boxH = 260;
+    // Dialog box (taller for returning NPCs with longer story text)
+    int stage = getNPCStoryStage(npc.type);
+    int boxW = 500, boxH = 260 + (stage > 0 ? 30 : 0);
     int boxX = 640 - boxW / 2, boxY = 360 - boxH / 2;
 
     SDL_SetRenderDrawColor(renderer, 20, 15, 35, 240);
@@ -3476,9 +4357,26 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_FreeSurface(ns);
     }
 
-    // Dialog text
+    // Story stage indicator (show returning NPC badge)
+    if (stage > 0) {
+        const char* stageLabel = (stage >= 2) ? "[Old Friend]" : "[Returning]";
+        SDL_Color stageColor = (stage >= 2) ? SDL_Color{255, 215, 80, 200} : SDL_Color{140, 200, 140, 180};
+        SDL_Surface* stS = TTF_RenderText_Blended(font, stageLabel, stageColor);
+        if (stS) {
+            SDL_Texture* stT = SDL_CreateTextureFromSurface(renderer, stS);
+            if (stT) {
+                SDL_Rect stR = {boxX + boxW - stS->w - 20, boxY + 15, stS->w, stS->h};
+                SDL_RenderCopy(renderer, stT, nullptr, &stR);
+                SDL_DestroyTexture(stT);
+            }
+            SDL_FreeSurface(stS);
+        }
+    }
+
+    // Greeting text (stage-based)
+    const char* greeting = NPCSystem::getGreeting(npc.type, stage);
     SDL_Color textColor = {200, 200, 220, 255};
-    SDL_Surface* ds = TTF_RenderText_Blended(font, npc.greeting, textColor);
+    SDL_Surface* ds = TTF_RenderText_Blended(font, greeting, textColor);
     if (ds) {
         SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
         if (dt) {
@@ -3489,21 +4387,35 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_FreeSurface(ds);
     }
 
-    // Lore line
-    SDL_Surface* ls = TTF_RenderText_Blended(font, npc.dialogLine, SDL_Color{160, 160, 180, 200});
-    if (ls) {
-        SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
-        if (lt) {
-            SDL_Rect lr = {boxX + 20, boxY + 70, ls->w, ls->h};
-            SDL_RenderCopy(renderer, lt, nullptr, &lr);
-            SDL_DestroyTexture(lt);
+    // Story line (stage-based, may contain newlines — render line by line)
+    const char* storyText = NPCSystem::getStoryLine(npc.type, stage);
+    int lineY = boxY + 70;
+    {
+        // Split on newline and render each line
+        std::string story(storyText);
+        size_t pos = 0;
+        while (pos < story.size()) {
+            size_t nl = story.find('\n', pos);
+            std::string line = (nl != std::string::npos) ? story.substr(pos, nl - pos) : story.substr(pos);
+            pos = (nl != std::string::npos) ? nl + 1 : story.size();
+            if (line.empty()) { lineY += 18; continue; }
+            SDL_Surface* ls = TTF_RenderText_Blended(font, line.c_str(), SDL_Color{160, 160, 180, 200});
+            if (ls) {
+                SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
+                if (lt) {
+                    SDL_Rect lr = {boxX + 20, lineY, ls->w, ls->h};
+                    SDL_RenderCopy(renderer, lt, nullptr, &lr);
+                    SDL_DestroyTexture(lt);
+                }
+                SDL_FreeSurface(ls);
+            }
+            lineY += 18;
         }
-        SDL_FreeSurface(ls);
     }
 
-    // Dialog options
-    auto options = NPCSystem::getDialogOptions(npc.type);
-    int optY = boxY + 110;
+    // Dialog options (stage-based) — positioned below story text
+    auto options = NPCSystem::getDialogOptions(npc.type, stage);
+    int optY = std::max(lineY + 8, boxY + 110);
     for (int i = 0; i < static_cast<int>(options.size()); i++) {
         bool selected = (i == m_npcDialogChoice);
         SDL_Color oc = selected ? SDL_Color{255, 220, 100, 255} : SDL_Color{180, 180, 200, 200};
@@ -3551,7 +4463,8 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
     auto& npcs = m_level->getNPCs();
     if (npcIndex >= static_cast<int>(npcs.size())) return;
     auto& npc = npcs[npcIndex];
-    auto options = NPCSystem::getDialogOptions(npc.type);
+    int npcStage = getNPCStoryStage(npc.type);
+    auto options = NPCSystem::getDialogOptions(npc.type, npcStage);
 
     // Last option is always [Leave]
     if (choice == static_cast<int>(options.size()) - 1) {
@@ -3572,47 +4485,161 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
         }
     }
 
+    int stage = getNPCStoryStage(npc.type);
+    // Advance story progress after this interaction
+    int typeIdx = static_cast<int>(npc.type);
+    if (typeIdx >= 0 && typeIdx < static_cast<int>(NPCType::COUNT))
+        m_npcStoryProgress[typeIdx]++;
+
     switch (npc.type) {
         case NPCType::RiftScholar:
-            // Give tip + small shard bonus
-            AudioManager::instance().play(SFX::Pickup);
-            game->getUpgradeSystem().addRiftShards(15);
-            shardsCollected += 15;
-            m_particles.burst(npc.position, 12, {100, 180, 255, 255}, 100.0f, 2.0f);
+            if (stage >= 2) {
+                // Stage 2: Learn the truth — big shards + full heal
+                AudioManager::instance().play(SFX::LoreDiscover);
+                game->getUpgradeSystem().addRiftShards(40);
+                shardsCollected += 40;
+                hp.currentHP = hp.maxHP;
+                m_player->damageBoostTimer = 20.0f;
+                m_player->damageBoostMultiplier = 1.2f;
+                m_particles.burst(npc.position, 25, {180, 120, 255, 255}, 200.0f, 4.0f);
+                m_particles.burst(npc.position, 12, {255, 255, 200, 255}, 120.0f, 3.0f);
+                if (auto* lore = game->getLoreSystem()) {
+                    lore->discover(LoreID::SovereignTruth);
+                }
+            } else if (stage >= 1) {
+                if (choice == 0) {
+                    // Listen: better shards + entropy reduction
+                    AudioManager::instance().play(SFX::Pickup);
+                    game->getUpgradeSystem().addRiftShards(25);
+                    shardsCollected += 25;
+                    m_entropy.addEntropy(-15.0f);
+                    m_particles.burst(npc.position, 18, {120, 200, 255, 255}, 150.0f, 3.0f);
+                } else if (choice == 1) {
+                    // Ask about Sovereign: lore + speed
+                    AudioManager::instance().play(SFX::LoreDiscover);
+                    m_player->speedBoostTimer = 30.0f;
+                    m_player->speedBoostMultiplier = 1.2f;
+                    game->getUpgradeSystem().addRiftShards(15);
+                    shardsCollected += 15;
+                    m_particles.burst(npc.position, 15, {180, 140, 255, 255}, 120.0f, 2.5f);
+                }
+            } else {
+                if (choice == 0) {
+                    // Listen to tip: shard bonus
+                    AudioManager::instance().play(SFX::Pickup);
+                    game->getUpgradeSystem().addRiftShards(15);
+                    shardsCollected += 15;
+                    m_particles.burst(npc.position, 12, {100, 180, 255, 255}, 100.0f, 2.0f);
+                } else if (choice == 1) {
+                    // Ask about enemies: brief speed boost
+                    AudioManager::instance().play(SFX::LoreDiscover);
+                    m_player->speedBoostTimer = 20.0f;
+                    m_player->speedBoostMultiplier = 1.15f;
+                    game->getUpgradeSystem().addRiftShards(10);
+                    shardsCollected += 10;
+                    m_particles.burst(npc.position, 15, {180, 220, 255, 255}, 120.0f, 2.5f);
+                }
+            }
             npc.interacted = true;
             m_showNPCDialog = false;
             break;
 
         case NPCType::DimRefugee:
-            if (choice == 0) {
-                // Trade 20 HP for 50 Shards
-                if (hp.currentHP > 25) {
-                    hp.currentHP -= 20;
-                    game->getUpgradeSystem().addRiftShards(50);
-                    shardsCollected += 50;
-                    AudioManager::instance().play(SFX::Pickup);
-                    m_particles.burst(npc.position, 15, {255, 200, 60, 255}, 120.0f, 2.0f);
-                } else {
-                    AudioManager::instance().play(SFX::RiftFail);
-                    m_showNPCDialog = false;
-                    return;
+            if (stage >= 2) {
+                // Stage 2: Free relic gift
+                if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+                    auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+                    RelicID gift = RelicSystem::generateDrop(m_currentDifficulty, relics.relics);
+                    relics.addRelic(gift);
+                    RelicSystem::applyStatEffects(relics, *m_player, hp, combat);
+                    AudioManager::instance().play(SFX::ShrineBlessing);
+                    m_camera.shake(8.0f, 0.3f);
+                    m_particles.burst(npc.position, 30, {255, 215, 80, 255}, 250.0f, 5.0f);
+                    m_particles.burst(npc.position, 15, {255, 200, 60, 255}, 180.0f, 3.0f);
                 }
-            } else if (choice == 1) {
-                // Swap random relic (just give bonus shards if no relics)
-                game->getUpgradeSystem().addRiftShards(30);
-                shardsCollected += 30;
-                AudioManager::instance().play(SFX::Pickup);
+            } else if (stage >= 1) {
+                if (choice == 0) {
+                    // Free healing +30 HP
+                    hp.heal(30.0f);
+                    AudioManager::instance().play(SFX::Pickup);
+                    m_particles.burst(npc.position, 15, {80, 255, 120, 255}, 120.0f, 2.0f);
+                } else if (choice == 1) {
+                    // Better trade: 15 HP for 60 shards
+                    if (hp.currentHP > 20) {
+                        hp.currentHP -= 15;
+                        game->getUpgradeSystem().addRiftShards(60);
+                        shardsCollected += 60;
+                        AudioManager::instance().play(SFX::Pickup);
+                        m_particles.burst(npc.position, 15, {255, 200, 60, 255}, 120.0f, 2.0f);
+                    } else {
+                        AudioManager::instance().play(SFX::RiftFail);
+                        m_showNPCDialog = false;
+                        return;
+                    }
+                }
+            } else {
+                if (choice == 0) {
+                    // Trade 20 HP for 50 Shards
+                    if (hp.currentHP > 25) {
+                        hp.currentHP -= 20;
+                        game->getUpgradeSystem().addRiftShards(50);
+                        shardsCollected += 50;
+                        AudioManager::instance().play(SFX::Pickup);
+                        m_particles.burst(npc.position, 15, {255, 200, 60, 255}, 120.0f, 2.0f);
+                    } else {
+                        AudioManager::instance().play(SFX::RiftFail);
+                        m_showNPCDialog = false;
+                        return;
+                    }
+                } else if (choice == 1) {
+                    // Trade 30 HP for 80 Shards
+                    if (hp.currentHP > 35) {
+                        hp.currentHP -= 30;
+                        game->getUpgradeSystem().addRiftShards(80);
+                        shardsCollected += 80;
+                        AudioManager::instance().play(SFX::Pickup);
+                        m_particles.burst(npc.position, 20, {255, 200, 60, 255}, 150.0f, 2.5f);
+                    } else {
+                        AudioManager::instance().play(SFX::RiftFail);
+                        m_showNPCDialog = false;
+                        return;
+                    }
+                }
             }
             npc.interacted = true;
             m_showNPCDialog = false;
             break;
 
         case NPCType::LostEngineer:
-            // Upgrade weapon (+30% damage temporarily)
-            combat.meleeAttack.damage *= 1.3f;
-            combat.rangedAttack.damage *= 1.3f;
-            AudioManager::instance().play(SFX::Pickup);
-            m_particles.burst(npc.position, 20, {180, 255, 120, 255}, 150.0f, 3.0f);
+            if (stage >= 2) {
+                // Stage 2: Permanent +25% damage boost for rest of run
+                m_player->damageBoostTimer = 99999.0f; // effectively permanent
+                m_player->damageBoostMultiplier = 1.25f;
+                AudioManager::instance().play(SFX::ShrineBlessing);
+                m_camera.shake(8.0f, 0.3f);
+                m_particles.burst(npc.position, 25, {100, 255, 80, 255}, 250.0f, 5.0f);
+                m_particles.burst(npc.position, 12, {255, 255, 200, 255}, 150.0f, 3.0f);
+            } else if (stage >= 1) {
+                if (choice == 0) {
+                    // +40% damage for 60s
+                    m_player->damageBoostTimer = 60.0f;
+                    m_player->damageBoostMultiplier = 1.4f;
+                    AudioManager::instance().play(SFX::Pickup);
+                    m_particles.burst(npc.position, 20, {180, 255, 120, 255}, 150.0f, 3.0f);
+                } else if (choice == 1) {
+                    // +20% attack speed for 45s
+                    m_player->speedBoostTimer = 45.0f;
+                    m_player->speedBoostMultiplier = 1.2f;
+                    AudioManager::instance().play(SFX::Pickup);
+                    m_particles.burst(npc.position, 18, {120, 255, 200, 255}, 140.0f, 2.5f);
+                }
+            } else {
+                // Stage 0: +30% damage for 45s
+                m_player->damageBoostTimer = 45.0f;
+                m_player->damageBoostMultiplier = 1.3f;
+                AudioManager::instance().play(SFX::Pickup);
+                m_particles.burst(npc.position, 20, {180, 255, 120, 255}, 150.0f, 3.0f);
+            }
             npc.interacted = true;
             m_showNPCDialog = false;
             break;
@@ -3620,17 +4647,24 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
         case NPCType::EchoOfSelf:
             if (choice == 0) {
                 // Fight! Spawn a tough enemy as "mirror match"
+                // Scales with story stage — harder echo, better reward
                 Vec2 spawnPos = {npc.position.x + 60, npc.position.y};
                 auto& mirror = Enemy::createByType(m_entities, static_cast<int>(EnemyType::Charger),
                                                    spawnPos, m_dimManager.getCurrentDimension());
+                mirror.setTag("enemy_echo");
+                m_echoSpawned = true;
+                m_echoRewarded = false;
                 auto& mirrorHP = mirror.getComponent<HealthComponent>();
-                mirrorHP.maxHP = hp.maxHP;
+                // Higher stages = tougher echo
+                float hpScale = 1.0f + stage * 0.4f; // 1.0x, 1.4x, 1.8x
+                mirrorHP.maxHP = hp.maxHP * hpScale;
                 mirrorHP.currentHP = mirrorHP.maxHP;
                 auto& mirrorCombat = mirror.getComponent<CombatComponent>();
-                mirrorCombat.meleeAttack.damage = combat.meleeAttack.damage;
+                mirrorCombat.meleeAttack.damage = combat.meleeAttack.damage * (1.0f + stage * 0.2f);
                 Enemy::makeElite(mirror, EliteModifier::Berserker);
                 AudioManager::instance().play(SFX::AnomalySpawn);
-                m_particles.burst(npc.position, 25, {220, 120, 255, 255}, 200.0f, 3.0f);
+                m_camera.shake(6.0f + stage * 3.0f, 0.2f + stage * 0.1f);
+                m_particles.burst(npc.position, 25 + stage * 10, {220, 120, 255, 255}, 200.0f + stage * 50.0f, 3.0f);
             }
             npc.interacted = true;
             m_showNPCDialog = false;
@@ -3903,6 +4937,30 @@ void PlayState::updateSmokeTest(float dt) {
                 // Rotate until aligned
                 if (m_activePuzzle->getCurrentRotation() != m_activePuzzle->getTargetRotation()) {
                     m_activePuzzle->handleInput(1); // rotate right
+                }
+                break;
+            case PuzzleType::Pattern:
+                // Wait for reveal phase, then select correct cells
+                if (!m_activePuzzle->isPatternShowing()) {
+                    // Find next target cell not yet selected
+                    for (int py = 0; py < 3; py++) {
+                        for (int px = 0; px < 3; px++) {
+                            if (m_activePuzzle->getPatternTarget(px, py) &&
+                                !m_activePuzzle->getPatternPlayer(px, py)) {
+                                // Navigate cursor to this cell
+                                int cx = m_activePuzzle->getPatternCursorX();
+                                int cy = m_activePuzzle->getPatternCursorY();
+                                if (cx < px) { m_activePuzzle->handleInput(1); goto patternDone; }
+                                if (cx > px) { m_activePuzzle->handleInput(3); goto patternDone; }
+                                if (cy < py) { m_activePuzzle->handleInput(2); goto patternDone; }
+                                if (cy > py) { m_activePuzzle->handleInput(0); goto patternDone; }
+                                // Cursor is on target cell, confirm
+                                m_activePuzzle->handleInput(4);
+                                goto patternDone;
+                            }
+                        }
+                    }
+                    patternDone:;
                 }
                 break;
         }
@@ -4396,6 +5454,27 @@ void PlayState::updatePlaytest(float dt) {
                         m_playtestThinkTimer = 0.35f;
                     }
                     break;
+                case PuzzleType::Pattern:
+                    if (!m_activePuzzle->isPatternShowing()) {
+                        for (int py = 0; py < 3; py++) {
+                            for (int px = 0; px < 3; px++) {
+                                if (m_activePuzzle->getPatternTarget(px, py) &&
+                                    !m_activePuzzle->getPatternPlayer(px, py)) {
+                                    int pcx = m_activePuzzle->getPatternCursorX();
+                                    int pcy = m_activePuzzle->getPatternCursorY();
+                                    if (pcx < px) { m_activePuzzle->handleInput(1); }
+                                    else if (pcx > px) { m_activePuzzle->handleInput(3); }
+                                    else if (pcy < py) { m_activePuzzle->handleInput(2); }
+                                    else if (pcy > py) { m_activePuzzle->handleInput(0); }
+                                    else { m_activePuzzle->handleInput(4); }
+                                    m_playtestThinkTimer = 0.4f;
+                                    goto ptPatternDone;
+                                }
+                            }
+                        }
+                        ptPatternDone:;
+                    }
+                    break;
             }
         }
         return;
@@ -4700,5 +5779,276 @@ void PlayState::updatePlaytest(float dt) {
             m_playtestBestLevel = m_currentDifficulty;
         playtestWriteReport();
         game->quit();
+    }
+}
+
+// ====== Event Chain System ======
+
+void PlayState::spawnChainEvent() {
+    if (m_eventChain.stage <= 0 || m_eventChain.completed || m_chainEventSpawned) return;
+    m_chainEventSpawned = true;
+
+    // Place a chain-themed random event in the level
+    auto& events = m_level->getRandomEvents();
+    m_chainEventIndex = static_cast<int>(events.size()); // Will be the index of the new event
+    Vec2 spawnPos = m_level->getSpawnPoint();
+    // Offset from spawn to make it discoverable but not immediate
+    spawnPos.x += 200.0f + static_cast<float>(std::rand() % 300);
+    spawnPos.y -= 32.0f;
+
+    RandomEvent chainEvt;
+    chainEvt.dimension = 0; // Visible in both dimensions
+    chainEvt.position = spawnPos;
+    chainEvt.used = false;
+    chainEvt.active = true;
+
+    switch (m_eventChain.type) {
+        case EventChainType::MerchantQuest:
+            if (m_eventChain.stage == 1 || m_eventChain.stage == 3) {
+                chainEvt.type = RandomEventType::Merchant;
+                chainEvt.cost = 0; // Free — chain merchant
+            } else {
+                // Stage 2: artifact is a shard pickup (RiftEcho)
+                chainEvt.type = RandomEventType::RiftEcho;
+                chainEvt.reward = 15 + m_currentDifficulty * 5;
+            }
+            break;
+        case EventChainType::DimensionalTear:
+            chainEvt.type = RandomEventType::DimensionalAnomaly;
+            chainEvt.reward = 10 * m_eventChain.stage;
+            break;
+        case EventChainType::EntropySurge:
+            if (m_eventChain.stage < 3) {
+                chainEvt.type = RandomEventType::SuitRepairStation;
+            } else {
+                chainEvt.type = RandomEventType::Shrine;
+                chainEvt.shrineType = ShrineType::Entropy;
+            }
+            break;
+        case EventChainType::LostCache:
+            if (m_eventChain.stage < 3) {
+                chainEvt.type = RandomEventType::RiftEcho;
+                chainEvt.reward = 10 + m_eventChain.stage * 10;
+            } else {
+                chainEvt.type = RandomEventType::GamblingRift;
+                chainEvt.cost = 0; // Free final cache
+                chainEvt.reward = 80 + m_currentDifficulty * 10;
+            }
+            break;
+        default: break;
+    }
+
+    events.push_back(chainEvt);
+}
+
+void PlayState::advanceChain() {
+    if (m_eventChain.stage <= 0 || m_eventChain.completed) return;
+
+    m_eventChain.stage++;
+    if (m_eventChain.stage > m_eventChain.maxStages) {
+        completeChain();
+    } else {
+        m_chainNotifyTimer = 3.5f; // Show stage advance notification
+        AudioManager::instance().play(SFX::LoreDiscover);
+    }
+}
+
+void PlayState::completeChain() {
+    m_eventChain.completed = true;
+    m_chainRewardShards = m_eventChain.getCompletionReward(m_currentDifficulty);
+
+    // Grant shards
+    float shardMult = game->getRunBuffSystem().getShardMultiplier() * m_achievementShardMult;
+    if (m_player && m_player->getEntity()->hasComponent<RelicComponent>())
+        shardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
+    m_chainRewardShards = static_cast<int>(m_chainRewardShards * shardMult);
+    shardsCollected += m_chainRewardShards;
+    game->getUpgradeSystem().addRiftShards(m_chainRewardShards);
+
+    // Chain-specific completion bonus
+    switch (m_eventChain.type) {
+        case EventChainType::MerchantQuest:
+            // Damage boost
+            if (m_player) {
+                m_player->damageBoostTimer = 45.0f;
+                m_player->damageBoostMultiplier = 1.25f;
+            }
+            break;
+        case EventChainType::DimensionalTear:
+            // Heal to full
+            if (m_player) {
+                auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+                hp.currentHP = hp.maxHP;
+            }
+            break;
+        case EventChainType::EntropySurge:
+            // Big entropy reduction
+            m_entropy.reduceEntropy(40.0f);
+            break;
+        case EventChainType::LostCache:
+            // Extra shard bonus already in higher reward
+            break;
+        default: break;
+    }
+
+    m_chainRewardTimer = 4.0f;
+    AudioManager::instance().play(SFX::LevelComplete);
+    m_camera.shake(12.0f, 0.5f);
+    if (m_player) {
+        Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        SDL_Color cc = m_eventChain.getColor();
+        m_particles.burst(pPos, 50, cc, 300.0f, 5.0f);
+        m_particles.burst(pPos, 25, {255, 215, 0, 255}, 200.0f, 4.0f);
+    }
+}
+
+void PlayState::updateEventChain(float dt) {
+    if (m_chainNotifyTimer > 0) m_chainNotifyTimer -= dt;
+    if (m_chainRewardTimer > 0) m_chainRewardTimer -= dt;
+
+    // Chain stage auto-advance: when the chain event on this level is interacted with
+    if (m_eventChain.stage > 0 && !m_eventChain.completed && m_chainEventSpawned && m_chainEventIndex >= 0) {
+        auto& events = m_level->getRandomEvents();
+        if (m_chainEventIndex < static_cast<int>(events.size()) && events[m_chainEventIndex].used) {
+            advanceChain();
+            m_chainEventSpawned = false; // Prevent double-advance
+        }
+    }
+}
+
+void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
+    if (m_eventChain.stage <= 0 && m_chainRewardTimer <= 0) return;
+    if (!font) return;
+
+    SDL_Color cc = m_eventChain.getColor();
+
+    // Active chain: show progress tracker at top-left
+    if (m_eventChain.stage > 0 && !m_eventChain.completed) {
+        int panelX = 10;
+        int panelY = 90; // Below existing HUD elements
+        int panelW = 220;
+        int panelH = 50;
+
+        // Background
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_Rect bg = {panelX, panelY, panelW, panelH};
+        SDL_SetRenderDrawColor(renderer, 20, 20, 30, 180);
+        SDL_RenderFillRect(renderer, &bg);
+
+        // Border in chain color
+        SDL_SetRenderDrawColor(renderer, cc.r, cc.g, cc.b, 200);
+        SDL_RenderDrawRect(renderer, &bg);
+
+        // Chain icon: linked circles
+        for (int i = 0; i < m_eventChain.maxStages; i++) {
+            int cx = panelX + 15 + i * 18;
+            int cy = panelY + 14;
+            int r = 5;
+            if (i < m_eventChain.stage) {
+                // Filled circle for completed stages
+                SDL_Rect dot = {cx - r, cy - r, r * 2, r * 2};
+                SDL_SetRenderDrawColor(renderer, cc.r, cc.g, cc.b, 255);
+                SDL_RenderFillRect(renderer, &dot);
+            } else {
+                // Hollow for pending
+                SDL_Rect dot = {cx - r, cy - r, r * 2, r * 2};
+                SDL_SetRenderDrawColor(renderer, cc.r, cc.g, cc.b, 100);
+                SDL_RenderDrawRect(renderer, &dot);
+            }
+            // Link line
+            if (i < m_eventChain.maxStages - 1) {
+                SDL_SetRenderDrawColor(renderer, cc.r, cc.g, cc.b,
+                    static_cast<Uint8>(i < m_eventChain.stage - 1 ? 200 : 60));
+                SDL_RenderDrawLine(renderer, cx + r + 1, cy, cx + 13 - r, cy);
+            }
+        }
+
+        // Chain name
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Surface* nameSurf = TTF_RenderText_Blended(font, m_eventChain.getName(), white);
+        if (nameSurf) {
+            SDL_Texture* nameTex = SDL_CreateTextureFromSurface(renderer, nameSurf);
+            SDL_Rect nameR = {panelX + 70, panelY + 4, nameSurf->w, nameSurf->h};
+            SDL_RenderCopy(renderer, nameTex, nullptr, &nameR);
+            SDL_DestroyTexture(nameTex);
+            SDL_FreeSurface(nameSurf);
+        }
+
+        // Stage description
+        const char* desc = m_eventChain.getStageDesc();
+        if (desc && desc[0]) {
+            SDL_Color dimWhite = {200, 200, 200, 200};
+            SDL_Surface* descSurf = TTF_RenderText_Blended(font, desc, dimWhite);
+            if (descSurf) {
+                SDL_Texture* descTex = SDL_CreateTextureFromSurface(renderer, descSurf);
+                int maxW = panelW - 10;
+                int dw = std::min(descSurf->w, maxW);
+                int dh = descSurf->h * dw / std::max(descSurf->w, 1);
+                SDL_Rect descR = {panelX + 5, panelY + 26, dw, dh};
+                SDL_RenderCopy(renderer, descTex, nullptr, &descR);
+                SDL_DestroyTexture(descTex);
+                SDL_FreeSurface(descSurf);
+            }
+        }
+    }
+
+    // Stage advance notification (slide-in from top)
+    if (m_chainNotifyTimer > 0 && !m_eventChain.completed) {
+        float slideT = std::min(m_chainNotifyTimer / 3.5f, 1.0f);
+        float slideIn = (slideT > 0.85f) ? (1.0f - slideT) / 0.15f : (slideT < 0.15f ? slideT / 0.15f : 1.0f);
+        Uint8 alpha = static_cast<Uint8>(255 * slideIn);
+
+        char stageText[64];
+        snprintf(stageText, sizeof(stageText), "CHAIN: Stage %d/%d", m_eventChain.stage, m_eventChain.maxStages);
+
+        SDL_Color textCol = {cc.r, cc.g, cc.b, alpha};
+        SDL_Surface* surf = TTF_RenderText_Blended(font, stageText, textCol);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+            SDL_SetTextureAlphaMod(tex, alpha);
+            int tx = (SCREEN_WIDTH - surf->w) / 2;
+            int ty = 50 + static_cast<int>((1.0f - slideIn) * -20);
+            SDL_Rect r = {tx, ty, surf->w, surf->h};
+            SDL_RenderCopy(renderer, tex, nullptr, &r);
+            SDL_DestroyTexture(tex);
+            SDL_FreeSurface(surf);
+        }
+    }
+
+    // Completion reward popup
+    if (m_chainRewardTimer > 0) {
+        float fadeT = std::min(m_chainRewardTimer / 4.0f, 1.0f);
+        float alpha01 = (fadeT > 0.8f) ? (1.0f - fadeT) / 0.2f : (fadeT < 0.2f ? fadeT / 0.2f : 1.0f);
+        Uint8 alpha = static_cast<Uint8>(255 * alpha01);
+
+        // "CHAIN COMPLETE" title
+        SDL_Color goldCol = {255, 215, 60, alpha};
+        SDL_Surface* titleSurf = TTF_RenderText_Blended(font, "CHAIN COMPLETE!", goldCol);
+        if (titleSurf) {
+            SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
+            SDL_SetTextureAlphaMod(titleTex, alpha);
+            int tx = (SCREEN_WIDTH - titleSurf->w) / 2;
+            int ty = 100;
+            SDL_Rect r = {tx, ty, titleSurf->w, titleSurf->h};
+            SDL_RenderCopy(renderer, titleTex, nullptr, &r);
+            SDL_DestroyTexture(titleTex);
+            SDL_FreeSurface(titleSurf);
+        }
+
+        // Chain name + reward
+        char rewardText[64];
+        snprintf(rewardText, sizeof(rewardText), "%s — +%d Shards", m_eventChain.getName(), m_chainRewardShards);
+        SDL_Color rewCol = {cc.r, cc.g, cc.b, alpha};
+        SDL_Surface* rewSurf = TTF_RenderText_Blended(font, rewardText, rewCol);
+        if (rewSurf) {
+            SDL_Texture* rewTex = SDL_CreateTextureFromSurface(renderer, rewSurf);
+            SDL_SetTextureAlphaMod(rewTex, alpha);
+            int rx = (SCREEN_WIDTH - rewSurf->w) / 2;
+            int ry = 125;
+            SDL_Rect r = {rx, ry, rewSurf->w, rewSurf->h};
+            SDL_RenderCopy(renderer, rewTex, nullptr, &r);
+            SDL_DestroyTexture(rewTex);
+            SDL_FreeSurface(rewSurf);
+        }
     }
 }
