@@ -118,6 +118,10 @@ void PlayState::startNewRun() {
     m_pendingLevelGen = false;
     m_showRelicChoice = false;
     m_relicChoices.clear();
+    m_savedRelics.clear();
+    m_savedHP = 0;
+    m_savedMaxHP = 0;
+    m_savedVoidHungerBonus = 0;
     m_relicChoiceSelected = 0;
     m_voidSovereignDefeated = false;
     m_trails.clear();
@@ -519,8 +523,60 @@ void PlayState::update(float dt) {
     // This prevents stale state (old collapsing/exit) from triggering false completions
     if (m_pendingLevelGen) {
         m_pendingLevelGen = false;
-        applyRunBuffs();
+
+        // Save player state before level regeneration (relics + HP carry over)
+        m_savedRelics.clear();
+        m_savedHP = 0;
+        m_savedMaxHP = 0;
+        m_savedVoidHungerBonus = 0;
+        if (m_player) {
+            if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+                auto& rc = m_player->getEntity()->getComponent<RelicComponent>();
+                m_savedRelics = rc.relics;
+                m_savedVoidHungerBonus = rc.voidHungerBonus;
+            }
+            if (m_player->getEntity()->hasComponent<HealthComponent>()) {
+                auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+                m_savedHP = hp.currentHP;
+                m_savedMaxHP = hp.maxHP;
+            }
+        }
+
         generateLevel();
+        applyRunBuffs();
+
+        // Restore relics and HP to new player entity
+        if (m_player && !m_savedRelics.empty()) {
+            auto& rc = m_player->getEntity()->getComponent<RelicComponent>();
+            rc.relics = m_savedRelics;
+            rc.voidHungerBonus = m_savedVoidHungerBonus;
+
+            // Re-apply relic stat effects (IronHeart HP, SwiftBoots speed, etc.)
+            auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+            auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+            RelicSystem::applyStatEffects(rc, *m_player, hp, combat);
+
+            // Re-apply relic-specific modifiers
+            m_dimManager.switchCooldown = std::max(0.20f,
+                0.5f * RelicSystem::getSwitchCooldownMult(rc));
+
+            // TimeDilator: re-apply ability cooldown reduction
+            if (rc.hasRelic(RelicID::TimeDilator) &&
+                m_player->getEntity()->hasComponent<AbilityComponent>()) {
+                auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
+                float cdMult = RelicSystem::getAbilityCooldownMultiplier(rc);
+                abil.abilities[0].cooldown *= cdMult;
+                abil.abilities[1].cooldown *= cdMult;
+                abil.abilities[2].cooldown *= cdMult;
+            }
+
+            // Carry over HP (clamped to new max)
+            hp.currentHP = std::min(m_savedHP, hp.maxHP);
+        } else if (m_player && m_savedMaxHP > 0) {
+            // No relics but still carry over HP
+            auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+            hp.currentHP = std::min(m_savedHP, hp.maxHP);
+        }
     }
 
     // Death sequence: dramatic freeze before ending the run
@@ -775,6 +831,7 @@ void PlayState::update(float dt) {
         m_entities.forEach([&](Entity& e) {
             if (e.getTag().substr(0, 5) == "enemy") {
                 if (e.getTag() == "enemy_boss") bossActive = true;
+                if (!e.hasComponent<TransformComponent>()) return;
                 auto& et = e.getComponent<TransformComponent>();
                 float dx = et.getCenter().x - pPos.x;
                 float dy = et.getCenter().y - pPos.y;
@@ -1145,21 +1202,19 @@ void PlayState::update(float dt) {
     m_entropy.update(dt);
     if (m_entropy.isCritical() && !m_playerDying) {
         // Suit crash - run over with death sequence
-        if (!m_playerDying) {
-            m_playerDying = true;
-            m_deathSequenceTimer = m_deathSequenceDuration;
-            AudioManager::instance().play(SFX::SuitEntropyCritical);
-            m_camera.shake(15.0f, 0.6f);
+        m_playerDying = true;
+        m_deathSequenceTimer = m_deathSequenceDuration;
+        AudioManager::instance().play(SFX::SuitEntropyCritical);
+        m_camera.shake(15.0f, 0.6f);
 
-            // Entropy overload particles (purple/magenta)
-            if (m_player) {
-                Vec2 deathPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
-                m_particles.burst(deathPos, 35, {200, 50, 180, 255}, 280.0f, 5.0f);
-                m_particles.burst(deathPos, 20, {255, 80, 255, 255}, 200.0f, 4.0f);
-                m_particles.burst(deathPos, 15, {120, 40, 140, 200}, 350.0f, 6.0f);
-            }
-            m_hud.triggerDamageFlash();
+        // Entropy overload particles (purple/magenta)
+        if (m_player) {
+            Vec2 deathPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+            m_particles.burst(deathPos, 35, {200, 50, 180, 255}, 280.0f, 5.0f);
+            m_particles.burst(deathPos, 20, {255, 80, 255, 255}, 200.0f, 4.0f);
+            m_particles.burst(deathPos, 15, {120, 40, 140, 200}, 350.0f, 6.0f);
         }
+        m_hud.triggerDamageFlash();
         return;
     }
 
@@ -1934,6 +1989,9 @@ void PlayState::render(SDL_Renderer* renderer) {
         float halfW = 640.0f, halfH = 360.0f;
 
         for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
+            // Skip already-repaired rifts
+            if (m_repairedRiftIndices.count(i)) continue;
+
             float sx = (rifts[i].x - camPos.x) * m_camera.zoom + halfW;
             float sy = (rifts[i].y - camPos.y) * m_camera.zoom + halfH;
 

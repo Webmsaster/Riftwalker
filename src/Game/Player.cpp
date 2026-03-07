@@ -12,6 +12,7 @@
 #include "Systems/CombatSystem.h"
 #include "Game/SpriteConfig.h"
 #include "Game/RelicSynergy.h"
+#include "Game/DimensionManager.h"
 #include <cmath>
 
 Player::Player(EntityManager& entities) {
@@ -94,9 +95,19 @@ void Player::update(float dt, const InputManager& input) {
 
     handleDash(dt, input);
 
+    // Reset jumps on ground BEFORE handleJump to avoid overwriting jump consumption
+    if (phys.onGround) {
+        jumpsRemaining = maxJumps;
+    }
+
     if (!isDashing) {
         handleMovement(dt, input);
         handleJump(input);
+        // Falling off a ledge without jumping consumes one jump slot
+        // (prevents getting 2 air jumps instead of 1 when walking off edges)
+        if (!phys.onGround && !phys.canCoyoteJump() && jumpsRemaining >= maxJumps) {
+            jumpsRemaining = maxJumps - 1;
+        }
         handleWallSlide(dt);
     }
 
@@ -176,9 +187,8 @@ void Player::update(float dt, const InputManager& input) {
     }
     wasInAir = !phys.onGround;
 
-    // Reset jumps on ground
+    // Reset wall slide on ground
     if (phys.onGround) {
-        jumpsRemaining = maxJumps;
         isWallSliding = false;
     }
 
@@ -247,37 +257,53 @@ void Player::update(float dt, const InputManager& input) {
         if (damageBoostTimer <= 0) damageBoostTimer = 0;
     }
 
-    // Status effect DOT damage
-    if (burnTimer > 0) {
-        burnTimer -= dt;
-        burnDmgTimer -= dt;
-        if (burnDmgTimer <= 0) {
-            burnDmgTimer = 0.3f;
-            auto& hp = m_entity->getComponent<HealthComponent>();
-            hp.takeDamage(5.0f);
-            if (particles) {
-                auto& t = m_entity->getComponent<TransformComponent>();
-                particles->burst(t.getCenter(), 4, {255, 120, 30, 255}, 60.0f, 1.5f);
-            }
-        }
-    }
+    // Status effect duration decay (DOT damage handled in PlayState with relic reduction)
+    if (burnTimer > 0) burnTimer -= dt;
     if (freezeTimer > 0) freezeTimer -= dt;
-    if (poisonTimer > 0) {
-        poisonTimer -= dt;
-        poisonDmgTimer -= dt;
-        if (poisonDmgTimer <= 0) {
-            poisonDmgTimer = 0.5f;
-            auto& hp = m_entity->getComponent<HealthComponent>();
-            hp.takeDamage(3.0f);
-            if (particles) {
-                auto& t = m_entity->getComponent<TransformComponent>();
-                particles->burst(t.getCenter(), 3, {80, 220, 60, 255}, 40.0f, 1.5f);
-            }
-        }
-    }
+    if (poisonTimer > 0) poisonTimer -= dt;
     // Phantom: post-dash invisibility timer
     if (postDashInvisTimer > 0) {
         postDashInvisTimer -= dt;
+    }
+
+    // Voidwalker: Rift Charge timer + shimmer particles
+    if (riftChargeTimer > 0) {
+        riftChargeTimer -= dt;
+        if (riftChargeTimer > 0 && particles) {
+            auto& t = m_entity->getComponent<TransformComponent>();
+            Vec2 center = t.getCenter();
+            // Subtle blue shimmer particles around player
+            float angle = static_cast<float>(SDL_GetTicks()) * 0.005f;
+            float ox = std::cos(angle) * 14.0f;
+            float oy = std::sin(angle) * 10.0f;
+            particles->burst({center.x + ox, center.y + oy}, 1, {80, 160, 255, 150}, 30.0f, 0.8f);
+        }
+    }
+
+    // Berserker: Momentum decay
+    if (momentumStacks > 0) {
+        momentumTimer -= dt;
+        if (momentumTimer <= 0) {
+            momentumStacks--;
+            if (momentumStacks > 0) {
+                momentumTimer = momentumDuration;
+            } else {
+                momentumTimer = 0;
+            }
+        }
+        // Red speed-line particles (intensity scales with stacks)
+        if (momentumStacks > 0 && particles && SDL_GetTicks() % 3 == 0) {
+            auto& t = m_entity->getComponent<TransformComponent>();
+            Vec2 center = t.getCenter();
+            float intensity = static_cast<float>(momentumStacks) / momentumMaxStacks;
+            Uint8 alpha = static_cast<Uint8>(120 + 135 * intensity);
+            // Trail behind player based on movement direction
+            float trailX = facingRight ? -12.0f : 12.0f;
+            Uint8 green = static_cast<Uint8>(80 + 60 * intensity);
+            particles->burst({center.x + trailX, center.y}, 1 + momentumStacks / 2,
+                            {255, green, 40, alpha},
+                            40.0f + 30.0f * intensity, 1.0f + 0.5f * intensity);
+        }
     }
 
     if (hasShield) {
@@ -290,7 +316,7 @@ void Player::update(float dt, const InputManager& input) {
 
     // Resolve invulnerability: shield takes priority over dash invis
     auto& hp = m_entity->getComponent<HealthComponent>();
-    hp.invulnerable = hasShield || (postDashInvisTimer > 0);
+    hp.invulnerable = hasShield || (postDashInvisTimer > 0) || isPhaseThrough();
 }
 
 void Player::handleMovement(float dt, const InputManager& input) {
@@ -300,6 +326,8 @@ void Player::handleMovement(float dt, const InputManager& input) {
 
     if (std::abs(axis) > 0.1f) {
         float speed = moveSpeed * (speedBoostTimer > 0 ? speedBoostMultiplier : 1.0f);
+        if (dimensionManager) speed *= dimensionManager->getResonanceSpeedMult();
+        if (hasMomentum()) speed *= getMomentumSpeedMult(); // Berserker momentum
         if (freezeTimer > 0) speed *= 0.4f; // Freeze slows movement
         float targetVelX = axis * speed;
 
@@ -308,6 +336,10 @@ void Player::handleMovement(float dt, const InputManager& input) {
             std::abs(phys.velocity.x) > speed &&
             (phys.velocity.x > 0) == (axis > 0)) {
             // Don't override — let friction naturally decelerate
+        } else if (phys.onIce) {
+            // Ice: lerp toward target for slippery sliding feel
+            float lerpRate = 3.0f * dt; // ~0.05 per frame at 60fps — sluggish control
+            phys.velocity.x += (targetVelX - phys.velocity.x) * lerpRate;
         } else {
             phys.velocity.x = targetVelX;
         }
@@ -383,6 +415,13 @@ void Player::handleDash(float dt, const InputManager& input) {
             const auto& cc = ClassSystem::getData(playerClass).color;
             SDL_Color ghostColor = {cc.r, cc.g, cc.b, 100};
             particles->burst(t.getCenter(), 2, ghostColor, 20.0f, 6.0f);
+            // Phantom Phase Through: extra cyan phase trail + wider ghosting
+            if (isPhaseThrough()) {
+                particles->burst(t.getCenter(), 4, {60, 220, 200, 140}, 40.0f, 5.0f);
+                // Ghostly afterimage behind player
+                Vec2 behind = {t.getCenter().x + (facingRight ? -16.0f : 16.0f), t.getCenter().y};
+                particles->burst(behind, 3, {60, 220, 200, 80}, 15.0f, 8.0f);
+            }
         }
         if (dashTimer <= 0) {
             isDashing = false;
@@ -473,17 +512,48 @@ void Player::handleAttack(const InputManager& input) {
         if (input.isActionReleased(Action::Attack)) {
             float chargePercent = combat.getChargePercent();
             if (combat.chargeTimer >= combat.minChargeTime) {
+                bool isVoidHammer = (combat.currentMelee == WeaponID::VoidHammer);
+
                 // Scale damage with charge
                 combat.chargedAttack.damage = 50.0f * (0.5f + 0.5f * chargePercent);
                 combat.chargedAttack.knockback = 500.0f * (0.5f + 0.5f * chargePercent);
+
+                // VoidHammer: AoE shockwave with larger range and bonus damage
+                if (isVoidHammer) {
+                    combat.chargedAttack.range = 120.0f;
+                    combat.chargedAttack.damage *= 1.3f;
+                    combat.chargedAttack.knockback = 700.0f * (0.5f + 0.5f * chargePercent);
+                } else {
+                    combat.chargedAttack.range = 72.0f;
+                }
+
                 combat.releaseCharged(dir);
-                AudioManager::instance().play(SFX::ChargedAttackRelease);
+
+                if (isVoidHammer) {
+                    AudioManager::instance().play(SFX::GroundSlam);
+                } else {
+                    AudioManager::instance().play(SFX::ChargedAttackRelease);
+                }
+
                 if (particles) {
                     auto& t = m_entity->getComponent<TransformComponent>();
                     Vec2 attackPos = t.getCenter() + dir * 40.0f;
                     int pCount = 15 + static_cast<int>(chargePercent * 20);
                     particles->burst(attackPos, pCount, {255, 200, 50, 255}, 250.0f, 5.0f);
                     particles->burst(attackPos, pCount / 2, {255, 255, 150, 255}, 180.0f, 3.0f);
+
+                    // VoidHammer: shockwave ring expanding outward
+                    if (isVoidHammer) {
+                        int ringCount = 4 + static_cast<int>(chargePercent * 6);
+                        for (int i = 0; i < 8; i++) {
+                            float angle = i * 45.0f;
+                            particles->directionalBurst(attackPos, ringCount,
+                                {180, 120, 255, 255}, angle, 30.0f,
+                                200.0f + chargePercent * 150.0f, 4.0f);
+                        }
+                        // Ground dust ring
+                        particles->burst(attackPos, pCount, {160, 140, 120, 200}, 180.0f, 2.5f);
+                    }
                 }
             } else {
                 combat.isCharging = false;
@@ -512,12 +582,18 @@ void Player::handleAttack(const InputManager& input) {
             phys.useGravity = true;
             phys.velocity.x *= 0.5f;
 
-            // Brief invincibility during dash attack
+            // Brief invincibility during dash attack (don't shorten existing invincibility)
             auto& hp = m_entity->getComponent<HealthComponent>();
-            hp.invincibilityTimer = 0.25f;
+            hp.invincibilityTimer = std::max(hp.invincibilityTimer, 0.25f);
 
             Vec2 dashDir = {facingRight ? 1.0f : -1.0f, -0.3f};
             combat.startAttack(AttackType::Dash, dashDir);
+            // Weapon mastery: reduce cooldown
+            if (combatSystemRef) {
+                MasteryBonus mb = WeaponSystem::getMasteryBonus(
+                    combatSystemRef->weaponKills[static_cast<int>(combat.currentMelee)]);
+                combat.cooldownTimer *= mb.cooldownMult;
+            }
             AudioManager::instance().play(SFX::MeleeSwing);
             if (particles) {
                 auto& t = m_entity->getComponent<TransformComponent>();
@@ -527,6 +603,12 @@ void Player::handleAttack(const InputManager& input) {
         } else {
             AudioManager::instance().play(SFX::MeleeSwing);
             combat.startAttack(AttackType::Melee, dir);
+            // Weapon mastery: reduce cooldown
+            if (combatSystemRef) {
+                MasteryBonus mb = WeaponSystem::getMasteryBonus(
+                    combatSystemRef->weaponKills[static_cast<int>(combat.currentMelee)]);
+                combat.cooldownTimer *= mb.cooldownMult;
+            }
             if (particles) {
                 auto& t = m_entity->getComponent<TransformComponent>();
                 Vec2 attackPos = t.getCenter() + dir * 32.0f;
@@ -544,6 +626,12 @@ void Player::handleAttack(const InputManager& input) {
 
     if (input.isActionPressed(Action::RangedAttack)) {
         combat.startAttack(AttackType::Ranged, dir);
+        // Weapon mastery: reduce cooldown
+        if (combatSystemRef) {
+            MasteryBonus mb = WeaponSystem::getMasteryBonus(
+                combatSystemRef->weaponKills[static_cast<int>(combat.currentRanged)]);
+            combat.cooldownTimer *= mb.cooldownMult;
+        }
     }
 }
 
@@ -599,7 +687,13 @@ void Player::updateAnimation() {
             sprite.setColor(255, 220, 100);
             break;
         case AnimState::Dash:
-            sprite.setColor(classColor.r, classColor.g, classColor.b, 180);
+            if (isPhaseThrough()) {
+                // Phantom Phase Through: cyan tint, very transparent
+                float flicker = 100.0f + 40.0f * std::sin(SDL_GetTicks() * 0.03f);
+                sprite.setColor(60, 220, 200, static_cast<Uint8>(flicker));
+            } else {
+                sprite.setColor(classColor.r, classColor.g, classColor.b, 180);
+            }
             break;
         default:
             sprite.setColor(classColor.r, classColor.g, classColor.b);
@@ -617,6 +711,21 @@ void Player::updateAnimation() {
         float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.012f);
         sprite.color.r = static_cast<Uint8>(std::min(255.0f, sprite.color.r + 80 * pulse));
         sprite.color.g = static_cast<Uint8>(sprite.color.g * (0.5f + 0.2f * pulse));
+    }
+
+    // Berserker: Momentum glow (orange-red tint scaling with stacks)
+    if (hasMomentum()) {
+        float intensity = static_cast<float>(momentumStacks) / momentumMaxStacks;
+        float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.01f * (1.0f + intensity));
+        sprite.color.r = static_cast<Uint8>(std::min(255.0f, sprite.color.r + 50 * intensity * pulse));
+        sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g * (1.0f - 0.15f * intensity)));
+    }
+
+    // Voidwalker: Rift Charge shimmer (blue-white pulsing)
+    if (isRiftChargeActive()) {
+        float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.015f);
+        sprite.color.b = static_cast<Uint8>(std::min(255.0f, sprite.color.b + 80 * pulse));
+        sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g + 30 * pulse));
     }
 
     // Status effect tinting (overrides above for active effects)
@@ -849,23 +958,69 @@ bool Player::isBloodRageActive() const {
 }
 
 float Player::getClassDamageMultiplier() const {
+    float mult = 1.0f;
     if (isBloodRageActive()) {
-        return ClassSystem::getData(PlayerClass::Berserker).rageDmgBonus;
+        mult *= ClassSystem::getData(PlayerClass::Berserker).rageDmgBonus;
     }
-    return 1.0f;
+    // Voidwalker: Dimensional Affinity - Rift Charge damage buff
+    if (isRiftChargeActive()) {
+        mult *= riftChargeDamageMult;
+    }
+    return mult;
+}
+
+void Player::activateRiftCharge() {
+    if (playerClass != PlayerClass::Voidwalker) return;
+    riftChargeTimer = riftChargeDuration;
+    if (particles) {
+        auto& t = m_entity->getComponent<TransformComponent>();
+        // Burst of blue-white particles to signal activation
+        particles->burst(t.getCenter(), 12, {100, 180, 255, 220}, 80.0f, 2.5f);
+    }
 }
 
 float Player::getClassAttackSpeedMultiplier() const {
+    float mult = 1.0f;
     if (isBloodRageActive()) {
-        return ClassSystem::getData(PlayerClass::Berserker).rageAtkSpeedBonus;
+        mult *= ClassSystem::getData(PlayerClass::Berserker).rageAtkSpeedBonus;
     }
-    return 1.0f;
+    if (hasMomentum()) {
+        mult *= getMomentumAtkSpeedMult();
+    }
+    return mult;
+}
+
+void Player::addMomentumStack() {
+    if (playerClass != PlayerClass::Berserker) return;
+    if (momentumStacks < momentumMaxStacks) {
+        momentumStacks++;
+    }
+    momentumTimer = momentumDuration; // refresh timer on kill
+    // Burst particles on stack gain
+    if (particles) {
+        auto& t = m_entity->getComponent<TransformComponent>();
+        int pCount = 6 + momentumStacks * 2;
+        particles->burst(t.getCenter(), pCount,
+                        {255, 120, 40, 230}, 100.0f + momentumStacks * 20.0f, 2.5f);
+    }
+    AudioManager::instance().play(SFX::MeleeHit); // satisfying feedback
+}
+
+float Player::getMomentumSpeedMult() const {
+    if (!hasMomentum()) return 1.0f;
+    return 1.0f + momentumStacks * momentumSpeedPerStack;
+}
+
+float Player::getMomentumAtkSpeedMult() const {
+    if (!hasMomentum()) return 1.0f;
+    return 1.0f + momentumStacks * momentumAtkSpdPerStack;
 }
 
 void Player::switchMelee() {
     if (weaponSwitchCooldown > 0) return;
     auto& combat = m_entity->getComponent<CombatComponent>();
     combat.currentMelee = WeaponSystem::nextMelee(combat.currentMelee);
+    combat.daggerHitCount = 0; // Reset PhaseDaggers hit counter on weapon switch
     applyWeaponStats();
     weaponSwitchCooldown = 0.3f;
     AudioManager::instance().play(SFX::MenuSelect);
@@ -902,5 +1057,10 @@ void Player::applyWeaponStats() {
     moveSpeed = ClassSystem::getData(playerClass).baseSpeed;
     if (combat.currentMelee == WeaponID::PhaseDaggers) {
         moveSpeed *= (1.0f + melee.speedModifier);
+        // PhantomRush: PhaseDaggers + SwiftBoots → +10% extra movespeed
+        if (m_entity->hasComponent<RelicComponent>()) {
+            moveSpeed *= (1.0f + RelicSynergy::getPhantomRushSpeedBonus(
+                m_entity->getComponent<RelicComponent>(), combat.currentMelee));
+        }
     }
 }

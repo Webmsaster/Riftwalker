@@ -162,6 +162,12 @@ private:
     bool m_pendingLevelGen = false;
     void applyRunBuffs();
 
+    // Carry-over state between levels (relics + HP persist across level transitions)
+    std::vector<ActiveRelic> m_savedRelics;
+    float m_savedHP = 0;
+    float m_savedMaxHP = 0;
+    float m_savedVoidHungerBonus = 0;
+
     // Secret rooms & events
     void checkBreakableWalls();
     void checkSecretRoomDiscovery();
