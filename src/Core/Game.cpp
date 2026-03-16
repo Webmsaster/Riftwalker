@@ -304,6 +304,24 @@ void Game::loadSaveData() {
         m_upgrades.deserialize(ss.str());
         file.close();
     }
+
+    // Load audio/visual settings
+    std::ifstream cfg("riftwalker_settings.cfg");
+    if (cfg.is_open()) {
+        std::string key;
+        float value;
+        while (cfg >> key >> value) {
+            if (key == "sfx_volume")      g_sfxVolume      = value;
+            else if (key == "music_volume")    g_musicVolume    = value;
+            else if (key == "shake_intensity") g_shakeIntensity = value;
+            else if (key == "hud_opacity")     g_hudOpacity     = value;
+        }
+        cfg.close();
+    }
+    // Apply loaded volumes to AudioManager
+    auto& audio = AudioManager::instance();
+    audio.setSFXVolume(static_cast<int>(g_sfxVolume * 128.0f));
+    audio.setMusicVolume(static_cast<int>(g_musicVolume * 128.0f));
 }
 
 void Game::saveSaveData() {
@@ -311,6 +329,27 @@ void Game::saveSaveData() {
     if (file.is_open()) {
         file << m_upgrades.serialize();
         file.close();
+    }
+
+    // Save audio/visual settings
+    std::ofstream cfg("riftwalker_settings.cfg");
+    if (cfg.is_open()) {
+        cfg << "sfx_volume "      << g_sfxVolume      << "\n";
+        cfg << "music_volume "    << g_musicVolume     << "\n";
+        cfg << "shake_intensity " << g_shakeIntensity  << "\n";
+        cfg << "hud_opacity "     << g_hudOpacity      << "\n";
+        cfg.close();
+    }
+}
+
+void Game::saveSettings() {
+    std::ofstream cfg("riftwalker_settings.cfg");
+    if (cfg.is_open()) {
+        cfg << "sfx_volume "      << g_sfxVolume      << "\n";
+        cfg << "music_volume "    << g_musicVolume     << "\n";
+        cfg << "shake_intensity " << g_shakeIntensity  << "\n";
+        cfg << "hud_opacity "     << g_hudOpacity      << "\n";
+        cfg.close();
     }
 }
 

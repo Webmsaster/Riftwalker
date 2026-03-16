@@ -9,6 +9,12 @@
 bool g_autoSmokeTest = false;
 bool g_autoPlaytest = false;
 
+// Global settings (persisted via riftwalker_settings.cfg)
+float g_sfxVolume      = 1.0f;  // 0.0 - 1.0
+float g_musicVolume    = 1.0f;  // 0.0 - 1.0
+float g_shakeIntensity = 1.0f;  // 0.0 - 2.0 (multiplier)
+float g_hudOpacity     = 1.0f;  // 0.5 - 1.0
+
 // Null SDL log callback — prevents all SDL_Log from writing to console/stderr
 static void nullLogCallback(void*, int, SDL_LogPriority, const char*) {}
 

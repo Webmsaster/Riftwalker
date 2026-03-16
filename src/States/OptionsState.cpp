@@ -7,16 +7,28 @@
 #include <algorithm>
 #include <string>
 
+// Indices for option items (must match order in enter())
+static constexpr int OPT_MASTER   = 0;
+static constexpr int OPT_SFX      = 1;
+static constexpr int OPT_MUSIC    = 2;
+static constexpr int OPT_MUTE     = 3;
+static constexpr int OPT_FULLSCR  = 4;
+static constexpr int OPT_SHAKE    = 5;
+static constexpr int OPT_HUD_OPAC = 6;
+// Controls / Reset / Back are the last 3 (special buttons)
+
 void OptionsState::enter() {
     auto& audio = AudioManager::instance();
 
     m_options.clear();
+    // Value stored as integer percent; SFX/Music 0-100%, Shake 0-200%, HUD 50-100%
     m_options.push_back({"Master Volume", static_cast<int>(audio.getMasterVolume() * 100), 0, 100, 5, false});
-    m_options.push_back({"Music Volume",  audio.getMusicVolume(), 0, 128, 8, false});
-    m_options.push_back({"SFX Volume",    audio.getSFXVolume(), 0, 128, 8, false});
+    m_options.push_back({"SFX Volume",    static_cast<int>(g_sfxVolume   * 100.0f), 0, 100, 5, false});
+    m_options.push_back({"Music Volume",  static_cast<int>(g_musicVolume * 100.0f), 0, 100, 5, false});
     m_options.push_back({"Mute",          audio.isMuted() ? 1 : 0, 0, 1, 1, true});
     m_options.push_back({"Fullscreen",    (game->getWindow() && game->getWindow()->isFullscreen()) ? 1 : 0, 0, 1, 1, true});
-    m_options.push_back({"Screen Shake",  100, 0, 100, 10, false});
+    m_options.push_back({"Screen Shake",  static_cast<int>(g_shakeIntensity * 100.0f), 0, 200, 10, false});
+    m_options.push_back({"HUD Opacity",   static_cast<int>(g_hudOpacity * 100.0f), 50, 100, 5, false});
     m_options.push_back({"Controls",      0, 0, 0, 0, false}); // special: open keybindings
     m_options.push_back({"Reset Defaults", 0, 0, 0, 0, false}); // special: reset
     m_options.push_back({"Back",          0, 0, 0, 0, false}); // special: back button
@@ -48,6 +60,7 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     }
                     applyOption(m_selected);
                     AudioManager::instance().play(SFX::MenuSelect);
+                    game->saveSettings();
                 }
                 break;
 
@@ -61,6 +74,7 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     }
                     applyOption(m_selected);
                     AudioManager::instance().play(SFX::MenuSelect);
+                    game->saveSettings();
                 }
                 break;
 
@@ -71,13 +85,15 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     game->changeState(StateID::Menu);
                 } else if (m_selected == static_cast<int>(m_options.size()) - 2) {
                     // Reset Defaults
-                    m_options[0].value = 100;  // Master 100%
-                    m_options[1].value = 64;   // Music default
-                    m_options[2].value = 64;   // SFX default
-                    m_options[3].value = 0;    // Mute off
-                    m_options[4].value = 0;    // Fullscreen off
-                    m_options[5].value = 100;  // Screen shake full
-                    for (int i = 0; i <= 5; i++) applyOption(i);
+                    m_options[OPT_MASTER].value   = 100; // Master 100%
+                    m_options[OPT_SFX].value      = 80;  // SFX 80%
+                    m_options[OPT_MUSIC].value    = 60;  // Music 60%
+                    m_options[OPT_MUTE].value     = 0;   // Mute off
+                    m_options[OPT_FULLSCR].value  = 0;   // Fullscreen off
+                    m_options[OPT_SHAKE].value    = 100; // Screen shake 100%
+                    m_options[OPT_HUD_OPAC].value = 100; // HUD opacity 100%
+                    for (int i = 0; i <= OPT_HUD_OPAC; i++) applyOption(i);
+                    game->saveSettings();
                     AudioManager::instance().play(SFX::MenuConfirm);
                 } else if (m_selected == static_cast<int>(m_options.size()) - 3) {
                     // Controls
@@ -104,23 +120,35 @@ void OptionsState::handleEvent(const SDL_Event& event) {
 void OptionsState::applyOption(int index) {
     auto& audio = AudioManager::instance();
     switch (index) {
-        case 0: audio.setMasterVolume(m_options[0].value / 100.0f); break;
-        case 1: audio.setMusicVolume(m_options[1].value); break;
-        case 2: audio.setSFXVolume(m_options[2].value); break;
-        case 3:
-            if ((m_options[3].value == 1) != audio.isMuted()) {
+        case OPT_MASTER:
+            audio.setMasterVolume(m_options[OPT_MASTER].value / 100.0f);
+            break;
+        case OPT_SFX:
+            g_sfxVolume = m_options[OPT_SFX].value / 100.0f;
+            audio.setSFXVolume(static_cast<int>(g_sfxVolume * 128.0f));
+            break;
+        case OPT_MUSIC:
+            g_musicVolume = m_options[OPT_MUSIC].value / 100.0f;
+            audio.setMusicVolume(static_cast<int>(g_musicVolume * 128.0f));
+            break;
+        case OPT_MUTE:
+            if ((m_options[OPT_MUTE].value == 1) != audio.isMuted()) {
                 audio.toggleMute();
             }
             break;
-        case 4: // Fullscreen
+        case OPT_FULLSCR:
             if (game->getWindow()) {
-                bool wantFullscreen = (m_options[4].value == 1);
+                bool wantFullscreen = (m_options[OPT_FULLSCR].value == 1);
                 if (wantFullscreen != game->getWindow()->isFullscreen()) {
                     game->getWindow()->toggleFullscreen();
                 }
             }
             break;
-        case 5: // Screen Shake - stored for use by PlayState camera
+        case OPT_SHAKE:
+            g_shakeIntensity = m_options[OPT_SHAKE].value / 100.0f;
+            break;
+        case OPT_HUD_OPAC:
+            g_hudOpacity = m_options[OPT_HUD_OPAC].value / 100.0f;
             break;
     }
 }
@@ -131,7 +159,7 @@ std::string OptionsState::getValueText(int index) const {
         return opt.value ? "ON" : "OFF";
     }
     char buf[16];
-    std::snprintf(buf, sizeof(buf), "%d", opt.value);
+    std::snprintf(buf, sizeof(buf), "%d%%", opt.value);
     return buf;
 }
 

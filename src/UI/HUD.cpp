@@ -1,4 +1,5 @@
 #include "HUD.h"
+#include "Core/Game.h"
 #include "Game/Player.h"
 #include "Game/SuitEntropy.h"
 #include "Game/DimensionManager.h"
@@ -165,6 +166,25 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                  const Player* player, const SuitEntropy* entropy,
                  const DimensionManager* dimMgr,
                  int screenW, int screenH, int fps, int riftShards) {
+    // Recreate offscreen texture if screen size changed
+    if (!m_hudTarget || m_hudTargetW != screenW || m_hudTargetH != screenH) {
+        if (m_hudTarget) SDL_DestroyTexture(m_hudTarget);
+        m_hudTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
+                                        SDL_TEXTUREACCESS_TARGET, screenW, screenH);
+        if (m_hudTarget) SDL_SetTextureBlendMode(m_hudTarget, SDL_BLENDMODE_BLEND);
+        m_hudTargetW = screenW;
+        m_hudTargetH = screenH;
+    }
+
+    // Redirect rendering to offscreen texture when opacity < 1
+    SDL_Texture* previousTarget = SDL_GetRenderTarget(renderer);
+    bool useTarget = (m_hudTarget && g_hudOpacity < 0.999f);
+    if (useTarget) {
+        SDL_SetRenderTarget(renderer, m_hudTarget);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        SDL_RenderClear(renderer);
+    }
+
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     int margin = 15;
@@ -904,6 +924,16 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         renderText(renderer, font,
                    "WASD Move  SPACE Jump  SHIFT Dash  J/K Attack  Q/R Weapon  E Dim  F Interact  1/2/3 Abilities",
                    15, screenH - 22, {60, 60, 80, 100});
+    }
+
+    // Restore main render target and blit HUD texture with opacity
+    if (useTarget) {
+        SDL_SetRenderTarget(renderer, previousTarget);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        Uint8 alpha = static_cast<Uint8>(g_hudOpacity * 255.0f);
+        SDL_SetTextureAlphaMod(m_hudTarget, alpha);
+        SDL_Rect dst = {0, 0, screenW, screenH};
+        SDL_RenderCopy(renderer, m_hudTarget, nullptr, &dst);
     }
 }
 
