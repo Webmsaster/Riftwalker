@@ -14,98 +14,176 @@ void Bestiary::init() {
     auto& e = s_entries;
     // {type, name, lore, HP, DMG, speed, element, weakness, abilities, effectiveWeapons}
     e[static_cast<int>(EnemyType::Walker)]   = {EnemyType::Walker,   "Rift Walker",
-        "Basic dimensional drifter. Patrols rift corridors seeking intruders.",
+        "Rift Walkers are rudimentary constructs formed when residual dimensional energy "
+        "crystallizes around a humanoid imprint left in the rift fabric. They have no "
+        "true intelligence, only a territorial directive burned into their core. Explorers "
+        "who enter rift corridors frequently report being followed by these silent sentinels "
+        "for hours before they finally strike.",
         40, 10, 90, EnemyElement::None,
         "Slow movement, predictable patrol",
         "Melee attack, patrols platforms",
         "Any weapon. Melee combo finishers stun."};
     e[static_cast<int>(EnemyType::Flyer)]    = {EnemyType::Flyer,    "Rift Flyer",
-        "Aerial predator that hovers overhead and swoops down to strike.",
+        "When rift energy surges upward through dimensional tears, it sometimes coalesces "
+        "into airborne predators known as Rift Flyers. Born in the thermals between "
+        "dimensions, they claim vertical space as their territory and dive-bomb anything "
+        "that intrudes from below. Their hollow bodies are nearly transparent at rest, "
+        "making them nearly invisible until the moment they strike.",
         25, 10, 120, EnemyElement::None,
         "Low HP, vulnerable while swooping",
         "Swoop attack, aerial patrol, 250px dive speed",
         "Ranged weapons. Ice slows swoop."};
     e[static_cast<int>(EnemyType::Turret)]   = {EnemyType::Turret,   "Void Turret",
-        "Stationary automated defense. Fires precision bolts at any intruder in range.",
+        "Void Turrets are ancient automated sentinels left behind by an unknown civilization "
+        "that once colonized the space between dimensions. Their crystalline cores fire "
+        "compressed rift bolts with mechanical precision, never tiring, never missing within "
+        "their detection radius. Researchers theorize that whoever built them feared something "
+        "far worse than what the turrets guard against.",
         40, 8, 0, EnemyElement::None,
         "Cannot move, approach from close range",
         "Ranged fire every 1.8s, 300px detection",
         "Close-range melee. Dash past projectiles."};
     e[static_cast<int>(EnemyType::Charger)]  = {EnemyType::Charger,  "Rift Charger",
-        "Heavy bruiser that telegraphs a devastating charge attack.",
+        "Rift Chargers were once slow-moving dimensional grazers, feeding harmlessly on "
+        "ambient rift energy. Prolonged exposure to dimensional instability drove them "
+        "permanently into a maddened frenzy, their bodies warping into low-slung battering "
+        "rams of pure aggression. The horn-like protrusion on their snout is not a natural "
+        "growth but crystallized dimensional fury that builds with each charge.",
         45, 18, 50, EnemyElement::None,
         "Windup before charge, vulnerable during stop",
         "Charge dash at 350px/s, knockback 350",
         "Dodge sideways, counter after charge ends."};
     e[static_cast<int>(EnemyType::Phaser)]   = {EnemyType::Phaser,   "Phase Stalker",
-        "Blinks between dimensions every 3 seconds to avoid attacks.",
+        "Phase Stalkers exist in an unstable superposition between dimensions, never fully "
+        "belonging to either. The dimensional shift they perform every few seconds is not "
+        "a choice but an involuntary convulsion of their fractured existence. Survivors "
+        "describe them as predators that feel genuinely confused between attacks, as if "
+        "they keep forgetting which reality they are hunting in.",
         30, 14, 110, EnemyElement::None,
         "Vulnerable right after phasing",
         "Dimension phase every 3s, melee on approach",
         "Match its dimension. Time attacks post-phase."};
     e[static_cast<int>(EnemyType::Exploder)] = {EnemyType::Exploder, "Void Exploder",
-        "Rushes at full speed and detonates on contact. Handle from range.",
+        "Void Exploders are the most volatile form of dimensional energy given shape. They "
+        "are essentially living pressure vessels, their bodies constantly accumulating rift "
+        "energy far beyond what their fragile forms can contain. Contact with any solid "
+        "object triggers catastrophic decompression, and the fire elemental energy released "
+        "is hot enough to melt standard dimensional suit plating.",
         20, 30, 180, EnemyElement::Fire,
         "Very low HP, one melee hit kills",
         "80px explosion radius, fire elemental, fast rush",
         "Shoot from distance. Ice freezes in place."};
     e[static_cast<int>(EnemyType::Shielder)] = {EnemyType::Shielder, "Rift Shielder",
-        "Armored guardian with a frontal shield that deflects all attacks.",
+        "Rift Shielders are constructed entities that project a dimensional barrier from "
+        "one arm, creating an impenetrable wall of compressed rift energy on their guarded "
+        "side. The shield is not merely physical protection but a localized dimensional "
+        "fold that absorbs and redirects incoming force. They are slow precisely because "
+        "maintaining the barrier requires constant concentration from their energy core.",
         65, 14, 40, EnemyElement::None,
         "Unshielded from behind, armor 0.35",
         "Frontal shield, 35% armor, slow but tanky",
         "Attack from behind. Electric chains bypass shield."};
     e[static_cast<int>(EnemyType::Crawler)]  = {EnemyType::Crawler,  "Void Crawler",
-        "Clings to ceilings and drops on unsuspecting prey from above.",
+        "Void Crawlers evolved in the zero-gravity spaces where rift corridors intersect "
+        "overhead terrain, developing specialized claws that grip any surface regardless "
+        "of orientation. They are patient ambush predators, capable of clinging motionless "
+        "to a ceiling for days while waiting for prey to pass beneath. The drop is so fast "
+        "that victims rarely have time to look up before impact.",
         20, 12, 50, EnemyElement::None,
         "Watch the ceiling, low HP",
         "Ceiling cling, drop ambush at 400px/s",
         "Ranged weapons work well. Fire clears ceilings."};
     e[static_cast<int>(EnemyType::Summoner)] = {EnemyType::Summoner, "Rift Summoner",
-        "Calls up to 3 minions and hides while they overwhelm you.",
+        "Rift Summoners are conduit entities that have learned to reach back through the "
+        "dimensional fabric and pull lesser constructs into existence. The minions they "
+        "create are not truly alive but temporary extensions of the Summoner's own energy "
+        "given crude physical form. Killing the Summoner causes all active minions to "
+        "instantly dissipate, suggesting they share a single distributed consciousness.",
         60, 8, 30, EnemyElement::Electric,
         "Fragile when alone, kill minions first",
         "Summons 3 minions every 6s, electric affinity",
         "Burst damage to summoner. Ignore minions if possible."};
     e[static_cast<int>(EnemyType::Sniper)]   = {EnemyType::Sniper,   "Void Sniper",
-        "Keeps maximum distance and telegraphs lethal precision shots.",
+        "Void Snipers are precision-evolved dimensional constructs that developed a unique "
+        "targeting organ capable of perceiving rift distortions across vast distances. "
+        "The red laser dot they project before firing is not a simple sight but a "
+        "concentrated beam of pre-collapsed dimensional energy that destabilizes the "
+        "target's local space, ensuring the follow-up shot cannot miss.",
         30, 16, 40, EnemyElement::None,
         "Long telegraph time, low HP",
         "400px range, 0.8s telegraph, retreats on approach",
         "Dash between shots. Close the gap quickly."};
 
-    s_bossEntries.resize(5);
+    s_bossEntries.resize(6);
     // Boss entries: {type, name, lore, HP, DMG, speed, element, weakness, abilities, effectiveWeapons}
     s_bossEntries[0] = {EnemyType::Walker, "Rift Guardian",
-        "First guardian of the rift. Massive and powerful with shield bursts and phase leaps.",
+        "The Rift Guardian predates every civilization that has ever navigated the "
+        "dimensional corridors. It was not created but emerged spontaneously when the "
+        "first rift was torn open, as if the dimension itself generated an immune response. "
+        "Ancient logs recovered from failed expeditions describe it as patient, "
+        "methodical, and utterly without mercy toward anything that disrupts dimensional "
+        "stability. It does not hate intruders. It simply removes them.",
         230, 23, 100, EnemyElement::None,
         "Phase 2 enrage leaves brief opening",
         "Shield burst, multi-shot, phase leap, 3 phases",
         "Learn attack patterns. Dash during shield burst."};
     s_bossEntries[1] = {EnemyType::Walker, "Void Wyrm",
-        "Serpentine void beast with poison dive attacks and orbital barrages.",
+        "The Void Wyrm inhabits the spaces between dimensions where no light from either "
+        "side reaches, growing to immense size on a diet of raw dimensional energy. "
+        "Its serpentine body can phase partially between realities, making conventional "
+        "weapons pass harmlessly through sections of its form. The poison it spews is "
+        "dimensionally corrupted venom that disrupts the molecular cohesion of anything "
+        "it touches, slowly dissolving matter across both dimensions simultaneously.",
         190, 21, 145, EnemyElement::None,
         "Vulnerable after divebomb lands",
         "Poison clouds, dive bomb, bullet barrage, 3 phases",
         "Avoid green floor. Counter after divebomb."};
     s_bossEntries[2] = {EnemyType::Walker, "Dimensional Architect",
-        "Builder of realities. Swaps tiles, constructs energy beams and collapses arenas.",
+        "The Dimensional Architect is the only known entity that actively constructs "
+        "within the rift rather than merely inhabiting it. It rearranges tiles and "
+        "terrain instinctively, like a creature building a nest, though the structures "
+        "it creates serve aggressive rather than defensive purposes. Physicists who "
+        "studied its remains concluded that its core contains a miniature dimensional "
+        "engine, granting it the power to rewrite local reality as casually as a human "
+        "moves furniture.",
         220, 18, 90, EnemyElement::Electric,
         "Weak while constructing beam, destroy constructs",
         "Tile swap, rift zones, construct beam, arena collapse",
         "Destroy constructs fast. Use dim-switch to dodge rift zones."};
     s_bossEntries[3] = {EnemyType::Walker, "Temporal Weaver",
-        "Master of time itself. Creates slow zones, clock sweeps and full time stops.",
+        "The Temporal Weaver exists at a fixed point in time, perceiving past and future "
+        "simultaneously while remaining anchored to a single moment of dimensional "
+        "convergence. This omniscience of time within its local rift makes it nearly "
+        "impossible to surprise. The clock-like mechanisms visible through its translucent "
+        "body are not decorative but functional temporal regulators that it can project "
+        "outward to freeze, rewind, or stop time entirely for anyone caught in their radius.",
         280, 22, 100, EnemyElement::Ice,
         "Vulnerable in time-stop wind-up",
         "Time slow zones, clock sweep, time rewind, time stop",
         "Dash through slow zones. Learn sweep timing."};
     s_bossEntries[4] = {EnemyType::Walker, "Void Sovereign",
-        "The final lord of the Rift. Commands dimensions, void storms and reality-tear lasers.",
+        "The Void Sovereign rules from the deepest layer of the dimensional void, a region "
+        "so far from any natural reality that the laws of physics themselves begin to "
+        "unravel. It does not fight out of territorial instinct or programmed defense but "
+        "out of genuine contempt for anything that still belongs to a stable dimension. "
+        "Survivors of its assault describe a palpable psychic pressure, as if the Sovereign "
+        "is personally offended by the concept of matter having a fixed location.",
         400, 25, 120, EnemyElement::None,
         "Watch for phase transitions, avoid void storm",
         "Void orbs, rift slam, dim lock, laser sweep, void storm",
         "Stay mobile. Use dim-switch to counter dim-lock."};
+    s_bossEntries[5] = {EnemyType::Walker, "Entropy Incarnate",
+        "Entropy Incarnate is what happens when a dimensional suit begins to fail at a "
+        "catastrophic rate and the escaping entropy energy gains enough coherence to "
+        "develop awareness. It is drawn specifically to functioning suits, attracted by "
+        "the same dimensional energy it was born from. Fighting it accelerates suit "
+        "degradation because proximity to Entropy Incarnate warps the fabric that suit "
+        "integrity depends on. In a cruel irony, the better shape your suit is in, the "
+        "more ferociously this entity hunts you.",
+        350, 24, 110, EnemyElement::None,
+        "Entropy bursts predictable, brief immunity windows",
+        "Entropy drain, entropy storm, dim lock, phase corruption",
+        "Manage suit entropy carefully. Purge DoTs immediately."};
 }
 
 void Bestiary::onEnemyKill(EnemyType type) {

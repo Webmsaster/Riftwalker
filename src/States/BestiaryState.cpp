@@ -5,6 +5,7 @@
 #include "Components/AIComponent.h"
 #include <cmath>
 #include <cstdio>
+#include <string>
 
 // ---- layout constants ----
 static constexpr int LIST_X     = 20;
@@ -86,13 +87,69 @@ static const char* elementName(EnemyElement el) {
     }
 }
 
+// Draw word-wrapped text within a given pixel width.
+// Returns the total height used (in pixels) so callers can offset subsequent content.
+static int drawTextWrapped(SDL_Renderer* renderer, TTF_Font* font, const char* text,
+                            int x, int y, int maxWidth, SDL_Color color, int lineSpacing = 4) {
+    if (!text || text[0] == '\0' || !font) return 0;
+
+    std::string src(text);
+    int curY    = y;
+    int charH   = TTF_FontHeight(font);
+    size_t pos  = 0;
+
+    while (pos < src.size()) {
+        // Find the longest word-boundary substring that fits in maxWidth
+        size_t lineEnd   = pos;
+        size_t lastSpace = pos;
+        bool   first     = true;
+
+        while (lineEnd < src.size()) {
+            size_t next = src.find(' ', lineEnd + (first ? 0 : 1));
+            if (next == std::string::npos) next = src.size();
+            else next++; // include the space in the candidate
+
+            std::string candidate = src.substr(pos, next - pos);
+            int w = 0, h = 0;
+            TTF_SizeText(font, candidate.c_str(), &w, &h);
+            if (w > maxWidth && !first) break;
+            lastSpace = next;
+            lineEnd   = next;
+            first     = false;
+            if (next >= src.size()) break;
+        }
+
+        if (lineEnd == pos) lineEnd = pos + 1; // safety: advance at least one character
+
+        std::string line = src.substr(pos, lastSpace - pos);
+        // Strip trailing space
+        if (!line.empty() && line.back() == ' ') line.pop_back();
+
+        if (!line.empty()) {
+            SDL_Surface* s = TTF_RenderText_Blended(font, line.c_str(), color);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect r = {x, curY, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+        curY += charH + lineSpacing;
+        pos   = lastSpace;
+    }
+    return curY - y;
+}
+
 // ---- Enter ----
 void BestiaryState::enter() {
     m_selected    = 0;
     m_time        = 0;
     m_scrollOffset = 0;
-    // Regular enemies (EnemyType::COUNT = 10, not counting Boss) + 5 bosses
-    m_totalEntries = static_cast<int>(EnemyType::COUNT) - 1 + 5; // exclude Boss sentinel
+    // Regular enemies (EnemyType::COUNT - 1, exclude Boss sentinel) + 6 bosses
+    m_totalEntries = static_cast<int>(EnemyType::COUNT) - 1 + 6;
 }
 
 // ---- Event ----
@@ -199,6 +256,7 @@ void BestiaryState::render(SDL_Renderer* renderer) {
                     case 2: swatchColor = {120, 80, 200, 220}; break;
                     case 3: swatchColor = {180, 160, 80, 220}; break;
                     case 4: swatchColor = {100, 40, 220, 220}; break;
+                    case 5: swatchColor = {60, 200, 60, 220};  break; // Entropy Incarnate
                 }
             } else {
                 switch (typeIdx) {
@@ -330,25 +388,20 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     SDL_SetRenderDrawColor(renderer, 90, 75, 120, 100);
     SDL_RenderDrawLine(renderer, infoX, divY, DETAIL_X + DETAIL_W - 16, divY);
 
-    // Lore
+    // Lore section header
     int loreY = divY + 8;
-    {
-        SDL_Surface* ls = TTF_RenderText_Blended(font, entry.lore, {140, 130, 160, 180});
-        if (ls) {
-            SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
-            if (lt) {
-                int maxW = infoW - 10;
-                float scale = (ls->w > maxW) ? static_cast<float>(maxW) / ls->w : 1.0f;
-                SDL_Rect lr = {infoX, loreY, static_cast<int>(ls->w * scale), static_cast<int>(ls->h * scale)};
-                SDL_RenderCopy(renderer, lt, nullptr, &lr);
-                SDL_DestroyTexture(lt);
-            }
-            SDL_FreeSurface(ls);
-        }
-    }
+    drawText(renderer, font, "LORE:", infoX, loreY, {120, 100, 160, 200});
+    loreY += 20;
+
+    // Word-wrapped lore body
+    int loreMaxW = infoW - 10;
+    int loreUsedH = drawTextWrapped(renderer, font, entry.lore,
+                                    infoX, loreY, loreMaxW,
+                                    {140, 130, 160, 175}, 3);
 
     // ---- Stat bars ----
-    int statsY = loreY + 38;
+    // Add a small gap after lore, minimum to keep stats visible
+    int statsY = loreY + loreUsedH + 8;
     const int barW  = infoW - 10;
     const int barH  = 12;
     const int rowSp = 30;
@@ -813,8 +866,9 @@ void BestiaryState::renderBossPreview(SDL_Renderer* renderer, int cx, int cy, in
         {120,  80, 200, 255},  // 2: Dimensional Architect - violet
         {180, 160,  80, 255},  // 3: Temporal Weaver - gold
         {100,  40, 220, 255},  // 4: Void Sovereign - deep purple
+        { 60, 200,  60, 255},  // 5: Entropy Incarnate - sickly green
     };
-    SDL_Color col = (bossType >= 0 && bossType < 5) ? colors[bossType] : colors[0];
+    SDL_Color col = (bossType >= 0 && bossType < 6) ? colors[bossType] : colors[0];
 
     // Animated outer ring
     float pulse = 0.5f + 0.5f * std::sin(m_time * 2.5f);
@@ -877,6 +931,27 @@ void BestiaryState::renderBossPreview(SDL_Renderer* renderer, int cx, int cy, in
             SDL_RenderFillRect(renderer, &core);
             SDL_SetRenderDrawColor(renderer, 200, 100, 255, static_cast<Uint8>(180 * vPulse));
             SDL_RenderDrawRect(renderer, &core);
+            break;
+        }
+        case 5: { // Entropy Incarnate: radiating decay lines
+            float ePulse = 0.4f + 0.6f * std::abs(std::sin(m_time * 3.5f));
+            Uint8 ea = static_cast<Uint8>(160 * ePulse);
+            SDL_SetRenderDrawColor(renderer, 60, 200, 60, ea);
+            // Entropy decay rays emanating from center
+            for (int ray = 0; ray < 8; ray++) {
+                float angle = ray * (3.14159f / 4.0f) + m_time * 0.6f;
+                int inner = size / 2 + 2;
+                int outer = size / 2 + 18;
+                SDL_RenderDrawLine(renderer,
+                    cx + static_cast<int>(std::cos(angle) * inner),
+                    cy + static_cast<int>(std::sin(angle) * inner),
+                    cx + static_cast<int>(std::cos(angle) * outer),
+                    cy + static_cast<int>(std::sin(angle) * outer));
+            }
+            // Dark eroding core
+            SDL_SetRenderDrawColor(renderer, 10, 30, 10, static_cast<Uint8>(200 * ePulse));
+            SDL_Rect ecore = {cx - 8, cy - 8, 16, 16};
+            SDL_RenderFillRect(renderer, &ecore);
             break;
         }
         default: break;
