@@ -1281,6 +1281,12 @@ void PlayState::update(float dt) {
 
             // Carry over HP (clamped to new max)
             hp.currentHP = std::min(m_savedHP, hp.maxHP);
+
+            // SoulLeech: -5 HP per level transition (applied after HP restore)
+            float leechCost = RelicSystem::getSoulLeechLevelHPCost(rc);
+            if (leechCost > 0 && hp.currentHP > leechCost) {
+                hp.currentHP -= leechCost;
+            }
         } else if (m_player && m_savedMaxHP > 0) {
             // No relics but still carry over HP
             auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
@@ -2196,6 +2202,8 @@ void PlayState::update(float dt) {
     }
 
     // Relic timed effects update
+    // Reset per-frame entropy modifiers before applying relic effects
+    m_entropy.passiveDecayModifier = 1.0f;
     if (m_player->getEntity()->hasComponent<RelicComponent>()) {
         auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
         RelicSystem::updateTimedEffects(relics, dt);
@@ -2230,6 +2238,40 @@ void PlayState::update(float dt) {
         // EntropySponge: no passive entropy (kills add entropy instead)
         if (RelicSystem::hasNoPassiveEntropy(relics)) {
             m_entropy.passiveGainModifier = 0.0f;
+        }
+
+        // EntropySiphon: +50% entropy passive gain (multiplicative with other modifiers)
+        float siphonMult = RelicSystem::getEntropySiphonGainMult(relics);
+        if (siphonMult > 1.0f) {
+            m_entropy.passiveGainModifier *= siphonMult;
+        }
+
+        // TimeDistortion: entropy passive decay is 50% slower
+        // passiveDecayModifier is reset to 1.0 each frame before relic effects are applied
+        m_entropy.passiveDecayModifier = RelicSystem::getTimeDistortionEntropyDecayMult(relics);
+
+        // ChaosCore: force dimension switch every 20s
+        if (relics.chaosCoreTimer <= 0) {
+            relics.chaosCoreTimer = 20.0f;
+            // Force switch even if on cooldown (force=true bypasses cooldown check)
+            if (m_dimManager.switchDimension(true)) {
+                auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+                RelicSystem::onDimensionSwitch(relics, &playerHP);
+                relics.lastSwitchDimension = m_dimManager.getCurrentDimension();
+            }
+            Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+            m_particles.burst(pPos, 20, {220, 80, 220, 200}, 200.0f, 3.0f);
+            AudioManager::instance().play(SFX::DimensionSwitch);
+        }
+
+        // VampiricEdge: block natural heal-over-time and pickup-orb healing
+        // (healing from kills is still applied in kill-event block below)
+        relics.vampiricEdgeActive = relics.hasRelic(RelicID::VampiricEdge);
+
+        // BerserkersCurse: strip shield whenever it would be active
+        if (RelicSystem::hasBerserkersCurse(relics) && m_player->hasShield) {
+            m_player->hasShield = false;
+            m_player->shieldTimer = 0;
         }
     }
 
@@ -2527,8 +2569,9 @@ void PlayState::update(float dt) {
             auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
             for (int k = 0; k < m_combatSystem.killCount; k++) {
                 // SoulSiphon: heal on kill (VampiricFrenzy synergy: 8 HP under 30%)
+                // Blocked by VampiricEdge (VampiricEdge is its own kill-heal source)
                 float killHeal = RelicSystem::getKillHeal(relics);
-                if (killHeal > 0) {
+                if (killHeal > 0 && !RelicSystem::hasVampiricEdge(relics)) {
                     auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
                     float synergyHeal = RelicSynergy::getKillHealBonus(relics, playerHP.getPercent());
                     playerHP.heal(synergyHeal > 0 ? synergyHeal : killHeal);
@@ -2541,8 +2584,9 @@ void PlayState::update(float dt) {
                     m_entropy.reduceEntropy(m_entropy.getMaxEntropy() * entropyReduce);
                 }
                 // VoidPact: heal 5 HP on kill (capped at 60% max HP)
+                // Blocked by VampiricEdge
                 float vpHeal = RelicSystem::getVoidPactHeal(relics);
-                if (vpHeal > 0) {
+                if (vpHeal > 0 && !RelicSystem::hasVampiricEdge(relics)) {
                     auto& pHP = m_player->getEntity()->getComponent<HealthComponent>();
                     float hpCap = pHP.maxHP * RelicSystem::getVoidPactMaxHPPercent(relics);
                     if (pHP.currentHP < hpCap) {
@@ -2553,6 +2597,28 @@ void PlayState::update(float dt) {
                 float killEntropy = RelicSystem::getKillEntropyGain(relics);
                 if (killEntropy > 0) {
                     m_entropy.addEntropy(killEntropy);
+                }
+
+                // BloodPact: -1 HP per kill (can't kill, floor at 1)
+                float bloodPactCost = RelicSystem::getBloodPactKillHPCost(relics);
+                if (bloodPactCost > 0) {
+                    auto& bpHP = m_player->getEntity()->getComponent<HealthComponent>();
+                    if (bpHP.currentHP > bloodPactCost) {
+                        bpHP.currentHP -= bloodPactCost;
+                    }
+                }
+
+                // EntropySiphon: kills reduce entropy by 8
+                float siphonReduce = RelicSystem::getEntropySiphonKillReduction(relics);
+                if (siphonReduce > 0) {
+                    m_entropy.reduceEntropy(siphonReduce);
+                }
+
+                // VampiricEdge: heal 3 HP per kill (this is kill-heal, allowed even with VampiricEdge)
+                float vampHeal = RelicSystem::getVampiricEdgeKillHeal(relics);
+                if (vampHeal > 0) {
+                    auto& veHP = m_player->getEntity()->getComponent<HealthComponent>();
+                    veHP.heal(vampHeal);
                 }
 
                 // Weapon-Relic Synergies on kill
@@ -4188,6 +4254,15 @@ void PlayState::showRelicChoice() {
     m_relicChoiceSelected = 0;
 }
 
+void PlayState::showCursedRelicChoice() {
+    if (!m_player || !m_player->getEntity()->hasComponent<RelicComponent>()) return;
+    auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+    m_relicChoices = RelicSystem::generateCursedChoice(m_currentDifficulty, relics.relics);
+    if (m_relicChoices.empty()) return; // All cursed relics already owned, skip
+    m_showRelicChoice = true;
+    m_relicChoiceSelected = 0;
+}
+
 void PlayState::selectRelic(int index) {
     if (index < 0 || index >= static_cast<int>(m_relicChoices.size())) return;
     if (!m_player || !m_player->getEntity()->hasComponent<RelicComponent>()) return;
@@ -4291,11 +4366,14 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
             }
         }
 
-        // Tier text
+        // Tier text + CURSED label
+        bool isCursedRelic = RelicSystem::isCursed(m_relicChoices[i]);
         const char* tierText = "COMMON";
         SDL_Color tierColor = {180, 180, 180, 255};
-        if (data.tier == RelicTier::Rare) { tierText = "RARE"; tierColor = {80, 180, 255, 255}; }
+        if (data.tier == RelicTier::Rare)      { tierText = "RARE";      tierColor = {80, 180, 255, 255}; }
         else if (data.tier == RelicTier::Legendary) { tierText = "LEGENDARY"; tierColor = {255, 200, 50, 255}; }
+        // CURSED override: override tier display with red "CURSED" label
+        if (isCursedRelic) { tierText = "CURSED"; tierColor = {255, 50, 50, 255}; }
         {
             SDL_Surface* s = TTF_RenderText_Blended(font, tierText, tierColor);
             if (s) {
@@ -4307,6 +4385,18 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
                 }
                 SDL_FreeSurface(s);
             }
+        }
+        // Cursed relics: draw a red skull-mark (X lines) in the top-right corner of the card
+        if (isCursedRelic) {
+            SDL_SetRenderDrawColor(renderer, 200, 20, 20, 200);
+            int mx = cx + cardW - 14, my = cardY + 8;
+            SDL_RenderDrawLine(renderer, mx, my, mx + 10, my + 10);
+            SDL_RenderDrawLine(renderer, mx + 10, my, mx, my + 10);
+            SDL_RenderDrawLine(renderer, mx + 1, my, mx + 11, my + 10);
+            SDL_RenderDrawLine(renderer, mx + 11, my, mx + 1, my + 10);
+            // Dark red card tint overlay
+            SDL_SetRenderDrawColor(renderer, 80, 0, 0, 30);
+            SDL_RenderFillRect(renderer, &cardBg);
         }
 
         // Name
@@ -4386,12 +4476,21 @@ void PlayState::renderRelicBar(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Rect orb = {ix + 3, startY + 3, iconSize - 6, iconSize - 6};
         SDL_RenderFillRect(renderer, &orb);
 
-        // Border
-        Uint8 borderTierA = 120;
-        if (data.tier == RelicTier::Rare) borderTierA = 180;
-        if (data.tier == RelicTier::Legendary) borderTierA = 255;
-        SDL_SetRenderDrawColor(renderer, r, g, b, borderTierA);
-        SDL_RenderDrawRect(renderer, &bg);
+        // Border: cursed relics get a red border, others get tier-based opacity
+        if (RelicSystem::isCursed(relics.relics[i].id)) {
+            SDL_SetRenderDrawColor(renderer, 200, 30, 30, 255);
+            SDL_RenderDrawRect(renderer, &bg);
+            // Double border for emphasis
+            SDL_Rect outerBorder = {ix - 1, startY - 1, iconSize + 2, iconSize + 2};
+            SDL_SetRenderDrawColor(renderer, 255, 60, 60, 120);
+            SDL_RenderDrawRect(renderer, &outerBorder);
+        } else {
+            Uint8 borderTierA = 120;
+            if (data.tier == RelicTier::Rare) borderTierA = 180;
+            if (data.tier == RelicTier::Legendary) borderTierA = 255;
+            SDL_SetRenderDrawColor(renderer, r, g, b, borderTierA);
+            SDL_RenderDrawRect(renderer, &bg);
+        }
     }
 }
 
@@ -5067,10 +5166,13 @@ void PlayState::checkSecretRoomDiscovery() {
                         break;
                     }
                     case SecretRoomType::DimensionCache: {
-                        int shards = sr.shardReward * 2; // Double reward
+                        // Dimension Cache: shards + guaranteed cursed relic offer
+                        int shards = sr.shardReward; // Normal reward (not doubled — the relic is the bonus)
                         shards = static_cast<int>(shards * game->getRunBuffSystem().getShardMultiplier());
                         shardsCollected += shards;
                         game->getUpgradeSystem().addRiftShards(shards);
+                        // Offer a cursed relic from the forbidden vault
+                        showCursedRelicChoice();
                         break;
                     }
                     case SecretRoomType::AncientWeapon:

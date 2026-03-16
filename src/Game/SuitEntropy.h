@@ -35,6 +35,7 @@ public:
     float repairReduction = 30.0f;   // Entropy reduced per rift repair (was 15)
     float entropyGainMultiplier = 1.0f; // Run buff: reduces entropy gain
     float passiveGainModifier = 1.0f;   // Relic: Entropy Anchor modifier
+    float passiveDecayModifier = 1.0f;  // Relic: TimeDistortion slows entropy decay
     // FIX: EntropyResistance upgrade was purchased but never applied
     float upgradeResistance = 1.0f;     // Upgrade: reduces all entropy gain
 

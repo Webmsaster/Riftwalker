@@ -10,9 +10,9 @@ void SuitEntropy::update(float dt) {
     // FIX: Apply upgradeResistance so EntropyResistance upgrade actually works
     m_entropy += m_passiveGain * passiveGainModifier * upgradeResistance * dt;
 
-    // Passive decay (upgradeable)
+    // Passive decay (upgradeable, modifiable by relics e.g. TimeDistortion)
     if (passiveDecay > 0) {
-        m_entropy -= passiveDecay * dt;
+        m_entropy -= passiveDecay * passiveDecayModifier * dt;
     }
 
     m_entropy = std::clamp(m_entropy, 0.0f, m_maxEntropy);

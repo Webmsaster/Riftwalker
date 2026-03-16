@@ -41,6 +41,15 @@ enum class RelicID {
     RiftMantle,      // -50% switch cooldown, but 5% maxHP per switch
     StabilityMatrix, // +3% DMG/s in current dim (max +30%, resets on switch)
     VoidResonance,   // Kill enemy in wrong dimension: 2x DMG
+    // New Cursed Relics (powerful + permanent downside)
+    BloodPact,       // +40% damage, but -1 HP per kill
+    EntropySiphon,   // Kills reduce entropy 8, but +50% entropy gain from all sources
+    GlassCannon,     // +60% damage, but max HP halved
+    VampiricEdge,    // Heal 3 HP per kill, but no natural/pickup healing
+    ChaosCore,       // Random dim switch every 20s, +25% all stats
+    BerserkersCurse, // +15% damage per missing 10% HP (stacks), no shields
+    TimeDistortion,  // +30% move+attack speed, entropy decays 50% slower
+    SoulLeech,       // 2x shard drops, -5 HP per level transition
     COUNT
 };
 
@@ -84,6 +93,10 @@ struct RelicComponent : public Component {
     float voidResonanceProcCD = 0;    // VoidResonance: ICD between 2x procs (seconds)
     float dimResidueSpawnCD = 0;      // DimResidue: ICD between zone spawns (seconds)
 
+    // New cursed relic state
+    float chaosCoreTimer = 20.0f;       // ChaosCore: countdown to next forced dim-switch
+    bool vampiricEdgeActive = false;    // VampiricEdge: no-healing flag (cached)
+
     // Synergy state
     bool phaseHunterBuffActive = false; // Phase Hunter: next attack 2x DMG after dim-switch
     float phaseHunterBuffTimer = 0;     // Phase Hunter: buff expires after 3s
@@ -120,6 +133,10 @@ struct RelicComponent : public Component {
         if (hasRelic(RelicID::StabilityMatrix)) {
             stabilityTimer += dt;
             if (stabilityTimer > 10.0f) stabilityTimer = 10.0f;
+        }
+        // ChaosCore: count down to next forced dimension switch
+        if (hasRelic(RelicID::ChaosCore)) {
+            chaosCoreTimer -= dt;
         }
     }
 };
