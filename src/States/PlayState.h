@@ -208,6 +208,7 @@ private:
     std::vector<RelicID> m_relicChoices;
     int m_relicChoiceSelected = 0;
     void showRelicChoice();
+    void showCursedRelicChoice();  // Cursed-only relic offer (secret rooms)
     void selectRelic(int index);
     void renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font);
     void renderRelicBar(SDL_Renderer* renderer, TTF_Font* font);

@@ -5,10 +5,12 @@
 #include "Components/PhysicsBody.h"
 #include "Components/ColliderComponent.h"
 #include "Components/HealthComponent.h"
+#include "Components/RelicComponent.h"
+#include "Game/RelicSystem.h"
 #include "Core/AudioManager.h"
 #include <cstdlib>
 
-Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimension) {
+Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimension, Player* player) {
     auto& e = entities.addEntity("pickup_health");
     e.dimension = dimension;
 
@@ -29,8 +31,18 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
     col.layer = LAYER_PICKUP;
     col.mask = LAYER_TILE | LAYER_PLAYER;
     col.type = ColliderType::Trigger;
-    col.onTrigger = [](Entity* self, Entity* other) {
+    col.onTrigger = [player](Entity* self, Entity* other) {
         if (other->getTag() == "player" && other->hasComponent<HealthComponent>()) {
+            // VampiricEdge: block health orb pickup healing
+            if (player && other->hasComponent<RelicComponent>()) {
+                auto& rc = other->getComponent<RelicComponent>();
+                if (RelicSystem::hasVampiricEdge(rc)) {
+                    // Destroy orb without healing (still consumed, just wasted)
+                    AudioManager::instance().play(SFX::Pickup);
+                    self->destroy();
+                    return;
+                }
+            }
             auto& hp = other->getComponent<HealthComponent>();
             // BALANCE: Health orb heal 20 -> 30 (25% of base HP, meaningful recovery)
             hp.heal(30.0f);
@@ -181,12 +193,21 @@ void ItemDrop::spawnRandomDrop(EntityManager& entities, Vec2 pos, int dimension,
     int roll = std::rand() % 100;
     // BALANCE: Health orb rate 20% -> 25%, shard rate 25% -> 30%, shard value 3+diff*2 -> 5+diff*3
     // Goal: ~1 upgrade purchasable per level
+
+    // SoulLeech: 2x shard value from all drops
+    float shardMult = 1.0f;
+    if (player && player->getEntity() && player->getEntity()->hasComponent<RelicComponent>()) {
+        shardMult = RelicSystem::getSoulLeechShardMult(
+            player->getEntity()->getComponent<RelicComponent>());
+    }
+
     if (roll < 25) {
         // 25% chance: health orb (was 20%)
-        spawnHealthOrb(entities, pos, dimension);
+        spawnHealthOrb(entities, pos, dimension, player);
     } else if (roll < 55) {
-        // 30% chance: rift shard (was 25%), higher value
-        spawnRiftShard(entities, pos, dimension, 5 + difficulty * 3, player);
+        // 30% chance: rift shard (was 25%), higher value; SoulLeech doubles value
+        int shardValue = static_cast<int>((5 + difficulty * 3) * shardMult);
+        spawnRiftShard(entities, pos, dimension, shardValue, player);
     } else if (roll < 65) {
         // 10% chance: shield
         if (player) spawnShieldOrb(entities, pos, dimension, player);

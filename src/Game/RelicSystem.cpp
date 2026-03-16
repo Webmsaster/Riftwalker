@@ -54,6 +54,15 @@ static void initRelicData() {
     d[static_cast<int>(RelicID::RiftMantle)]     = {RelicID::RiftMantle, "Rift Mantle", "-50% Switch CD, costs 5% Max HP", RelicTier::Legendary, SDL_Color{100, 220, 180, 255}};
     d[static_cast<int>(RelicID::StabilityMatrix)] = {RelicID::StabilityMatrix, "Stability Matrix", "+3% DMG/s in dim (max 30%)", RelicTier::Common, SDL_Color{200, 200, 100, 255}};
     d[static_cast<int>(RelicID::VoidResonance)]  = {RelicID::VoidResonance, "Void Resonance", "Cross-dim kill: 2x DMG", RelicTier::Legendary, SDL_Color{150, 50, 200, 255}};
+    // New Cursed Relics — powerful boons with permanent run-long downsides
+    d[static_cast<int>(RelicID::BloodPact)]      = {RelicID::BloodPact, "Blood Pact", "+40% DMG, -1 HP per kill", RelicTier::Rare, SDL_Color{200, 20, 20, 255}};
+    d[static_cast<int>(RelicID::EntropySiphon)]  = {RelicID::EntropySiphon, "Entropy Siphon", "Kill: -8 Entropy, +50% gain", RelicTier::Rare, SDL_Color{50, 200, 100, 255}};
+    d[static_cast<int>(RelicID::GlassCannon)]    = {RelicID::GlassCannon, "Glass Cannon", "+60% DMG, Max HP halved", RelicTier::Legendary, SDL_Color{220, 160, 220, 255}};
+    d[static_cast<int>(RelicID::VampiricEdge)]   = {RelicID::VampiricEdge, "Vampiric Edge", "Kill: +3 HP, no passive heal", RelicTier::Rare, SDL_Color{180, 30, 80, 255}};
+    d[static_cast<int>(RelicID::ChaosCore)]      = {RelicID::ChaosCore, "Chaos Core", "+25% stats, switch every 20s", RelicTier::Legendary, SDL_Color{220, 80, 220, 255}};
+    d[static_cast<int>(RelicID::BerserkersCurse)] = {RelicID::BerserkersCurse, "Berserker's Curse", "+15% DMG per 10% missing HP, no shield", RelicTier::Legendary, SDL_Color{220, 60, 20, 255}};
+    d[static_cast<int>(RelicID::TimeDistortion)] = {RelicID::TimeDistortion, "Time Distortion", "+30% spd+atkspd, 50% slower entropy decay", RelicTier::Rare, SDL_Color{80, 180, 240, 255}};
+    d[static_cast<int>(RelicID::SoulLeech)]      = {RelicID::SoulLeech, "Soul Leech", "2x shards, -5 HP per level", RelicTier::Rare, SDL_Color{100, 20, 160, 255}};
 }
 
 const RelicData& RelicSystem::getRelicData(RelicID id) {
@@ -89,6 +98,11 @@ std::vector<RelicID> RelicSystem::generateChoice(int difficulty, const std::vect
             case RelicTier::Rare: weight = 2; break;
             case RelicTier::Legendary: weight = 1; break;
         }
+        // Cursed relics: lower spawn chance (half-weight), but more likely at high difficulty
+        if (isCursed(id)) {
+            weight = std::max(1, weight / 2);
+            if (difficulty >= 4) weight++;  // Become more tempting at high difficulty
+        }
         // Higher difficulty = more legendaries
         if (data.tier == RelicTier::Legendary && difficulty >= 3) weight++;
         if (data.tier == RelicTier::Common && difficulty >= 5) weight = std::max(1, weight - 1);
@@ -114,6 +128,31 @@ RelicID RelicSystem::generateDrop(int difficulty, const std::vector<ActiveRelic>
     return choices[std::rand() % choices.size()];
 }
 
+std::vector<RelicID> RelicSystem::generateCursedChoice(int difficulty, const std::vector<ActiveRelic>& owned) {
+    initRelicData();
+    // Build pool of only cursed relics not yet owned
+    std::vector<RelicID> pool;
+    for (int i = 1; i < static_cast<int>(RelicID::COUNT); i++) {
+        RelicID id = static_cast<RelicID>(i);
+        if (!isCursed(id)) continue;
+        bool alreadyOwned = false;
+        for (auto& r : owned) {
+            if (r.id == id) { alreadyOwned = true; break; }
+        }
+        if (alreadyOwned) continue;
+        pool.push_back(id);
+    }
+    // Pick up to 3 unique cursed relics
+    std::vector<RelicID> choices;
+    for (int i = 0; i < 3 && !pool.empty(); i++) {
+        int idx = std::rand() % pool.size();
+        RelicID pick = pool[idx];
+        pool.erase(std::remove(pool.begin(), pool.end(), pick), pool.end());
+        choices.push_back(pick);
+    }
+    return choices;
+}
+
 void RelicSystem::applyStatEffects(RelicComponent& relics, Player& player,
                                     HealthComponent& hp, CombatComponent& combat) {
     // Recalculate stats from scratch based on active relics
@@ -133,6 +172,18 @@ void RelicSystem::applyStatEffects(RelicComponent& relics, Player& player,
                 break;
             case RelicID::GlassHeart:
                 hpBonus += hp.maxHP * 0.50f;
+                break;
+            // GlassCannon: max HP halved (permanent for the run)
+            case RelicID::GlassCannon:
+                hpBonus -= hp.maxHP * 0.50f;
+                break;
+            // ChaosCore: +25% move speed
+            case RelicID::ChaosCore:
+                speedMult += 0.25f;
+                break;
+            // TimeDistortion: +30% move speed
+            case RelicID::TimeDistortion:
+                speedMult += 0.30f;
                 break;
             default: break;
         }
@@ -169,6 +220,22 @@ float RelicSystem::getDamageMultiplier(const RelicComponent& relics, float curre
                 mult += std::min(relics.stabilityTimer * rate, maxBonus);
                 break;
             }
+            // New cursed relic damage bonuses
+            case RelicID::BloodPact:
+                mult += 0.40f;
+                break;
+            case RelicID::GlassCannon:
+                mult += 0.60f;
+                break;
+            case RelicID::ChaosCore:
+                mult += 0.25f;
+                break;
+            case RelicID::BerserkersCurse: {
+                // +15% per missing 10% HP (e.g. 50% HP = 5 stacks = +75%)
+                int missingTens = static_cast<int>((1.0f - currentHPPercent) * 10.0f);
+                mult += missingTens * 0.15f;
+                break;
+            }
             default: break;
         }
     }
@@ -184,7 +251,9 @@ float RelicSystem::getDamageMultiplier(const RelicComponent& relics, float curre
 float RelicSystem::getAttackSpeedMultiplier(const RelicComponent& relics) {
     float mult = 1.0f;
     for (auto& r : relics.relics) {
-        if (r.id == RelicID::QuickHands) mult += 0.15f;
+        if (r.id == RelicID::QuickHands)     mult += 0.15f;
+        if (r.id == RelicID::TimeDistortion) mult += 0.30f;
+        if (r.id == RelicID::ChaosCore)      mult += 0.25f;
     }
     // RiftConduit: +10% attack speed per stack (max 3 stacks)
     if (relics.hasRelic(RelicID::RiftConduit) && relics.riftConduitTimer > 0) {
@@ -261,6 +330,10 @@ float RelicSystem::getShardDropMultiplier(const RelicComponent& relics) {
             // CursedFortune synergy: +30% instead of +10%
             float synergyBonus = RelicSynergy::getShardDropBonus(relics);
             mult += (synergyBonus > 0) ? synergyBonus : 0.10f;
+        }
+        // SoulLeech: 2x shard multiplier on all pickups
+        if (r.id == RelicID::SoulLeech) {
+            mult *= 2.0f;
         }
     }
     return mult;
@@ -364,9 +437,13 @@ float RelicSystem::getSwitchCooldownMult(const RelicComponent& relics) {
 }
 
 bool RelicSystem::isCursed(RelicID id) {
-    return id == RelicID::CursedBlade || id == RelicID::GlassHeart ||
-           id == RelicID::TimeTax || id == RelicID::EntropySponge ||
-           id == RelicID::VoidPact || id == RelicID::ChaosRift;
+    return id == RelicID::CursedBlade    || id == RelicID::GlassHeart  ||
+           id == RelicID::TimeTax        || id == RelicID::EntropySponge ||
+           id == RelicID::VoidPact       || id == RelicID::ChaosRift    ||
+           id == RelicID::BloodPact      || id == RelicID::EntropySiphon ||
+           id == RelicID::GlassCannon    || id == RelicID::VampiricEdge  ||
+           id == RelicID::ChaosCore      || id == RelicID::BerserkersCurse ||
+           id == RelicID::TimeDistortion || id == RelicID::SoulLeech;
 }
 
 float RelicSystem::getCursedMeleeMult(const RelicComponent& relics) {
@@ -423,3 +500,57 @@ float RelicSystem::getVoidPactMaxHPPercent(const RelicComponent& relics) {
 float RelicSystem::getVoidResonanceICD() { return VOID_RESONANCE_ICD; }
 float RelicSystem::getDimResidueSpawnICD() { return DIM_RESIDUE_SPAWN_ICD; }
 int   RelicSystem::getMaxResidueZones() { return MAX_RESIDUE_ZONES; }
+
+// === New Cursed Relic Queries ===
+
+float RelicSystem::getBloodPactKillHPCost(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::BloodPact) ? 1.0f : 0.0f;
+}
+
+float RelicSystem::getEntropySiphonKillReduction(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::EntropySiphon) ? 8.0f : 0.0f;
+}
+
+float RelicSystem::getEntropySiphonGainMult(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::EntropySiphon) ? 1.5f : 1.0f;
+}
+
+bool RelicSystem::hasVampiricEdge(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::VampiricEdge);
+}
+
+float RelicSystem::getVampiricEdgeKillHeal(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::VampiricEdge) ? 3.0f : 0.0f;
+}
+
+float RelicSystem::getBerserkersCurseDamageMult(const RelicComponent& relics, float hpPercent) {
+    if (!relics.hasRelic(RelicID::BerserkersCurse)) return 1.0f;
+    int missingTens = static_cast<int>((1.0f - hpPercent) * 10.0f);
+    return 1.0f + missingTens * 0.15f;
+}
+
+bool RelicSystem::hasBerserkersCurse(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::BerserkersCurse);
+}
+
+float RelicSystem::getTimeDistortionSpeedMult(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::TimeDistortion) ? 1.30f : 1.0f;
+}
+
+float RelicSystem::getTimeDistortionEntropyDecayMult(const RelicComponent& relics) {
+    // Returns a multiplier applied to entropy passiveDecay (the entropy-per-second reduction)
+    // 0.5 = decay is 50% slower (we slow the decay of the entropy counter itself)
+    return relics.hasRelic(RelicID::TimeDistortion) ? 0.5f : 1.0f;
+}
+
+float RelicSystem::getChaosCoreStatMult(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::ChaosCore) ? 1.25f : 1.0f;
+}
+
+float RelicSystem::getSoulLeechShardMult(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::SoulLeech) ? 2.0f : 1.0f;
+}
+
+float RelicSystem::getSoulLeechLevelHPCost(const RelicComponent& relics) {
+    return relics.hasRelic(RelicID::SoulLeech) ? 5.0f : 0.0f;
+}

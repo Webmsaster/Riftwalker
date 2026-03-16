@@ -17,6 +17,9 @@ public:
     // Generate a relic choice (3 relics from pool, weighted by tier)
     static std::vector<RelicID> generateChoice(int difficulty, const std::vector<ActiveRelic>& owned);
 
+    // Generate a cursed-only relic choice (for secret rooms / special encounters)
+    static std::vector<RelicID> generateCursedChoice(int difficulty, const std::vector<ActiveRelic>& owned);
+
     // Generate a single random relic drop
     static RelicID generateDrop(int difficulty, const std::vector<ActiveRelic>& owned);
 
@@ -89,4 +92,18 @@ public:
     static float getKillEntropyGain(const RelicComponent& relics);
     static float getVoidPactHeal(const RelicComponent& relics);
     static float getVoidPactMaxHPPercent(const RelicComponent& relics);
+
+    // New cursed relic queries
+    static float getBloodPactKillHPCost(const RelicComponent& relics);     // BloodPact: HP drained per kill
+    static float getEntropySiphonKillReduction(const RelicComponent& relics); // EntropySiphon: entropy reduced per kill
+    static float getEntropySiphonGainMult(const RelicComponent& relics);   // EntropySiphon: 1.5x entropy gain mult
+    static bool hasVampiricEdge(const RelicComponent& relics);             // VampiricEdge: blocks natural healing
+    static float getVampiricEdgeKillHeal(const RelicComponent& relics);    // VampiricEdge: HP healed per kill
+    static float getBerserkersCurseDamageMult(const RelicComponent& relics, float hpPercent); // stacks per missing 10% HP
+    static bool hasBerserkersCurse(const RelicComponent& relics);          // BerserkersCurse: no shields
+    static float getTimeDistortionSpeedMult(const RelicComponent& relics); // +30% move+attack speed
+    static float getTimeDistortionEntropyDecayMult(const RelicComponent& relics); // 50% slower entropy decay
+    static float getChaosCoreStatMult(const RelicComponent& relics);       // ChaosCore: +25% all stats
+    static float getSoulLeechShardMult(const RelicComponent& relics);      // SoulLeech: 2x shard drops
+    static float getSoulLeechLevelHPCost(const RelicComponent& relics);    // SoulLeech: -5 HP per transition
 };
