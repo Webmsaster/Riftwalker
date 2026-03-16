@@ -708,11 +708,23 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             bool active;
         };
 
-        AbilityIconInfo abIcons[3] = {
-            {"1", {255, 180, 60, 255}, abil.abilities[0].getCooldownPercent(), abil.abilities[0].active || abil.slamFalling},
-            {"2", {80, 220, 255, 255}, abil.abilities[1].getCooldownPercent(), abil.abilities[1].active},
-            {"3", {180, 80, 255, 255}, abil.abilities[2].getCooldownPercent(), abil.abilities[2].active}
-        };
+        AbilityIconInfo abIcons[3];
+        if (player->playerClass == PlayerClass::Technomancer) {
+            // Technomancer: turret (Q) + trap (E) + Phase Strike
+            float turretCdPct = (player->turretCooldownTimer <= 0) ? 1.0f
+                : 1.0f - player->turretCooldownTimer / std::max(0.01f, player->turretCooldown);
+            float trapCdPct = (player->trapCooldownTimer <= 0) ? 1.0f
+                : 1.0f - player->trapCooldownTimer / std::max(0.01f, player->trapCooldown);
+            abIcons[0] = {"Q", {230, 180, 50, 255}, turretCdPct,
+                          player->activeTurrets >= player->maxTurrets};
+            abIcons[1] = {"E", {255, 200, 50, 255}, trapCdPct,
+                          player->activeTraps >= player->maxTraps};
+            abIcons[2] = {"3", {180, 80, 255, 255}, abil.abilities[2].getCooldownPercent(), abil.abilities[2].active};
+        } else {
+            abIcons[0] = {"1", {255, 180, 60, 255}, abil.abilities[0].getCooldownPercent(), abil.abilities[0].active || abil.slamFalling};
+            abIcons[1] = {"2", {80, 220, 255, 255}, abil.abilities[1].getCooldownPercent(), abil.abilities[1].active};
+            abIcons[2] = {"3", {180, 80, 255, 255}, abil.abilities[2].getCooldownPercent(), abil.abilities[2].active};
+        }
 
         for (int i = 0; i < 3; i++) {
             int ix = margin + i * (abIconSize + abIconGap);
@@ -731,30 +743,55 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             int acx = ix + abIconSize / 2;
             int acy = abStartY + abIconSize / 2;
 
-            switch (i) {
-                case 0: // Ground Slam: down arrow with impact lines
-                    SDL_RenderDrawLine(renderer, acx, acy - 6, acx, acy + 4);
-                    SDL_RenderDrawLine(renderer, acx, acy + 4, acx - 4, acy);
-                    SDL_RenderDrawLine(renderer, acx, acy + 4, acx + 4, acy);
-                    SDL_RenderDrawLine(renderer, acx - 6, acy + 6, acx - 3, acy + 4);
-                    SDL_RenderDrawLine(renderer, acx + 6, acy + 6, acx + 3, acy + 4);
-                    break;
-                case 1: // Rift Shield: hexagon
-                    for (int h = 0; h < 6; h++) {
-                        float a1 = h * 6.283185f / 6.0f - 1.5708f;
-                        float a2 = (h + 1) * 6.283185f / 6.0f - 1.5708f;
-                        SDL_RenderDrawLine(renderer,
-                            acx + static_cast<int>(std::cos(a1) * 8),
-                            acy + static_cast<int>(std::sin(a1) * 8),
-                            acx + static_cast<int>(std::cos(a2) * 8),
-                            acy + static_cast<int>(std::sin(a2) * 8));
-                    }
-                    break;
-                case 2: // Phase Strike: lightning bolt / teleport
-                    SDL_RenderDrawLine(renderer, acx - 2, acy - 7, acx + 2, acy - 2);
-                    SDL_RenderDrawLine(renderer, acx + 2, acy - 2, acx - 3, acy - 1);
-                    SDL_RenderDrawLine(renderer, acx - 3, acy - 1, acx + 2, acy + 7);
-                    break;
+            if (player->playerClass == PlayerClass::Technomancer) {
+                switch (i) {
+                    case 0: // Deploy Turret: small turret icon (box + barrel)
+                        SDL_RenderDrawLine(renderer, acx - 5, acy + 4, acx + 5, acy + 4); // base
+                        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+                        { SDL_Rect tb = {acx - 4, acy - 2, 8, 6}; SDL_RenderDrawRect(renderer, &tb); }
+                        SDL_RenderDrawLine(renderer, acx + 4, acy, acx + 8, acy); // barrel
+                        SDL_RenderDrawLine(renderer, acx + 4, acy + 1, acx + 8, acy + 1);
+                        break;
+                    case 1: // Shock Trap: diamond with spark
+                        SDL_RenderDrawLine(renderer, acx, acy - 6, acx + 6, acy);
+                        SDL_RenderDrawLine(renderer, acx + 6, acy, acx, acy + 6);
+                        SDL_RenderDrawLine(renderer, acx, acy + 6, acx - 6, acy);
+                        SDL_RenderDrawLine(renderer, acx - 6, acy, acx, acy - 6);
+                        // Electric spark
+                        SDL_RenderDrawLine(renderer, acx - 1, acy - 2, acx + 1, acy + 2);
+                        break;
+                    case 2: // Phase Strike: same as other classes
+                        SDL_RenderDrawLine(renderer, acx - 2, acy - 7, acx + 2, acy - 2);
+                        SDL_RenderDrawLine(renderer, acx + 2, acy - 2, acx - 3, acy - 1);
+                        SDL_RenderDrawLine(renderer, acx - 3, acy - 1, acx + 2, acy + 7);
+                        break;
+                }
+            } else {
+                switch (i) {
+                    case 0: // Ground Slam: down arrow with impact lines
+                        SDL_RenderDrawLine(renderer, acx, acy - 6, acx, acy + 4);
+                        SDL_RenderDrawLine(renderer, acx, acy + 4, acx - 4, acy);
+                        SDL_RenderDrawLine(renderer, acx, acy + 4, acx + 4, acy);
+                        SDL_RenderDrawLine(renderer, acx - 6, acy + 6, acx - 3, acy + 4);
+                        SDL_RenderDrawLine(renderer, acx + 6, acy + 6, acx + 3, acy + 4);
+                        break;
+                    case 1: // Rift Shield: hexagon
+                        for (int h = 0; h < 6; h++) {
+                            float a1 = h * 6.283185f / 6.0f - 1.5708f;
+                            float a2 = (h + 1) * 6.283185f / 6.0f - 1.5708f;
+                            SDL_RenderDrawLine(renderer,
+                                acx + static_cast<int>(std::cos(a1) * 8),
+                                acy + static_cast<int>(std::sin(a1) * 8),
+                                acx + static_cast<int>(std::cos(a2) * 8),
+                                acy + static_cast<int>(std::sin(a2) * 8));
+                        }
+                        break;
+                    case 2: // Phase Strike: lightning bolt / teleport
+                        SDL_RenderDrawLine(renderer, acx - 2, acy - 7, acx + 2, acy - 2);
+                        SDL_RenderDrawLine(renderer, acx + 2, acy - 2, acx - 3, acy - 1);
+                        SDL_RenderDrawLine(renderer, acx - 3, acy - 1, acx + 2, acy + 7);
+                        break;
+                }
             }
 
             // Cooldown sweep overlay

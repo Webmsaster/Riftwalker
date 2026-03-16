@@ -5,6 +5,7 @@ enum class PlayerClass {
     Voidwalker = 0,
     Berserker,
     Phantom,
+    Technomancer,
     COUNT
 };
 
@@ -26,6 +27,10 @@ struct ClassData {
     float rageAtkSpeedBonus;  // Berserker: attack speed bonus in Blood Rage
     float dashLengthMult;     // Phantom: dash duration multiplier
     float postDashInvisTime;  // Phantom: invisibility after dash
+    // Technomancer params
+    float turretDamageMult;   // Technomancer: turret/trap damage multiplier (Construct Mastery)
+    float turretDurationMult; // Technomancer: turret/trap duration multiplier
+    float rangedDmgBonus;     // Technomancer: +10% ranged damage
 };
 
 class ClassSystem {

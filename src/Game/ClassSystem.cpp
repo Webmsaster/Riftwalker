@@ -15,7 +15,8 @@ static const ClassData s_classData[] = {
         3.0f,     // switchHeal
         0.7f,     // switchCDReduction (30% less)
         0.0f, 0.0f, 0.0f,  // no berserker
-        0.0f, 0.0f          // no phantom
+        0.0f, 0.0f,         // no phantom
+        0.0f, 0.0f, 0.0f   // no technomancer
     },
     // Berserker - tanky, high damage at low HP
     {
@@ -32,7 +33,8 @@ static const ClassData s_classData[] = {
         0.4f,     // lowHPThreshold (40%)
         1.3f,     // rageDmgBonus (+30%)
         1.2f,     // rageAtkSpeedBonus (+20%)
-        0.0f, 0.0f          // no phantom
+        0.0f, 0.0f,         // no phantom
+        0.0f, 0.0f, 0.0f   // no technomancer
     },
     // Phantom - fast, evasive
     {
@@ -48,7 +50,26 @@ static const ClassData s_classData[] = {
         0.0f, 0.0f,         // no voidwalker
         0.0f, 0.0f, 0.0f,   // no berserker
         1.5f,     // dashLengthMult (50% longer)
-        0.5f      // postDashInvisTime
+        0.5f,     // postDashInvisTime
+        0.0f, 0.0f, 0.0f   // no technomancer
+    },
+    // Technomancer - construct-based, turrets and traps
+    {
+        PlayerClass::Technomancer,
+        "Technomancer",
+        "Tech engineer. Deploys turrets and shock traps. Constructs deal +20% DMG.",
+        "Construct Mastery",
+        "Turrets/traps +20% DMG, last 50% longer, +10% ranged DMG",
+        "Deploy Turret (Q) / Shock Trap (E)",
+        {230, 180, 50, 255}, // Yellow/orange
+        90.0f,    // HP (medium)
+        237.5f,   // Speed (0.95x of 250 base)
+        0.0f, 0.0f,         // no voidwalker
+        0.0f, 0.0f, 0.0f,   // no berserker
+        0.0f, 0.0f,         // no phantom
+        1.2f,     // turretDamageMult (+20% construct damage)
+        1.5f,     // turretDurationMult (50% longer constructs)
+        1.1f      // rangedDmgBonus (+10% ranged damage)
     }
 };
 

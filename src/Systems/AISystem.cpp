@@ -97,6 +97,8 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
 
     for (auto* e : ents) {
         if (!e->hasComponent<TransformComponent>()) continue;
+        // Skip player-owned constructs (Technomancer turrets) — handled by PlayState
+        if (e->getTag() == "player_turret") continue;
         auto& ai = e->getComponent<AIComponent>();
 
         // Spawn animation: skip AI and keep invulnerable while spawning in

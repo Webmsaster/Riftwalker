@@ -1728,6 +1728,94 @@ void PlayState::update(float dt) {
     Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
     m_aiSystem.update(m_entities, dt, playerPos, m_dimManager.getCurrentDimension());
 
+    // Technomancer: update player-owned turrets (lifetime + auto-fire)
+    if (m_player->isTechnomancer()) {
+        int turretCount = 0;
+        int curDim = m_dimManager.getCurrentDimension();
+        m_entities.forEach([&](Entity& turret) {
+            if (turret.getTag() != "player_turret" || !turret.isAlive()) return;
+            if (!turret.hasComponent<HealthComponent>()) return;
+
+            auto& hp = turret.getComponent<HealthComponent>();
+            hp.currentHP -= dt; // decay lifetime
+            if (hp.currentHP <= 0) {
+                // Turret expired
+                auto& tt = turret.getComponent<TransformComponent>();
+                m_particles.burst(tt.getCenter(), 8, {230, 180, 50, 150}, 60.0f, 2.0f);
+                turret.destroy();
+                return;
+            }
+            turretCount++;
+
+            if (!turret.hasComponent<AIComponent>() || !turret.hasComponent<CombatComponent>()) return;
+            auto& ai = turret.getComponent<AIComponent>();
+            auto& tt = turret.getComponent<TransformComponent>();
+            Vec2 turretPos = tt.getCenter();
+
+            // Find nearest enemy in range
+            Entity* nearestEnemy = nullptr;
+            float nearestDist = ai.detectRange;
+            m_entities.forEach([&](Entity& e) {
+                if (e.getTag().find("enemy") == std::string::npos) return;
+                if (!e.isAlive() || !e.hasComponent<TransformComponent>()) return;
+                if (!e.hasComponent<HealthComponent>()) return;
+                if (e.dimension != 0 && e.dimension != curDim) return;
+                auto& eHP = e.getComponent<HealthComponent>();
+                if (eHP.currentHP <= 0) return;
+                auto& et = e.getComponent<TransformComponent>();
+                float dx = et.getCenter().x - turretPos.x;
+                float dy = et.getCenter().y - turretPos.y;
+                float dist = std::sqrt(dx * dx + dy * dy);
+                if (dist < nearestDist) {
+                    nearestDist = dist;
+                    nearestEnemy = &e;
+                }
+            });
+
+            // Auto-fire at nearest enemy
+            ai.attackTimer -= dt;
+            if (nearestEnemy && ai.attackTimer <= 0) {
+                auto& combat = turret.getComponent<CombatComponent>();
+                auto& et = nearestEnemy->getComponent<TransformComponent>();
+                Vec2 dir = (et.getCenter() - turretPos).normalized();
+                ai.attackTimer = ai.attackCooldown;
+
+                // Fire player-owned projectile
+                m_combatSystem.createProjectile(m_entities, turretPos, dir,
+                    combat.rangedAttack.damage, 350.0f, 0, false, true);
+                AudioManager::instance().play(SFX::RangedShot);
+
+                // Muzzle flash particles
+                m_particles.burst({turretPos.x + dir.x * 12, turretPos.y + dir.y * 12},
+                    4, {255, 220, 80, 220}, 40.0f, 1.5f);
+
+                // Face toward target
+                if (turret.hasComponent<SpriteComponent>()) {
+                    turret.getComponent<SpriteComponent>().flipX = (dir.x < 0);
+                }
+            }
+        });
+        m_player->activeTurrets = turretCount;
+
+        // Count active traps (lifetime decay)
+        int trapCount = 0;
+        m_entities.forEach([&](Entity& trap) {
+            if (trap.getTag() != "player_trap" || !trap.isAlive()) return;
+            if (!trap.hasComponent<HealthComponent>()) return;
+
+            auto& hp = trap.getComponent<HealthComponent>();
+            hp.currentHP -= dt; // decay lifetime
+            if (hp.currentHP <= 0) {
+                auto& trapT = trap.getComponent<TransformComponent>();
+                m_particles.burst(trapT.getCenter(), 6, {255, 200, 50, 120}, 40.0f, 1.5f);
+                trap.destroy();
+                return;
+            }
+            trapCount++;
+        });
+        m_player->activeTraps = trapCount;
+    }
+
     // Void Sovereign Phase 3: auto dimension switch
     m_entities.forEach([&](Entity& e) {
         if (e.getTag() != "enemy_boss") return;
