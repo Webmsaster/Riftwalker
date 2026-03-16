@@ -20,18 +20,20 @@ void PauseState::enter() {
 
     m_buttons.clear();
     m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, "Resume");
-    m_buttons.emplace_back(cx - btnW / 2, startY + btnH + gap, btnW, btnH, "Abandon Run");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Quit to Menu");
+    m_buttons.emplace_back(cx - btnW / 2, startY + btnH + gap, btnW, btnH, "Daily Leaderboard");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Abandon Run");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Quit to Menu");
 
     m_buttons[0].onClick = [this]() { game->popState(); };
-    m_buttons[1].onClick = [this]() {
+    m_buttons[1].onClick = [this]() { game->pushState(StateID::DailyLeaderboard); };
+    m_buttons[2].onClick = [this]() {
         if (auto* playState = dynamic_cast<PlayState*>(game->getState(StateID::Play))) {
             playState->abandonRun();
             return;
         }
         game->changeState(StateID::Menu);
     };
-    m_buttons[2].onClick = [this]() { game->changeState(StateID::Menu); };
+    m_buttons[3].onClick = [this]() { game->changeState(StateID::Menu); };
 
     m_selectedButton = 0;
     m_buttons[0].setSelected(true);

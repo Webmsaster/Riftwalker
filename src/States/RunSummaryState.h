@@ -27,6 +27,11 @@ public:
     int deathCause = 0; // UpgradeSystem::DeathCause
     int ngPlusTier = 0;            // NG+ tier this run was played on (0=Normal)
 
+    // Daily run score display
+    int  dailyScore     = 0;
+    bool isDailyRun     = false;
+    bool isNewDailyBest = false;
+
     // Balance summary
     float peakDmgRaw = 0;
     float peakDmgClamped = 0;
@@ -42,4 +47,5 @@ private:
     float m_fadeIn = 0;
     float m_time = 0;
     float m_statsTimer = 0; // controls sequential stat reveal
+    int   m_todayRank  = 0; // 1-based rank in today's daily leaderboard (0=not ranked)
 };

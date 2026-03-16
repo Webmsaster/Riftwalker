@@ -20,6 +20,7 @@
 #include "Game/DimensionShiftBalance.h"
 #include "States/EndingState.h"
 #include "States/RunSummaryState.h"
+#include "States/DailyLeaderboardState.h"
 #include "Components/RelicComponent.h"
 #include <cstdlib>
 #include <cmath>
@@ -6016,7 +6017,49 @@ void PlayState::finalizeRun(bool abandoned) {
         return;
     }
 
+    // Record daily leaderboard entry when this was a daily run
+    int runScore = calculateRunScore(roomsCleared, enemiesKilled, riftsRepaired,
+                                     shardsCollected, m_bestCombo, m_deathCause);
+    bool isNewDailyBest = false;
+    if (m_isDailyRun) {
+        DailyRun dailyRun;
+        dailyRun.load("riftwalker_daily.dat");
+        int prevBest = dailyRun.getTodayBest();
+
+        DailyLeaderboardEntry entry;
+        entry.score       = runScore;
+        entry.floors      = roomsCleared;
+        entry.kills       = enemiesKilled;
+        entry.rifts       = riftsRepaired;
+        entry.shards      = shardsCollected;
+        entry.bestCombo   = m_bestCombo;
+        entry.runTime     = m_runTime;
+        entry.playerClass = static_cast<int>(g_selectedClass);
+        entry.deathCause  = m_deathCause;
+        auto dateStr = DailyRun::getTodayDate();
+        strncpy(entry.date, dateStr.c_str(), sizeof(entry.date) - 1);
+        entry.date[sizeof(entry.date) - 1] = 0; // null terminator
+
+        dailyRun.addEntry(entry);
+        dailyRun.save("riftwalker_daily.dat");
+
+        isNewDailyBest = (runScore > prevBest);
+
+        // Pre-configure DailyLeaderboardState with highlight info for this run
+        if (auto* lb = dynamic_cast<DailyLeaderboardState*>(
+                game->getState(StateID::DailyLeaderboard))) {
+            lb->highlightScore = runScore;
+            lb->isNewBest      = isNewDailyBest;
+        }
+    }
+
     populateRunSummary(shardsCollected, isNewRecord);
+    // Pass daily run score data to RunSummaryState for prominent display
+    if (auto* summary = dynamic_cast<RunSummaryState*>(game->getState(StateID::RunSummary))) {
+        summary->dailyScore     = runScore;
+        summary->isDailyRun     = m_isDailyRun;
+        summary->isNewDailyBest = isNewDailyBest;
+    }
     game->changeState(StateID::RunSummary);
 }
 

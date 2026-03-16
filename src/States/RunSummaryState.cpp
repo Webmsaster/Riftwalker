@@ -4,6 +4,8 @@
 #include "Game/ClassSystem.h"
 #include "Game/UpgradeSystem.h"
 #include "Game/WeaponSystem.h"
+#include "Game/DailyRun.h"
+#include "States/DailyLeaderboardState.h"
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
@@ -22,6 +24,14 @@ void RunSummaryState::enter() {
     m_fadeIn = 0;
     m_time = 0;
     m_statsTimer = 0;
+
+    // Load today rank for the daily leaderboard display
+    m_todayRank = 0;
+    if (isDailyRun && dailyScore > 0) {
+        DailyRun dr;
+        dr.load("riftwalker_daily.dat");
+        m_todayRank = dr.getTodayRank(dailyScore);
+    }
 }
 
 void RunSummaryState::handleEvent(const SDL_Event& event) {
@@ -29,6 +39,8 @@ void RunSummaryState::handleEvent(const SDL_Event& event) {
         if (event.key.keysym.scancode == SDL_SCANCODE_RETURN ||
             event.key.keysym.scancode == SDL_SCANCODE_SPACE) {
             game->changeState(StateID::Menu);
+        } else if (event.key.keysym.scancode == SDL_SCANCODE_L && isDailyRun) {
+            game->pushState(StateID::DailyLeaderboard);
         }
     }
 }
@@ -414,10 +426,127 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         }
     }
 
+    // --- Daily run score panel (top-right corner, same timing as NEW RECORD) ---
+    if (isDailyRun && dailyScore > 0 && m_statsTimer > 3.3f) {
+        float scoreAlpha = std::min(1.0f, (m_statsTimer - 3.3f) * 2.0f) * m_fadeIn;
+        Uint8 sa = static_cast<Uint8>(255 * scoreAlpha);
+        float pulse = 0.7f + 0.3f * std::sin(m_time * 4.0f);
+
+        int px = 950, py = 70;
+        int pw = 300, ph = 60;
+
+        SDL_SetRenderDrawColor(renderer, 20, 14, 35, static_cast<Uint8>(sa * 0.85f));
+        SDL_Rect panelBg = {px, py, pw, ph};
+        SDL_RenderFillRect(renderer, &panelBg);
+
+        if (isNewDailyBest) {
+            float bpulse = 0.6f + 0.4f * std::sin(m_time * 5.0f);
+            SDL_SetRenderDrawColor(renderer, 255, 200, 50, static_cast<Uint8>(sa * bpulse));
+        } else {
+            SDL_SetRenderDrawColor(renderer, 120, 80, 200, static_cast<Uint8>(sa * 0.6f));
+        }
+        SDL_RenderDrawRect(renderer, &panelBg);
+
+        // "DAILY SCORE" label
+        {
+            SDL_Color lc = {180, 160, 220, sa};
+            SDL_Surface* dls = TTF_RenderText_Blended(font, "DAILY SCORE", lc);
+            if (dls) {
+                SDL_Texture* dlt = SDL_CreateTextureFromSurface(renderer, dls);
+                if (dlt) {
+                    SDL_SetTextureAlphaMod(dlt, sa);
+                    SDL_Rect dlr = {px + pw / 2 - dls->w / 2, py + 4, dls->w, dls->h};
+                    SDL_RenderCopy(renderer, dlt, nullptr, &dlr);
+                    SDL_DestroyTexture(dlt);
+                }
+                SDL_FreeSurface(dls);
+            }
+        }
+
+        // Score value (large)
+        {
+            char dbuf[32];
+            std::snprintf(dbuf, sizeof(dbuf), "%d", dailyScore);
+            SDL_Color sc2 = isNewDailyBest
+                ? SDL_Color{255, 215, 50, sa}
+                : SDL_Color{220, 210, 255, sa};
+            SDL_Surface* dss = TTF_RenderText_Blended(font, dbuf, sc2);
+            if (dss) {
+                SDL_Texture* dst = SDL_CreateTextureFromSurface(renderer, dss);
+                if (dst) {
+                    SDL_SetTextureAlphaMod(dst, sa);
+                    int dsw = dss->w * 2, dsh = dss->h * 2;
+                    SDL_Rect dsr = {px + pw / 2 - dsw / 2, py + 18, dsw, dsh};
+                    SDL_RenderCopy(renderer, dst, nullptr, &dsr);
+                    SDL_DestroyTexture(dst);
+                }
+                SDL_FreeSurface(dss);
+            }
+        }
+
+        // Rank or NEW BEST line at bottom
+        if (isNewDailyBest) {
+            Uint8 nba = static_cast<Uint8>(sa * pulse);
+            SDL_Color nbc = {255, 230, 80, nba};
+            SDL_Surface* nbs = TTF_RenderText_Blended(font, "NEW BEST!", nbc);
+            if (nbs) {
+                SDL_Texture* nbt = SDL_CreateTextureFromSurface(renderer, nbs);
+                if (nbt) {
+                    SDL_SetTextureAlphaMod(nbt, nba);
+                    SDL_Rect nbr = {px + pw / 2 - nbs->w / 2, py + ph - nbs->h - 3, nbs->w, nbs->h};
+                    SDL_RenderCopy(renderer, nbt, nullptr, &nbr);
+                    SDL_DestroyTexture(nbt);
+                }
+                SDL_FreeSurface(nbs);
+            }
+            // Orbiting sparkles
+            for (int si = 0; si < 5; si++) {
+                float angle = m_time * 3.0f + si * (6.283185f / 5);
+                int spx = px + pw / 2 + static_cast<int>(std::cos(angle) * 140);
+                int spy = py + ph / 2 + static_cast<int>(std::sin(angle) * 18);
+                Uint8 spa = static_cast<Uint8>(nba * (0.5f + 0.5f * std::sin(m_time * 4.0f + si)));
+                SDL_SetRenderDrawColor(renderer, 255, 220, 80, spa);
+                SDL_Rect dlspark = {spx - 1, spy - 1, 3, 3};
+                SDL_RenderFillRect(renderer, &dlspark);
+            }
+        } else if (m_todayRank > 0) {
+            char rankBuf[32];
+            std::snprintf(rankBuf, sizeof(rankBuf), "Rank: #%d today", m_todayRank);
+            SDL_Color rc = {160, 200, 140, sa};
+            SDL_Surface* drs = TTF_RenderText_Blended(font, rankBuf, rc);
+            if (drs) {
+                SDL_Texture* drt = SDL_CreateTextureFromSurface(renderer, drs);
+                if (drt) {
+                    SDL_SetTextureAlphaMod(drt, sa);
+                    SDL_Rect drr = {px + pw / 2 - drs->w / 2, py + ph - drs->h - 3, drs->w, drs->h};
+                    SDL_RenderCopy(renderer, drt, nullptr, &drr);
+                    SDL_DestroyTexture(drt);
+                }
+                SDL_FreeSurface(drs);
+            }
+        }
+    }
+
     // Continue prompt
     if (m_fadeIn >= 1.0f && m_statsTimer > 3.8f) {
         float pulse = 0.5f + 0.5f * std::sin(m_time * 4.0f);
         Uint8 pa = static_cast<Uint8>(200 * pulse);
+
+        // Leaderboard hint for daily runs
+        if (isDailyRun) {
+            SDL_Color lc = {120, 200, 150, pa};
+            SDL_Surface* dls = TTF_RenderText_Blended(font, "Press L to view Leaderboard", lc);
+            if (dls) {
+                SDL_Texture* dlt = SDL_CreateTextureFromSurface(renderer, dls);
+                if (dlt) {
+                    SDL_Rect dlr = {640 - dls->w / 2, 640, dls->w, dls->h};
+                    SDL_RenderCopy(renderer, dlt, nullptr, &dlr);
+                    SDL_DestroyTexture(dlt);
+                }
+                SDL_FreeSurface(dls);
+            }
+        }
+
         SDL_Color c = {150, 130, 200, pa};
         SDL_Surface* s = TTF_RenderText_Blended(font, "Press ENTER to continue", c);
         if (s) {
