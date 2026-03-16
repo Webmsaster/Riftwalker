@@ -6,14 +6,96 @@
 #include <cmath>
 #include <cstdio>
 
-void BestiaryState::enter() {
-    m_selected = 0;
-    m_time = 0;
-    m_scrollOffset = 0;
-    // Count: regular enemies + bosses
-    m_totalEntries = static_cast<int>(EnemyType::COUNT) + 4; // 4 bosses
+// ---- layout constants ----
+static constexpr int LIST_X     = 20;
+static constexpr int LIST_Y     = 95;
+static constexpr int LIST_W     = 320;
+static constexpr int ROW_H      = 44;
+static constexpr int VISIBLE    = 8;
+
+static constexpr int DETAIL_X   = 356;
+static constexpr int DETAIL_Y   = 90;
+static constexpr int DETAIL_W   = 904;
+static constexpr int DETAIL_H   = 590;
+
+static constexpr int PREVIEW_CX = DETAIL_X + 130;
+static constexpr int PREVIEW_CY = DETAIL_Y + 130;
+
+// ---- helpers ----
+static void drawText(SDL_Renderer* renderer, TTF_Font* font, const char* text,
+                     int x, int y, SDL_Color color, float scale = 1.0f) {
+    if (!text || text[0] == '\0') return;
+    SDL_Surface* s = TTF_RenderText_Blended(font, text, color);
+    if (!s) return;
+    SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+    if (t) {
+        SDL_Rect r = {x, y, static_cast<int>(s->w * scale), static_cast<int>(s->h * scale)};
+        SDL_RenderCopy(renderer, t, nullptr, &r);
+        SDL_DestroyTexture(t);
+    }
+    SDL_FreeSurface(s);
 }
 
+static void drawTextCentered(SDL_Renderer* renderer, TTF_Font* font, const char* text,
+                              int cx, int y, SDL_Color color, float scale = 1.0f) {
+    if (!text || text[0] == '\0') return;
+    SDL_Surface* s = TTF_RenderText_Blended(font, text, color);
+    if (!s) return;
+    SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+    if (t) {
+        int w = static_cast<int>(s->w * scale);
+        int h = static_cast<int>(s->h * scale);
+        SDL_Rect r = {cx - w / 2, y, w, h};
+        SDL_RenderCopy(renderer, t, nullptr, &r);
+        SDL_DestroyTexture(t);
+    }
+    SDL_FreeSurface(s);
+}
+
+// Draw a filled bar: background then filled portion
+static void drawBar(SDL_Renderer* renderer, int x, int y, int w, int h,
+                    float fraction, SDL_Color barColor, SDL_Color bgColor) {
+    SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+    SDL_Rect bg = {x, y, w, h};
+    SDL_RenderFillRect(renderer, &bg);
+    if (fraction > 0.0f) {
+        int fillW = static_cast<int>(w * fraction);
+        SDL_SetRenderDrawColor(renderer, barColor.r, barColor.g, barColor.b, barColor.a);
+        SDL_Rect fill = {x, y, fillW, h};
+        SDL_RenderFillRect(renderer, &fill);
+    }
+    SDL_SetRenderDrawColor(renderer, 60, 55, 80, 120);
+    SDL_RenderDrawRect(renderer, &bg);
+}
+
+// Returns color for each EnemyElement
+static SDL_Color elementColor(EnemyElement el) {
+    switch (el) {
+        case EnemyElement::Fire:     return {255, 120,  40, 255};
+        case EnemyElement::Ice:      return { 80, 180, 255, 255};
+        case EnemyElement::Electric: return {255, 230,  60, 255};
+        default:                     return {160, 150, 180, 200};
+    }
+}
+static const char* elementName(EnemyElement el) {
+    switch (el) {
+        case EnemyElement::Fire:     return "Fire";
+        case EnemyElement::Ice:      return "Ice";
+        case EnemyElement::Electric: return "Electric";
+        default:                     return "None";
+    }
+}
+
+// ---- Enter ----
+void BestiaryState::enter() {
+    m_selected    = 0;
+    m_time        = 0;
+    m_scrollOffset = 0;
+    // Regular enemies (EnemyType::COUNT = 10, not counting Boss) + 5 bosses
+    m_totalEntries = static_cast<int>(EnemyType::COUNT) - 1 + 5; // exclude Boss sentinel
+}
+
+// ---- Event ----
 void BestiaryState::handleEvent(const SDL_Event& event) {
     if (event.type != SDL_KEYDOWN) return;
 
@@ -34,308 +116,784 @@ void BestiaryState::handleEvent(const SDL_Event& event) {
     }
 
     // Scroll to keep selected in view
-    int visibleRows = 8;
     if (m_selected < m_scrollOffset) m_scrollOffset = m_selected;
-    if (m_selected >= m_scrollOffset + visibleRows) m_scrollOffset = m_selected - visibleRows + 1;
+    if (m_selected >= m_scrollOffset + VISIBLE) m_scrollOffset = m_selected - VISIBLE + 1;
 }
 
+// ---- Update ----
 void BestiaryState::update(float dt) {
     m_time += dt;
 }
 
+// ---- Render ----
 void BestiaryState::render(SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 10, 8, 20, 255);
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // Grid
-    SDL_SetRenderDrawColor(renderer, 22, 18, 35, 20);
-    for (int x = 0; x < SCREEN_WIDTH; x += 80) SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
-    for (int y = 0; y < SCREEN_HEIGHT; y += 80) SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
+    // Subtle grid background
+    SDL_SetRenderDrawColor(renderer, 22, 18, 35, 18);
+    for (int x = 0; x < SCREEN_WIDTH; x += 80)
+        SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
+    for (int y = 0; y < SCREEN_HEIGHT; y += 80)
+        SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
 
     TTF_Font* font = game->getFont();
     if (!font) return;
 
-    // Title
-    {
-        SDL_Color c = {180, 100, 100, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, "B E S T I A R Y", c);
-        if (s) {
-            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-            if (t) {
-                int tw = static_cast<int>(s->w * 1.5f);
-                int th = static_cast<int>(s->h * 1.5f);
-                SDL_Rect r = {640 - tw / 2, 30, tw, th};
-                SDL_RenderCopy(renderer, t, nullptr, &r);
-                SDL_DestroyTexture(t);
-            }
-            SDL_FreeSurface(s);
-        }
-    }
+    // ---- Title ----
+    drawTextCentered(renderer, font, "B E S T I A R Y", 640, 18, {180, 100, 100, 255}, 1.5f);
 
     // Discovery counter
     {
-        char countText[32];
+        char countText[48];
         std::snprintf(countText, sizeof(countText), "Discovered: %d / %d",
                       Bestiary::getDiscoveredCount(), Bestiary::getTotalCount());
-        SDL_Surface* cs = TTF_RenderText_Blended(font, countText, SDL_Color{120, 110, 150, 200});
-        if (cs) {
-            SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
-            if (ct) {
-                SDL_Rect cr = {640 - cs->w / 2, 65, cs->w, cs->h};
-                SDL_RenderCopy(renderer, ct, nullptr, &cr);
-                SDL_DestroyTexture(ct);
-            }
-            SDL_FreeSurface(cs);
-        }
+        drawTextCentered(renderer, font, countText, 640, 62, {120, 110, 150, 200});
     }
 
-    // Entry list (left side)
-    int listX = 30;
-    int listY = 95;
-    int rowH = 40;
-    int listW = 350;
-    int visibleRows = 8;
-    int regularCount = static_cast<int>(EnemyType::COUNT);
+    // ---- Left: list panel ----
+    {
+        SDL_SetRenderDrawColor(renderer, 15, 12, 28, 120);
+        SDL_Rect panelBg = {LIST_X - 4, LIST_Y - 4, LIST_W + 8, VISIBLE * (ROW_H + 4) + 8};
+        SDL_RenderFillRect(renderer, &panelBg);
+        SDL_SetRenderDrawColor(renderer, 60, 50, 90, 60);
+        SDL_RenderDrawRect(renderer, &panelBg);
+    }
 
-    for (int vi = 0; vi < visibleRows && (vi + m_scrollOffset) < m_totalEntries; vi++) {
-        int idx = vi + m_scrollOffset;
-        bool isBoss = (idx >= regularCount);
-        int typeIdx = isBoss ? (idx - regularCount) : idx;
+    int regularCount = static_cast<int>(EnemyType::COUNT) - 1; // exclude Boss sentinel
+
+    for (int vi = 0; vi < VISIBLE && (vi + m_scrollOffset) < m_totalEntries; vi++) {
+        int idx      = vi + m_scrollOffset;
+        bool isBoss  = (idx >= regularCount);
+        int typeIdx  = isBoss ? (idx - regularCount) : idx;
 
         const BestiaryEntry& entry = isBoss ?
             Bestiary::getBossEntry(typeIdx) :
             Bestiary::getEntry(static_cast<EnemyType>(typeIdx));
 
         bool selected = (idx == m_selected);
-        int ey = listY + vi * (rowH + 4);
+        int ey = LIST_Y + vi * (ROW_H + 4);
 
         // Row background
-        Uint8 bgA = selected ? 80 : 25;
-        SDL_SetRenderDrawColor(renderer, 25, 20, 40, bgA);
-        SDL_Rect rowBg = {listX, ey, listW, rowH};
+        Uint8 bgA = selected ? 90 : 30;
+        SDL_SetRenderDrawColor(renderer, 25, 20, 42, bgA);
+        SDL_Rect rowBg = {LIST_X, ey, LIST_W, ROW_H};
         SDL_RenderFillRect(renderer, &rowBg);
 
         if (selected) {
             float pulse = 0.6f + 0.4f * std::sin(m_time * 4.0f);
-            Uint8 borderA = static_cast<Uint8>(150 * pulse);
-            SDL_Color bc = isBoss ? SDL_Color{255, 140, 40, borderA} : SDL_Color{180, 100, 100, borderA};
+            Uint8 borderA = static_cast<Uint8>(180 * pulse);
+            SDL_Color bc = isBoss ? SDL_Color{255, 160, 40, borderA} : SDL_Color{180, 110, 200, borderA};
             SDL_SetRenderDrawColor(renderer, bc.r, bc.g, bc.b, borderA);
             SDL_RenderDrawRect(renderer, &rowBg);
         }
 
-        const char* displayName = entry.discovered ? entry.name : "???";
+        // Small color swatch matching enemy color
+        if (entry.discovered) {
+            SDL_Color swatchColor = {200, 60, 60, 200};
+            if (isBoss) {
+                switch (typeIdx) {
+                    case 0: swatchColor = {200, 40, 180, 220}; break;
+                    case 1: swatchColor = {40, 180, 120, 220}; break;
+                    case 2: swatchColor = {120, 80, 200, 220}; break;
+                    case 3: swatchColor = {180, 160, 80, 220}; break;
+                    case 4: swatchColor = {100, 40, 220, 220}; break;
+                }
+            } else {
+                switch (typeIdx) {
+                    case 0: swatchColor = {200, 60,  60, 220}; break;   // Walker
+                    case 1: swatchColor = {180, 80, 200, 220}; break;   // Flyer
+                    case 2: swatchColor = {200, 200, 60, 220}; break;   // Turret
+                    case 3: swatchColor = {220, 120, 40, 220}; break;   // Charger
+                    case 4: swatchColor = {100,  50, 200, 220}; break;  // Phaser
+                    case 5: swatchColor = {255,  80,  30, 220}; break;  // Exploder
+                    case 6: swatchColor = { 80, 180, 220, 220}; break;  // Shielder
+                    case 7: swatchColor = { 60, 160,  80, 220}; break;  // Crawler
+                    case 8: swatchColor = {180,  50, 220, 220}; break;  // Summoner
+                    case 9: swatchColor = {200, 180,  40, 220}; break;  // Sniper
+                }
+            }
+            SDL_SetRenderDrawColor(renderer, swatchColor.r, swatchColor.g, swatchColor.b, swatchColor.a);
+            SDL_Rect swatch = {LIST_X + 6, ey + 6, 8, ROW_H - 12};
+            SDL_RenderFillRect(renderer, &swatch);
+        }
+
+        // Name text
+        int textX = LIST_X + 20;
+        const char* displayName = entry.discovered ? entry.name : (isBoss ? "??? [BOSS]" : "???");
         SDL_Color nameColor = entry.discovered ?
-            (isBoss ? SDL_Color{255, 180, 80, 255} : SDL_Color{200, 180, 200, 255}) :
-            SDL_Color{80, 75, 90, 150};
+            (isBoss ? SDL_Color{255, 190, 90, 255} : SDL_Color{210, 195, 220, 255}) :
+            SDL_Color{75, 70, 90, 140};
         if (selected) {
-            nameColor.r = static_cast<Uint8>(std::min(255, nameColor.r + 30));
+            nameColor.r = static_cast<Uint8>(std::min(255, nameColor.r + 25));
             nameColor.a = 255;
         }
+        drawText(renderer, font, displayName, textX, ey + 5, nameColor);
 
-        SDL_Surface* ns = TTF_RenderText_Blended(font, displayName, nameColor);
-        if (ns) {
-            SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
-            if (nt) {
-                SDL_Rect nr = {listX + 10, ey + 3, ns->w, ns->h};
-                SDL_RenderCopy(renderer, nt, nullptr, &nr);
-                SDL_DestroyTexture(nt);
-            }
-            SDL_FreeSurface(ns);
-        }
-
-        // Kill count
+        // Kill count sub-line
         if (entry.discovered) {
             char killText[32];
             std::snprintf(killText, sizeof(killText), "Kills: %d", entry.killCount);
-            SDL_Surface* ks = TTF_RenderText_Blended(font, killText, SDL_Color{100, 95, 120, 150});
-            if (ks) {
-                SDL_Texture* kt = SDL_CreateTextureFromSurface(renderer, ks);
-                if (kt) {
-                    SDL_Rect kr = {listX + 10, ey + 21, ks->w, ks->h};
-                    SDL_RenderCopy(renderer, kt, nullptr, &kr);
-                    SDL_DestroyTexture(kt);
-                }
-                SDL_FreeSurface(ks);
-            }
+            drawText(renderer, font, killText, textX, ey + 24, {100, 95, 120, 140});
+        } else {
+            drawText(renderer, font, "Unencountered", textX, ey + 24, {65, 60, 80, 100});
+        }
+
+        // Boss badge
+        if (isBoss) {
+            float p = 0.5f + 0.5f * std::sin(m_time * 2.5f + typeIdx * 0.8f);
+            Uint8 ba = static_cast<Uint8>(80 + 80 * p);
+            SDL_SetRenderDrawColor(renderer, 255, 160, 40, ba);
+            SDL_Rect badgeDot = {LIST_X + LIST_W - 12, ey + ROW_H / 2 - 4, 8, 8};
+            SDL_RenderFillRect(renderer, &badgeDot);
         }
     }
 
-    // Detail panel (right side)
-    int detailX = 420;
-    int detailY = 95;
-    int detailW = 830;
-    int detailH = 550;
+    // Scroll indicator dots
+    if (m_totalEntries > VISIBLE) {
+        int dotsX = LIST_X + LIST_W + 4;
+        int dotsAreaH = VISIBLE * (ROW_H + 4);
+        for (int i = 0; i < m_totalEntries; i++) {
+            int dotY = LIST_Y + static_cast<int>(dotsAreaH * i / static_cast<float>(m_totalEntries));
+            bool isCur = (i == m_selected);
+            SDL_SetRenderDrawColor(renderer, isCur ? 200 : 70, isCur ? 160 : 65, isCur ? 220 : 90, isCur ? 255 : 120);
+            SDL_Rect dot = {dotsX, dotY, isCur ? 4 : 2, isCur ? 8 : 4};
+            SDL_RenderFillRect(renderer, &dot);
+        }
+    }
 
-    SDL_SetRenderDrawColor(renderer, 18, 14, 30, 80);
-    SDL_Rect detailBg = {detailX, detailY, detailW, detailH};
+    // ---- Right: detail panel ----
+    SDL_SetRenderDrawColor(renderer, 16, 12, 28, 100);
+    SDL_Rect detailBg = {DETAIL_X, DETAIL_Y, DETAIL_W, DETAIL_H};
     SDL_RenderFillRect(renderer, &detailBg);
-    SDL_SetRenderDrawColor(renderer, 80, 70, 100, 60);
+    SDL_SetRenderDrawColor(renderer, 70, 60, 100, 70);
     SDL_RenderDrawRect(renderer, &detailBg);
 
-    bool isBoss = (m_selected >= regularCount);
-    int typeIdx = isBoss ? (m_selected - regularCount) : m_selected;
-    const BestiaryEntry& entry = isBoss ?
-        Bestiary::getBossEntry(typeIdx) : Bestiary::getEntry(static_cast<EnemyType>(typeIdx));
+    bool selIsBoss = (m_selected >= regularCount);
+    int selTypeIdx = selIsBoss ? (m_selected - regularCount) : m_selected;
+    const BestiaryEntry& entry = selIsBoss ?
+        Bestiary::getBossEntry(selTypeIdx) :
+        Bestiary::getEntry(static_cast<EnemyType>(selTypeIdx));
 
     if (entry.discovered) {
-        // Preview
-        renderEnemyPreview(renderer, detailX + detailW / 2, detailY + 100, typeIdx, isBoss);
+        renderDiscoveredDetail(renderer, font, entry, selTypeIdx, selIsBoss);
+    } else {
+        renderUndiscoveredDetail(renderer, font, selTypeIdx, selIsBoss);
+    }
 
-        // Name
-        SDL_Color nc = isBoss ? SDL_Color{255, 180, 80, 255} : SDL_Color{220, 200, 220, 255};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, entry.name, nc);
-        if (ns) {
-            SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
-            if (nt) {
-                int nw = static_cast<int>(ns->w * 1.3f);
-                int nh = static_cast<int>(ns->h * 1.3f);
-                SDL_Rect nr = {detailX + detailW / 2 - nw / 2, detailY + 180, nw, nh};
-                SDL_RenderCopy(renderer, nt, nullptr, &nr);
-                SDL_DestroyTexture(nt);
-            }
-            SDL_FreeSurface(ns);
-        }
+    // ---- Navigation hint ----
+    drawTextCentered(renderer, font, "W/S  Navigate     ESC  Back",
+                     640, 692, {60, 55, 85, 140});
+}
 
-        // Stats
-        char stats[128];
-        std::snprintf(stats, sizeof(stats), "HP: %.0f  |  DMG: %.0f  |  Weakness: %s",
-                      entry.baseHP, entry.baseDMG, entry.weakness);
-        SDL_Surface* ss = TTF_RenderText_Blended(font, stats, SDL_Color{160, 155, 180, 200});
-        if (ss) {
-            SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
-            if (st) {
-                SDL_Rect sr = {detailX + 30, detailY + 220, ss->w, ss->h};
-                SDL_RenderCopy(renderer, st, nullptr, &sr);
-                SDL_DestroyTexture(st);
-            }
-            SDL_FreeSurface(ss);
-        }
+// ---- Discovered detail panel ----
+void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* font,
+                                           const BestiaryEntry& entry, int typeIdx, bool isBoss) {
+    // Preview on the left sub-panel
+    {
+        SDL_SetRenderDrawColor(renderer, 10, 8, 22, 100);
+        SDL_Rect previewPanel = {DETAIL_X + 8, DETAIL_Y + 8, 240, DETAIL_H - 16};
+        SDL_RenderFillRect(renderer, &previewPanel);
+        SDL_SetRenderDrawColor(renderer, 50, 45, 75, 80);
+        SDL_RenderDrawRect(renderer, &previewPanel);
+    }
 
-        // Lore text
-        SDL_Surface* ls = TTF_RenderText_Blended(font, entry.lore, SDL_Color{140, 135, 160, 180});
+    renderEnemyPreview(renderer, PREVIEW_CX, PREVIEW_CY, typeIdx, isBoss);
+
+    // Kill count below preview
+    {
+        char killText[32];
+        std::snprintf(killText, sizeof(killText), "Kills: %d", entry.killCount);
+        SDL_Color kc = entry.killCount > 0 ? SDL_Color{180, 140, 255, 220} : SDL_Color{100, 95, 120, 160};
+        drawTextCentered(renderer, font, killText, PREVIEW_CX, PREVIEW_CY + 110, kc);
+    }
+
+    // Boss badge text
+    if (isBoss) {
+        float p = 0.5f + 0.5f * std::sin(m_time * 2.0f);
+        Uint8 a = static_cast<Uint8>(180 + 75 * p);
+        drawTextCentered(renderer, font, "[ BOSS ]", PREVIEW_CX, PREVIEW_CY + 130, {255, 180, 60, a});
+    }
+
+    // ---- Right: stats + info ----
+    int infoX  = DETAIL_X + 260;
+    int infoY  = DETAIL_Y + 14;
+    int infoW  = DETAIL_W - 268;
+
+    // Name header
+    SDL_Color nameColor = isBoss ? SDL_Color{255, 195, 90, 255} : SDL_Color{225, 210, 235, 255};
+    drawText(renderer, font, entry.name, infoX, infoY, nameColor, 1.4f);
+
+    // Divider line
+    int divY = infoY + 36;
+    SDL_SetRenderDrawColor(renderer, 90, 75, 120, 100);
+    SDL_RenderDrawLine(renderer, infoX, divY, DETAIL_X + DETAIL_W - 16, divY);
+
+    // Lore
+    int loreY = divY + 8;
+    {
+        SDL_Surface* ls = TTF_RenderText_Blended(font, entry.lore, {140, 130, 160, 180});
         if (ls) {
             SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
             if (lt) {
-                int maxW = detailW - 60;
+                int maxW = infoW - 10;
                 float scale = (ls->w > maxW) ? static_cast<float>(maxW) / ls->w : 1.0f;
-                SDL_Rect lr = {detailX + 30, detailY + 260,
-                               static_cast<int>(ls->w * scale), static_cast<int>(ls->h * scale)};
+                SDL_Rect lr = {infoX, loreY, static_cast<int>(ls->w * scale), static_cast<int>(ls->h * scale)};
                 SDL_RenderCopy(renderer, lt, nullptr, &lr);
                 SDL_DestroyTexture(lt);
             }
             SDL_FreeSurface(ls);
         }
+    }
 
-        // Kill count
-        char killText[32];
-        std::snprintf(killText, sizeof(killText), "Total Kills: %d", entry.killCount);
-        SDL_Surface* ks = TTF_RenderText_Blended(font, killText, SDL_Color{180, 140, 255, 200});
-        if (ks) {
-            SDL_Texture* kt = SDL_CreateTextureFromSurface(renderer, ks);
-            if (kt) {
-                SDL_Rect kr = {detailX + 30, detailY + 310, ks->w, ks->h};
-                SDL_RenderCopy(renderer, kt, nullptr, &kr);
-                SDL_DestroyTexture(kt);
-            }
-            SDL_FreeSurface(ks);
-        }
-    } else {
-        // Undiscovered
-        SDL_Surface* us = TTF_RenderText_Blended(font, "? ? ?", SDL_Color{80, 75, 90, 180});
-        if (us) {
-            SDL_Texture* ut = SDL_CreateTextureFromSurface(renderer, us);
-            if (ut) {
-                int uw = static_cast<int>(us->w * 2);
-                int uh = static_cast<int>(us->h * 2);
-                SDL_Rect ur = {detailX + detailW / 2 - uw / 2, detailY + detailH / 2 - uh / 2, uw, uh};
-                SDL_RenderCopy(renderer, ut, nullptr, &ur);
-                SDL_DestroyTexture(ut);
-            }
-            SDL_FreeSurface(us);
-        }
+    // ---- Stat bars ----
+    int statsY = loreY + 38;
+    const int barW  = infoW - 10;
+    const int barH  = 12;
+    const int rowSp = 30;
 
-        SDL_Surface* ds = TTF_RenderText_Blended(font, "Defeat this enemy to learn more...",
-            SDL_Color{80, 75, 90, 120});
-        if (ds) {
-            SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
-            if (dt) {
-                SDL_Rect dr = {detailX + detailW / 2 - ds->w / 2, detailY + detailH / 2 + 30, ds->w, ds->h};
-                SDL_RenderCopy(renderer, dt, nullptr, &dr);
-                SDL_DestroyTexture(dt);
+    // HP bar
+    {
+        char hpLabel[32];
+        std::snprintf(hpLabel, sizeof(hpLabel), "HP:  %.0f", entry.baseHP);
+        drawText(renderer, font, hpLabel, infoX, statsY, {160, 220, 160, 220});
+        float fraction = std::min(entry.baseHP / 400.0f, 1.0f);
+        drawBar(renderer, infoX + 110, statsY + 3, barW - 110, barH, fraction,
+                {80, 200, 90, 200}, {20, 30, 20, 120});
+    }
+
+    // DMG bar
+    {
+        char dmgLabel[32];
+        std::snprintf(dmgLabel, sizeof(dmgLabel), "DMG: %.0f", entry.baseDMG);
+        drawText(renderer, font, dmgLabel, infoX, statsY + rowSp, {220, 140, 140, 220});
+        float fraction = std::min(entry.baseDMG / 30.0f, 1.0f);
+        drawBar(renderer, infoX + 110, statsY + rowSp + 3, barW - 110, barH, fraction,
+                {220, 80, 80, 200}, {30, 20, 20, 120});
+    }
+
+    // Speed bar
+    {
+        char spLabel[32];
+        if (entry.baseSpeed > 0)
+            std::snprintf(spLabel, sizeof(spLabel), "SPD: %.0f", entry.baseSpeed);
+        else
+            std::snprintf(spLabel, sizeof(spLabel), "SPD: ---");
+        drawText(renderer, font, spLabel, infoX, statsY + rowSp * 2, {140, 180, 230, 220});
+        float fraction = std::min(entry.baseSpeed / 200.0f, 1.0f);
+        drawBar(renderer, infoX + 110, statsY + rowSp * 2 + 3, barW - 110, barH, fraction,
+                {80, 140, 220, 200}, {20, 25, 35, 120});
+    }
+
+    // Element
+    {
+        SDL_Color elColor = elementColor(entry.element);
+        char elLabel[32];
+        std::snprintf(elLabel, sizeof(elLabel), "ELEM: %s", elementName(entry.element));
+        drawText(renderer, font, elLabel, infoX, statsY + rowSp * 3, elColor);
+
+        // Small element icon squares
+        if (entry.element != EnemyElement::None) {
+            float pulse = 0.5f + 0.5f * std::sin(m_time * 3.5f);
+            Uint8 ia = static_cast<Uint8>(150 + 100 * pulse);
+            SDL_SetRenderDrawColor(renderer, elColor.r, elColor.g, elColor.b, ia);
+            for (int k = 0; k < 3; k++) {
+                SDL_Rect sq = {infoX + 110 + k * 16, statsY + rowSp * 3 + 2, 10, 10};
+                SDL_RenderFillRect(renderer, &sq);
             }
-            SDL_FreeSurface(ds);
         }
     }
 
-    // Navigation hint
+    // Divider
+    int div2Y = statsY + rowSp * 4 + 4;
+    SDL_SetRenderDrawColor(renderer, 70, 60, 100, 80);
+    SDL_RenderDrawLine(renderer, infoX, div2Y, DETAIL_X + DETAIL_W - 16, div2Y);
+
+    // Abilities
+    int infoBlockY = div2Y + 8;
+
+    drawText(renderer, font, "ABILITIES:", infoX, infoBlockY, {160, 130, 200, 200});
     {
-        SDL_Color nc = {60, 55, 85, 140};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, "W/S Navigate  |  ESC Back", nc);
-        if (ns) {
-            SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
-            if (nt) {
-                SDL_Rect nr = {640 - ns->w / 2, 680, ns->w, ns->h};
-                SDL_RenderCopy(renderer, nt, nullptr, &nr);
-                SDL_DestroyTexture(nt);
+        SDL_Surface* as = TTF_RenderText_Blended(font, entry.abilities, {180, 165, 195, 190});
+        if (as) {
+            SDL_Texture* at = SDL_CreateTextureFromSurface(renderer, as);
+            if (at) {
+                int maxW = infoW - 10;
+                float scale = (as->w > maxW) ? static_cast<float>(maxW) / as->w : 1.0f;
+                SDL_Rect ar = {infoX, infoBlockY + 20, static_cast<int>(as->w * scale), static_cast<int>(as->h * scale)};
+                SDL_RenderCopy(renderer, at, nullptr, &ar);
+                SDL_DestroyTexture(at);
             }
-            SDL_FreeSurface(ns);
+            SDL_FreeSurface(as);
+        }
+    }
+
+    // Weakness
+    int weakY = infoBlockY + 50;
+    drawText(renderer, font, "WEAKNESS:", infoX, weakY, {255, 200, 80, 210});
+    {
+        SDL_Surface* ws = TTF_RenderText_Blended(font, entry.weakness, {230, 210, 160, 190});
+        if (ws) {
+            SDL_Texture* wt = SDL_CreateTextureFromSurface(renderer, ws);
+            if (wt) {
+                int maxW = infoW - 10;
+                float scale = (ws->w > maxW) ? static_cast<float>(maxW) / ws->w : 1.0f;
+                SDL_Rect wr = {infoX, weakY + 20, static_cast<int>(ws->w * scale), static_cast<int>(ws->h * scale)};
+                SDL_RenderCopy(renderer, wt, nullptr, &wr);
+                SDL_DestroyTexture(wt);
+            }
+            SDL_FreeSurface(ws);
+        }
+    }
+
+    // Effective weapons
+    int effY = weakY + 50;
+    drawText(renderer, font, "EFFECTIVE VS:", infoX, effY, {100, 220, 160, 210});
+    {
+        SDL_Surface* es = TTF_RenderText_Blended(font, entry.effectiveWeapons, {160, 215, 185, 185});
+        if (es) {
+            SDL_Texture* et = SDL_CreateTextureFromSurface(renderer, es);
+            if (et) {
+                int maxW = infoW - 10;
+                float scale = (es->w > maxW) ? static_cast<float>(maxW) / es->w : 1.0f;
+                SDL_Rect er = {infoX, effY + 20, static_cast<int>(es->w * scale), static_cast<int>(es->h * scale)};
+                SDL_RenderCopy(renderer, et, nullptr, &er);
+                SDL_DestroyTexture(et);
+            }
+            SDL_FreeSurface(es);
         }
     }
 }
 
-void BestiaryState::renderEnemyPreview(SDL_Renderer* renderer, int cx, int cy, int type, bool isBoss) {
-    // Simple procedural preview of each enemy
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    int size = isBoss ? 60 : 40;
+// ---- Undiscovered detail panel ----
+void BestiaryState::renderUndiscoveredDetail(SDL_Renderer* renderer, TTF_Font* font,
+                                              int typeIdx, bool isBoss) {
+    // Silhouette preview in the left sub-panel
+    {
+        SDL_SetRenderDrawColor(renderer, 8, 6, 18, 100);
+        SDL_Rect previewPanel = {DETAIL_X + 8, DETAIL_Y + 8, 240, DETAIL_H - 16};
+        SDL_RenderFillRect(renderer, &previewPanel);
+        SDL_SetRenderDrawColor(renderer, 40, 35, 60, 80);
+        SDL_RenderDrawRect(renderer, &previewPanel);
+    }
 
-    // Color based on type
-    SDL_Color color = {200, 60, 60, 220};
-    if (isBoss) {
-        switch (type) {
-            case 0: color = {200, 40, 180, 255}; break;  // Rift Guardian
-            case 1: color = {40, 180, 120, 255}; break;   // Void Wyrm
-            case 2: color = {120, 80, 200, 255}; break;   // Dimensional Architect
-            case 3: color = {180, 160, 80, 255}; break;   // Temporal Weaver
-        }
-    } else {
-        switch (type) {
-            case 0: color = {200, 60, 60, 220}; break;    // Walker
-            case 1: color = {60, 160, 200, 220}; break;   // Flyer
-            case 2: color = {160, 160, 60, 220}; break;   // Turret
-            case 3: color = {200, 120, 60, 220}; break;   // Charger
-            case 4: color = {120, 60, 200, 220}; break;   // Phaser
-            case 5: color = {200, 80, 20, 220}; break;    // Exploder
-            case 6: color = {60, 120, 200, 220}; break;   // Shielder
-            case 7: color = {100, 180, 60, 220}; break;   // Crawler
-            case 8: color = {180, 60, 180, 220}; break;   // Summoner
-            case 9: color = {200, 200, 60, 220}; break;   // Sniper
+    renderSilhouette(renderer, PREVIEW_CX, PREVIEW_CY, typeIdx, isBoss);
+
+    // "???" overlay on silhouette
+    float qPulse = 0.4f + 0.6f * std::abs(std::sin(m_time * 1.5f));
+    Uint8 qa = static_cast<Uint8>(180 * qPulse);
+    drawTextCentered(renderer, font, "?", PREVIEW_CX, PREVIEW_CY - 10, {100, 90, 120, qa}, 2.5f);
+
+    // Right: mystery text
+    int infoX = DETAIL_X + 260;
+    int infoY = DETAIL_Y + 14;
+
+    // Unknown name with boss hint
+    const char* unknownName = isBoss ? "Unknown Boss" : "Unknown Enemy";
+    drawText(renderer, font, unknownName, infoX, infoY, {90, 80, 110, 180}, 1.4f);
+
+    int divY = infoY + 36;
+    SDL_SetRenderDrawColor(renderer, 60, 50, 85, 80);
+    SDL_RenderDrawLine(renderer, infoX, divY, DETAIL_X + DETAIL_W - 16, divY);
+
+    drawText(renderer, font, "Encounter this enemy to reveal its data.",
+             infoX, divY + 14, {80, 75, 100, 160});
+    drawText(renderer, font, "Defeat it to permanently unlock its entry.",
+             infoX, divY + 34, {75, 70, 95, 140});
+
+    // Hidden stat bars (blacked out with question marks)
+    int statsY = divY + 70;
+    const int barW  = DETAIL_W - 270;
+    const int barH  = 12;
+    const int rowSp = 30;
+    const char* labels[] = {"HP:  ???", "DMG: ???", "SPD: ???", "ELEM: ???"};
+    SDL_Color labelColor = {65, 60, 80, 120};
+    for (int i = 0; i < 4; i++) {
+        drawText(renderer, font, labels[i], infoX, statsY + i * rowSp, labelColor);
+        drawBar(renderer, infoX + 110, statsY + i * rowSp + 3, barW - 110, barH, 0.0f,
+                {0, 0, 0, 0}, {20, 18, 28, 100});
+        // Draw diagonal lines over bar to indicate locked
+        SDL_SetRenderDrawColor(renderer, 40, 35, 55, 80);
+        int bx = infoX + 110;
+        int by = statsY + i * rowSp + 3;
+        int bw = barW - 110;
+        for (int dx = 0; dx < bw; dx += 8) {
+            SDL_RenderDrawLine(renderer, bx + dx, by, bx + dx + barH, by + barH);
         }
     }
 
-    // Body
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-    SDL_Rect body = {cx - size / 2, cy - size / 2, size, size};
+    // Hint about how to unlock
+    int hintY = statsY + rowSp * 4 + 16;
+    SDL_SetRenderDrawColor(renderer, 50, 45, 70, 80);
+    SDL_RenderDrawLine(renderer, infoX, hintY, DETAIL_X + DETAIL_W - 16, hintY);
+    drawText(renderer, font, "ABILITIES:   [ LOCKED ]", infoX, hintY + 8, {60, 55, 80, 120});
+    drawText(renderer, font, "WEAKNESS:  [ LOCKED ]", infoX, hintY + 38, {60, 55, 80, 120});
+}
+
+// ---- Enemy preview (discovered) ----
+void BestiaryState::renderEnemyPreview(SDL_Renderer* renderer, int cx, int cy, int type, bool isBoss) {
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Animate hover for flying types
+    float hover = std::sin(m_time * 2.2f) * 4.0f;
+
+    if (isBoss) {
+        renderBossPreview(renderer, cx, cy, type);
+        return;
+    }
+
+    // Regular enemies
+    switch (type) {
+        case 0: renderWalkerPreview(renderer, cx, cy, hover); break;
+        case 1: renderFlyerPreview(renderer, cx, cy + static_cast<int>(hover), hover); break;
+        case 2: renderTurretPreview(renderer, cx, cy, hover); break;
+        case 3: renderChargerPreview(renderer, cx, cy, hover); break;
+        case 4: renderPhaserPreview(renderer, cx, cy, hover); break;
+        case 5: renderExploderPreview(renderer, cx, cy, hover); break;
+        case 6: renderShielderPreview(renderer, cx, cy, hover); break;
+        case 7: renderCrawlerPreview(renderer, cx, cy, hover); break;
+        case 8: renderSummonerPreview(renderer, cx, cy, hover); break;
+        case 9: renderSniperPreview(renderer, cx, cy, hover); break;
+        default: break;
+    }
+}
+
+// ---- Silhouette (undiscovered) ----
+void BestiaryState::renderSilhouette(SDL_Renderer* renderer, int cx, int cy, int type, bool isBoss) {
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    float pulse = 0.3f + 0.2f * std::sin(m_time * 1.8f);
+    Uint8 alpha = static_cast<Uint8>(60 + 40 * pulse);
+    SDL_SetRenderDrawColor(renderer, 50, 45, 70, alpha);
+
+    int w = isBoss ? 64 : 30;
+    int h = isBoss ? 64 : 36;
+
+    if (!isBoss) {
+        // Give rough shape hints based on type index
+        switch (type) {
+            case 1: h = 24; break;          // Flyer: shorter
+            case 2: w = 28; h = 28; break;  // Turret: square
+            case 3: w = 36; h = 28; break;  // Charger: wide
+            case 4: w = 26; h = 40; break;  // Phaser: tall
+            case 5: w = 22; h = 22; break;  // Exploder: small
+            case 6: w = 32; h = 36; break;  // Shielder: tall
+            case 7: w = 26; h = 18; break;  // Crawler: flat
+            case 8: w = 30; h = 38; break;  // Summoner: tall
+            case 9: w = 24; h = 34; break;  // Sniper: thin
+            default: break;
+        }
+    }
+
+    SDL_Rect body = {cx - w / 2, cy - h / 2, w, h};
     SDL_RenderFillRect(renderer, &body);
 
-    // Eyes
-    int eyeSize = size / 8;
-    SDL_SetRenderDrawColor(renderer, 255, 40, 40, 255);
-    SDL_Rect eyeL = {cx - size / 4, cy - size / 6, eyeSize, eyeSize};
-    SDL_Rect eyeR = {cx + size / 4 - eyeSize, cy - size / 6, eyeSize, eyeSize};
+    // Eyes as dark spots (visible through silhouette)
+    SDL_SetRenderDrawColor(renderer, 18, 15, 25, 200);
+    int eyeSz = std::max(4, w / 8);
+    SDL_Rect eyeL = {cx - w / 4, cy - h / 6, eyeSz, eyeSz};
+    SDL_Rect eyeR = {cx + w / 4 - eyeSz, cy - h / 6, eyeSz, eyeSz};
     SDL_RenderFillRect(renderer, &eyeL);
     SDL_RenderFillRect(renderer, &eyeR);
+}
 
-    // Boss crown/marker
-    if (isBoss) {
-        float pulse = 0.5f + 0.5f * std::sin(m_time * 3.0f);
-        Uint8 a = static_cast<Uint8>(150 * pulse);
-        SDL_SetRenderDrawColor(renderer, 255, 200, 60, a);
-        for (int ring = 0; ring < 2; ring++) {
-            int expand = 5 + ring * 6;
-            SDL_Rect aura = {cx - size / 2 - expand, cy - size / 2 - expand,
-                             size + expand * 2, size + expand * 2};
-            SDL_RenderDrawRect(renderer, &aura);
-        }
+// ---- Per-type preview helpers ----
+static void drawEyes(SDL_Renderer* renderer, int cx, int cy, int bodyH, int bodyW, Uint8 r=255, Uint8 g=40, Uint8 b=40) {
+    int eyeSize = std::max(3, bodyW / 8);
+    SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+    SDL_Rect eyeL = {cx - bodyW / 4, cy - bodyH / 6, eyeSize, eyeSize};
+    SDL_Rect eyeR = {cx + bodyW / 4 - eyeSize, cy - bodyH / 6, eyeSize, eyeSize};
+    SDL_RenderFillRect(renderer, &eyeL);
+    SDL_RenderFillRect(renderer, &eyeR);
+}
+
+void BestiaryState::renderWalkerPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    // Body: dark red rectangle, simple humanoid
+    int bw = 28, bh = 32;
+    SDL_SetRenderDrawColor(renderer, 200, 60, 60, 220);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    // Legs
+    SDL_SetRenderDrawColor(renderer, 160, 40, 40, 200);
+    SDL_Rect legL = {cx - bw/2, cy + bh/2, 10, 10};
+    SDL_Rect legR = {cx + bw/2 - 10, cy + bh/2, 10, 10};
+    SDL_RenderFillRect(renderer, &legL);
+    SDL_RenderFillRect(renderer, &legR);
+    drawEyes(renderer, cx, cy, bh, bw);
+    // Border
+    SDL_SetRenderDrawColor(renderer, 240, 80, 80, 100);
+    SDL_RenderDrawRect(renderer, &body);
+}
+
+void BestiaryState::renderFlyerPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 24, bh = 24;
+    // Wings (triangular via lines)
+    float wingFlap = std::sin(m_time * 5.0f) * 6.0f;
+    SDL_SetRenderDrawColor(renderer, 150, 60, 180, 160);
+    SDL_RenderDrawLine(renderer, cx, cy, cx - 30, cy - 8 + static_cast<int>(wingFlap));
+    SDL_RenderDrawLine(renderer, cx - 30, cy - 8 + static_cast<int>(wingFlap), cx - 15, cy + 4);
+    SDL_RenderDrawLine(renderer, cx, cy, cx + 30, cy - 8 + static_cast<int>(wingFlap));
+    SDL_RenderDrawLine(renderer, cx + 30, cy - 8 + static_cast<int>(wingFlap), cx + 15, cy + 4);
+    // Body
+    SDL_SetRenderDrawColor(renderer, 180, 80, 200, 220);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    drawEyes(renderer, cx, cy, bh, bw, 255, 80, 255);
+}
+
+void BestiaryState::renderTurretPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 28, bh = 28;
+    // Base plate
+    SDL_SetRenderDrawColor(renderer, 140, 140, 40, 180);
+    SDL_Rect base = {cx - bw/2 - 4, cy + bh/2, bw + 8, 8};
+    SDL_RenderFillRect(renderer, &base);
+    // Body
+    SDL_SetRenderDrawColor(renderer, 200, 200, 60, 220);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    // Barrel
+    float barrelAngle = std::sin(m_time * 0.8f) * 0.2f;
+    int barrelLen = 18;
+    int bx2 = cx + static_cast<int>(std::cos(barrelAngle) * barrelLen);
+    int by2 = cy - static_cast<int>(std::sin(barrelAngle) * barrelLen);
+    SDL_SetRenderDrawColor(renderer, 240, 240, 80, 255);
+    SDL_RenderDrawLine(renderer, cx, cy, bx2, by2);
+    SDL_RenderDrawLine(renderer, cx, cy + 2, bx2, by2 + 2);
+    SDL_RenderDrawLine(renderer, cx, cy - 2, bx2, by2 - 2);
+    drawEyes(renderer, cx, cy, bh, bw, 255, 220, 0);
+}
+
+void BestiaryState::renderChargerPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 36, bh = 28;
+    // Wide low body
+    SDL_SetRenderDrawColor(renderer, 220, 120, 40, 220);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    // Horn/tusk
+    SDL_SetRenderDrawColor(renderer, 255, 200, 80, 240);
+    SDL_RenderDrawLine(renderer, cx + bw/2, cy - 4, cx + bw/2 + 12, cy - 10);
+    SDL_RenderDrawLine(renderer, cx + bw/2, cy - 2, cx + bw/2 + 12, cy - 8);
+    // Legs
+    SDL_SetRenderDrawColor(renderer, 180, 90, 30, 200);
+    for (int i = 0; i < 3; i++) {
+        int lx = cx - bw/2 + i * 14;
+        SDL_Rect leg = {lx, cy + bh/2, 8, 10};
+        SDL_RenderFillRect(renderer, &leg);
     }
+    drawEyes(renderer, cx, cy, bh, bw, 255, 80, 20);
+}
+
+void BestiaryState::renderPhaserPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 26, bh = 40;
+    // Phase shimmer effect
+    float phase = std::sin(m_time * 3.0f);
+    Uint8 alpha = static_cast<Uint8>(140 + 80 * phase);
+    // Ghost copy offset
+    SDL_SetRenderDrawColor(renderer, 80, 40, 160, static_cast<Uint8>(alpha / 3));
+    SDL_Rect ghost = {cx - bw/2 + 8, cy - bh/2 - 4, bw, bh};
+    SDL_RenderFillRect(renderer, &ghost);
+    // Body
+    SDL_SetRenderDrawColor(renderer, 100, 50, 200, alpha);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    // Dim-shift aura lines
+    SDL_SetRenderDrawColor(renderer, 140, 80, 255, static_cast<Uint8>(80 * std::abs(phase)));
+    SDL_RenderDrawRect(renderer, &body);
+    SDL_Rect aura = {cx - bw/2 - 3, cy - bh/2 - 3, bw + 6, bh + 6};
+    SDL_RenderDrawRect(renderer, &aura);
+    drawEyes(renderer, cx, cy, bh, bw, 180, 80, 255);
+}
+
+void BestiaryState::renderExploderPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 22, bh = 22;
+    // Pulsing danger glow
+    float pulse = 0.5f + 0.5f * std::sin(m_time * 4.5f);
+    Uint8 glowA = static_cast<Uint8>(80 * pulse);
+    SDL_SetRenderDrawColor(renderer, 255, 80, 30, glowA);
+    SDL_Rect glow = {cx - bw/2 - 10, cy - bh/2 - 10, bw + 20, bh + 20};
+    SDL_RenderFillRect(renderer, &glow);
+    // Body (round-ish via offset rects)
+    SDL_SetRenderDrawColor(renderer, 255, 80, 30, 230);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    // Fuse lines
+    SDL_SetRenderDrawColor(renderer, 255, 220, 40, 200);
+    SDL_RenderDrawLine(renderer, cx, cy - bh/2, cx + 4, cy - bh/2 - 10);
+    SDL_RenderDrawLine(renderer, cx + 4, cy - bh/2 - 10, cx + 8, cy - bh/2 - 6);
+    drawEyes(renderer, cx, cy, bh, bw, 255, 200, 40);
+}
+
+void BestiaryState::renderShielderPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 32, bh = 36;
+    // Body
+    SDL_SetRenderDrawColor(renderer, 80, 180, 220, 220);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    // Shield on right side
+    SDL_SetRenderDrawColor(renderer, 140, 210, 255, 200);
+    SDL_Rect shieldFill = {cx + bw/2, cy - bh/2 + 4, 12, bh - 8};
+    SDL_RenderFillRect(renderer, &shieldFill);
+    SDL_SetRenderDrawColor(renderer, 200, 240, 255, 255);
+    SDL_RenderDrawRect(renderer, &shieldFill);
+    // Shield highlight
+    SDL_RenderDrawLine(renderer, cx + bw/2 + 2, cy - bh/2 + 6, cx + bw/2 + 2, cy + bh/2 - 6);
+    drawEyes(renderer, cx, cy, bh, bw, 40, 180, 255);
+}
+
+void BestiaryState::renderCrawlerPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    // Crawler is on the ceiling - render upside-down at top of preview area
+    int acY = cy - 40;
+    int bw = 26, bh = 18;
+    // Legs spread on ceiling
+    SDL_SetRenderDrawColor(renderer, 40, 120, 60, 180);
+    for (int i = -2; i <= 2; i++) {
+        SDL_RenderDrawLine(renderer, cx + i * 5, acY, cx + i * 12, acY - 12 + std::abs(i) * 2);
+    }
+    // Body
+    SDL_SetRenderDrawColor(renderer, 60, 160, 80, 220);
+    SDL_Rect body = {cx - bw/2, acY, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    drawEyes(renderer, cx, acY + bh/2, bh, bw, 40, 220, 80);
+    // Drop line hint
+    SDL_SetRenderDrawColor(renderer, 60, 160, 80, 60);
+    SDL_RenderDrawLine(renderer, cx, acY + bh, cx, cy + 20);
+}
+
+void BestiaryState::renderSummonerPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 30, bh = 38;
+    // Aura glow
+    float auraP = 0.5f + 0.5f * std::sin(m_time * 2.0f);
+    SDL_SetRenderDrawColor(renderer, 160, 40, 200, static_cast<Uint8>(40 * auraP));
+    SDL_Rect aura = {cx - bw/2 - 12, cy - bh/2 - 8, bw + 24, bh + 16};
+    SDL_RenderFillRect(renderer, &aura);
+    // Body
+    SDL_SetRenderDrawColor(renderer, 180, 50, 220, 220);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    drawEyes(renderer, cx, cy, bh, bw, 220, 40, 255);
+    // Small orbiting minion dots
+    for (int m = 0; m < 3; m++) {
+        float angle = m_time * 2.5f + m * (2.0f * 3.14159f / 3.0f);
+        int mx = cx + static_cast<int>(std::cos(angle) * 40);
+        int my = cy + static_cast<int>(std::sin(angle) * 20);
+        SDL_SetRenderDrawColor(renderer, 200, 100, 255, 180);
+        SDL_Rect minion = {mx - 4, my - 4, 8, 8};
+        SDL_RenderFillRect(renderer, &minion);
+    }
+}
+
+void BestiaryState::renderSniperPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 24, bh = 34;
+    // Body - tall and thin
+    SDL_SetRenderDrawColor(renderer, 200, 180, 40, 220);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    // Long rifle (animated aim)
+    float aimAngle = -0.15f + std::sin(m_time * 0.6f) * 0.05f;
+    int rifleLen = 30;
+    SDL_SetRenderDrawColor(renderer, 255, 220, 60, 240);
+    SDL_RenderDrawLine(renderer, cx, cy,
+        cx + static_cast<int>(std::cos(aimAngle) * rifleLen),
+        cy - static_cast<int>(std::sin(aimAngle) * rifleLen));
+    // Telegraph laser dot
+    float tP = 0.5f + 0.5f * std::sin(m_time * 6.0f);
+    SDL_SetRenderDrawColor(renderer, 255, 40, 40, static_cast<Uint8>(200 * tP));
+    int laserX = cx + static_cast<int>(std::cos(aimAngle) * rifleLen);
+    int laserY = cy - static_cast<int>(std::sin(aimAngle) * rifleLen);
+    SDL_Rect dot = {laserX - 2, laserY - 2, 4, 4};
+    SDL_RenderFillRect(renderer, &dot);
+    drawEyes(renderer, cx, cy, bh, bw, 255, 200, 40);
+}
+
+void BestiaryState::renderBossPreview(SDL_Renderer* renderer, int cx, int cy, int bossType) {
+    int size = 60;
+    SDL_Color colors[] = {
+        {200,  40, 180, 255},  // 0: Rift Guardian - magenta
+        { 40, 180, 120, 255},  // 1: Void Wyrm - teal
+        {120,  80, 200, 255},  // 2: Dimensional Architect - violet
+        {180, 160,  80, 255},  // 3: Temporal Weaver - gold
+        {100,  40, 220, 255},  // 4: Void Sovereign - deep purple
+    };
+    SDL_Color col = (bossType >= 0 && bossType < 5) ? colors[bossType] : colors[0];
+
+    // Animated outer ring
+    float pulse = 0.5f + 0.5f * std::sin(m_time * 2.5f);
+    for (int ring = 0; ring < 3; ring++) {
+        int expand = 6 + ring * 8;
+        Uint8 ra = static_cast<Uint8>(100 * pulse * (3 - ring) / 3.0f);
+        SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, ra);
+        SDL_Rect aura = {cx - size/2 - expand, cy - size/2 - expand,
+                         size + expand*2, size + expand*2};
+        SDL_RenderDrawRect(renderer, &aura);
+    }
+
+    // Main body
+    SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, 240);
+    SDL_Rect body = {cx - size/2, cy - size/2, size, size};
+    SDL_RenderFillRect(renderer, &body);
+
+    // Boss-type specific details
+    switch (bossType) {
+        case 0: { // Rift Guardian: crown spikes
+            SDL_SetRenderDrawColor(renderer, 255, 180, 80, 220);
+            SDL_RenderDrawLine(renderer, cx - 16, cy - size/2, cx - 8, cy - size/2 - 14);
+            SDL_RenderDrawLine(renderer, cx,      cy - size/2, cx,     cy - size/2 - 18);
+            SDL_RenderDrawLine(renderer, cx + 16, cy - size/2, cx + 8, cy - size/2 - 14);
+            break;
+        }
+        case 1: { // Void Wyrm: serpent coil
+            float coilAngle = m_time * 1.5f;
+            SDL_SetRenderDrawColor(renderer, 40, 220, 140, 180);
+            SDL_RenderDrawLine(renderer, cx,
+                cy + size/2,
+                cx + static_cast<int>(std::cos(coilAngle) * 20),
+                cy + size/2 + 20 + static_cast<int>(std::sin(coilAngle) * 8));
+            break;
+        }
+        case 2: { // Dimensional Architect: rift portals
+            SDL_SetRenderDrawColor(renderer, 180, 120, 255, 160);
+            SDL_Rect portalL = {cx - size/2 - 20, cy - 10, 16, 20};
+            SDL_Rect portalR = {cx + size/2 + 4,  cy - 10, 16, 20};
+            SDL_RenderDrawRect(renderer, &portalL);
+            SDL_RenderDrawRect(renderer, &portalR);
+            break;
+        }
+        case 3: { // Temporal Weaver: clock hands
+            float sweep = m_time * 0.8f;
+            SDL_SetRenderDrawColor(renderer, 255, 230, 100, 200);
+            SDL_RenderDrawLine(renderer, cx, cy,
+                cx + static_cast<int>(std::cos(sweep) * 25),
+                cy - static_cast<int>(std::sin(sweep) * 25));
+            SDL_SetRenderDrawColor(renderer, 255, 180, 60, 200);
+            SDL_RenderDrawLine(renderer, cx, cy,
+                cx + static_cast<int>(std::cos(sweep * 12.0f) * 15),
+                cy - static_cast<int>(std::sin(sweep * 12.0f) * 15));
+            break;
+        }
+        case 4: { // Void Sovereign: void core
+            float vPulse = 0.5f + 0.5f * std::sin(m_time * 4.0f);
+            SDL_SetRenderDrawColor(renderer, 50, 20, 100, static_cast<Uint8>(200 * vPulse));
+            SDL_Rect core = {cx - 10, cy - 10, 20, 20};
+            SDL_RenderFillRect(renderer, &core);
+            SDL_SetRenderDrawColor(renderer, 200, 100, 255, static_cast<Uint8>(180 * vPulse));
+            SDL_RenderDrawRect(renderer, &core);
+            break;
+        }
+        default: break;
+    }
+
+    // Boss eyes (larger, more menacing)
+    int eyeSize = size / 7;
+    SDL_SetRenderDrawColor(renderer, 255, 60, 60, 255);
+    SDL_Rect eyeL = {cx - size/4, cy - size/6, eyeSize, eyeSize};
+    SDL_Rect eyeR = {cx + size/4 - eyeSize, cy - size/6, eyeSize, eyeSize};
+    SDL_RenderFillRect(renderer, &eyeL);
+    SDL_RenderFillRect(renderer, &eyeR);
+    // Glowing inner pupil
+    float eyePulse = 0.4f + 0.6f * std::abs(std::sin(m_time * 3.0f));
+    SDL_SetRenderDrawColor(renderer, 255, 200, 200, static_cast<Uint8>(200 * eyePulse));
+    SDL_Rect pupL = {cx - size/4 + eyeSize/4, cy - size/6 + eyeSize/4, eyeSize/2, eyeSize/2};
+    SDL_Rect pupR = {cx + size/4 - eyeSize/2 - eyeSize/4, cy - size/6 + eyeSize/4, eyeSize/2, eyeSize/2};
+    SDL_RenderFillRect(renderer, &pupL);
+    SDL_RenderFillRect(renderer, &pupR);
 }
