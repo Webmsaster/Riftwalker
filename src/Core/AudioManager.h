@@ -34,6 +34,7 @@ enum class SFX {
     ArchTileSwap, ArchConstruct, ArchRiftOpen, ArchCollapse, ArchBeam,
     VoidSovereignOrb, VoidSovereignSlam, VoidSovereignTeleport,
     VoidSovereignDimLock, VoidSovereignStorm, VoidSovereignLaser,
+    EntropyPulse, EntropyTendril, EntropyMissile, EntropyShatter,
     LoreDiscover,
     ChargeReady,
     Heartbeat,

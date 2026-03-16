@@ -97,6 +97,12 @@ public:
     static Mix_Chunk* voidSovereignStorm();
     static Mix_Chunk* voidSovereignLaser();
 
+    // Entropy Incarnate boss sounds
+    static Mix_Chunk* entropyPulse();
+    static Mix_Chunk* entropyTendril();
+    static Mix_Chunk* entropyMissile();
+    static Mix_Chunk* entropyShatter();
+
     // Lore
     static Mix_Chunk* loreDiscover();
 
