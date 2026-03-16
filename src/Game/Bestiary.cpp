@@ -12,23 +12,100 @@ void Bestiary::init() {
 
     s_entries.resize(static_cast<int>(EnemyType::COUNT));
     auto& e = s_entries;
-    e[static_cast<int>(EnemyType::Walker)]   = {EnemyType::Walker, "Rift Walker", "Basic dimensional drifter. Patrols rift corridors.", 30, 10, "Slow, easy to dodge"};
-    e[static_cast<int>(EnemyType::Flyer)]    = {EnemyType::Flyer, "Rift Flyer", "Hovers above, swoops to attack.", 20, 8, "Low HP, stunnable"};
-    e[static_cast<int>(EnemyType::Turret)]   = {EnemyType::Turret, "Void Turret", "Stationary. Fires at intruders.", 40, 12, "Cannot move, approach from sides"};
-    e[static_cast<int>(EnemyType::Charger)]  = {EnemyType::Charger, "Rift Charger", "Charges at high speed when it spots you.", 35, 18, "Dodge then counter"};
-    e[static_cast<int>(EnemyType::Phaser)]   = {EnemyType::Phaser, "Phase Stalker", "Phases between dimensions.", 25, 14, "Switch dim to hit"};
-    e[static_cast<int>(EnemyType::Exploder)] = {EnemyType::Exploder, "Void Exploder", "Rushes in and detonates.", 15, 25, "Kill from range"};
-    e[static_cast<int>(EnemyType::Shielder)] = {EnemyType::Shielder, "Rift Shielder", "Blocks attacks from one side.", 45, 12, "Attack from behind"};
-    e[static_cast<int>(EnemyType::Crawler)]  = {EnemyType::Crawler, "Void Crawler", "Climbs walls and drops on prey.", 30, 15, "Watch ceilings"};
-    e[static_cast<int>(EnemyType::Summoner)] = {EnemyType::Summoner, "Rift Summoner", "Calls minions to fight for it.", 35, 8, "Kill summoner first"};
-    e[static_cast<int>(EnemyType::Sniper)]   = {EnemyType::Sniper, "Void Sniper", "Long-range precision shots.", 25, 20, "Close the gap fast"};
+    // {type, name, lore, HP, DMG, speed, element, weakness, abilities, effectiveWeapons}
+    e[static_cast<int>(EnemyType::Walker)]   = {EnemyType::Walker,   "Rift Walker",
+        "Basic dimensional drifter. Patrols rift corridors seeking intruders.",
+        40, 10, 90, EnemyElement::None,
+        "Slow movement, predictable patrol",
+        "Melee attack, patrols platforms",
+        "Any weapon. Melee combo finishers stun."};
+    e[static_cast<int>(EnemyType::Flyer)]    = {EnemyType::Flyer,    "Rift Flyer",
+        "Aerial predator that hovers overhead and swoops down to strike.",
+        25, 10, 120, EnemyElement::None,
+        "Low HP, vulnerable while swooping",
+        "Swoop attack, aerial patrol, 250px dive speed",
+        "Ranged weapons. Ice slows swoop."};
+    e[static_cast<int>(EnemyType::Turret)]   = {EnemyType::Turret,   "Void Turret",
+        "Stationary automated defense. Fires precision bolts at any intruder in range.",
+        40, 8, 0, EnemyElement::None,
+        "Cannot move, approach from close range",
+        "Ranged fire every 1.8s, 300px detection",
+        "Close-range melee. Dash past projectiles."};
+    e[static_cast<int>(EnemyType::Charger)]  = {EnemyType::Charger,  "Rift Charger",
+        "Heavy bruiser that telegraphs a devastating charge attack.",
+        45, 18, 50, EnemyElement::None,
+        "Windup before charge, vulnerable during stop",
+        "Charge dash at 350px/s, knockback 350",
+        "Dodge sideways, counter after charge ends."};
+    e[static_cast<int>(EnemyType::Phaser)]   = {EnemyType::Phaser,   "Phase Stalker",
+        "Blinks between dimensions every 3 seconds to avoid attacks.",
+        30, 14, 110, EnemyElement::None,
+        "Vulnerable right after phasing",
+        "Dimension phase every 3s, melee on approach",
+        "Match its dimension. Time attacks post-phase."};
+    e[static_cast<int>(EnemyType::Exploder)] = {EnemyType::Exploder, "Void Exploder",
+        "Rushes at full speed and detonates on contact. Handle from range.",
+        20, 30, 180, EnemyElement::Fire,
+        "Very low HP, one melee hit kills",
+        "80px explosion radius, fire elemental, fast rush",
+        "Shoot from distance. Ice freezes in place."};
+    e[static_cast<int>(EnemyType::Shielder)] = {EnemyType::Shielder, "Rift Shielder",
+        "Armored guardian with a frontal shield that deflects all attacks.",
+        65, 14, 40, EnemyElement::None,
+        "Unshielded from behind, armor 0.35",
+        "Frontal shield, 35% armor, slow but tanky",
+        "Attack from behind. Electric chains bypass shield."};
+    e[static_cast<int>(EnemyType::Crawler)]  = {EnemyType::Crawler,  "Void Crawler",
+        "Clings to ceilings and drops on unsuspecting prey from above.",
+        20, 12, 50, EnemyElement::None,
+        "Watch the ceiling, low HP",
+        "Ceiling cling, drop ambush at 400px/s",
+        "Ranged weapons work well. Fire clears ceilings."};
+    e[static_cast<int>(EnemyType::Summoner)] = {EnemyType::Summoner, "Rift Summoner",
+        "Calls up to 3 minions and hides while they overwhelm you.",
+        60, 8, 30, EnemyElement::Electric,
+        "Fragile when alone, kill minions first",
+        "Summons 3 minions every 6s, electric affinity",
+        "Burst damage to summoner. Ignore minions if possible."};
+    e[static_cast<int>(EnemyType::Sniper)]   = {EnemyType::Sniper,   "Void Sniper",
+        "Keeps maximum distance and telegraphs lethal precision shots.",
+        30, 16, 40, EnemyElement::None,
+        "Long telegraph time, low HP",
+        "400px range, 0.8s telegraph, retreats on approach",
+        "Dash between shots. Close the gap quickly."};
 
     s_bossEntries.resize(5);
-    s_bossEntries[0] = {EnemyType::Walker, "Rift Guardian", "First guardian of the rift. Massive and powerful.", 200, 15, "Learn phase patterns"};
-    s_bossEntries[1] = {EnemyType::Walker, "Void Wyrm", "Serpentine beast of the void. Poison and dive attacks.", 240, 18, "Avoid poison pools"};
-    s_bossEntries[2] = {EnemyType::Walker, "Dimensional Architect", "Builder of realities. Constructs barriers and beams.", 220, 16, "Destroy constructs"};
-    s_bossEntries[3] = {EnemyType::Walker, "Temporal Weaver", "Master of time. Slows, stops, and rewinds.", 280, 20, "Dash through time zones"};
-    s_bossEntries[4] = {EnemyType::Walker, "Void Sovereign", "The final lord of the Rift. Bends dimensions to its will.", 400, 25, "Watch for phase transitions"};
+    // Boss entries: {type, name, lore, HP, DMG, speed, element, weakness, abilities, effectiveWeapons}
+    s_bossEntries[0] = {EnemyType::Walker, "Rift Guardian",
+        "First guardian of the rift. Massive and powerful with shield bursts and phase leaps.",
+        230, 23, 100, EnemyElement::None,
+        "Phase 2 enrage leaves brief opening",
+        "Shield burst, multi-shot, phase leap, 3 phases",
+        "Learn attack patterns. Dash during shield burst."};
+    s_bossEntries[1] = {EnemyType::Walker, "Void Wyrm",
+        "Serpentine void beast with poison dive attacks and orbital barrages.",
+        190, 21, 145, EnemyElement::None,
+        "Vulnerable after divebomb lands",
+        "Poison clouds, dive bomb, bullet barrage, 3 phases",
+        "Avoid green floor. Counter after divebomb."};
+    s_bossEntries[2] = {EnemyType::Walker, "Dimensional Architect",
+        "Builder of realities. Swaps tiles, constructs energy beams and collapses arenas.",
+        220, 18, 90, EnemyElement::Electric,
+        "Weak while constructing beam, destroy constructs",
+        "Tile swap, rift zones, construct beam, arena collapse",
+        "Destroy constructs fast. Use dim-switch to dodge rift zones."};
+    s_bossEntries[3] = {EnemyType::Walker, "Temporal Weaver",
+        "Master of time itself. Creates slow zones, clock sweeps and full time stops.",
+        280, 22, 100, EnemyElement::Ice,
+        "Vulnerable in time-stop wind-up",
+        "Time slow zones, clock sweep, time rewind, time stop",
+        "Dash through slow zones. Learn sweep timing."};
+    s_bossEntries[4] = {EnemyType::Walker, "Void Sovereign",
+        "The final lord of the Rift. Commands dimensions, void storms and reality-tear lasers.",
+        400, 25, 120, EnemyElement::None,
+        "Watch for phase transitions, avoid void storm",
+        "Void orbs, rift slam, dim lock, laser sweep, void storm",
+        "Stay mobile. Use dim-switch to counter dim-lock."};
 }
 
 void Bestiary::onEnemyKill(EnemyType type) {
