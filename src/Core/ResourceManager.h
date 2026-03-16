@@ -19,9 +19,13 @@ public:
     Mix_Music* getMusic(const std::string& path);
     TTF_Font* getFont(const std::string& path, int size);
 
-    // Create colored rectangle textures (placeholders)
+    // Create colored rectangle textures (runtime, no disk I/O)
     SDL_Texture* createColorTexture(const std::string& name, int w, int h,
                                      Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255);
+
+    // Generate placeholder PNG sprites to disk (if missing) and cache them.
+    // Safe to call multiple times — skips files that already exist.
+    void ensurePlaceholderTextures(const std::string& baseDir = "assets/textures/placeholders");
 
     void clearAll();
 

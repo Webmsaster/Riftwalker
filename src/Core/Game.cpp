@@ -47,6 +47,10 @@ bool Game::init() {
     m_window = std::make_unique<Window>("Riftwalker", SCREEN_WIDTH, SCREEN_HEIGHT);
     ResourceManager::instance().init(m_window->getSDLRenderer());
 
+    // Generate placeholder sprites if missing — written to assets/textures/placeholders/
+    // Safe to call even if real sprites exist; skips files already on disk.
+    ResourceManager::instance().ensurePlaceholderTextures();
+
     // Load font - try several common paths
     const char* fontPaths[] = {
         "assets/fonts/default.ttf",

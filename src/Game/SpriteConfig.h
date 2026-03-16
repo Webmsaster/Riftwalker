@@ -37,4 +37,17 @@ namespace SpriteConfig {
 
     // Map AnimState enum to animation name string
     const char* animStateToName(AnimState state);
+
+    // Placeholder directory (relative to working directory / build output)
+    constexpr const char* PLACEHOLDER_DIR = "assets/textures/placeholders";
+
+    // Apply a placeholder texture to sprite if no real texture is loaded.
+    // Uses a single-frame static texture; no AnimationComponent update needed.
+    // Returns true if a placeholder was applied.
+    bool applyPlayerPlaceholder(SpriteComponent& sprite);
+    bool applyEnemyPlaceholder(SpriteComponent& sprite, EnemyType type);
+    bool applyBossPlaceholder(SpriteComponent& sprite, int bossType);
+
+    // Tile placeholder texture path (single 16x16 tile for solid tiles)
+    const char* getTilePlaceholderPath();
 }
