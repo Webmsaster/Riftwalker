@@ -1,9 +1,26 @@
 # Build
+build/
 Riftwalker/build/
 
 # Save files & config (user-specific)
 riftwalker_save.dat
 riftwalker_bindings.cfg
+riftwalker_achievements.dat
+riftwalker_lore.dat
+
+# Debug/test output
+*.log
+balance_snapshots.csv
+
+# AI-generated assets (too large for git)
+assets/ai/
+
+# Git worktrees
+Riftwalker-bugfix/
+Riftwalker-feature/
+
+# Python cache
+__pycache__/
 
 # Claude Code project settings
 .claude/
