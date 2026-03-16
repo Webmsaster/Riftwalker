@@ -10,6 +10,7 @@ enum class WeaponID {
     ShardPistol,      // Default ranged: 10 DMG, normal
     RiftShotgun,      // 5x4 DMG, slow, 5 projectiles in fan, short range
     VoidBeam,         // 3 DMG/tick, continuous, pierces enemies, high entropy gain
+    GrapplingHook,    // 20 DMG, hooks to walls (swing) or enemies (pull), 300px range
     COUNT
 };
 

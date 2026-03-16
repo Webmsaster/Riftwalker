@@ -130,6 +130,21 @@ public:
     void applyWeaponStats();
     float weaponSwitchCooldown = 0;
 
+    // Grappling Hook state
+    bool isGrappling = false;         // Currently swinging on rope
+    bool hookFlying = false;          // Hook projectile in flight
+    Vec2 hookAttachPoint{0, 0};       // World position where hook attached
+    float hookRopeLength = 0;         // Current rope length (distance at attach)
+    float hookCooldownTimer = 0;      // Cooldown after detach (1.5s)
+    Entity* hookProjectile = nullptr; // Flying hook entity (tracked for rope drawing)
+    Entity* hookPulledEnemy = nullptr; // Enemy being pulled toward player
+    float hookPullTimer = 0;          // Duration of enemy pull
+    void fireGrapplingHook(const Vec2& dir);
+    void attachHook(const Vec2& point);
+    void detachHook();
+    void updateGrappleSwing(float dt);
+    void updateHookPull(float dt);
+
     // Entity manager reference for Phase Strike targeting
     class EntityManager* entityManager = nullptr;
     class CombatSystem* combatSystemRef = nullptr;

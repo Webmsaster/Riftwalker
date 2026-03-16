@@ -36,6 +36,10 @@ void WeaponSystem::init() {
         WeaponID::VoidBeam, "Void Beam", "Continuous beam, pierces",
         3.0f, 0.05f, 200.0f, 20.0f, 0.05f, 0, false, false
     };
+    s_weapons[static_cast<int>(WeaponID::GrapplingHook)] = {
+        WeaponID::GrapplingHook, "Grappling Hook", "Hook to walls or pull enemies",
+        20.0f, 1.5f, 300.0f, 150.0f, 0.1f, 0, false, false
+    };
 }
 
 const WeaponData& WeaponSystem::getWeaponData(WeaponID id) {

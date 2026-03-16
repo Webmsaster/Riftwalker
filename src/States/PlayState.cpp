@@ -2201,6 +2201,46 @@ void PlayState::render(SDL_Renderer* renderer) {
                        m_dimManager.getCurrentDimension(),
                        m_dimManager.getBlendAlpha());
 
+    // Grappling hook rope: draw line from player to hook/attach point
+    if (m_player) {
+        auto& playerT = m_player->getEntity()->getComponent<TransformComponent>();
+        Vec2 playerCenter = playerT.getCenter();
+        Vec2 camPos = m_camera.getPosition();
+
+        int px = static_cast<int>(playerCenter.x - camPos.x);
+        int py = static_cast<int>(playerCenter.y - camPos.y);
+
+        if (m_player->isGrappling) {
+            // Draw rope to attach point
+            int ax = static_cast<int>(m_player->hookAttachPoint.x - camPos.x);
+            int ay = static_cast<int>(m_player->hookAttachPoint.y - camPos.y);
+
+            // Rope: draw 3 lines for thickness effect
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer, 180, 140, 60, 200);
+            SDL_RenderDrawLine(renderer, px, py, ax, ay);
+            SDL_SetRenderDrawColor(renderer, 200, 160, 80, 160);
+            SDL_RenderDrawLine(renderer, px - 1, py, ax - 1, ay);
+            SDL_RenderDrawLine(renderer, px + 1, py, ax + 1, ay);
+
+            // Hook anchor point indicator (small filled rect)
+            SDL_SetRenderDrawColor(renderer, 220, 180, 80, 255);
+            SDL_Rect hookRect = {ax - 3, ay - 3, 6, 6};
+            SDL_RenderFillRect(renderer, &hookRect);
+        } else if (m_player->hookFlying && m_player->hookProjectile &&
+                   m_player->hookProjectile->isAlive()) {
+            // Draw rope to flying hook projectile
+            auto& hookT = m_player->hookProjectile->getComponent<TransformComponent>();
+            Vec2 hookCenter = hookT.getCenter();
+            int hx = static_cast<int>(hookCenter.x - camPos.x);
+            int hy = static_cast<int>(hookCenter.y - camPos.y);
+
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer, 180, 140, 60, 150);
+            SDL_RenderDrawLine(renderer, px, py, hx, hy);
+        }
+    }
+
     // Trails (before particles)
     m_trails.render(renderer);
 

@@ -189,6 +189,19 @@ void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int cu
                 return;
             }
 
+            // Grappling hook terrain hit: stop and stick to the wall/ceiling
+            if (entity.getTag() == "grapple_hook") {
+                phys.velocity = {0, 0};
+                phys.useGravity = false;
+                // Resolve overlap so hook sits on the tile surface
+                if (std::abs(minOverlapX) < std::abs(minOverlapY)) {
+                    transform.position.x += minOverlapX;
+                } else {
+                    transform.position.y += minOverlapY;
+                }
+                return;
+            }
+
             // Corner correction: when player jumps upward and clips a ceiling tile
             // corner by only a few pixels, nudge horizontally instead of killing
             // vertical momentum. Makes platforming feel much fairer.
