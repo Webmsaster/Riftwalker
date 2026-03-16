@@ -103,6 +103,19 @@ void WeaponSystem::resetUnlocks() {
     s_weapons[static_cast<int>(WeaponID::ShardPistol)].unlocked = true;
 }
 
+const char* WeaponSystem::getUnlockRequirement(WeaponID id) {
+    switch (id) {
+        case WeaponID::RiftBlade:     return "Always available";
+        case WeaponID::ShardPistol:   return "Always available";
+        case WeaponID::PhaseDaggers:  return "Get a 10-hit combo";
+        case WeaponID::RiftShotgun:   return "Kill 3 enemies with one attack";
+        case WeaponID::VoidHammer:    return "Defeat any boss";
+        case WeaponID::VoidBeam:      return "Reach floor 5";
+        case WeaponID::GrapplingHook: return "Dash-kill 5 enemies in one run";
+        default: return "Unknown";
+    }
+}
+
 MasteryTier WeaponSystem::getMasteryTier(int kills) {
     if (kills >= 50) return MasteryTier::Mastered;
     if (kills >= 25) return MasteryTier::Proficient;

@@ -18,6 +18,7 @@
 #include "Game/Bestiary.h"
 #include "Game/ClassSystem.h"
 #include "Game/DimensionManager.h"
+#include "Game/WeaponSystem.h"
 #include <cmath>
 
 float CombatSystem::consumeHitFreeze() {
@@ -322,7 +323,9 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                 std::vector<WeaponID> candidates;
                 for (int w = 0; w < static_cast<int>(WeaponID::COUNT); w++) {
                     auto wid = static_cast<WeaponID>(w);
-                    if (wid != pc.currentMelee && wid != pc.currentRanged)
+                    // Only drop unlocked weapons the player doesn't already have
+                    if (WeaponSystem::isUnlocked(wid) &&
+                        wid != pc.currentMelee && wid != pc.currentRanged)
                         candidates.push_back(wid);
                 }
                 if (!candidates.empty()) {
@@ -1237,11 +1240,12 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
 
                         if (dropWeapon && m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
                             auto& pc = m_player->getEntity()->getComponent<CombatComponent>();
-                            // Pick a random weapon the player doesn't currently have equipped
+                            // Pick a random unlocked weapon the player doesn't currently have equipped
                             std::vector<WeaponID> candidates;
                             for (int w = 0; w < static_cast<int>(WeaponID::COUNT); w++) {
                                 auto wid = static_cast<WeaponID>(w);
-                                if (wid != pc.currentMelee && wid != pc.currentRanged)
+                                if (WeaponSystem::isUnlocked(wid) &&
+                                    wid != pc.currentMelee && wid != pc.currentRanged)
                                     candidates.push_back(wid);
                             }
                             if (!candidates.empty()) {

@@ -46,7 +46,7 @@ public:
     static const char* getUnlockRequirement(PlayerClass pc);
 
     // Persist via UpgradeSystem serialize
-    static bool s_classUnlocked[3];
+    static bool s_classUnlocked[CLASS_COUNT];
 };
 
 // Global selected class (like g_selectedDifficulty)

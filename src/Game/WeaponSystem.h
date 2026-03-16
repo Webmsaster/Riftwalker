@@ -50,6 +50,7 @@ public:
     static bool isUnlocked(WeaponID id);
     static void unlock(WeaponID id);
     static void resetUnlocks(); // For new save
+    static const char* getUnlockRequirement(WeaponID id);
 
     // Weapon Mastery (per-run progression)
     static MasteryTier getMasteryTier(int kills);

@@ -782,6 +782,13 @@ void PlayState::startNewRun() {
     m_balanceStats = {};
     m_combatSystem.voidResonanceProcs = 0;
 
+    // Reset per-run unlock tracking
+    m_unlockedBossWeaponThisRun = false;
+    m_aoeKillCountThisRun = 0;
+    m_dashKillsThisRunForWeapon = 0;
+    std::memset(m_unlockNotifs, 0, sizeof(m_unlockNotifs));
+    m_unlockNotifHead = 0;
+
     // Event chain: 30% chance to start a chain per run
     m_eventChain = {};
     m_chainEventSpawned = false;
@@ -2908,11 +2915,26 @@ void PlayState::update(float dt) {
     }
 
     // Skill achievement kill tracking + kill feed (before clear)
-    for (auto& ke : m_combatSystem.killEvents) {
-        if (ke.wasAerial) m_aerialKillsThisRun++;
-        if (ke.wasDash) m_dashKillsThisRun++;
-        if (ke.wasCharged) m_chargedKillsThisRun++;
-        addKillFeedEntry(ke);
+    {
+        int rangedKillsThisFrame = 0;
+        int chainKillsThisFrame = 0;
+        for (auto& ke : m_combatSystem.killEvents) {
+            if (ke.wasAerial) m_aerialKillsThisRun++;
+            if (ke.wasDash) {
+                m_dashKillsThisRun++;
+                m_dashKillsThisRunForWeapon++;
+            }
+            if (ke.wasCharged) m_chargedKillsThisRun++;
+            if (ke.wasRanged) rangedKillsThisFrame++;
+            // AoE kills (slam = AoE)
+            if (ke.wasSlam) chainKillsThisFrame++;
+            addKillFeedEntry(ke);
+        }
+        // RiftShotgun unlock: 3+ kills from one ranged attack (e.g. shotgun spread or chain)
+        int aoeThisFrame = rangedKillsThisFrame + chainKillsThisFrame;
+        if (aoeThisFrame >= 3) {
+            m_aoeKillCountThisRun = aoeThisFrame; // triggers unlock check
+        }
     }
     updateKillFeed(dt);
 
@@ -2956,6 +2978,10 @@ void PlayState::update(float dt) {
             break;
         }
     }
+
+    // Meta-progression unlock checks (class + weapon unlocks)
+    checkUnlockConditions();
+    updateUnlockNotifications(dt);
 }
 
 void PlayState::checkRiftInteraction() {
@@ -4101,6 +4127,9 @@ void PlayState::render(SDL_Renderer* renderer) {
             }
         }
     }
+
+    // Unlock notification popups (golden, top-center)
+    renderUnlockNotifications(renderer, game->getFont());
 
     // Death sequence overlay: red vignette + desaturation effect
     if (m_playerDying) {
@@ -5842,12 +5871,37 @@ void PlayState::finalizeRun(bool abandoned) {
                           m_bestCombo, m_runTime, static_cast<int>(g_selectedClass), m_deathCause);
     upgrades.bestRoomReached = std::max(upgrades.bestRoomReached, roomsCleared);
 
-    // Check class unlock conditions
-    if (roomsCleared >= 4 && !ClassSystem::isUnlocked(PlayerClass::Berserker)) {
+    // Final unlock check at run end (catches anything missed mid-run)
+    // Berserker: 50 total kills across all runs
+    if (!ClassSystem::isUnlocked(PlayerClass::Berserker) &&
+        upgrades.totalEnemiesKilled >= 50) {
         ClassSystem::unlock(PlayerClass::Berserker);
     }
-    if (m_dashKillsThisRun >= 10 && !ClassSystem::isUnlocked(PlayerClass::Phantom)) {
+    // Phantom: completed floor 3 (difficulty went past 3)
+    if (!ClassSystem::isUnlocked(PlayerClass::Phantom) &&
+        m_currentDifficulty > 3) {
         ClassSystem::unlock(PlayerClass::Phantom);
+    }
+    // Technomancer: 30 rifts repaired across all runs
+    if (!ClassSystem::isUnlocked(PlayerClass::Technomancer) &&
+        upgrades.totalRiftsRepaired >= 30) {
+        ClassSystem::unlock(PlayerClass::Technomancer);
+    }
+    // VoidHammer: defeated any boss
+    if (!WeaponSystem::isUnlocked(WeaponID::VoidHammer) && m_bossDefeated) {
+        WeaponSystem::unlock(WeaponID::VoidHammer);
+    }
+    // PhaseDaggers: 10-hit combo
+    if (!WeaponSystem::isUnlocked(WeaponID::PhaseDaggers) && m_bestCombo >= 10) {
+        WeaponSystem::unlock(WeaponID::PhaseDaggers);
+    }
+    // VoidBeam: reach floor 5
+    if (!WeaponSystem::isUnlocked(WeaponID::VoidBeam) && m_currentDifficulty >= 5) {
+        WeaponSystem::unlock(WeaponID::VoidBeam);
+    }
+    // GrapplingHook: 5 dash kills in a run
+    if (!WeaponSystem::isUnlocked(WeaponID::GrapplingHook) && m_dashKillsThisRun >= 5) {
+        WeaponSystem::unlock(WeaponID::GrapplingHook);
     }
 
     // Check milestone rewards
@@ -8536,5 +8590,133 @@ void PlayState::renderKillFeed(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_FreeSurface(surf);
         }
         y += 18;
+    }
+}
+
+// ─── Unlock Notifications ───
+
+void PlayState::pushUnlockNotification(const char* name, bool isWeapon) {
+    auto& notif = m_unlockNotifs[m_unlockNotifHead % MAX_UNLOCK_NOTIFS];
+    std::snprintf(notif.text, sizeof(notif.text),
+                  "%s UNLOCKED: %s", isWeapon ? "WEAPON" : "CLASS", name);
+    notif.timer = notif.maxTimer;
+    m_unlockNotifHead++;
+}
+
+void PlayState::updateUnlockNotifications(float dt) {
+    for (int i = 0; i < MAX_UNLOCK_NOTIFS; i++) {
+        if (m_unlockNotifs[i].timer > 0) m_unlockNotifs[i].timer -= dt;
+    }
+}
+
+void PlayState::renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font) return;
+    // Stack popups in top-center
+    int y = 140;
+    for (int i = 0; i < MAX_UNLOCK_NOTIFS; i++) {
+        auto& notif = m_unlockNotifs[i];
+        if (notif.timer <= 0) continue;
+
+        // Slide in from top during first 0.2s, fade out during last 0.5s
+        float slideIn = std::min(1.0f, (notif.maxTimer - notif.timer) / 0.2f);
+        float fadeOut = std::min(1.0f, notif.timer / 0.5f);
+        Uint8 alpha = static_cast<Uint8>(255 * slideIn * fadeOut);
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+        // Golden pulsing background panel
+        float pulse = 0.7f + 0.3f * std::sin(notif.timer * 8.0f);
+        SDL_SetRenderDrawColor(renderer, 40, 30, 5,
+                               static_cast<Uint8>(180 * slideIn * fadeOut));
+        SDL_Rect bg = {640 - 220, y - 4, 440, 30};
+        SDL_RenderFillRect(renderer, &bg);
+        // Gold border
+        SDL_SetRenderDrawColor(renderer, 255, 200, 50,
+                               static_cast<Uint8>(220 * pulse * slideIn * fadeOut));
+        SDL_RenderDrawRect(renderer, &bg);
+
+        // Text
+        SDL_Color textColor = {255, 215, 0, alpha};
+        SDL_Surface* surf = TTF_RenderText_Blended(font, notif.text, textColor);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, alpha);
+                int tw = surf->w, th = surf->h;
+                SDL_Rect r = {640 - tw / 2, y, tw, th};
+                SDL_RenderCopy(renderer, tex, nullptr, &r);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(surf);
+        }
+        y += 36;
+    }
+}
+
+// ─── Unlock Condition Checks (called each frame after kill events) ───
+
+void PlayState::checkUnlockConditions() {
+    auto& upgrades = game->getUpgradeSystem();
+
+    // ── Class unlock checks ──
+
+    // Berserker: kill 50 total enemies across all runs
+    if (!ClassSystem::isUnlocked(PlayerClass::Berserker) &&
+        upgrades.totalEnemiesKilled >= 50) {
+        ClassSystem::unlock(PlayerClass::Berserker);
+        pushUnlockNotification("Berserker", false);
+    }
+
+    // Phantom: complete floor 3 in any run (m_currentDifficulty > 3)
+    if (!ClassSystem::isUnlocked(PlayerClass::Phantom) &&
+        m_currentDifficulty > 3) {
+        ClassSystem::unlock(PlayerClass::Phantom);
+        pushUnlockNotification("Phantom", false);
+    }
+
+    // Technomancer: repair 30 rifts across all runs
+    if (!ClassSystem::isUnlocked(PlayerClass::Technomancer) &&
+        upgrades.totalRiftsRepaired >= 30) {
+        ClassSystem::unlock(PlayerClass::Technomancer);
+        pushUnlockNotification("Technomancer", false);
+    }
+
+    // ── Weapon unlock checks ──
+
+    // PhaseDaggers: get a 10-hit combo
+    if (!WeaponSystem::isUnlocked(WeaponID::PhaseDaggers) &&
+        m_bestCombo >= 10) {
+        WeaponSystem::unlock(WeaponID::PhaseDaggers);
+        pushUnlockNotification("Phase Daggers", true);
+    }
+
+    // VoidHammer: defeat any boss
+    if (!WeaponSystem::isUnlocked(WeaponID::VoidHammer) &&
+        m_bossDefeated && !m_unlockedBossWeaponThisRun) {
+        WeaponSystem::unlock(WeaponID::VoidHammer);
+        m_unlockedBossWeaponThisRun = true;
+        pushUnlockNotification("Void Hammer", true);
+    }
+
+    // VoidBeam: reach floor 5
+    if (!WeaponSystem::isUnlocked(WeaponID::VoidBeam) &&
+        m_currentDifficulty >= 5) {
+        WeaponSystem::unlock(WeaponID::VoidBeam);
+        pushUnlockNotification("Void Beam", true);
+    }
+
+    // GrapplingHook: 5 dash-kills in one run
+    if (!WeaponSystem::isUnlocked(WeaponID::GrapplingHook) &&
+        m_dashKillsThisRun >= 5) {
+        WeaponSystem::unlock(WeaponID::GrapplingHook);
+        pushUnlockNotification("Grappling Hook", true);
+    }
+
+    // RiftShotgun: 3+ kills from one attack (tracked in kill event loop)
+    if (!WeaponSystem::isUnlocked(WeaponID::RiftShotgun) &&
+        m_aoeKillCountThisRun >= 3) {
+        WeaponSystem::unlock(WeaponID::RiftShotgun);
+        m_aoeKillCountThisRun = 0;
+        pushUnlockNotification("Rift Shotgun", true);
     }
 }

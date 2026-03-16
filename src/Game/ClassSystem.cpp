@@ -84,7 +84,7 @@ const ClassData& ClassSystem::getData(int index) {
     return s_classData[index];
 }
 
-bool ClassSystem::s_classUnlocked[3] = {true, false, false};
+bool ClassSystem::s_classUnlocked[CLASS_COUNT] = {true, false, false, false};
 
 void ClassSystem::initUnlocks() {
     s_classUnlocked[0] = true; // Voidwalker always unlocked
@@ -103,9 +103,10 @@ void ClassSystem::unlock(PlayerClass pc) {
 
 const char* ClassSystem::getUnlockRequirement(PlayerClass pc) {
     switch (pc) {
-        case PlayerClass::Voidwalker: return "Always available";
-        case PlayerClass::Berserker:  return "Defeat the first boss";
-        case PlayerClass::Phantom:    return "Perform 10 dash kills in one run";
+        case PlayerClass::Voidwalker:    return "Always available";
+        case PlayerClass::Berserker:     return "Kill 50 enemies total across all runs";
+        case PlayerClass::Phantom:       return "Complete floor 3 in any run";
+        case PlayerClass::Technomancer:  return "Repair 30 rifts total across all runs";
         default: return "Unknown";
     }
 }

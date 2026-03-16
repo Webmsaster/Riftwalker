@@ -1,5 +1,6 @@
 #include "UpgradeSystem.h"
 #include "ClassSystem.h"
+#include "WeaponSystem.h"
 #include <sstream>
 #include <algorithm>
 
@@ -156,12 +157,18 @@ std::string UpgradeSystem::serialize() const {
            << r.bestCombo << " " << r.runTime << " "
            << r.playerClass << " " << r.deathCause << " ";
     }
-    // Serialize class unlocks
-    for (int i = 0; i < 3; i++) {
+    // Serialize class unlocks (all CLASS_COUNT slots)
+    for (int i = 0; i < ClassSystem::CLASS_COUNT; i++) {
         ss << (ClassSystem::s_classUnlocked[i] ? 1 : 0) << " ";
     }
     // Serialize milestones
     ss << milestonesUnlocked << " ";
+    // Serialize weapon unlocks
+    int weaponCount = static_cast<int>(WeaponID::COUNT);
+    ss << weaponCount << " ";
+    for (int i = 0; i < weaponCount; i++) {
+        ss << (WeaponSystem::isUnlocked(static_cast<WeaponID>(i)) ? 1 : 0) << " ";
+    }
     return ss.str();
 }
 
@@ -189,9 +196,9 @@ void UpgradeSystem::deserialize(const std::string& data) {
             }
         }
     }
-    // Deserialize class unlocks
+    // Deserialize class unlocks (CLASS_COUNT slots, backwards-compatible with old 3-slot saves)
     ClassSystem::initUnlocks();
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < ClassSystem::CLASS_COUNT; i++) {
         int val = 0;
         if (ss >> val) {
             ClassSystem::s_classUnlocked[i] = (val != 0);
@@ -201,4 +208,16 @@ void UpgradeSystem::deserialize(const std::string& data) {
     // Deserialize milestones
     int ms = 0;
     if (ss >> ms) milestonesUnlocked = ms;
+    // Deserialize weapon unlocks (always apply defaults first, then override from save)
+    WeaponSystem::resetUnlocks();
+    int weaponCount = 0;
+    if (ss >> weaponCount) {
+        int maxWeapons = static_cast<int>(WeaponID::COUNT);
+        for (int i = 0; i < weaponCount && i < maxWeapons; i++) {
+            int val = 0;
+            if (ss >> val && val != 0) {
+                WeaponSystem::unlock(static_cast<WeaponID>(i));
+            }
+        }
+    }
 }

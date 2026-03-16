@@ -27,6 +27,7 @@
 #include "Game/ScreenEffects.h"
 #include "Core/MusicSystem.h"
 #include "UI/HUD.h"
+#include "Game/WeaponSystem.h"
 #include <memory>
 #include <vector>
 
@@ -358,6 +359,25 @@ private:
     void advanceChain();
     void completeChain();
     void renderEventChain(SDL_Renderer* renderer, TTF_Font* font);
+
+    // Unlock notifications (golden popup when class/weapon earned mid-run)
+    struct UnlockNotification {
+        char text[128] = {};
+        float timer = 0;
+        float maxTimer = 4.0f;
+    };
+    static constexpr int MAX_UNLOCK_NOTIFS = 4;
+    UnlockNotification m_unlockNotifs[MAX_UNLOCK_NOTIFS];
+    int m_unlockNotifHead = 0;
+    void pushUnlockNotification(const char* name, bool isWeapon);
+    void updateUnlockNotifications(float dt);
+    void renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font);
+
+    // Per-run unlock tracking (conditions that fire mid-run)
+    bool m_unlockedBossWeaponThisRun = false;  // VoidHammer on first boss defeat
+    int m_aoeKillCountThisRun = 0;             // for RiftShotgun: multi-kills in one attack frame
+    int m_dashKillsThisRunForWeapon = 0;       // for GrapplingHook: dash kills this run
+    void checkUnlockConditions();              // called each frame after kill events
 
     // Kill feed (bottom-right scrolling text)
     struct KillFeedEntry {
