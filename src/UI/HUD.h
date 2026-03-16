@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <set>
 
 class Player;
 class SuitEntropy;
@@ -21,10 +22,15 @@ public:
     void setFloor(int floor) { m_currentFloor = floor; }
     void setKillCount(int kills) { m_killCount = kills; }
 
+    // Minimap toggle (M key)
+    void toggleMinimap() { m_showMinimap = !m_showMinimap; }
+    bool isMinimapVisible() const { return m_showMinimap; }
+
     void renderMinimap(SDL_Renderer* renderer, const Level* level,
                        const Player* player, const DimensionManager* dimMgr,
                        int screenW, int screenH,
-                       EntityManager* entities = nullptr);
+                       EntityManager* entities = nullptr,
+                       const std::set<int>* repairedRifts = nullptr);
 
     // Damage flash overlay
     void triggerDamageFlash() { m_damageFlash = 0.3f; }
@@ -41,6 +47,7 @@ private:
     const CombatSystem* m_combatSystem = nullptr;
     int m_currentFloor = 1;
     int m_killCount = 0;
+    bool m_showMinimap = true;  // M key toggle
 
     // Ability ready flash: brief glow when cooldown finishes
     float m_abilityReadyFlash[4] = {};  // melee, ranged, dash, dim-switch

@@ -46,108 +46,166 @@ void HUD::renderFlash(SDL_Renderer* renderer, int screenW, int screenH) {
 void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
                          const Player* player, const DimensionManager* dimMgr,
                          int screenW, int screenH,
-                         EntityManager* entities) {
+                         EntityManager* entities,
+                         const std::set<int>* repairedRifts) {
     if (!level) return;
+    if (!m_showMinimap) return;
 
-    int mapW = 140;
-    int mapH = 100;
-    int mapX = screenW - mapW - 15;
-    int mapY = screenH - mapH - 30;
+    // Minimap dimensions: 160x110px, positioned top-right corner
+    const int mapW = 160;
+    const int mapH = 110;
+    const int mapX = screenW - mapW - 10;
+    const int mapY = 10;
 
-    // Background
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_Rect bg = {mapX - 2, mapY - 2, mapW + 4, mapH + 4};
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 140);
-    SDL_RenderFillRect(renderer, &bg);
-    SDL_SetRenderDrawColor(renderer, 80, 80, 120, 100);
-    SDL_RenderDrawRect(renderer, &bg);
 
-    // Scale level to minimap
+    // Outer border frame
+    SDL_SetRenderDrawColor(renderer, 60, 60, 90, 200);
+    SDL_Rect outerBorder = {mapX - 3, mapY - 3, mapW + 6, mapH + 6};
+    SDL_RenderFillRect(renderer, &outerBorder);
+
+    // Dark background
+    SDL_SetRenderDrawColor(renderer, 8, 8, 18, 220);
+    SDL_Rect bg = {mapX, mapY, mapW, mapH};
+    SDL_RenderFillRect(renderer, &bg);
+
+    // Clip rendering to minimap bounds via scissor rect approach: track manually
     int levelW = level->getWidth();
     int levelH = level->getHeight();
+    if (levelW <= 0 || levelH <= 0) return;
+
+    // Scale level to fit minimap (maintain aspect ratio)
     float scaleX = static_cast<float>(mapW) / levelW;
     float scaleY = static_cast<float>(mapH) / levelH;
     float scale = std::min(scaleX, scaleY);
 
+    // Center the level in the minimap
     int offsetX = mapX + (mapW - static_cast<int>(levelW * scale)) / 2;
     int offsetY = mapY + (mapH - static_cast<int>(levelH * scale)) / 2;
 
     int dim = dimMgr ? dimMgr->getCurrentDimension() : 1;
+    int tileSize = level->getTileSize();
 
-    // Draw tiles (sample every few tiles for performance)
-    int step = std::max(1, levelW / 70);
+    // Helper: clamp a minimap pixel to be within the map area
+    auto clampInMap = [&](int& px, int& py, int pw, int ph) -> bool {
+        return px >= mapX && py >= mapY && px + pw <= mapX + mapW && py + ph <= mapY + mapH;
+    };
+    (void)clampInMap; // suppress unused warning
+
+    // --- Draw tile terrain (room-based look via solid block detection) ---
+    // Sample with step size to derive room shapes efficiently.
+    // Use a step that gives ~2px per minimap cell for good coverage.
+    int step = std::max(1, static_cast<int>(1.0f / scale));
+
     for (int ty = 0; ty < levelH; ty += step) {
         for (int tx = 0; tx < levelW; tx += step) {
-            const auto& tile = level->getTile(tx, ty, dim);
-            if (tile.type == TileType::Empty) continue;
+            const auto& tileA = level->getTile(tx, ty, dim);
 
             int px = offsetX + static_cast<int>(tx * scale);
             int py = offsetY + static_cast<int>(ty * scale);
             int pw = std::max(1, static_cast<int>(step * scale));
             int ph = std::max(1, static_cast<int>(step * scale));
 
-            if (tile.type == TileType::Solid) {
-                SDL_SetRenderDrawColor(renderer, tile.color.r / 2, tile.color.g / 2, tile.color.b / 2, 180);
-            } else if (tile.type == TileType::Spike) {
-                SDL_SetRenderDrawColor(renderer, 200, 60, 60, 180);
-            } else if (tile.type == TileType::OneWay) {
-                SDL_SetRenderDrawColor(renderer, 100, 100, 60, 120);
-            } else {
-                continue;
-            }
+            // Stay within minimap bounds
+            if (px < mapX || py < mapY || px + pw > mapX + mapW || py + ph > mapY + mapH) continue;
+
             SDL_Rect r = {px, py, pw, ph};
-            SDL_RenderFillRect(renderer, &r);
+            if (tileA.type == TileType::Solid) {
+                // Solid terrain: use a muted version of the tile color
+                SDL_SetRenderDrawColor(renderer,
+                    static_cast<Uint8>(tileA.color.r / 3 + 20),
+                    static_cast<Uint8>(tileA.color.g / 3 + 20),
+                    static_cast<Uint8>(tileA.color.b / 3 + 30),
+                    200);
+                SDL_RenderFillRect(renderer, &r);
+            } else if (tileA.type == TileType::OneWay) {
+                // One-way platforms: subtle brownish line
+                SDL_SetRenderDrawColor(renderer, 80, 70, 40, 140);
+                SDL_RenderFillRect(renderer, &r);
+            } else if (tileA.type == TileType::Spike) {
+                // Spike hazard: dark red pixel
+                SDL_SetRenderDrawColor(renderer, 160, 40, 40, 160);
+                SDL_RenderFillRect(renderer, &r);
+            } else if (tileA.type == TileType::Fire || tileA.type == TileType::LaserEmitter) {
+                // Fire/laser hazard: orange/red
+                SDL_SetRenderDrawColor(renderer, 180, 80, 20, 130);
+                SDL_RenderFillRect(renderer, &r);
+            }
         }
     }
 
-    // Draw rift positions
+    // --- Dimension tint overlay ---
+    // Blue tint for dimension 1, red tint for dimension 2
+    if (dim == 1) {
+        SDL_SetRenderDrawColor(renderer, 30, 60, 120, 25);
+    } else {
+        SDL_SetRenderDrawColor(renderer, 120, 30, 30, 25);
+    }
+    SDL_RenderFillRect(renderer, &bg);
+
+    // --- Rift markers (colored diamonds: green=repaired, purple/red=unrepaired by dimension) ---
     auto rifts = level->getRiftPositions();
-    int tileSize = level->getTileSize();
     for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
-        const auto& rp = rifts[i];
-        int rx = offsetX + static_cast<int>((rp.x / tileSize) * scale);
-        int ry = offsetY + static_cast<int>((rp.y / tileSize) * scale);
+        int rx = offsetX + static_cast<int>((rifts[i].x / tileSize) * scale);
+        int ry = offsetY + static_cast<int>((rifts[i].y / tileSize) * scale);
+
+        // Skip if outside minimap area
+        if (rx < mapX || rx >= mapX + mapW || ry < mapY || ry >= mapY + mapH) continue;
+
+        bool repaired = repairedRifts && repairedRifts->count(i) > 0;
         float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.006f);
-        int requiredDimension = level->getRiftRequiredDimension(i);
-        if (requiredDimension == 2) {
-            SDL_SetRenderDrawColor(renderer, 255, 90, 145,
-                                   static_cast<Uint8>(150 + 80 * pulse));
+
+        Uint8 alpha = static_cast<Uint8>(160 + 90 * pulse);
+        if (repaired) {
+            // Green diamond for repaired rift
+            SDL_SetRenderDrawColor(renderer, 80, 255, 120, alpha);
         } else {
-            SDL_SetRenderDrawColor(renderer, 90, 180, 255,
-                                   static_cast<Uint8>(150 + 80 * pulse));
+            // Unrepaired: dimension 1 = blue-purple, dimension 2 = red-purple
+            if (dim == 1) {
+                SDL_SetRenderDrawColor(renderer, 140, 80, 255, alpha);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 255, 80, 120, alpha);
+            }
         }
-        SDL_Rect rr = {rx - 2, ry - 2, 4, 4};
-        SDL_RenderFillRect(renderer, &rr);
+
+        // Draw diamond shape (4 pixels in cross pattern)
+        SDL_Rect d1 = {rx - 1, ry - 2, 2, 1};  // top
+        SDL_Rect d2 = {rx - 2, ry - 1, 4, 2};  // middle
+        SDL_Rect d3 = {rx - 1, ry + 1, 2, 1};  // bottom
+        SDL_RenderFillRect(renderer, &d1);
+        SDL_RenderFillRect(renderer, &d2);
+        SDL_RenderFillRect(renderer, &d3);
     }
 
-    // Draw exit
-    Vec2 exitPt = level->getExitPoint();
-    int ex = offsetX + static_cast<int>((exitPt.x / tileSize) * scale);
-    int ey = offsetY + static_cast<int>((exitPt.y / tileSize) * scale);
-    float ePulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.005f);
-    SDL_SetRenderDrawColor(renderer, 100, 255, 100, static_cast<Uint8>(150 + 100 * ePulse));
-    SDL_Rect er = {ex - 2, ey - 2, 5, 5};
-    SDL_RenderFillRect(renderer, &er);
+    // --- Exit marker (pulsing green square, only when active) ---
+    {
+        Vec2 exitPt = level->getExitPoint();
+        int ex = offsetX + static_cast<int>((exitPt.x / tileSize) * scale);
+        int ey = offsetY + static_cast<int>((exitPt.y / tileSize) * scale);
 
-    // Draw player position
-    if (player && player->getEntity() && player->getEntity()->hasComponent<TransformComponent>()) {
-        auto& pt = player->getEntity()->getComponent<TransformComponent>();
-        int playerMX = offsetX + static_cast<int>((pt.getCenter().x / tileSize) * scale);
-        int playerMY = offsetY + static_cast<int>((pt.getCenter().y / tileSize) * scale);
-        // White blinking dot
-        Uint32 t = SDL_GetTicks();
-        if ((t / 300) % 2 == 0) {
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        } else {
-            SDL_SetRenderDrawColor(renderer, 100, 180, 255, 255);
+        if (ex >= mapX && ex < mapX + mapW && ey >= mapY && ey < mapY + mapH) {
+            float ePulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.007f);
+            if (level->isExitActive()) {
+                // Active exit: bright pulsing green
+                Uint8 eAlpha = static_cast<Uint8>(180 + 75 * ePulse);
+                SDL_SetRenderDrawColor(renderer, 50, 255, 80, eAlpha);
+                SDL_Rect er = {ex - 3, ey - 3, 6, 6};
+                SDL_RenderFillRect(renderer, &er);
+                // Inner bright core
+                SDL_SetRenderDrawColor(renderer, 200, 255, 200, 230);
+                SDL_Rect ec = {ex - 1, ey - 1, 2, 2};
+                SDL_RenderFillRect(renderer, &ec);
+            } else {
+                // Inactive: dim gray square
+                SDL_SetRenderDrawColor(renderer, 80, 80, 80, 100);
+                SDL_Rect er = {ex - 2, ey - 2, 4, 4};
+                SDL_RenderFillRect(renderer, &er);
+            }
         }
-        SDL_Rect pr = {playerMX - 2, playerMY - 2, 4, 4};
-        SDL_RenderFillRect(renderer, &pr);
     }
 
-    // Enemy dots
+    // --- Enemy dots (red for regular, orange pulsing for bosses) ---
     if (entities) {
-        int tileSize = level->getTileSize();
         entities->forEach([&](Entity& e) {
             if (e.getTag().find("enemy") == std::string::npos) return;
             if (!e.hasComponent<TransformComponent>()) return;
@@ -156,19 +214,65 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
             int emx = offsetX + static_cast<int>((et.getCenter().x / tileSize) * scale);
             int emy = offsetY + static_cast<int>((et.getCenter().y / tileSize) * scale);
 
-            // Boss: larger orange dot, regular enemies: small red dot
+            if (emx < mapX || emx >= mapX + mapW || emy < mapY || emy >= mapY + mapH) return;
+
             if (e.getTag() == "enemy_boss") {
+                // Boss: larger pulsing orange dot
                 float bPulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.008f);
                 SDL_SetRenderDrawColor(renderer, 255, 140, 40, static_cast<Uint8>(200 + 55 * bPulse));
                 SDL_Rect er = {emx - 3, emy - 3, 6, 6};
                 SDL_RenderFillRect(renderer, &er);
+                // Bright center
+                SDL_SetRenderDrawColor(renderer, 255, 220, 100, 255);
+                SDL_Rect ec = {emx - 1, emy - 1, 2, 2};
+                SDL_RenderFillRect(renderer, &ec);
             } else {
-                SDL_SetRenderDrawColor(renderer, 255, 60, 60, 180);
+                // Regular enemy: small red dot
+                SDL_SetRenderDrawColor(renderer, 255, 55, 55, 200);
                 SDL_Rect er = {emx - 1, emy - 1, 3, 3};
                 SDL_RenderFillRect(renderer, &er);
             }
         });
     }
+
+    // --- Player position dot (blinking white) ---
+    if (player && player->getEntity() && player->getEntity()->hasComponent<TransformComponent>()) {
+        auto& pt = player->getEntity()->getComponent<TransformComponent>();
+        int playerMX = offsetX + static_cast<int>((pt.getCenter().x / tileSize) * scale);
+        int playerMY = offsetY + static_cast<int>((pt.getCenter().y / tileSize) * scale);
+
+        if (playerMX >= mapX && playerMX < mapX + mapW && playerMY >= mapY && playerMY < mapY + mapH) {
+            Uint32 t = SDL_GetTicks();
+            // Blink: white on, dim cyan off (400ms period)
+            if ((t / 400) % 2 == 0) {
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 120, 200, 255, 180);
+            }
+            SDL_Rect pr = {playerMX - 2, playerMY - 2, 5, 5};
+            SDL_RenderFillRect(renderer, &pr);
+            // Bright center pixel
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_Rect pc = {playerMX, playerMY, 1, 1};
+            SDL_RenderFillRect(renderer, &pc);
+        }
+    }
+
+    // --- Minimap border (dimension-tinted) ---
+    if (dim == 1) {
+        SDL_SetRenderDrawColor(renderer, 60, 100, 200, 180);
+    } else {
+        SDL_SetRenderDrawColor(renderer, 200, 60, 60, 180);
+    }
+    SDL_RenderDrawRect(renderer, &bg);
+    // Double border for polish
+    SDL_Rect outerLine = {mapX - 1, mapY - 1, mapW + 2, mapH + 2};
+    SDL_SetRenderDrawColor(renderer, 30, 30, 50, 140);
+    SDL_RenderDrawRect(renderer, &outerLine);
+
+    // --- "M: MAP" hint label in corner ---
+    // Small label at bottom-right of minimap to remind player of toggle key
+    // (rendered without font dependency - just a tiny colored marker)
 }
 
 void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
@@ -934,11 +1038,11 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
-    // FPS counter (bottom right, above minimap)
+    // FPS counter (bottom right corner)
     if (font) {
         char fpsText[16];
         std::snprintf(fpsText, sizeof(fpsText), "%d FPS", fps);
-        renderText(renderer, font, fpsText, screenW - 80, screenH - 155, {80, 80, 90, 150});
+        renderText(renderer, font, fpsText, screenW - 75, screenH - 30, {80, 80, 90, 150});
     }
 
     // Controls hint (bottom left)
