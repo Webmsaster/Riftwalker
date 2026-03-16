@@ -899,6 +899,39 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         renderText(renderer, font, fpsText, screenW - 80, screenH - 155, {80, 80, 90, 150});
     }
 
+    // NG+ tier indicator (gold number, top-right corner)
+    if (font && m_ngPlusTier > 0) {
+        char ngBuf[16];
+        std::snprintf(ngBuf, sizeof(ngBuf), "NG+%d", m_ngPlusTier);
+        // Pulsing gold: use SDL_GetTicks for animation without a stored timer
+        float pulse = 0.85f + 0.15f * std::sin(SDL_GetTicks() * 0.003f);
+        Uint8 ngR = static_cast<Uint8>(255);
+        Uint8 ngG = static_cast<Uint8>(200 * pulse);
+        Uint8 ngB = static_cast<Uint8>(30);
+        SDL_Color ngColor = {ngR, ngG, ngB, 230};
+        SDL_Surface* ns = TTF_RenderText_Blended(font, ngBuf, ngColor);
+        if (ns) {
+            SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
+            if (nt) {
+                // Scale up 1.8x for visibility
+                int nw = static_cast<int>(ns->w * 1.8f);
+                int nh = static_cast<int>(ns->h * 1.8f);
+                // Position: top-right, with a background panel
+                int nx = screenW - nw - 12;
+                int ny = 10;
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 120);
+                SDL_Rect bg = {nx - 6, ny - 3, nw + 12, nh + 6};
+                SDL_RenderFillRect(renderer, &bg);
+                SDL_SetRenderDrawColor(renderer, ngR, ngG, ngB, 160);
+                SDL_RenderDrawRect(renderer, &bg);
+                SDL_Rect nr = {nx, ny, nw, nh};
+                SDL_RenderCopy(renderer, nt, nullptr, &nr);
+                SDL_DestroyTexture(nt);
+            }
+            SDL_FreeSurface(ns);
+        }
+    }
+
     // Controls hint (bottom left)
     if (font) {
         renderText(renderer, font,

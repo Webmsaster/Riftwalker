@@ -62,6 +62,7 @@ private:
     void generateLevel();
     void spawnEnemies();
     void applyThemeVariant(Entity& e, int dimension);
+    void applyNGPlusModifiers(Entity& e);  // Scale enemy stats for active NG+ tier
     void handlePuzzleInput(int action);
     void checkRiftInteraction();
     void checkExitReached();
@@ -103,6 +104,10 @@ private:
     int m_runSeed = 0;
     bool m_levelComplete = false;
     float m_levelCompleteTimer = 0;
+
+    // NG+ modifiers applied at run start
+    int m_ngPlusTier = 0;           // 0=Normal, 1-5=NG+ tier
+    float m_ngPlusForceSwitchTimer = 0; // NG+4 forced dim-switch countdown
 
     // Collapse timer (escape phase)
     bool m_collapsing = false;

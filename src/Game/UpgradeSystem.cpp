@@ -99,6 +99,8 @@ std::string UpgradeSystem::serialize() const {
         ss << r.rooms << " " << r.enemies << " " << r.rifts << " "
            << r.shards << " " << r.difficulty << " ";
     }
+    // NG+ progress (appended for backward compatibility)
+    ss << highestNGPlusCompleted << " ";
     return ss.str();
 }
 
@@ -123,5 +125,10 @@ void UpgradeSystem::deserialize(const std::string& data) {
                 m_runHistory.push_back(r);
             }
         }
+    }
+    // NG+ progress (optional for backward compatibility with old saves)
+    int ngp = 0;
+    if (ss >> ngp) {
+        highestNGPlusCompleted = std::max(0, std::min(ngp, 5));
     }
 }

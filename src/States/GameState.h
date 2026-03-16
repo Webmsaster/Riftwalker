@@ -28,6 +28,7 @@ enum class StateID {
     Options,
     ClassSelect,
     DifficultySelect,
+    NGPlusSelect,
     Keybindings,
     Achievements,
     Shop,
@@ -40,3 +41,6 @@ enum class StateID {
 // Global difficulty setting (shared between states)
 enum class GameDifficulty { Easy = 0, Normal = 1, Hard = 2 };
 inline GameDifficulty g_selectedDifficulty = GameDifficulty::Normal;
+
+// Global NG+ tier (0 = Normal, 1-5 = NG+ tiers)
+inline int g_selectedNGPlus = 0;

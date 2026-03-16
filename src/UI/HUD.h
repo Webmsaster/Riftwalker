@@ -20,6 +20,7 @@ public:
     void setCombatSystem(const CombatSystem* cs) { m_combatSystem = cs; }
     void setFloor(int floor) { m_currentFloor = floor; }
     void setKillCount(int kills) { m_killCount = kills; }
+    void setNGPlusTier(int tier) { m_ngPlusTier = tier; }
 
     void renderMinimap(SDL_Renderer* renderer, const Level* level,
                        const Player* player, const DimensionManager* dimMgr,
@@ -41,6 +42,7 @@ private:
     const CombatSystem* m_combatSystem = nullptr;
     int m_currentFloor = 1;
     int m_killCount = 0;
+    int m_ngPlusTier = 0;  // NG+ tier shown as gold number in top-right
 
     // Ability ready flash: brief glow when cooldown finishes
     float m_abilityReadyFlash[4] = {};  // melee, ranged, dash, dim-switch

@@ -24,6 +24,7 @@ public:
     int difficulty = 1;
     int relicsCollected = 0;
     int bestCombo = 0;
+    int ngPlusTier = 0;            // NG+ tier this run was played on (0=Normal)
 
     // Balance summary
     float peakDmgRaw = 0;
