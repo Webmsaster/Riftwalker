@@ -31,6 +31,7 @@ private:
     void updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateTemporalWeaver(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
+    void updateEntropyIncarnate(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
 
     void explode(Entity& entity, EntityManager& entities);
     void updateEnemyAnimation(Entity& entity);

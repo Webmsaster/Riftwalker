@@ -89,6 +89,10 @@ void AudioManager::generateSounds() {
     m_sfx[static_cast<int>(SFX::VoidSovereignDimLock)]   = SoundGenerator::voidSovereignDimLock();
     m_sfx[static_cast<int>(SFX::VoidSovereignStorm)]     = SoundGenerator::voidSovereignStorm();
     m_sfx[static_cast<int>(SFX::VoidSovereignLaser)]     = SoundGenerator::voidSovereignLaser();
+    m_sfx[static_cast<int>(SFX::EntropyPulse)]           = SoundGenerator::entropyPulse();
+    m_sfx[static_cast<int>(SFX::EntropyTendril)]         = SoundGenerator::entropyTendril();
+    m_sfx[static_cast<int>(SFX::EntropyMissile)]         = SoundGenerator::entropyMissile();
+    m_sfx[static_cast<int>(SFX::EntropyShatter)]         = SoundGenerator::entropyShatter();
     m_sfx[static_cast<int>(SFX::LoreDiscover)]           = SoundGenerator::loreDiscover();
     m_sfx[static_cast<int>(SFX::ChargeReady)]            = SoundGenerator::chargeReady();
     m_sfx[static_cast<int>(SFX::Heartbeat)]              = SoundGenerator::heartbeat();

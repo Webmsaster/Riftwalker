@@ -985,3 +985,69 @@ Entity& Enemy::createVoidSovereign(EntityManager& entities, Vec2 pos, int dimens
     e.dimension = dimension;
     return e;
 }
+
+Entity& Enemy::createEntropyIncarnate(EntityManager& entities, Vec2 pos, int dimension, int difficulty) {
+    auto& e = entities.addEntity("enemy_boss");
+    e.dimension = dimension;
+
+    // Entropy Incarnate: 64x64, dark purple void entity with glowing core
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 64, 64);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(100, 20, 140); // Dark purple-void
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.useGravity = false; // Floating boss
+    phys.airResistance = 200.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 56;
+    col.height = 56;
+    col.offset = {4, 4};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    // HP: 800 + 100*difficulty as specified
+    hp.maxHP = 800.0f + difficulty * 100.0f;
+    hp.currentHP = hp.maxHP;
+    hp.armor = std::min(0.2f + difficulty * 0.05f, 0.6f);
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 20.0f + difficulty * 3.0f;
+    combat.meleeAttack.knockback = 350.0f;
+    combat.meleeAttack.cooldown = 1.2f;
+    combat.rangedAttack.damage = 12.0f + difficulty * 2.0f;
+    combat.rangedAttack.range = 400.0f;
+    combat.rangedAttack.knockback = 120.0f;
+    combat.rangedAttack.cooldown = 1.5f;
+    combat.rangedAttack.type = AttackType::Ranged;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Boss;
+    ai.bossType = 5; // Entropy Incarnate
+    ai.detectRange = 600.0f;
+    ai.loseRange = 800.0f;
+    ai.attackRange = 200.0f;
+    ai.chaseSpeed = 90.0f + difficulty * 10.0f;
+    ai.patrolSpeed = 50.0f;
+    ai.bossPhase = 1;
+    ai.bossAttackTimer = 0;
+    ai.bossAttackPattern = 0;
+    // Entropy Incarnate timers
+    ai.eiPulseTimer = 4.0f;
+    ai.eiTendrilTimer = 3.0f;
+    ai.eiTeleportTimer = 8.0f;
+    ai.eiStormTimer = 10.0f;
+    ai.eiDimLockTimer = 12.0f;
+    ai.eiMissileTimer = 6.0f;
+    ai.eiMinionTimer = 15.0f;
+    ai.eiShatterTimer = 6.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 180.0f, pos.y - 80.0f};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupBoss(anim, sprite, 5);
+
+    return e;
+}

@@ -192,6 +192,26 @@ struct AIComponent : public Component {
     Vec2 vsStormSafe2;               // Void Storm safe zone 2
     float vsVoidKernPulse = 0;       // Visual: pulsing core
 
+    // Entropy Incarnate boss specific (bossType 5)
+    float eiPulseTimer = 0;          // Entropy Pulse AoE cooldown
+    bool eiPulseFired = false;       // Flag: entropy pulse just fired (consumed by PlayState)
+    float eiTendrilTimer = 0;        // Void Tendrils cooldown
+    float eiTeleportTimer = 0;       // Teleport cooldown
+    float eiStormActive = 0;         // Entropy Storm aura remaining duration
+    float eiStormTimer = 0;          // Entropy Storm cooldown
+    float eiDimLockTimer = 0;        // Forced Dimension Lock cooldown
+    float eiDimLockActive = 0;       // Remaining dim-lock duration
+    float eiMissileTimer = 0;        // Entropy Missiles cooldown
+    float eiMinionTimer = 0;         // Minion spawn cooldown
+    int eiMinionCount = 0;           // Active entropy minions
+    float eiShatterTimer = 0;        // Phase 3: Dimension Shatter cooldown
+    bool eiForceDimSwitch = false;   // Phase 3: flag for PlayState to trigger dim-switch
+    float eiOverloadHealAccum = 0;   // Phase 3: Entropy Overload heal accumulator
+    bool eiFinalStandTriggered = false; // Phase 3: Final Stand at 10% HP
+    bool eiFinalStandEntropyApplied = false; // Final Stand entropy applied by PlayState
+    float eiCorePulse = 0;           // Visual: pulsing core animation timer
+    float eiHoverY = 0;              // Hover offset (sine wave)
+
     // Environmental hazard damage cooldown (per-enemy)
     float hazardDmgCooldown = 0;
 

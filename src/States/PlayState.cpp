@@ -720,12 +720,13 @@ void PlayState::update(float dt) {
 
     // Dimension switch
     if (input.isActionPressed(Action::DimensionSwitch)) {
-        // Check if dimension is locked by Void Sovereign
+        // Check if dimension is locked by Void Sovereign or Entropy Incarnate
         bool dimLocked = false;
         m_entities.forEach([&](Entity& e) {
             if (e.getTag() == "enemy_boss" && e.hasComponent<AIComponent>()) {
                 auto& bossAi = e.getComponent<AIComponent>();
                 if (bossAi.bossType == 4 && bossAi.vsDimLockActive > 0) dimLocked = true;
+                if (bossAi.bossType == 5 && bossAi.eiDimLockActive > 0) dimLocked = true;
             }
         });
         if (dimLocked) {
@@ -866,12 +867,13 @@ void PlayState::update(float dt) {
         }
     }
     m_screenEffects.setEntropy(m_entropy.getEntropy());
-    // Check if Void Storm is active
+    // Check if Void Storm or Entropy Storm is active
     bool stormActive = false;
     m_entities.forEach([&](Entity& e) {
         if (e.getTag() == "enemy_boss" && e.hasComponent<AIComponent>()) {
             auto& bossAi = e.getComponent<AIComponent>();
             if (bossAi.bossType == 4 && bossAi.vsStormActive > 0) stormActive = true;
+            if (bossAi.bossType == 5 && bossAi.eiStormActive > 0) stormActive = true;
         }
     });
     m_screenEffects.setVoidStorm(stormActive);
@@ -1031,6 +1033,88 @@ void PlayState::update(float dt) {
             AudioManager::instance().play(SFX::DimensionSwitch);
             AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
             m_screenEffects.triggerDimensionRipple();
+        }
+    });
+
+    // Entropy Incarnate boss effects
+    m_entities.forEach([&](Entity& e) {
+        if (e.getTag() != "enemy_boss") return;
+        if (!e.hasComponent<AIComponent>()) return;
+        auto& bossAi = e.getComponent<AIComponent>();
+        if (bossAi.bossType != 5) return;
+
+        // Entropy Pulse: add entropy when pulse just fired
+        if (bossAi.eiPulseFired) {
+            bossAi.eiPulseFired = false;
+            float entropyAdd = (bossAi.bossPhase >= 3) ? 20.0f : 15.0f;
+            if (m_player && e.hasComponent<TransformComponent>()) {
+                auto& playerT = m_player->getEntity()->getComponent<TransformComponent>();
+                Vec2 bossPos = e.getComponent<TransformComponent>().getCenter();
+                Vec2 pPos = playerT.getCenter();
+                float d = std::sqrt((pPos.x - bossPos.x) * (pPos.x - bossPos.x) +
+                                     (pPos.y - bossPos.y) * (pPos.y - bossPos.y));
+                if (d < 200.0f) {
+                    m_entropy.addEntropy(entropyAdd);
+                }
+            }
+        }
+
+        // Entropy Storm: continuous entropy drain while player in range
+        if (bossAi.eiStormActive > 0 && m_player) {
+            auto& playerT = m_player->getEntity()->getComponent<TransformComponent>();
+            Vec2 bossPos = e.getComponent<TransformComponent>().getCenter();
+            Vec2 pPos = playerT.getCenter();
+            float d = std::sqrt((pPos.x - bossPos.x) * (pPos.x - bossPos.x) +
+                                 (pPos.y - bossPos.y) * (pPos.y - bossPos.y));
+            if (d < 150.0f) {
+                m_entropy.addEntropy(3.0f * dt); // 3 entropy/s while in range
+            }
+        }
+
+        // Dimension Shatter: force random dimension switch
+        if (bossAi.eiForceDimSwitch) {
+            bossAi.eiForceDimSwitch = false;
+            m_dimManager.switchDimension(true);
+            m_camera.shake(8.0f, 0.3f);
+            AudioManager::instance().play(SFX::DimensionSwitch);
+            AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+            m_screenEffects.triggerDimensionRipple();
+        }
+
+        // Entropy Overload: if player entropy > 70, boss heals 5% max HP/s
+        if (bossAi.bossPhase >= 3 && m_entropy.getEntropy() > 70.0f) {
+            if (bossAi.eiOverloadHealAccum >= 0.1f) {
+                float healPerTick = e.getComponent<HealthComponent>().maxHP * 0.005f; // 0.5% per 0.1s = 5%/s
+                auto& bossHP = e.getComponent<HealthComponent>();
+                bossHP.heal(healPerTick);
+                bossAi.eiOverloadHealAccum -= 0.1f;
+                // Visual feedback: green heal particles
+                if (bossAi.eiOverloadHealAccum < 0.2f) {
+                    Vec2 bPos = e.getComponent<TransformComponent>().getCenter();
+                    m_particles.burst(bPos, 3, {50, 200, 80, 200}, 40.0f, 1.5f);
+                }
+            }
+        }
+
+        // Final Stand: massive +30 entropy applied once on trigger
+        if (bossAi.eiFinalStandTriggered && !bossAi.eiFinalStandEntropyApplied) {
+            bossAi.eiFinalStandEntropyApplied = true;
+            m_entropy.addEntropy(30.0f);
+        }
+    });
+
+    // Entropy minion death: add +10 entropy to player on death
+    // (Handled by zombie sweep in CombatSystem — detect dying entropy minions here)
+    m_entities.forEach([&](Entity& e) {
+        if (e.getTag() != "enemy_entropy_minion") return;
+        if (!e.hasComponent<HealthComponent>()) return;
+        auto& mhp = e.getComponent<HealthComponent>();
+        if (mhp.currentHP <= 0 && e.isAlive()) {
+            m_entropy.addEntropy(10.0f);
+            if (e.hasComponent<TransformComponent>()) {
+                Vec2 mPos = e.getComponent<TransformComponent>().getCenter();
+                m_particles.burst(mPos, 20, {140, 0, 200, 255}, 150.0f, 4.0f);
+            }
         }
     });
 
@@ -1226,7 +1310,11 @@ void PlayState::update(float dt) {
                 auto* lore = game->getLoreSystem();
                 if (lore) {
                     int bossTypeForLore = bossIdx % 4;
-                    if (m_currentDifficulty >= 10 && bossIdx >= 4) {
+                    if (m_currentDifficulty >= 11 && bossIdx >= 5) {
+                        // Entropy Incarnate killed
+                        Bestiary::onBossKill(5);
+                        AudioManager::instance().play(SFX::LoreDiscover);
+                    } else if (m_currentDifficulty >= 10 && bossIdx >= 4) {
                         // Void Sovereign killed
                         lore->discover(LoreID::SovereignTruth);
                         Bestiary::onBossKill(4);
@@ -3689,10 +3777,14 @@ void PlayState::spawnBoss() {
     int bossDiff = m_currentDifficulty;
     if (g_selectedDifficulty == GameDifficulty::Hard) bossDiff += 1;
 
-    // Void Sovereign at difficulty 10+ (after completing all 4 boss rotations)
+    // Boss selection based on difficulty
     int bossIndex = m_currentDifficulty / 3; // 0-based boss encounter index
-    if (m_currentDifficulty >= 10 && bossIndex >= 4) {
-        // Spawn Void Sovereign as final boss
+    if (m_currentDifficulty >= 11 && bossIndex >= 5) {
+        // Entropy Incarnate at difficulty 11+ (after Void Sovereign rotation)
+        Enemy::createEntropyIncarnate(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+        m_screenEffects.triggerBossIntro("ENTROPY INCARNATE");
+    } else if (m_currentDifficulty >= 10 && bossIndex >= 4) {
+        // Spawn Void Sovereign as final boss at difficulty 10+
         Enemy::createVoidSovereign(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
         m_screenEffects.triggerBossIntro("VOID SOVEREIGN");
     } else {

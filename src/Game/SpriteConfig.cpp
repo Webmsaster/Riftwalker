@@ -86,6 +86,10 @@ bool SpriteConfig::setupBoss(AnimationComponent& anim, SpriteComponent& sprite, 
             path = "assets/textures/bosses/void_sovereign.png";
             fw = 96; fh = 96;
             break;
+        case 5:
+            path = "assets/textures/bosses/entropy_incarnate.png";
+            fw = 64; fh = 64;
+            break;
         default: path = "assets/textures/bosses/rift_guardian.png"; break;
     }
 

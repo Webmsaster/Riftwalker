@@ -820,6 +820,46 @@ Mix_Chunk* SoundGenerator::heartbeat() {
     return toChunk(s);
 }
 
+// Entropy Incarnate boss sounds
+
+Mix_Chunk* SoundGenerator::entropyPulse() {
+    auto s = generate(0.5f);
+    // Deep warping pulse: descending sweep + sub-bass rumble
+    addSweep(s, 300.0f, 60.0f, 0.4f, 0.1f);
+    addSine(s, 50.0f, 0.3f, 0.0f, 0.05f, 0.4f);
+    addNoise(s, 0.15f, 0.0f, 0.0f, 0.3f);
+    addSine(s, 80.0f, 0.2f, 0.0f, 0.1f, 0.45f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::entropyTendril() {
+    auto s = generate(0.4f);
+    // Eerie homing tendril: slow wobbling tone
+    addSweep(s, 180.0f, 400.0f, 0.0f, 0.25f, 0.0f, 0.15f);
+    addSweep(s, 400.0f, 250.0f, 0.25f, 0.0f, 0.15f, 0.4f);
+    addSine(s, 100.0f, 0.15f, 0.0f, 0.0f, 0.3f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::entropyMissile() {
+    auto s = generate(0.35f);
+    // Sharp missile salvo: ascending burst + crackle
+    addSweep(s, 200.0f, 900.0f, 0.35f, 0.0f, 0.0f, 0.15f);
+    addNoise(s, 0.12f, 0.0f, 0.05f, 0.25f);
+    addSine(s, 150.0f, 0.2f, 0.0f, 0.0f, 0.2f);
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::entropyShatter() {
+    auto s = generate(0.6f);
+    // Dimension shatter: chaotic crash + dissonant chord
+    addSweep(s, 600.0f, 40.0f, 0.5f, 0.1f, 0.0f, 0.3f);
+    addNoise(s, 0.3f, 0.0f, 0.0f, 0.4f);
+    addSine(s, 55.0f, 0.4f, 0.0f, 0.05f, 0.5f);
+    addSine(s, 77.0f, 0.2f, 0.0f, 0.1f, 0.4f); // dissonant overtone
+    return toChunk(s);
+}
+
 Mix_Chunk* SoundGenerator::chargeReady() {
     auto s = generate(0.2f);
     // Brief ascending shimmer: two quick tones + sparkle
