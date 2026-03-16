@@ -471,6 +471,10 @@ void PlayState::handleEvent(const SDL_Event& event) {
             m_showDebugOverlay = m_smokeTest; // Auto-enable F3 overlay
             return;
         }
+        if (event.key.keysym.scancode == SDL_SCANCODE_M) {
+            m_hud.toggleMinimap();
+            return;
+        }
         if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
             if (m_showRelicChoice) {
                 // Can't escape relic choice
@@ -2595,8 +2599,9 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Event chain tracker (left side)
     renderEventChain(renderer, game->getFont());
 
-    // Minimap (bottom right corner)
-    m_hud.renderMinimap(renderer, m_level.get(), m_player.get(), &m_dimManager, SCREEN_WIDTH, SCREEN_HEIGHT, &m_entities);
+    // Minimap (top right corner, M key to toggle)
+    m_hud.renderMinimap(renderer, m_level.get(), m_player.get(), &m_dimManager,
+                        SCREEN_WIDTH, SCREEN_HEIGHT, &m_entities, &m_repairedRiftIndices);
 
     // Achievement notification popup
     auto* notif = game->getAchievements().getActiveNotification();
