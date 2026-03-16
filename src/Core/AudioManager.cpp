@@ -14,7 +14,7 @@ void AudioManager::init() {
         SDL_Log("SDL_mixer init failed: %s", Mix_GetError());
         return;
     }
-    Mix_AllocateChannels(16);
+    Mix_AllocateChannels(18); // 0-9: SFX, 10: theme ambient, 11-14: music layers, 15: ambient, 16-17: procedural music
     m_initialized = true;
 
     generateSounds();

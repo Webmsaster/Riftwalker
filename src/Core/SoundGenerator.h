@@ -125,6 +125,10 @@ public:
     // Theme-specific ambient accents (~4 seconds, loop-friendly)
     static Mix_Chunk* themeAmbient(int themeId); // 0-11 matching ThemeID
 
+    // Procedural music tracks (~8 seconds each, loop-friendly)
+    static Mix_Chunk* themeMusic(int themeId, int dimension); // 0-11, dim 1 or 2
+    static Mix_Chunk* bossMusic(int bossPhase);               // Phase 1-3 intensity
+
 private:
     struct Sample {
         std::vector<Sint16> data;
@@ -141,5 +145,7 @@ private:
     static void addSweep(Sample& s, float startFreq, float endFreq,
                          float startVol, float endVol,
                          float startTime = 0, float endTime = -1);
+    static void addTriangle(Sample& s, float freq, float startVol, float endVol,
+                            float startTime = 0, float endTime = -1);
     static Mix_Chunk* toChunk(const Sample& s);
 };

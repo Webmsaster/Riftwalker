@@ -701,6 +701,7 @@ void PlayState::exit() {
     AudioManager::instance().stopAmbient();
     AudioManager::instance().stopMusicLayers();
     AudioManager::instance().stopThemeAmbient();
+    m_musicSystem.cleanup(); // Stop and free procedural music tracks
     m_dimATestBackground = nullptr;
     m_dimBTestBackground = nullptr;
     m_bossTestBackground = nullptr;
@@ -838,6 +839,9 @@ void PlayState::startNewRun() {
     AudioManager::instance().startMusicLayers();
     AudioManager::instance().playThemeAmbient(static_cast<int>(m_themeA.id));
 
+    // Start procedural theme music
+    m_musicSystem.setTheme(static_cast<int>(m_themeA.id), m_dimManager.getCurrentDimension());
+
     m_entropy = SuitEntropy();
     // NG+1: entropy decays 20% slower (passive decay reduced)
     if (m_ngPlusTier >= 1) {
@@ -950,6 +954,9 @@ void PlayState::generateLevel() {
 
     // Start ambient music
     AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+
+    // Update procedural music for new level theme
+    m_musicSystem.setTheme(static_cast<int>(m_themeA.id), m_dimManager.getCurrentDimension());
 }
 
 void PlayState::spawnEnemies() {
@@ -1445,6 +1452,7 @@ void PlayState::update(float dt) {
                 m_camera.shake(6.0f, 0.2f);
                 AudioManager::instance().play(SFX::DimensionSwitch);
                 AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+                m_musicSystem.setDimension(m_dimManager.getCurrentDimension());
                 m_screenEffects.triggerDimensionRipple();
             }
         }
@@ -1459,6 +1467,7 @@ void PlayState::update(float dt) {
             m_camera.shake(8.0f, 0.3f);
             AudioManager::instance().play(SFX::DimensionSwitch);
             AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+            m_musicSystem.setDimension(m_dimManager.getCurrentDimension());
             m_screenEffects.triggerDimensionRipple();
         }
     }
@@ -1510,6 +1519,7 @@ void PlayState::update(float dt) {
             m_entropy.onDimensionSwitch();
             AudioManager::instance().play(SFX::DimensionSwitch);
             AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+            m_musicSystem.setDimension(m_dimManager.getCurrentDimension());
             game->getInputMutable().rumble(0.3f, 100);
             m_screenEffects.triggerDimensionRipple();
 
@@ -1588,6 +1598,7 @@ void PlayState::update(float dt) {
         m_camera.shake(8.0f, 0.3f);
         AudioManager::instance().play(SFX::DimensionSwitch);
         AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+        m_musicSystem.setDimension(m_dimManager.getCurrentDimension());
         m_screenEffects.triggerDimensionRipple();
     }
 
@@ -1659,10 +1670,16 @@ void PlayState::update(float dt) {
     {
         int nearEnemies = 0;
         bool bossActive = false;
+        int bossPhase = 1;
         Vec2 pPos = m_player ? m_player->getEntity()->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
         m_entities.forEach([&](Entity& e) {
             if (e.getTag().substr(0, 5) == "enemy") {
-                if (e.getTag() == "enemy_boss") bossActive = true;
+                if (e.getTag() == "enemy_boss") {
+                    bossActive = true;
+                    if (e.hasComponent<AIComponent>()) {
+                        bossPhase = e.getComponent<AIComponent>().bossPhase;
+                    }
+                }
                 if (!e.hasComponent<TransformComponent>()) return;
                 auto& et = e.getComponent<TransformComponent>();
                 float dx = et.getCenter().x - pPos.x;
@@ -1673,6 +1690,9 @@ void PlayState::update(float dt) {
         float hp = m_player ? m_player->getEntity()->getComponent<HealthComponent>().getPercent() : 1.0f;
         m_musicSystem.update(dt, nearEnemies, bossActive, hp, m_entropy.getEntropy());
         AudioManager::instance().updateMusicLayers(m_musicSystem);
+
+        // Procedural music: boss track switching and phase changes
+        m_musicSystem.setBossActive(bossActive, bossPhase);
     }
 
     // Run time tracking
@@ -1898,6 +1918,7 @@ void PlayState::update(float dt) {
             m_camera.shake(6.0f, 0.2f);
             AudioManager::instance().play(SFX::DimensionSwitch);
             AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+            m_musicSystem.setDimension(m_dimManager.getCurrentDimension());
             m_screenEffects.triggerDimensionRipple();
         }
     });
@@ -1944,6 +1965,7 @@ void PlayState::update(float dt) {
             m_camera.shake(8.0f, 0.3f);
             AudioManager::instance().play(SFX::DimensionSwitch);
             AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+            m_musicSystem.setDimension(m_dimManager.getCurrentDimension());
             m_screenEffects.triggerDimensionRipple();
         }
 
