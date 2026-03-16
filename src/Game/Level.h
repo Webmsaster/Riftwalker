@@ -1,9 +1,11 @@
 #pragma once
+#include "LevelTopology.h"
 #include "Tile.h"
 #include "SecretRoom.h"
 #include "RandomEvent.h"
 #include "NPCSystem.h"
 #include "Core/Camera.h"
+#include <utility>
 #include <vector>
 #include <SDL2/SDL.h>
 
@@ -43,10 +45,18 @@ public:
     // FIX: Exit active state for visual feedback (locked until all rifts repaired)
     void setExitActive(bool active) { m_exitActive = active; }
     bool isExitActive() const { return m_exitActive; }
+    const LevelTopology& getTopology() const { return m_topology; }
+    void setTopology(const LevelTopology& topology) { m_topology = topology; }
+    void setTopology(LevelTopology&& topology) { m_topology = std::move(topology); }
+    bool hasValidatedTopology() const { return m_topology.validation.passed; }
+    int getGenerationSeed() const { return m_topology.validation.usedSeed; }
+    int getRequestedGenerationSeed() const { return m_topology.validation.requestedSeed; }
 
     // Rift locations
     std::vector<Vec2> getRiftPositions() const { return m_riftPositions; }
     void addRiftPosition(Vec2 pos) { m_riftPositions.push_back(pos); }
+    int getRiftRequiredDimension(int index) const;
+    bool isRiftActiveInDimension(int index, int dimension) const;
 
     // Enemy spawn points
     struct SpawnPoint { Vec2 position; int enemyType; int dimension; };
@@ -93,6 +103,7 @@ private:
     Vec2 m_exitPoint;
     bool m_exitActive = false;
     std::vector<Vec2> m_riftPositions;
+    LevelTopology m_topology;
     std::vector<SpawnPoint> m_enemySpawns;
     std::vector<SecretRoom> m_secretRooms;
     std::vector<RandomEvent> m_randomEvents;
@@ -123,7 +134,8 @@ private:
     void renderConveyorTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
     void renderLaserEmitter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
     void renderLaserBeams(SDL_Renderer* renderer, const Camera& camera, int dim, Uint32 ticks) const;
-    void renderRift(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const;
+    void renderRift(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks,
+                    int requiredDimension, bool activeInCurrentDimension) const;
     void renderExit(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const;
     void renderIceTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;
     void renderGravityWell(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const;

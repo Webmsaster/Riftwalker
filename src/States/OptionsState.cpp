@@ -17,6 +17,9 @@ void OptionsState::enter() {
     m_options.push_back({"Mute",          audio.isMuted() ? 1 : 0, 0, 1, 1, true});
     m_options.push_back({"Fullscreen",    (game->getWindow() && game->getWindow()->isFullscreen()) ? 1 : 0, 0, 1, 1, true});
     m_options.push_back({"Screen Shake",  100, 0, 100, 10, false});
+    m_options.push_back({"Controller Rumble", game->getInput().isRumbleEnabled() ? 1 : 0, 0, 1, 1, true});
+    m_options.push_back({"Color Blind Mode", g_colorBlindMode, 0, 2, 1, false});
+    m_options.push_back({"HUD Scale", static_cast<int>(g_hudScale * 100), 75, 150, 25, false});
     m_options.push_back({"Controls",      0, 0, 0, 0, false}); // special: open keybindings
     m_options.push_back({"Reset Defaults", 0, 0, 0, 0, false}); // special: reset
     m_options.push_back({"Back",          0, 0, 0, 0, false}); // special: back button
@@ -77,7 +80,10 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     m_options[3].value = 0;    // Mute off
                     m_options[4].value = 0;    // Fullscreen off
                     m_options[5].value = 100;  // Screen shake full
-                    for (int i = 0; i <= 5; i++) applyOption(i);
+                    m_options[6].value = 1;    // Rumble on
+                    m_options[7].value = 0;    // Color blind off
+                    m_options[8].value = 100;  // HUD scale 100%
+                    for (int i = 0; i <= 8; i++) applyOption(i);
                     AudioManager::instance().play(SFX::MenuConfirm);
                 } else if (m_selected == static_cast<int>(m_options.size()) - 3) {
                     // Controls
@@ -122,6 +128,15 @@ void OptionsState::applyOption(int index) {
             break;
         case 5: // Screen Shake - stored for use by PlayState camera
             break;
+        case 6: // Controller Rumble
+            game->getInputMutable().setRumbleEnabled(m_options[6].value == 1);
+            break;
+        case 7: // Color Blind Mode
+            g_colorBlindMode = m_options[7].value;
+            break;
+        case 8: // HUD Scale
+            g_hudScale = m_options[8].value / 100.0f;
+            break;
     }
 }
 
@@ -129,6 +144,21 @@ std::string OptionsState::getValueText(int index) const {
     auto& opt = m_options[index];
     if (opt.isToggle) {
         return opt.value ? "ON" : "OFF";
+    }
+    // Color Blind Mode: show mode name
+    if (opt.label == "Color Blind Mode") {
+        switch (opt.value) {
+            case 0: return "OFF";
+            case 1: return "Deuteranopia";
+            case 2: return "Tritanopia";
+            default: return "OFF";
+        }
+    }
+    // HUD Scale: show percentage
+    if (opt.label == "HUD Scale") {
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "%d%%", opt.value);
+        return buf;
     }
     char buf[16];
     std::snprintf(buf, sizeof(buf), "%d", opt.value);

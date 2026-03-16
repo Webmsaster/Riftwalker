@@ -15,6 +15,7 @@
 #include "States/BestiaryState.h"
 #include "States/LoreState.h"
 #include "States/EndingState.h"
+#include "States/RunHistoryState.h"
 #include <SDL2/SDL_image.h>
 #include <fstream>
 #include <sstream>
@@ -80,6 +81,7 @@ bool Game::init() {
     m_states[StateID::Bestiary] = std::make_unique<BestiaryState>();
     m_states[StateID::Lore] = std::make_unique<LoreState>();
     m_states[StateID::Ending] = std::make_unique<EndingState>();
+    m_states[StateID::RunHistory] = std::make_unique<RunHistoryState>();
 
     for (auto& [id, state] : m_states) {
         state->game = this;

@@ -1,10 +1,354 @@
 #include "LevelGenerator.h"
 #include "NPCSystem.h"
+#include "DimensionShiftBalance.h"
 #include <algorithm>
 #include <cmath>
+#include <deque>
 
 // Room data shared between generate() and helper methods
 struct LGRoom { int x, y, w, h; };
+
+namespace {
+constexpr int kMaxGenerationValidationAttempts = 512;
+bool isStableStandingTile(const Level& level, int x, int y, int dim);
+
+bool hasSupportBelow(const Level& level, int x, int y, int dim) {
+    for (int below = 1; below <= 5; below++) {
+        if (level.isSolid(x, y + below, dim) || level.isOneWay(x, y + below, dim)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isValidRiftAnchor(const Level& level, int x, int y) {
+    if (!level.inBounds(x, y)) return false;
+    if (level.isSolid(x, y, 1) || level.isSolid(x, y, 2)) return false;
+    return isStableStandingTile(level, x, y, 1) || isStableStandingTile(level, x, y, 2);
+}
+
+bool isValidRiftAnchorForDimension(const Level& level, int x, int y, int requiredDimension) {
+    if (requiredDimension != 1 && requiredDimension != 2) {
+        return isValidRiftAnchor(level, x, y);
+    }
+    if (!level.inBounds(x, y)) return false;
+    if (level.isSolid(x, y, requiredDimension)) return false;
+    return isStableStandingTile(level, x, y, requiredDimension);
+}
+
+bool tryFindRiftAnchorInRoom(const Level& level, const LGRoom& room,
+                             std::mt19937& rng, int requiredDimension,
+                             int& outX, int& outY) {
+    int minX = room.x + 2;
+    int maxX = room.x + room.w - 3;
+    int minY = room.y + 1;
+    int maxY = room.y + room.h - 3;
+    if (maxX < minX || maxY < minY) return false;
+
+    int roomW = maxX - minX + 1;
+    int roomH = maxY - minY + 1;
+    for (int attempt = 0; attempt < 64; attempt++) {
+        int rx = minX + static_cast<int>(rng() % roomW);
+        int ry = minY + static_cast<int>(rng() % roomH);
+        if (isValidRiftAnchorForDimension(level, rx, ry, requiredDimension)) {
+            outX = rx;
+            outY = ry;
+            return true;
+        }
+    }
+
+    for (int y = maxY; y >= minY; y--) {
+        for (int x = minX; x <= maxX; x++) {
+            if (isValidRiftAnchorForDimension(level, x, y, requiredDimension)) {
+                outX = x;
+                outY = y;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool isSafeOccupiableTile(const Level& level, int x, int y, int dim) {
+    if (!level.inBounds(x, y)) return false;
+    const Tile& tile = level.getTile(x, y, dim);
+    return !tile.isSolid() && !tile.isOneWay() && !tile.isDangerous();
+}
+
+bool hasStableSupport(const Level& level, int x, int y, int dim) {
+    if (!level.inBounds(x, y + 1)) return false;
+    return level.isSolid(x, y + 1, dim) || level.isOneWay(x, y + 1, dim);
+}
+
+bool isStableStandingTile(const Level& level, int x, int y, int dim) {
+    return isSafeOccupiableTile(level, x, y, dim) && hasStableSupport(level, x, y, dim);
+}
+
+bool roomContainsTile(const LevelGraphRoom& room, int x, int y) {
+    return x >= room.x && x < room.x + room.w &&
+           y >= room.y && y < room.y + room.h;
+}
+
+int findRoomIndexForTile(const std::vector<LevelGraphRoom>& rooms, int x, int y) {
+    for (int i = 0; i < static_cast<int>(rooms.size()); i++) {
+        if (roomContainsTile(rooms[i], x, y)) return i;
+    }
+    return -1;
+}
+
+bool roomHasStableStandingTile(const Level& level, const LevelGraphRoom& room, int dim) {
+    int minX = room.x + 1;
+    int maxX = room.x + room.w - 2;
+    int minY = room.y + 1;
+    int maxY = room.y + room.h - 2;
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            if (isStableStandingTile(level, x, y, dim)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool roomHasSharedSwitchAnchor(const Level& level, const LevelGraphRoom& room) {
+    int minX = room.x + 1;
+    int maxX = room.x + room.w - 2;
+    int minY = room.y + 1;
+    int maxY = room.y + room.h - 2;
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            const Tile& tileA = level.getTile(x, y, 1);
+            const Tile& tileB = level.getTile(x, y, 2);
+            if (!tileA.isSolid() && !tileA.isDangerous() &&
+                !tileB.isSolid() && !tileB.isDangerous()) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool horizontalCorridorCarved(const Level& level,
+                              int fromX,
+                              int toX,
+                              int atY,
+                              int dim,
+                              int allowedOneWayLoX = -1,
+                              int allowedOneWayHiX = -1) {
+    int lo = std::min(fromX, toX);
+    int hi = std::max(fromX, toX);
+    for (int x = lo; x <= hi; x++) {
+        for (int dy = 0; dy < 4; dy++) {
+            if (!level.inBounds(x, atY + dy)) {
+                return false;
+            }
+            const Tile& tile = level.getTile(x, atY + dy, dim);
+            bool allowOneWayLanding = tile.isOneWay() &&
+                                      dy == 3 &&
+                                      x >= allowedOneWayLoX &&
+                                      x <= allowedOneWayHiX;
+            if (tile.isSolid() || tile.isDangerous() || (tile.isOneWay() && !allowOneWayLanding)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool verticalShaftCarved(const Level& level, int x1, int x2, int y1, int y2, int dim) {
+    int midX = (x1 + x2) / 2;
+    int minY = std::min(y1, y2);
+    int maxY = std::max(y1, y2) + 3;
+    for (int y = minY - 1; y <= maxY + 1; y++) {
+        for (int x = midX; x <= midX + 1; x++) {
+            if (!level.inBounds(x, y)) return false;
+            const Tile& tile = level.getTile(x, y, dim);
+            if (tile.isSolid() || tile.isDangerous()) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool shaftHasOneWayTraversal(const Level& level, int x1, int x2, int y1, int y2, int dim) {
+    int midX = (x1 + x2) / 2;
+    int minY = std::min(y1, y2);
+    int maxY = std::max(y1, y2);
+    for (int y = minY + 1; y < maxY; y++) {
+        if (level.isOneWay(midX, y, dim) || level.isOneWay(midX + 1, y, dim)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void restoreMainPathTraversal(Level& level,
+                              int x1,
+                              int y1,
+                              int x2,
+                              int y2,
+                              int dim,
+                              const WorldTheme& theme) {
+    Tile empty;
+    empty.type = TileType::Empty;
+
+    auto clearHorizontal = [&](int fromX, int toX, int atY) {
+        int lo = std::min(fromX, toX);
+        int hi = std::max(fromX, toX);
+        for (int x = lo; x <= hi; x++) {
+            for (int dy = 0; dy < 4; dy++) {
+                int y = atY + dy;
+                if (!level.inBounds(x, y)) continue;
+                level.setTile(x, y, dim, empty);
+            }
+        }
+    };
+
+    if (std::abs(y1 - y2) <= 2) {
+        clearHorizontal(x1, x2, y1);
+        return;
+    }
+
+    int midX = (x1 + x2) / 2;
+    clearHorizontal(x1, midX, y1);
+    clearHorizontal(midX, x2, y2);
+
+    int shaftTop = std::min(y1, y2) - 1;
+    int shaftBottom = std::max(y1, y2) + 4;
+    for (int x = midX; x <= midX + 1; x++) {
+        for (int y = shaftTop; y <= shaftBottom; y++) {
+            if (!level.inBounds(x, y)) continue;
+            level.setTile(x, y, dim, empty);
+        }
+    }
+
+    Tile oneWay;
+    oneWay.type = TileType::OneWay;
+    oneWay.color = theme.colors.oneWay;
+    int shaftMinY = std::min(y1, y2);
+    int shaftMaxY = std::max(y1, y2);
+    for (int y = shaftMinY + 3; y < shaftMaxY; y += 4) {
+        if (level.inBounds(midX, y)) level.setTile(midX, y, dim, oneWay);
+        if (level.inBounds(midX + 1, y)) level.setTile(midX + 1, y, dim, oneWay);
+    }
+}
+
+bool roomReachableInVisitedMask(const std::vector<char>& visited,
+                                int roomIndex,
+                                const std::array<bool, 3>& validDims,
+                                int roomCount,
+                                unsigned int switchStateCount) {
+    for (int dim = 1; dim <= 2; dim++) {
+        if (!validDims[dim]) continue;
+        for (unsigned int mask = 0; mask < switchStateCount; mask++) {
+            int idx = static_cast<int>(mask * roomCount * 2 + roomIndex * 2 + (dim - 1));
+            if (idx >= 0 && idx < static_cast<int>(visited.size()) && visited[idx]) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+struct IntRect {
+    int x = 0;
+    int y = 0;
+    int w = 0;
+    int h = 0;
+};
+
+bool rectsOverlap(const IntRect& a, const IntRect& b) {
+    return a.x < b.x + b.w &&
+           a.x + a.w > b.x &&
+           a.y < b.y + b.h &&
+           a.y + a.h > b.y;
+}
+
+IntRect expandRect(const IntRect& rect, int padding) {
+    return {
+        rect.x - padding,
+        rect.y - padding,
+        rect.w + padding * 2,
+        rect.h + padding * 2
+    };
+}
+
+bool overlapsExistingSecretRooms(const Level& level, const IntRect& rect) {
+    for (const auto& secretRoom : level.getSecretRooms()) {
+        IntRect existing{
+            secretRoom.tileX,
+            secretRoom.tileY,
+            secretRoom.width,
+            secretRoom.height
+        };
+        if (rectsOverlap(rect, existing)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool overlapsMainPathGeometry(const std::vector<LGRoom>& rooms, const IntRect& rect) {
+    for (const auto& room : rooms) {
+        if (rectsOverlap(rect, {room.x, room.y, room.w, room.h})) {
+            return true;
+        }
+    }
+
+    for (size_t i = 1; i < rooms.size(); i++) {
+        const auto& fromRoom = rooms[i - 1];
+        const auto& toRoom = rooms[i];
+        int x1 = fromRoom.x + fromRoom.w - 1;
+        int y1 = fromRoom.y + fromRoom.h / 2;
+        int x2 = toRoom.x;
+        int y2 = toRoom.y + toRoom.h / 2;
+
+        if (std::abs(y1 - y2) <= 2) {
+            IntRect corridor{
+                std::min(x1, x2),
+                y1,
+                std::abs(x2 - x1) + 1,
+                4
+            };
+            if (rectsOverlap(rect, corridor)) {
+                return true;
+            }
+            continue;
+        }
+
+        int midX = (x1 + x2) / 2;
+        IntRect upperSegment{
+            std::min(x1, midX),
+            y1,
+            std::abs(midX - x1) + 1,
+            4
+        };
+        IntRect lowerSegment{
+            std::min(midX, x2),
+            y2,
+            std::abs(x2 - midX) + 1,
+            4
+        };
+        IntRect shaft{
+            midX,
+            std::min(y1, y2) - 1,
+            2,
+            std::abs(y2 - y1) + 6
+        };
+
+        if (rectsOverlap(rect, upperSegment) ||
+            rectsOverlap(rect, lowerSegment) ||
+            rectsOverlap(rect, shaft)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+} // namespace
 
 LevelGenerator::LevelGenerator() : m_rng(42) {}
 
@@ -14,23 +358,70 @@ void LevelGenerator::setThemes(const WorldTheme& themeA, const WorldTheme& theme
 }
 
 Level LevelGenerator::generate(int difficulty, int seed) {
+    Level lastInvalid(8, 8, 32);
+    bool haveInvalid = false;
+
+    for (int attempt = 0; attempt < kMaxGenerationValidationAttempts; attempt++) {
+        int candidateSeed = seed + attempt;
+        LevelTopology topology;
+        Level level = generateCandidate(difficulty, candidateSeed, topology);
+
+        topology.validation.requestedSeed = seed;
+        topology.validation.usedSeed = candidateSeed;
+        topology.validation.attempt = attempt;
+        topology.validation.passed = validateGeneratedLevel(level, topology);
+        level.setTopology(topology);
+
+        if (topology.validation.passed) {
+            if (attempt > 0) {
+                SDL_Log("LevelGenerator: requested seed %d resolved to valid seed %d after %d retries",
+                        seed, candidateSeed, attempt);
+            }
+            return level;
+        }
+
+        lastInvalid = level;
+        haveInvalid = true;
+    }
+
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                 "LevelGenerator: failed to produce validated level for requested seed %d after %d attempts",
+                 seed, kMaxGenerationValidationAttempts);
+    return haveInvalid ? lastInvalid : Level(8, 8, 32);
+}
+
+Level LevelGenerator::generateCandidateForTesting(int difficulty, int seed, LevelTopology& topology) {
+    return generateCandidate(difficulty, seed, topology);
+}
+
+bool LevelGenerator::validateLevelForTesting(const Level& level, LevelTopology& topology) const {
+    return validateGeneratedLevel(level, topology);
+}
+
+bool LevelGenerator::revalidateLevel(Level& level) const {
+    LevelTopology topology = level.getTopology();
+    bool passed = validateGeneratedLevel(level, topology);
+    topology.validation.passed = passed;
+    level.setTopology(std::move(topology));
+    return passed;
+}
+
+Level LevelGenerator::generateCandidate(int difficulty, int seed, LevelTopology& topology) {
     m_rng.seed(seed);
 
     int roomCount = 8 + difficulty * 2;
     if (roomCount > 16) roomCount = 16;
 
-    // Level size in tiles
     int levelW = 120 + difficulty * 20;
     int levelH = 60 + difficulty * 10;
 
     Level level(levelW, levelH, 32);
+    std::vector<LGRoom> rooms;
+    std::vector<LevelGraphSwitch> switches;
+    std::vector<LevelGraphRift> rifts;
 
-    // Place borders for both dimensions
     placeBorders(level, 1, m_themeA);
     placeBorders(level, 2, m_themeB);
-
-    // Generate rooms along a path
-    std::vector<LGRoom> rooms;
 
     int curX = 3;
     int curY = levelH / 2;
@@ -38,10 +429,10 @@ Level LevelGenerator::generate(int difficulty, int seed) {
     auto& templates = getRoomTemplates();
 
     for (int i = 0; i < roomCount; i++) {
-        // Decide: use template (40% chance) or procedural
         bool useTemplate = (m_rng() % 5 < 2) && !templates.empty();
 
-        int rw, rh;
+        int rw;
+        int rh;
         int templateIdx = -1;
 
         if (useTemplate) {
@@ -60,15 +451,12 @@ Level LevelGenerator::generate(int difficulty, int seed) {
         rooms.push_back({curX, curY, rw, rh});
 
         if (useTemplate && templateIdx >= 0) {
-            // Apply template to both dimensions (contrasting templates for dim B)
             applyTemplate(level, curX, curY, templates[templateIdx], 1, m_themeA);
-            // Pick a contrasting template for dimension B (different size preferred)
             int tmplB = templateIdx;
             for (int t = 0; t < 5; t++) {
                 int candidate = m_rng() % templates.size();
                 if (candidate != templateIdx) {
                     tmplB = candidate;
-                    // Prefer templates with different dimensions
                     if (std::abs(templates[templateIdx].width - templates[candidate].width) > 2 ||
                         std::abs(templates[templateIdx].height - templates[candidate].height) > 2) {
                         break;
@@ -77,16 +465,13 @@ Level LevelGenerator::generate(int difficulty, int seed) {
             }
             applyTemplate(level, curX, curY, templates[tmplB], 2, m_themeB);
         } else {
-            // Challenge room: 12.5% chance at difficulty 2+
             bool isChallenge = (m_rng() % 8 == 0) && (difficulty >= 2) && (i > 0);
             generateRoom(level, curX, curY, rw, rh, 1, m_themeA);
             generateRoom(level, curX, curY, rw, rh, 2, m_themeB);
 
             if (isChallenge) {
-                // Add spike pit with narrow platforms in both dimensions
                 for (int dim = 1; dim <= 2; dim++) {
                     const auto& theme = (dim == 1) ? m_themeA : m_themeB;
-                    // Bottom half becomes spikes
                     int spikeStartY = curY + rh / 2 + 1;
                     for (int sy = spikeStartY; sy < curY + rh - 1; sy++) {
                         for (int sx = curX + 1; sx < curX + rw - 1; sx++) {
@@ -96,7 +481,6 @@ Level LevelGenerator::generate(int difficulty, int seed) {
                             level.setTile(sx, sy, dim, spike);
                         }
                     }
-                    // Narrow platforms across the spike pit
                     int platCount = 2 + m_rng() % 3;
                     for (int p = 0; p < platCount; p++) {
                         int platX = curX + 2 + p * ((rw - 4) / platCount);
@@ -114,25 +498,21 @@ Level LevelGenerator::generate(int difficulty, int seed) {
             }
         }
 
-        // Add platforms (procedural rooms already have some, templates may need more)
         addPlatforms(level, curX, curY, rw, rh, 1, m_themeA);
         addPlatforms(level, curX, curY, rw, rh, 2, m_themeB);
 
-        // Dimension-exclusive bridge platforms: exist in only one dimension,
-        // creating paths that require dimension-switching to navigate
         if (rw >= 10 && rh >= 6) {
-            int bridgeCount = 1 + m_rng() % 2; // 1-2 per room
+            int bridgeCount = 1 + m_rng() % 2;
             for (int b = 0; b < bridgeCount; b++) {
                 int bridgeDim = (m_rng() % 2 == 0) ? 1 : 2;
                 const auto& theme = (bridgeDim == 1) ? m_themeA : m_themeB;
                 int bx = curX + 2 + m_rng() % (rw - 5);
                 int by = curY + 2 + m_rng() % (rh - 4);
-                int bw = 3 + m_rng() % 3; // 3-5 tiles wide
+                int bw = 3 + m_rng() % 3;
 
                 for (int dx = 0; dx < bw; dx++) {
                     int tx = bx + dx;
                     if (tx >= curX + rw - 1) break;
-                    // Only place if empty in target dim and empty in other dim
                     int otherDim = (bridgeDim == 1) ? 2 : 1;
                     if (level.getTile(tx, by, bridgeDim).type == TileType::Empty &&
                         level.getTile(tx, by, otherDim).type == TileType::Empty) {
@@ -145,15 +525,12 @@ Level LevelGenerator::generate(int difficulty, int seed) {
             }
         }
 
-        // Add enemies (theme-biased types per dimension)
         int enemyDim = (m_rng() % 2 == 0) ? 1 : 2;
         addEnemySpawns(level, curX, curY, rw, rh,
                        enemyDim, difficulty, enemyDim == 1 ? m_themeA : m_themeB);
 
-        // Move to next room position
         curX += rw + 2 + m_rng() % 4;
         int yShift = static_cast<int>(m_rng() % 12) - 6;
-        // 25% chance of larger vertical shift for variety
         if (m_rng() % 4 == 0) {
             yShift = (m_rng() % 2 == 0) ? -10 : 10;
         }
@@ -161,30 +538,29 @@ Level LevelGenerator::generate(int difficulty, int seed) {
         curY = std::clamp(curY, 5, levelH - 15);
     }
 
-    // Connect rooms with corridors
-    // FIX: x1 was rooms[i-1].x + rooms[i-1].w (one past the right wall),
-    // so corridors never carved through room A's right wall. Now includes
-    // the wall tile so both room exits are opened.
     for (size_t i = 1; i < rooms.size(); i++) {
-        int x1 = rooms[i-1].x + rooms[i-1].w - 1;
-        int y1 = rooms[i-1].y + rooms[i-1].h / 2;
+        int x1 = rooms[i - 1].x + rooms[i - 1].w - 1;
+        int y1 = rooms[i - 1].y + rooms[i - 1].h / 2;
         int x2 = rooms[i].x;
         int y2 = rooms[i].y + rooms[i].h / 2;
         connectRooms(level, x1, y1, x2, y2, 1, m_themeA);
         connectRooms(level, x1, y1, x2, y2, 2, m_themeB);
     }
 
-    // Set spawn and exit
+    topology.spawnRoomIndex = rooms.empty() ? -1 : 0;
+    topology.exitRoomIndex = rooms.empty() ? -1 : static_cast<int>(rooms.size()) - 1;
+
     if (!rooms.empty()) {
         auto& first = rooms.front();
         int spawnTX = first.x + 2;
         int spawnTY = first.y + first.h - 3;
+        topology.spawnTileX = spawnTX;
+        topology.spawnTileY = spawnTY;
         level.setSpawnPoint({
             static_cast<float>(spawnTX * 32),
             static_cast<float>(spawnTY * 32)
         });
 
-        // Clear area around spawn point (3 wide, 4 tall) in both dimensions
         for (int dim = 1; dim <= 2; dim++) {
             for (int dy = -3; dy <= 0; dy++) {
                 for (int dx = -1; dx <= 1; dx++) {
@@ -197,7 +573,6 @@ Level LevelGenerator::generate(int difficulty, int seed) {
                     }
                 }
             }
-            // Ensure there's a floor below spawn
             if (level.inBounds(spawnTX, spawnTY + 1)) {
                 const auto& floorTile = level.getTile(spawnTX, spawnTY + 1, dim);
                 if (!floorTile.isSolid()) {
@@ -214,12 +589,13 @@ Level LevelGenerator::generate(int difficulty, int seed) {
         auto& last = rooms.back();
         int exitTX = last.x + last.w - 2;
         int exitTY = last.y + last.h - 3;
+        topology.exitTileX = exitTX;
+        topology.exitTileY = exitTY;
         level.setExitPoint({
             static_cast<float>(exitTX * 32),
             static_cast<float>(exitTY * 32)
         });
 
-        // Clear area around exit point too
         for (int dim = 1; dim <= 2; dim++) {
             for (int dy = -3; dy <= 0; dy++) {
                 for (int dx = -1; dx <= 1; dx++) {
@@ -232,7 +608,6 @@ Level LevelGenerator::generate(int difficulty, int seed) {
                     }
                 }
             }
-            // FIX: Ensure floor below exit (same guarantee as spawn point)
             if (level.inBounds(exitTX, exitTY + 1)) {
                 const auto& floorTile = level.getTile(exitTX, exitTY + 1, dim);
                 if (!floorTile.isSolid()) {
@@ -247,23 +622,251 @@ Level LevelGenerator::generate(int difficulty, int seed) {
         }
     }
 
-    // Dimension switch-gate puzzles
-    placeDimPuzzles(level, rooms, difficulty);
-
-    // Secret rooms with breakable wall entrances
+    placeDimPuzzles(level, rooms, difficulty, &switches);
     placeSecretRooms(level, rooms, difficulty);
-
-    // Random events (merchant, shrine, anomaly, etc.)
+    for (size_t i = 1; i < rooms.size(); i++) {
+        int x1 = rooms[i - 1].x + rooms[i - 1].w - 1;
+        int y1 = rooms[i - 1].y + rooms[i - 1].h / 2;
+        int x2 = rooms[i].x;
+        int y2 = rooms[i].y + rooms[i].h / 2;
+        restoreMainPathTraversal(level, x1, y1, x2, y2, 1, m_themeA);
+        restoreMainPathTraversal(level, x1, y1, x2, y2, 2, m_themeB);
+    }
     placeRandomEvents(level, rooms, difficulty);
-
-    // NPC encounters
     placeNPCs(level, rooms, difficulty);
 
-    // Add rifts (puzzles)
-    int riftCount = 2 + difficulty;
-    addRifts(level, riftCount);
+    int riftCount = getDimensionShiftRiftCount(difficulty);
+    addRifts(level, rooms, difficulty, riftCount, &rifts);
+
+    topology.rooms.reserve(rooms.size());
+    for (const auto& room : rooms) {
+        LevelGraphRoom graphRoom;
+        graphRoom.x = room.x;
+        graphRoom.y = room.y;
+        graphRoom.w = room.w;
+        graphRoom.h = room.h;
+        topology.rooms.push_back(graphRoom);
+    }
+
+    topology.switches = switches;
+    topology.rifts = rifts;
+
+    for (size_t i = 1; i < rooms.size(); i++) {
+        int yPrev = rooms[i - 1].y + rooms[i - 1].h / 2;
+        int yCurr = rooms[i].y + rooms[i].h / 2;
+        for (int dim = 1; dim <= 2; dim++) {
+            LevelGraphEdge edge;
+            edge.fromRoom = static_cast<int>(i) - 1;
+            edge.toRoom = static_cast<int>(i);
+            edge.dimension = dim;
+            edge.type = (std::abs(yPrev - yCurr) <= 2)
+                ? LevelGraphEdgeType::Corridor
+                : LevelGraphEdgeType::VerticalShaft;
+            for (const auto& sw : topology.switches) {
+                if (sw.roomIndex == static_cast<int>(i) - 1 &&
+                    sw.gateRoomIndex == static_cast<int>(i) &&
+                    sw.gateDimension == dim) {
+                    edge.requiredSwitchId = sw.pairId;
+                    break;
+                }
+            }
+            topology.edges.push_back(edge);
+        }
+    }
 
     return level;
+}
+
+bool LevelGenerator::validateGeneratedLevel(const Level& level, LevelTopology& topology) const {
+    topology.validation.failureMask = LevelValidationFailure_None;
+    auto fail = [&](int failureBit) {
+        topology.validation.failureMask |= failureBit;
+    };
+
+    if (topology.rooms.empty() || topology.spawnRoomIndex < 0 || topology.exitRoomIndex < 0) {
+        fail(LevelValidationFailure_MainPath);
+        fail(LevelValidationFailure_Spawn);
+        fail(LevelValidationFailure_Exit);
+        return false;
+    }
+
+    for (auto& room : topology.rooms) {
+        room.hasStableFooting[1] = roomHasStableStandingTile(level, room, 1);
+        room.hasStableFooting[2] = roomHasStableStandingTile(level, room, 2);
+        room.hasDimensionSwitchAnchor = roomHasSharedSwitchAnchor(level, room);
+    }
+
+    int spawnRoomByTile = findRoomIndexForTile(topology.rooms, topology.spawnTileX, topology.spawnTileY);
+    topology.spawnValid[1] = isStableStandingTile(level, topology.spawnTileX, topology.spawnTileY, 1);
+    topology.spawnValid[2] = isStableStandingTile(level, topology.spawnTileX, topology.spawnTileY, 2);
+    if (spawnRoomByTile != topology.spawnRoomIndex || !topology.spawnValid[1]) {
+        fail(LevelValidationFailure_Spawn);
+    }
+
+    int exitRoomByTile = findRoomIndexForTile(topology.rooms, topology.exitTileX, topology.exitTileY);
+    topology.exitValid[1] = isStableStandingTile(level, topology.exitTileX, topology.exitTileY, 1);
+    topology.exitValid[2] = isStableStandingTile(level, topology.exitTileX, topology.exitTileY, 2);
+    if (exitRoomByTile != topology.exitRoomIndex || (!topology.exitValid[1] && !topology.exitValid[2])) {
+        fail(LevelValidationFailure_Exit);
+    }
+
+    for (auto& rift : topology.rifts) {
+        if (rift.roomIndex < 0) {
+            rift.roomIndex = findRoomIndexForTile(topology.rooms, rift.tileX, rift.tileY);
+        }
+        rift.accessibleDimensions[1] = isStableStandingTile(level, rift.tileX, rift.tileY, 1);
+        rift.accessibleDimensions[2] = isStableStandingTile(level, rift.tileX, rift.tileY, 2);
+        if (rift.requiredDimension != 1 && rift.requiredDimension != 2) {
+            rift.requiredDimension = rift.accessibleDimensions[2] && !rift.accessibleDimensions[1] ? 2 : 1;
+        }
+        rift.validated = rift.roomIndex >= 0 &&
+                         (rift.accessibleDimensions[1] || rift.accessibleDimensions[2]);
+        if (!rift.validated) {
+            fail(LevelValidationFailure_RiftAnchor);
+        }
+    }
+
+    for (auto& sw : topology.switches) {
+        bool switchRoomMatches = findRoomIndexForTile(topology.rooms, sw.switchTileX, sw.switchTileY) == sw.roomIndex;
+        bool gateRoomMatches = findRoomIndexForTile(topology.rooms, sw.gateTileX, sw.gateTileY) == sw.gateRoomIndex;
+        bool switchOk = switchRoomMatches &&
+                        level.getTile(sw.switchTileX, sw.switchTileY, sw.switchDimension).type == TileType::DimSwitch &&
+                        isStableStandingTile(level, sw.switchTileX, sw.switchTileY, sw.switchDimension);
+        bool gateOk = gateRoomMatches && sw.gateHeight > 0;
+        for (int dy = 0; dy < sw.gateHeight && gateOk; dy++) {
+            if (!level.inBounds(sw.gateTileX, sw.gateTileY + dy) ||
+                level.getTile(sw.gateTileX, sw.gateTileY + dy, sw.gateDimension).type != TileType::DimGate) {
+                gateOk = false;
+            }
+        }
+        sw.validated = switchOk && gateOk;
+        if (!sw.validated) {
+            fail(LevelValidationFailure_DimPuzzle);
+        }
+    }
+
+    for (auto& edge : topology.edges) {
+        if (edge.fromRoom < 0 || edge.fromRoom >= static_cast<int>(topology.rooms.size()) ||
+            edge.toRoom < 0 || edge.toRoom >= static_cast<int>(topology.rooms.size())) {
+            fail(LevelValidationFailure_MainPath);
+            continue;
+        }
+
+        const auto& fromRoom = topology.rooms[edge.fromRoom];
+        const auto& toRoom = topology.rooms[edge.toRoom];
+        int x1 = fromRoom.x + fromRoom.w - 1;
+        int y1 = fromRoom.y + fromRoom.h / 2;
+        int x2 = toRoom.x;
+        int y2 = toRoom.y + toRoom.h / 2;
+
+        bool pathOk = false;
+        if (edge.type == LevelGraphEdgeType::Corridor) {
+            pathOk = horizontalCorridorCarved(level, x1, x2, y1, edge.dimension);
+        } else {
+            int midX = (x1 + x2) / 2;
+            bool shortJumpableShaft = std::abs(y1 - y2) <= 4;
+            pathOk = horizontalCorridorCarved(level, x1, midX, y1, edge.dimension, midX, midX + 1) &&
+                     horizontalCorridorCarved(level, midX, x2, y2, edge.dimension, midX, midX + 1) &&
+                     verticalShaftCarved(level, x1, x2, y1, y2, edge.dimension) &&
+                     (shaftHasOneWayTraversal(level, x1, x2, y1, y2, edge.dimension) || shortJumpableShaft);
+        }
+
+        edge.validated = pathOk;
+    }
+
+    for (int roomIndex = 1; roomIndex < static_cast<int>(topology.rooms.size()); roomIndex++) {
+        bool pairHasTraversal = false;
+        for (const auto& edge : topology.edges) {
+            if (edge.fromRoom == roomIndex - 1 &&
+                edge.toRoom == roomIndex &&
+                edge.validated) {
+                pairHasTraversal = true;
+                break;
+            }
+        }
+        if (!pairHasTraversal) {
+            fail(LevelValidationFailure_MainPath);
+            break;
+        }
+    }
+
+    if (!topology.rooms[topology.spawnRoomIndex].hasDimensionSwitchAnchor) {
+        bool needsCrossDim = false;
+        for (const auto& rift : topology.rifts) {
+            if (rift.accessibleDimensions[2] && !rift.accessibleDimensions[1]) {
+                needsCrossDim = true;
+                break;
+            }
+        }
+        if (!needsCrossDim && topology.exitValid[2] && !topology.exitValid[1]) {
+            needsCrossDim = true;
+        }
+        if (needsCrossDim) {
+            fail(LevelValidationFailure_DimSwitch);
+        }
+    }
+
+    struct TraversalState {
+        int roomIndex = -1;
+        int dimension = 1;
+        unsigned int switchMask = 0;
+    };
+
+    int roomCount = static_cast<int>(topology.rooms.size());
+    unsigned int switchStateCount = 1u << static_cast<unsigned int>(topology.switches.size());
+    std::vector<char> visited(static_cast<size_t>(roomCount) * 2u * switchStateCount, 0);
+    std::deque<TraversalState> queue;
+
+    auto tryVisit = [&](int roomIndex, int dimension, unsigned int switchMask) {
+        if (roomIndex < 0 || roomIndex >= roomCount || dimension < 1 || dimension > 2) return;
+        size_t idx = static_cast<size_t>(switchMask) * static_cast<size_t>(roomCount) * 2u +
+                     static_cast<size_t>(roomIndex) * 2u +
+                     static_cast<size_t>(dimension - 1);
+        if (idx >= visited.size() || visited[idx]) return;
+        visited[idx] = 1;
+        queue.push_back({roomIndex, dimension, switchMask});
+    };
+
+    if (topology.spawnValid[1]) {
+        tryVisit(topology.spawnRoomIndex, 1, 0);
+    }
+
+    while (!queue.empty()) {
+        TraversalState state = queue.front();
+        queue.pop_front();
+
+        const auto& room = topology.rooms[state.roomIndex];
+        if (room.hasDimensionSwitchAnchor) {
+            tryVisit(state.roomIndex, state.dimension == 1 ? 2 : 1, state.switchMask);
+        }
+
+        for (const auto& sw : topology.switches) {
+            if (!sw.validated || sw.roomIndex != state.roomIndex || sw.switchDimension != state.dimension) continue;
+            tryVisit(state.roomIndex, state.dimension, state.switchMask | (1u << static_cast<unsigned int>(sw.pairId)));
+        }
+
+        for (const auto& edge : topology.edges) {
+            if (!edge.validated || edge.fromRoom != state.roomIndex || edge.dimension != state.dimension) continue;
+            if (edge.requiredSwitchId >= 0 &&
+                (state.switchMask & (1u << static_cast<unsigned int>(edge.requiredSwitchId))) == 0) {
+                continue;
+            }
+            tryVisit(edge.toRoom, state.dimension, state.switchMask);
+        }
+    }
+
+    for (const auto& rift : topology.rifts) {
+        if (!rift.validated) continue;
+        if (!roomReachableInVisitedMask(visited, rift.roomIndex, rift.accessibleDimensions, roomCount, switchStateCount)) {
+            fail(LevelValidationFailure_RiftReachability);
+        }
+    }
+
+    if (!roomReachableInVisitedMask(visited, topology.exitRoomIndex, topology.exitValid, roomCount, switchStateCount)) {
+        fail(LevelValidationFailure_ExitReachability);
+    }
+
+    return topology.validation.failureMask == LevelValidationFailure_None;
 }
 
 void LevelGenerator::applyTemplate(Level& level, int startX, int startY,
@@ -929,9 +1532,11 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
                                       int w, int h, int dim, int difficulty,
                                       const WorldTheme& theme) {
     float density = theme.enemyDensity;
-    // BALANCE: Enemy density formula reduced: 0.15 -> 0.12, diff/2 -> diff/3
-    // Diff 1: ~2/room, Diff 5: ~3/room, Diff 10: ~5/room (was 2, 4, 7)
-    int count = static_cast<int>(density * w * 0.12f) + difficulty / 3;
+    // Scale by room area so early floors do not round down to zero enemies.
+    int count = static_cast<int>((density * static_cast<float>(w * h)) / 32.0f) + difficulty / 3;
+    if (difficulty <= 2 && w >= 10 && h >= 6) {
+        count = std::max(count, 1);
+    }
 
     auto themeConfig = ThemeEnemyConfig::getConfig(theme.id);
 
@@ -961,80 +1566,124 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
             ey = startY + 2;
         }
 
+        // At difficulty 3+, 30% of enemies are dimension-exclusive (only in one dim),
+        // forcing tactical dimension switching. Others use dim 0 (both dimensions).
+        int spawnDim = 0; // default: visible in both
+        if (difficulty >= 3 && (m_rng() % 100) < 30) {
+            spawnDim = (m_rng() % 2 == 0) ? 1 : 2;
+        }
+
         level.addEnemySpawn(
             {static_cast<float>(ex * 32), static_cast<float>(ey * 32)},
-            type, dim
+            type, spawnDim
         );
     }
 }
 
-void LevelGenerator::addRifts(Level& level, int count) {
-    int w = level.getWidth();
-    int h = level.getHeight();
+void LevelGenerator::addRifts(Level& level, const std::vector<LGRoom>& rooms, int floor, int count,
+                              std::vector<LevelGraphRift>* outRifts) {
+    if (count <= 0 || rooms.empty()) return;
 
+    int firstUsableRoom = (rooms.size() > 2) ? 1 : 0;
+    int lastUsableRoom = (rooms.size() > 2) ? static_cast<int>(rooms.size()) - 2
+                                            : static_cast<int>(rooms.size()) - 1;
+    std::vector<std::pair<int, int>> usedTiles;
+
+    auto isUnusedTile = [&](int x, int y) {
+        return std::none_of(usedTiles.begin(), usedTiles.end(),
+            [x, y](const auto& tile) { return tile.first == x && tile.second == y; });
+    };
+
+    int targetDimBRifts = getDimensionShiftDimBRiftCount(floor, count);
     for (int i = 0; i < count; i++) {
+        int requiredDimension = getDimensionShiftRequiredDimension(floor, count, i);
         float fraction = static_cast<float>(i + 1) / (count + 1);
-        int rx = static_cast<int>(w * fraction);
-        // More vertical variety
-        int ry = h / 4 + static_cast<int>(m_rng() % (h / 2));
-
-        bool placed = false;
-        for (int attempt = 0; attempt < 40; attempt++) {
-            // Rift should be in open area (not solid in at least one dimension)
-            if (!level.isSolid(rx, ry, 1) && !level.isSolid(rx, ry, 2)) {
-                // Check for reachable floor within 5 tiles below
-                bool hasFloor = false;
-                for (int below = 1; below <= 5; below++) {
-                    if (level.isSolid(rx, ry + below, 1) ||
-                        level.isSolid(rx, ry + below, 2)) {
-                        hasFloor = true;
-                        break;
-                    }
-                }
-                if (hasFloor) {
-                    level.addRiftPosition({
-                        static_cast<float>(rx * 32),
-                        static_cast<float>(ry * 32)
-                    });
-                    placed = true;
-                    break;
-                }
-            }
-            // Spiral outward
-            rx += static_cast<int>(m_rng() % 8) - 4;
-            ry += static_cast<int>(m_rng() % 8) - 4;
-            rx = std::clamp(rx, 4, w - 4);
-            ry = std::clamp(ry, 4, h - 4);
+        int roomSpan = lastUsableRoom - firstUsableRoom + 1;
+        int preferredRoom = firstUsableRoom;
+        if (roomSpan > 1) {
+            preferredRoom += std::clamp(static_cast<int>(fraction * roomSpan), 0, roomSpan - 1);
         }
 
-        // FIX: Fallback validates position is not inside solid tile and has reachable floor
-        if (!placed) {
-            rx = static_cast<int>(w * fraction);
-            ry = h / 2;
-            // Search downward for a valid open position with floor
-            for (int scan = 0; scan < h / 2; scan++) {
-                int testY = ry + scan;
-                if (testY >= h - 4) break;
-                if (!level.isSolid(rx, testY, 1) && !level.isSolid(rx, testY, 2)) {
-                    bool hasFloor = false;
-                    for (int below = 1; below <= 5; below++) {
-                        if (level.isSolid(rx, testY + below, 1) ||
-                            level.isSolid(rx, testY + below, 2)) {
-                            hasFloor = true;
-                            break;
-                        }
-                    }
-                    if (hasFloor) {
-                        ry = testY;
-                        break;
-                    }
+        int rx = -1;
+        int ry = -1;
+        bool placed = false;
+        auto tryPlaceRift = [&](int targetDimension) {
+            for (int offset = 0; offset < roomSpan && !placed; offset++) {
+                int candidateRoom = preferredRoom + ((offset % 2 == 0) ? offset / 2 : -((offset + 1) / 2));
+                if (candidateRoom < firstUsableRoom || candidateRoom > lastUsableRoom) continue;
+                if (!tryFindRiftAnchorInRoom(level, rooms[candidateRoom], m_rng, targetDimension, rx, ry)) continue;
+                if (!isUnusedTile(rx, ry)) continue;
+
+                level.addRiftPosition({
+                    static_cast<float>(rx * 32),
+                    static_cast<float>(ry * 32)
+                });
+                if (outRifts) {
+                    LevelGraphRift rift;
+                    rift.roomIndex = candidateRoom;
+                    rift.tileX = rx;
+                    rift.tileY = ry;
+                    rift.requiredDimension = requiredDimension;
+                    outRifts->push_back(rift);
                 }
+                usedTiles.push_back({rx, ry});
+                placed = true;
             }
+        };
+
+        tryPlaceRift(requiredDimension);
+        if (!placed) {
+            tryPlaceRift(0);
+        }
+
+        if (!placed &&
+            tryFindRiftAnchorInRoom(level, rooms.front(), m_rng, requiredDimension, rx, ry) &&
+            isUnusedTile(rx, ry)) {
             level.addRiftPosition({
                 static_cast<float>(rx * 32),
                 static_cast<float>(ry * 32)
             });
+            if (outRifts) {
+                LevelGraphRift rift;
+                rift.roomIndex = 0;
+                rift.tileX = rx;
+                rift.tileY = ry;
+                rift.requiredDimension = requiredDimension;
+                outRifts->push_back(rift);
+            }
+            usedTiles.push_back({rx, ry});
+            placed = true;
         }
+
+        if (!placed &&
+            tryFindRiftAnchorInRoom(level, rooms.front(), m_rng, 0, rx, ry) &&
+            isUnusedTile(rx, ry)) {
+            level.addRiftPosition({
+                static_cast<float>(rx * 32),
+                static_cast<float>(ry * 32)
+            });
+            if (outRifts) {
+                LevelGraphRift rift;
+                rift.roomIndex = 0;
+                rift.tileX = rx;
+                rift.tileY = ry;
+                rift.requiredDimension = requiredDimension;
+                outRifts->push_back(rift);
+            }
+            usedTiles.push_back({rx, ry});
+        }
+    }
+
+    if (outRifts && !outRifts->empty()) {
+        int dimBPlaced = 0;
+        for (const auto& rift : *outRifts) {
+            if (rift.requiredDimension == 2) dimBPlaced++;
+        }
+        SDL_Log("LevelGenerator: floor %d rifts=%d dimB=%d/%d",
+                floor,
+                static_cast<int>(outRifts->size()),
+                dimBPlaced,
+                targetDimBRifts);
     }
 }
 
@@ -1091,6 +1740,13 @@ void LevelGenerator::placeSecretRooms(Level& level, const std::vector<LGRoom>& r
 
         if (sy < 2 || sy + secretH >= levelH - 1) continue;
         if (sx < 2 || sx + secretW >= levelW - 1) continue;
+
+        IntRect secretBounds{sx, sy, secretW, secretH};
+        IntRect paddedSecretBounds = expandRect(secretBounds, 1);
+        if (overlapsMainPathGeometry(rooms, paddedSecretBounds) ||
+            overlapsExistingSecretRooms(level, paddedSecretBounds)) {
+            continue;
+        }
 
         SecretRoomType sType = secretTypes[m_rng() % 5];
 
@@ -1471,7 +2127,8 @@ void LevelGenerator::placeNPCs(Level& level, const std::vector<LGRoom>& rooms, i
         NPCType::RiftScholar,
         NPCType::DimRefugee,
         NPCType::LostEngineer,
-        NPCType::EchoOfSelf
+        NPCType::EchoOfSelf,
+        NPCType::Blacksmith
     };
 
     // Pick rooms (skip first 2 and last)
@@ -1487,10 +2144,13 @@ void LevelGenerator::placeNPCs(Level& level, const std::vector<LGRoom>& rooms, i
     for (int n = 0; n < npcCount && n < static_cast<int>(availableRooms.size()); n++) {
         auto& room = rooms[availableRooms[n]];
 
-        // Echo of Self only at difficulty 4+
-        NPCType type = npcTypes[m_rng() % 4];
+        // Echo of Self only at difficulty 4+, Blacksmith at difficulty 2+
+        NPCType type = npcTypes[m_rng() % 5];
         if (type == NPCType::EchoOfSelf && difficulty < 4) {
             type = NPCType::RiftScholar;
+        }
+        if (type == NPCType::Blacksmith && difficulty < 2) {
+            type = NPCType::LostEngineer;
         }
 
         // Find open floor position
@@ -1510,7 +2170,8 @@ void LevelGenerator::placeNPCs(Level& level, const std::vector<LGRoom>& rooms, i
     }
 }
 
-void LevelGenerator::placeDimPuzzles(Level& level, const std::vector<LGRoom>& rooms, int difficulty) {
+void LevelGenerator::placeDimPuzzles(Level& level, const std::vector<LGRoom>& rooms, int difficulty,
+                                     std::vector<LevelGraphSwitch>* outSwitches) {
     if (rooms.size() < 3) return;
 
     // Place 1-3 switch-gate pairs depending on difficulty
@@ -1585,6 +2246,22 @@ void LevelGenerator::placeDimPuzzles(Level& level, const std::vector<LGRoom>& ro
             gyBase = gateRoom.y + 2 + m_rng() % std::max(1, gateRoom.h - 4);
         }
 
-        if (gatePlaced) pairId++;
+        if (gatePlaced) {
+            if (outSwitches) {
+                LevelGraphSwitch graphSwitch;
+                graphSwitch.pairId = pairId;
+                graphSwitch.roomIndex = switchRoomIdx;
+                graphSwitch.gateRoomIndex = gateRoomIdx;
+                graphSwitch.switchDimension = switchDim;
+                graphSwitch.gateDimension = gateDim;
+                graphSwitch.switchTileX = sx;
+                graphSwitch.switchTileY = sy;
+                graphSwitch.gateTileX = gx;
+                graphSwitch.gateTileY = gyBase;
+                graphSwitch.gateHeight = gateHeight;
+                outSwitches->push_back(graphSwitch);
+            }
+            pairId++;
+        }
     }
 }

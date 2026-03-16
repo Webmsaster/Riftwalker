@@ -57,6 +57,15 @@ public:
     int roomsCleared = 0;
     int shardsCollected = 0;
 
+    // Getters for PauseState stats panel
+    float getRunTime() const { return m_runTime; }
+    int getBestCombo() const { return m_bestCombo; }
+    int getCurrentDifficulty() const { return m_currentDifficulty; }
+    Player* getPlayer() const { return m_player.get(); }
+    CombatSystem& getCombatSystem() { return m_combatSystem; }
+    bool isBossLevel() const { return m_isBossLevel; }
+    void abandonRun();
+
 private:
     void startNewRun();
     void generateLevel();
@@ -97,6 +106,9 @@ private:
     // World themes
     WorldTheme m_themeA;
     WorldTheme m_themeB;
+    SDL_Texture* m_dimATestBackground = nullptr;
+    SDL_Texture* m_dimBTestBackground = nullptr;
+    SDL_Texture* m_bossTestBackground = nullptr;
 
     // Run state
     int m_currentDifficulty = 1;
@@ -111,6 +123,8 @@ private:
 
     // FIX: Exit locked hint when player reaches exit before repairing all rifts
     float m_exitLockedHintTimer = 0;
+    float m_riftDimensionHintTimer = 0;
+    int m_riftDimensionHintRequiredDim = 0;
 
     // Ambient effects
     float m_ambientDustTimer = 0;
@@ -130,6 +144,7 @@ private:
     bool m_playerDying = false;
     float m_deathSequenceTimer = 0;
     float m_deathSequenceDuration = 1.2f; // seconds of death freeze
+    int m_deathCause = 0; // 0=unknown, 1=HP, 2=entropy, 3=collapse, 4=speedrun, 5=victory
     float m_achievementShardMult = 1.0f; // Achievement shard drop bonus
     int m_lastComboMilestone = 0;
     float m_comboMilestoneFlash = 0;
@@ -202,6 +217,8 @@ private:
     void spawnBoss();
     void renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font);
     void endRun();
+    void finalizeRun(bool abandoned);
+    void populateRunSummary(int runShards, bool isNewRecord);
 
     // Relic system
     bool m_showRelicChoice = false;
@@ -340,6 +357,19 @@ private:
     void advanceChain();
     void completeChain();
     void renderEventChain(SDL_Renderer* renderer, TTF_Font* font);
+
+    // Kill feed (bottom-right scrolling text)
+    struct KillFeedEntry {
+        char text[64] = {};
+        float timer = 0;
+        SDL_Color color{220, 220, 220, 255};
+    };
+    static constexpr int MAX_KILL_FEED = 5;
+    KillFeedEntry m_killFeed[5];
+    int m_killFeedHead = 0; // circular buffer index
+    void addKillFeedEntry(const KillEvent& ke);
+    void updateKillFeed(float dt);
+    void renderKillFeed(SDL_Renderer* renderer, TTF_Font* font);
 
     // Visual polish (Stufe 4)
     TrailSystem m_trails;

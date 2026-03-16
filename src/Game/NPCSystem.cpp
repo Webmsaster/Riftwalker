@@ -27,6 +27,11 @@ NPCData NPCSystem::createNPC(NPCType type, Vec2 pos, int dimension) {
             npc.greeting = "You face... yourself. Defeat me for a great reward.";
             npc.dialogLine = "A mirror match begins!";
             break;
+        case NPCType::Blacksmith:
+            npc.name = "Rift Blacksmith";
+            npc.greeting = "Bring me shards and I'll forge your weapons anew.";
+            npc.dialogLine = "Rift-tempered steel cuts deeper.";
+            break;
         default: break;
     }
     return npc;
@@ -38,6 +43,7 @@ const char* NPCSystem::getName(NPCType type) {
         case NPCType::DimRefugee: return "Dim. Refugee";
         case NPCType::LostEngineer: return "Lost Engineer";
         case NPCType::EchoOfSelf: return "Echo of Self";
+        case NPCType::Blacksmith: return "Blacksmith";
         default: return "Unknown";
     }
 }
@@ -60,6 +66,10 @@ const char* NPCSystem::getGreeting(NPCType type, int storyStage) {
             if (storyStage >= 2) return "One final test. Prove your mastery.";
             if (storyStage >= 1) return "Stronger now... Can you match me again?";
             return "Face yourself!";
+        case NPCType::Blacksmith:
+            if (storyStage >= 2) return "For you, my finest work. Free of charge.";
+            if (storyStage >= 1) return "Your weapons have seen battle. I can do more now.";
+            return "Shards fuel my forge. Let me improve your gear.";
         default: return "";
     }
 }
@@ -88,6 +98,12 @@ const char* NPCSystem::getStoryLine(NPCType type, int storyStage) {
             if (storyStage >= 2) return "Your ultimate echo. Defeat it for the greatest reward.";
             if (storyStage >= 1) return "Your echo is stronger now, adapted from last time.";
             return "A mirror match begins! Defeat your echo for a reward.";
+        case NPCType::Blacksmith:
+            if (storyStage >= 2)
+                return "I've perfected my rift-forging technique.\nAccept my masterwork — both weapons, permanently enhanced.";
+            if (storyStage >= 1)
+                return "With more rift energy, I can now upgrade range\nand attack speed too. Better prices for a returning customer.";
+            return "My forge burns with rift energy. I can sharpen your\nmelee or reinforce your ranged weapon — for a price.";
         default: return "";
     }
 }
@@ -114,6 +130,13 @@ std::vector<const char*> NPCSystem::getDialogOptions(NPCType type, int storyStag
             return {"[Upgrade weapon (+30% DMG, 45s)]", "[Leave]"};
         case NPCType::EchoOfSelf:
             return {"[Fight!]", "[Not yet...]"};
+        case NPCType::Blacksmith:
+            if (storyStage >= 2)
+                return {"[Accept masterwork (free +30% both)]", "[Leave]"};
+            if (storyStage >= 1)
+                return {"[Sharpen melee +25% DMG (35 shards)]", "[Reinforce ranged +25% DMG (35 shards)]",
+                        "[Hone speed +15% ATK SPD (45 shards)]", "[Leave]"};
+            return {"[Sharpen melee +20% DMG (40 shards)]", "[Reinforce ranged +20% DMG (40 shards)]", "[Leave]"};
         default:
             return {"[Leave]"};
     }

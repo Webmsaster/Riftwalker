@@ -65,6 +65,19 @@ bool Level::loadTileset(const std::string& path) {
     return m_tileset != nullptr;
 }
 
+int Level::getRiftRequiredDimension(int index) const {
+    if (index < 0 || index >= static_cast<int>(m_topology.rifts.size())) {
+        return 0;
+    }
+    int requiredDimension = m_topology.rifts[index].requiredDimension;
+    return (requiredDimension == 1 || requiredDimension == 2) ? requiredDimension : 0;
+}
+
+bool Level::isRiftActiveInDimension(int index, int dimension) const {
+    int requiredDimension = getRiftRequiredDimension(index);
+    return requiredDimension == 0 || requiredDimension == dimension;
+}
+
 int Level::getAutoTileIndex(int tx, int ty, int dim) const {
     int mask = 0;
     if (isSolid(tx, ty - 1, dim)) mask |= 1;  // top
@@ -242,12 +255,15 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
     renderLaserBeams(renderer, camera, currentDim, ticks);
 
     // Render rifts (animated portals)
-    for (auto& riftPos : m_riftPositions) {
+    for (int i = 0; i < static_cast<int>(m_riftPositions.size()); i++) {
+        const auto& riftPos = m_riftPositions[i];
         SDL_FRect worldRect = {riftPos.x, riftPos.y,
                                static_cast<float>(m_tileSize), static_cast<float>(m_tileSize * 2)};
         SDL_Rect sr = camera.worldToScreen(worldRect);
 
-        renderRift(renderer, sr, ticks);
+        int requiredDimension = getRiftRequiredDimension(i);
+        renderRift(renderer, sr, ticks, requiredDimension,
+                   isRiftActiveInDimension(i, currentDim));
     }
 
     // Render exit (animated gateway)
@@ -380,15 +396,24 @@ void Level::renderSpikeTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
     }
 }
 
-void Level::renderRift(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const {
+void Level::renderRift(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks,
+                       int requiredDimension, bool activeInCurrentDimension) const {
     float time = ticks * 0.003f;
+    SDL_Color accent = (requiredDimension == 2)
+        ? SDL_Color{255, 90, 145, 255}
+        : SDL_Color{90, 180, 255, 255};
+    SDL_Color core = (requiredDimension == 2)
+        ? SDL_Color{70, 12, 30, 220}
+        : SDL_Color{12, 24, 48, 220};
+    float visibility = activeInCurrentDimension ? 1.0f : 0.45f;
 
     // Outer glow (pulsing)
     float pulse = 0.5f + 0.5f * std::sin(time);
     int glowSize = 4 + static_cast<int>(pulse * 4);
     SDL_Rect glow = {sr.x - glowSize, sr.y - glowSize,
                      sr.w + glowSize * 2, sr.h + glowSize * 2};
-    SDL_SetRenderDrawColor(renderer, 120, 40, 200, static_cast<Uint8>(30 + 20 * pulse));
+    SDL_SetRenderDrawColor(renderer, accent.r, accent.g, accent.b,
+                           static_cast<Uint8>((30 + 20 * pulse) * visibility));
     SDL_RenderFillRect(renderer, &glow);
 
     // Rift border (animated)
@@ -396,15 +421,21 @@ void Level::renderRift(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const 
         float offset = std::sin(time + i * 0.5f) * 2;
         SDL_Rect border = {sr.x + i + static_cast<int>(offset), sr.y + i,
                            sr.w - i * 2, sr.h - i * 2};
-        Uint8 r = static_cast<Uint8>(140 + 60 * std::sin(time + i));
-        Uint8 b = static_cast<Uint8>(200 + 55 * std::sin(time * 1.3f + i));
-        SDL_SetRenderDrawColor(renderer, r, 50, b, static_cast<Uint8>(200 - i * 40));
+        Uint8 r = static_cast<Uint8>(std::clamp(
+            static_cast<int>(accent.r + 35 * std::sin(time + i)), 0, 255));
+        Uint8 g = static_cast<Uint8>(std::clamp(
+            static_cast<int>(accent.g * 0.55f + 20 * std::sin(time * 0.9f + i)), 0, 255));
+        Uint8 b = static_cast<Uint8>(std::clamp(
+            static_cast<int>(accent.b + 35 * std::sin(time * 1.3f + i)), 0, 255));
+        SDL_SetRenderDrawColor(renderer, r, g, b,
+                               static_cast<Uint8>((200 - i * 40) * visibility));
         SDL_RenderDrawRect(renderer, &border);
     }
 
     // Inner void (dark center with sparkles)
     SDL_Rect inner = {sr.x + 3, sr.y + 3, sr.w - 6, sr.h - 6};
-    SDL_SetRenderDrawColor(renderer, 20, 10, 40, 220);
+    SDL_SetRenderDrawColor(renderer, core.r, core.g, core.b,
+                           static_cast<Uint8>(core.a * visibility));
     SDL_RenderFillRect(renderer, &inner);
 
     // Animated sparkles inside
@@ -414,9 +445,14 @@ void Level::renderRift(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const 
         int px = inner.x + inner.w / 2 + static_cast<int>(sx);
         int py = inner.y + inner.h / 2 + static_cast<int>(sy);
 
-        Uint8 r = static_cast<Uint8>(150 + 105 * std::sin(time + i * 0.8f));
-        Uint8 b = static_cast<Uint8>(200 + 55 * std::sin(time * 0.7f + i));
-        SDL_SetRenderDrawColor(renderer, r, 80, b, 220);
+        Uint8 r = static_cast<Uint8>(std::clamp(
+            static_cast<int>(accent.r + 55 * std::sin(time + i * 0.8f)), 0, 255));
+        Uint8 g = static_cast<Uint8>(std::clamp(
+            static_cast<int>(accent.g * 0.6f + 25 * std::sin(time * 1.1f + i)), 0, 255));
+        Uint8 b = static_cast<Uint8>(std::clamp(
+            static_cast<int>(accent.b + 40 * std::sin(time * 0.7f + i)), 0, 255));
+        SDL_SetRenderDrawColor(renderer, r, g, b,
+                               static_cast<Uint8>(220 * visibility));
         SDL_Rect spark = {px - 1, py - 1, 2, 2};
         SDL_RenderFillRect(renderer, &spark);
     }
@@ -428,8 +464,16 @@ void Level::renderRift(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const 
         int ty1 = sr.y + sr.h / 2 + static_cast<int>(std::sin(angle) * sr.h * 0.4f);
         int tx2 = sr.x + sr.w / 2 + static_cast<int>(std::cos(angle) * (sr.w * 0.6f + pulse * 8));
         int ty2 = sr.y + sr.h / 2 + static_cast<int>(std::sin(angle) * (sr.h * 0.6f + pulse * 8));
-        SDL_SetRenderDrawColor(renderer, 180, 100, 255, static_cast<Uint8>(150 * pulse));
+        SDL_SetRenderDrawColor(renderer, accent.r, accent.g, accent.b,
+                               static_cast<Uint8>(150 * pulse * visibility));
         SDL_RenderDrawLine(renderer, tx1, ty1, tx2, ty2);
+    }
+
+    if (!activeInCurrentDimension) {
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255,
+                               static_cast<Uint8>(40 + 20 * pulse));
+        SDL_Rect ghost = {sr.x + 1, sr.y + 1, sr.w - 2, sr.h - 2};
+        SDL_RenderDrawRect(renderer, &ghost);
     }
 }
 
@@ -741,6 +785,7 @@ void Level::clear() {
     std::fill(m_tilesA.begin(), m_tilesA.end(), Tile{});
     std::fill(m_tilesB.begin(), m_tilesB.end(), Tile{});
     m_riftPositions.clear();
+    m_topology = {};
     m_enemySpawns.clear();
     m_secretRooms.clear();
     m_randomEvents.clear();

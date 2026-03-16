@@ -1,7 +1,15 @@
 #include "PauseState.h"
+#include "PlayState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Game/WeaponSystem.h"
+#include "Game/RelicSystem.h"
+#include "Game/ClassSystem.h"
+#include "Components/RelicComponent.h"
+#include "Components/CombatComponent.h"
+#include "Components/HealthComponent.h"
 #include <cmath>
+#include <cstdio>
 
 void PauseState::enter() {
     int cx = 640;
@@ -17,7 +25,10 @@ void PauseState::enter() {
 
     m_buttons[0].onClick = [this]() { game->popState(); };
     m_buttons[1].onClick = [this]() {
-        game->getUpgradeSystem().totalRuns++;
+        if (auto* playState = dynamic_cast<PlayState*>(game->getState(StateID::Play))) {
+            playState->abandonRun();
+            return;
+        }
         game->changeState(StateID::Menu);
     };
     m_buttons[2].onClick = [this]() { game->changeState(StateID::Menu); };
@@ -83,8 +94,8 @@ void PauseState::render(SDL_Renderer* renderer) {
     SDL_RenderFillRect(renderer, &topBar);
     SDL_RenderFillRect(renderer, &botBar);
 
-    // Central panel background
-    SDL_Rect panelBg = {340, 180, 600, 360};
+    // Central panel background (wider to include stats)
+    SDL_Rect panelBg = {60, 180, 1160, 460};
     SDL_SetRenderDrawColor(renderer, 10, 10, 20, 200);
     SDL_RenderFillRect(renderer, &panelBg);
     SDL_SetRenderDrawColor(renderer, 80, 60, 140, 100);
@@ -94,17 +105,17 @@ void PauseState::render(SDL_Renderer* renderer) {
     int cornerSize = 12;
     SDL_SetRenderDrawColor(renderer, 150, 100, 255, static_cast<Uint8>(100 + 50 * pulse));
     // Top-left
-    SDL_RenderDrawLine(renderer, 340, 180, 340 + cornerSize, 180);
-    SDL_RenderDrawLine(renderer, 340, 180, 340, 180 + cornerSize);
+    SDL_RenderDrawLine(renderer, 60, 180, 60 + cornerSize, 180);
+    SDL_RenderDrawLine(renderer, 60, 180, 60, 180 + cornerSize);
     // Top-right
-    SDL_RenderDrawLine(renderer, 940, 180, 940 - cornerSize, 180);
-    SDL_RenderDrawLine(renderer, 940, 180, 940, 180 + cornerSize);
+    SDL_RenderDrawLine(renderer, 1220, 180, 1220 - cornerSize, 180);
+    SDL_RenderDrawLine(renderer, 1220, 180, 1220, 180 + cornerSize);
     // Bottom-left
-    SDL_RenderDrawLine(renderer, 340, 540, 340 + cornerSize, 540);
-    SDL_RenderDrawLine(renderer, 340, 540, 340, 540 - cornerSize);
+    SDL_RenderDrawLine(renderer, 60, 640, 60 + cornerSize, 640);
+    SDL_RenderDrawLine(renderer, 60, 640, 60, 640 - cornerSize);
     // Bottom-right
-    SDL_RenderDrawLine(renderer, 940, 540, 940 - cornerSize, 540);
-    SDL_RenderDrawLine(renderer, 940, 540, 940, 540 - cornerSize);
+    SDL_RenderDrawLine(renderer, 1220, 640, 1220 - cornerSize, 640);
+    SDL_RenderDrawLine(renderer, 1220, 640, 1220, 640 - cornerSize);
 
     // Title with glow
     TTF_Font* font = game->getFont();
@@ -146,6 +157,9 @@ void PauseState::render(SDL_Renderer* renderer) {
         btn.render(renderer, font);
     }
 
+    // Run stats panels
+    renderRunStats(renderer, font);
+
     // Controls hint
     if (font) {
         SDL_Color hintC = {100, 100, 130, 120};
@@ -153,11 +167,184 @@ void PauseState::render(SDL_Renderer* renderer) {
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
-                SDL_Rect hr = {640 - hs->w / 2, 510, hs->w, hs->h};
+                SDL_Rect hr = {640 - hs->w / 2, 650, hs->w, hs->h};
                 SDL_RenderCopy(renderer, ht, nullptr, &hr);
                 SDL_DestroyTexture(ht);
             }
             SDL_FreeSurface(hs);
+        }
+    }
+}
+
+static void renderStatText(SDL_Renderer* renderer, TTF_Font* font,
+                            const char* text, int x, int y, SDL_Color color) {
+    if (!font || !text) return;
+    SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
+    if (!surface) return;
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture) {
+        SDL_Rect rect = {x, y, surface->w, surface->h};
+        SDL_RenderCopy(renderer, texture, nullptr, &rect);
+        SDL_DestroyTexture(texture);
+    }
+    SDL_FreeSurface(surface);
+}
+
+void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font) return;
+
+    auto* playState = dynamic_cast<PlayState*>(game->getState(StateID::Play));
+    if (!playState) return;
+
+    char buf[128];
+    SDL_Color labelCol = {140, 130, 180, 220};
+    SDL_Color valCol = {220, 220, 240, 255};
+    SDL_Color accentCol = {180, 140, 255, 255};
+
+    // === Left panel: Run Overview ===
+    int lx = 85;
+    int ly = 200;
+
+    renderStatText(renderer, font, "RUN STATS", lx, ly, accentCol);
+    ly += 22;
+    SDL_SetRenderDrawColor(renderer, 100, 80, 160, 80);
+    SDL_RenderDrawLine(renderer, lx, ly, lx + 200, ly);
+    ly += 8;
+
+    // Floor
+    std::snprintf(buf, sizeof(buf), "Floor: %d", playState->roomsCleared + 1);
+    renderStatText(renderer, font, buf, lx, ly, valCol);
+    ly += 18;
+
+    // Difficulty
+    const char* diffNames[] = {"Easy", "Normal", "Hard"};
+    int diff = playState->getCurrentDifficulty();
+    std::snprintf(buf, sizeof(buf), "Difficulty: %s", (diff >= 0 && diff <= 2) ? diffNames[diff] : "??");
+    renderStatText(renderer, font, buf, lx, ly, valCol);
+    ly += 18;
+
+    // Boss level indicator
+    if (playState->isBossLevel()) {
+        renderStatText(renderer, font, "** BOSS FLOOR **", lx, ly, {255, 80, 80, 255});
+        ly += 18;
+    }
+
+    // Run time
+    int mins = static_cast<int>(playState->getRunTime()) / 60;
+    int secs = static_cast<int>(playState->getRunTime()) % 60;
+    std::snprintf(buf, sizeof(buf), "Time: %d:%02d", mins, secs);
+    renderStatText(renderer, font, buf, lx, ly, valCol);
+    ly += 18;
+
+    // Kills
+    std::snprintf(buf, sizeof(buf), "Kills: %d", playState->enemiesKilled);
+    renderStatText(renderer, font, buf, lx, ly, valCol);
+    ly += 18;
+
+    // Rifts
+    std::snprintf(buf, sizeof(buf), "Rifts Repaired: %d", playState->riftsRepaired);
+    renderStatText(renderer, font, buf, lx, ly, valCol);
+    ly += 18;
+
+    // Shards
+    std::snprintf(buf, sizeof(buf), "Shards: %d", playState->shardsCollected);
+    renderStatText(renderer, font, buf, lx, ly, {255, 215, 80, 255});
+    ly += 18;
+
+    // Best combo
+    std::snprintf(buf, sizeof(buf), "Best Combo: %d", playState->getBestCombo());
+    renderStatText(renderer, font, buf, lx, ly, valCol);
+    ly += 18;
+
+    // NG+ level
+    if (g_newGamePlusLevel > 0) {
+        std::snprintf(buf, sizeof(buf), "New Game+ %d", g_newGamePlusLevel);
+        renderStatText(renderer, font, buf, lx, ly, {200, 120, 255, 255});
+        ly += 18;
+    }
+
+    // === Middle panel: Equipment ===
+    Player* player = playState->getPlayer();
+    if (player && player->getEntity()) {
+        Entity& pe = *player->getEntity();
+
+        int mx = 340;
+        int my = 200;
+        renderStatText(renderer, font, "EQUIPMENT", mx, my, accentCol);
+        my += 22;
+        SDL_SetRenderDrawColor(renderer, 100, 80, 160, 80);
+        SDL_RenderDrawLine(renderer, mx, my, mx + 200, my);
+        my += 8;
+
+        // Class
+        PlayerClass pc = player->playerClass;
+        if (pc >= PlayerClass::Voidwalker && pc < PlayerClass::COUNT) {
+            std::snprintf(buf, sizeof(buf), "Class: %s", ClassSystem::getData(pc).name);
+            renderStatText(renderer, font, buf, mx, my, valCol);
+            my += 18;
+        }
+
+        // Weapons
+        if (pe.hasComponent<CombatComponent>()) {
+            auto& combat = pe.getComponent<CombatComponent>();
+            const char* mName = WeaponSystem::getWeaponName(combat.currentMelee);
+            const char* rName = WeaponSystem::getWeaponName(combat.currentRanged);
+            std::snprintf(buf, sizeof(buf), "Melee: %s", mName);
+            renderStatText(renderer, font, buf, mx, my, {255, 180, 80, 255});
+            my += 18;
+            std::snprintf(buf, sizeof(buf), "Ranged: %s", rName);
+            renderStatText(renderer, font, buf, mx, my, {80, 200, 255, 255});
+            my += 18;
+
+            // Weapon mastery
+            auto& cs = playState->getCombatSystem();
+            int mKills = cs.weaponKills[static_cast<int>(combat.currentMelee)];
+            int rKills = cs.weaponKills[static_cast<int>(combat.currentRanged)];
+            MasteryTier mTier = WeaponSystem::getMasteryTier(mKills);
+            MasteryTier rTier = WeaponSystem::getMasteryTier(rKills);
+            if (mTier != MasteryTier::None) {
+                std::snprintf(buf, sizeof(buf), "  [%s] %d kills", WeaponSystem::getMasteryTierName(mTier), mKills);
+                renderStatText(renderer, font, buf, mx, my, {255, 200, 100, 200});
+                my += 16;
+            }
+            if (rTier != MasteryTier::None) {
+                std::snprintf(buf, sizeof(buf), "  [%s] %d kills", WeaponSystem::getMasteryTierName(rTier), rKills);
+                renderStatText(renderer, font, buf, mx, my, {100, 200, 255, 200});
+                my += 16;
+            }
+        }
+
+        // HP
+        if (pe.hasComponent<HealthComponent>()) {
+            auto& hp = pe.getComponent<HealthComponent>();
+            std::snprintf(buf, sizeof(buf), "HP: %.0f / %.0f", hp.currentHP, hp.maxHP);
+            SDL_Color hpCol = (hp.getPercent() < 0.3f) ? SDL_Color{255, 80, 80, 255} : SDL_Color{80, 255, 80, 255};
+            renderStatText(renderer, font, buf, mx, my, hpCol);
+            my += 20;
+        }
+
+        // Relics
+        if (pe.hasComponent<RelicComponent>()) {
+            auto& relics = pe.getComponent<RelicComponent>();
+            if (!relics.relics.empty()) {
+                my += 4;
+                renderStatText(renderer, font, "RELICS", mx, my, accentCol);
+                my += 22;
+                SDL_SetRenderDrawColor(renderer, 100, 80, 160, 80);
+                SDL_RenderDrawLine(renderer, mx, my, mx + 200, my);
+                my += 6;
+
+                for (auto& r : relics.relics) {
+                    if (r.consumed) continue;
+                    const auto& data = RelicSystem::getRelicData(r.id);
+                    SDL_Color rCol = valCol;
+                    if (data.tier == RelicTier::Rare) rCol = {100, 180, 255, 255};
+                    else if (data.tier == RelicTier::Legendary) rCol = {255, 200, 50, 255};
+                    renderStatText(renderer, font, data.name, mx, my, rCol);
+                    my += 16;
+                    if (my > 620) break; // Don't overflow panel
+                }
+            }
         }
     }
 }

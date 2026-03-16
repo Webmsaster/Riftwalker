@@ -13,6 +13,7 @@
 #include "Systems/CombatSystem.h"
 #include "Components/RelicComponent.h"
 #include "Game/RelicSynergy.h"
+#include "Core/Game.h"
 #include <cstdio>
 #include <cmath>
 
@@ -101,11 +102,19 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
     // Draw rift positions
     auto rifts = level->getRiftPositions();
     int tileSize = level->getTileSize();
-    for (auto& rp : rifts) {
+    for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
+        const auto& rp = rifts[i];
         int rx = offsetX + static_cast<int>((rp.x / tileSize) * scale);
         int ry = offsetY + static_cast<int>((rp.y / tileSize) * scale);
         float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.006f);
-        SDL_SetRenderDrawColor(renderer, 180, 100, 255, static_cast<Uint8>(150 + 80 * pulse));
+        int requiredDimension = level->getRiftRequiredDimension(i);
+        if (requiredDimension == 2) {
+            SDL_SetRenderDrawColor(renderer, 255, 90, 145,
+                                   static_cast<Uint8>(150 + 80 * pulse));
+        } else {
+            SDL_SetRenderDrawColor(renderer, 90, 180, 255,
+                                   static_cast<Uint8>(150 + 80 * pulse));
+        }
         SDL_Rect rr = {rx - 2, ry - 2, 4, 4};
         SDL_RenderFillRect(renderer, &rr);
     }
@@ -754,7 +763,11 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             char floorText[32];
             bool isBoss = (m_currentFloor % 3 == 0);
             if (isBoss) {
-                std::snprintf(floorText, sizeof(floorText), "FLOOR %d - BOSS", m_currentFloor);
+                if (m_currentFloor == 12) {
+                    std::snprintf(floorText, sizeof(floorText), "FLOOR 12 - FINAL BOSS");
+                } else {
+                    std::snprintf(floorText, sizeof(floorText), "FLOOR %d - BOSS", m_currentFloor);
+                }
                 float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
                 Uint8 a = static_cast<Uint8>(255 * pulse);
                 renderText(renderer, font, floorText, shardX - 10, shardY - 20, {255, 80, 60, a});
@@ -767,6 +780,15 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             char killText[32];
             std::snprintf(killText, sizeof(killText), "Kills: %d", m_killCount);
             renderText(renderer, font, killText, shardX + 100, shardY - 20, {200, 160, 160, 160});
+
+            // NG+ indicator
+            if (g_newGamePlusLevel > 0) {
+                char ngText[16];
+                std::snprintf(ngText, sizeof(ngText), "NG+%d", g_newGamePlusLevel);
+                float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.006f);
+                Uint8 a = static_cast<Uint8>(255 * pulse);
+                renderText(renderer, font, ngText, shardX + 180, shardY - 20, {200, 120, 255, a});
+            }
         }
 
         SDL_Rect shardBg = {shardX - 5, shardY - 3, 165, 26};
@@ -951,7 +973,9 @@ void HUD::renderText(SDL_Renderer* renderer, TTF_Font* font,
     if (!surface) return;
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     if (texture) {
-        SDL_Rect rect = {x, y, surface->w, surface->h};
+        int sw = static_cast<int>(surface->w * g_hudScale);
+        int sh = static_cast<int>(surface->h * g_hudScale);
+        SDL_Rect rect = {x, y, sw, sh};
         SDL_RenderCopy(renderer, texture, nullptr, &rect);
         SDL_DestroyTexture(texture);
     }

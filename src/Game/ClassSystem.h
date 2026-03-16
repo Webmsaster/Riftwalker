@@ -33,6 +33,15 @@ public:
     static const ClassData& getData(PlayerClass pc);
     static const ClassData& getData(int index);
     static constexpr int CLASS_COUNT = static_cast<int>(PlayerClass::COUNT);
+
+    // Unlock system
+    static bool isUnlocked(PlayerClass pc);
+    static void unlock(PlayerClass pc);
+    static void initUnlocks(); // Call at startup, sets Voidwalker unlocked
+    static const char* getUnlockRequirement(PlayerClass pc);
+
+    // Persist via UpgradeSystem serialize
+    static bool s_classUnlocked[3];
 };
 
 // Global selected class (like g_selectedDifficulty)

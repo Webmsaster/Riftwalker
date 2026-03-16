@@ -62,3 +62,29 @@ const ClassData& ClassSystem::getData(int index) {
     if (index < 0 || index >= CLASS_COUNT) index = 0;
     return s_classData[index];
 }
+
+bool ClassSystem::s_classUnlocked[3] = {true, false, false};
+
+void ClassSystem::initUnlocks() {
+    s_classUnlocked[0] = true; // Voidwalker always unlocked
+}
+
+bool ClassSystem::isUnlocked(PlayerClass pc) {
+    int idx = static_cast<int>(pc);
+    if (idx < 0 || idx >= CLASS_COUNT) return false;
+    return s_classUnlocked[idx];
+}
+
+void ClassSystem::unlock(PlayerClass pc) {
+    int idx = static_cast<int>(pc);
+    if (idx >= 0 && idx < CLASS_COUNT) s_classUnlocked[idx] = true;
+}
+
+const char* ClassSystem::getUnlockRequirement(PlayerClass pc) {
+    switch (pc) {
+        case PlayerClass::Voidwalker: return "Always available";
+        case PlayerClass::Berserker:  return "Defeat the first boss";
+        case PlayerClass::Phantom:    return "Perform 10 dash kills in one run";
+        default: return "Unknown";
+    }
+}

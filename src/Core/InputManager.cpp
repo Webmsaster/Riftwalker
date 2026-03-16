@@ -1,4 +1,5 @@
 #include "InputManager.h"
+#include <algorithm>
 #include <cstring>
 #include <cstdlib>
 #include <fstream>
@@ -169,6 +170,13 @@ float InputManager::getGamepadAxis(SDL_GameControllerAxis axis) const {
     float val = static_cast<float>(SDL_GameControllerGetAxis(m_gamepad, axis)) / 32768.0f;
     if (val < -1.0f) val = -1.0f;
     return val;
+}
+
+void InputManager::rumble(float intensity, int durationMs) {
+    if (!m_gamepad || !m_rumbleEnabled) return;
+    Uint16 lo = static_cast<Uint16>(std::clamp(intensity, 0.0f, 1.0f) * 0.6f * 65535);
+    Uint16 hi = static_cast<Uint16>(std::clamp(intensity, 0.0f, 1.0f) * 65535);
+    SDL_GameControllerRumble(m_gamepad, lo, hi, durationMs);
 }
 
 void InputManager::rebindKey(Action action, SDL_Scancode newKey) {

@@ -968,6 +968,13 @@ void Player::handleAbilities(float dt, const InputManager& input) {
                     auto& phys2 = m_entity->getComponent<PhysicsBody>();
                     KillEvent ke;
                     ke.wasAerial = !phys2.onGround;
+                    if (nearestEnemy->hasComponent<AIComponent>()) {
+                        auto& keAI = nearestEnemy->getComponent<AIComponent>();
+                        ke.enemyType = static_cast<int>(keAI.enemyType);
+                        ke.wasElite = keAI.isElite;
+                        ke.wasMiniBoss = keAI.isMiniBoss;
+                        ke.wasBoss = (keAI.enemyType == EnemyType::Boss);
+                    }
                     combatSystemRef->killEvents.push_back(ke);
 
                     // Weapon mastery: Phase Strike kills count for current melee weapon
@@ -1091,6 +1098,7 @@ float Player::getClassAttackSpeedMultiplier() const {
     if (hasMomentum()) {
         mult *= getMomentumAtkSpeedMult();
     }
+    mult *= smithAtkSpdMult; // Blacksmith attack speed upgrade
     return mult;
 }
 

@@ -1,4 +1,5 @@
 #include "RenderSystem.h"
+#include "Core/Game.h"
 #include "Components/TransformComponent.h"
 #include "Components/SpriteComponent.h"
 #include "Components/AnimationComponent.h"
@@ -69,7 +70,14 @@ void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
         } else if (e.dimension == currentDimension) {
             alpha = 1.0f;
         } else {
-            alpha = dimBlendAlpha * 0.3f;
+            // Ghost shimmer for other-dimension entities
+            bool isEnemy = e.getTag().find("enemy") != std::string::npos;
+            if (isEnemy) {
+                float shimmer = 0.15f + 0.1f * std::sin(SDL_GetTicks() * 0.005f + e.dimension * 3.14f);
+                alpha = shimmer;
+            } else {
+                alpha = dimBlendAlpha * 0.3f;
+            }
             if (alpha < 0.05f) return;
         }
 
@@ -225,8 +233,9 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
             float pct = hpShow.getPercent();
             Uint8 hpR = pct > 0.5f ? static_cast<Uint8>((1.0f - pct) * 2 * 255) : 255;
             Uint8 hpG = pct > 0.5f ? 220 : static_cast<Uint8>(pct * 2 * 220);
+            SDL_Color hpCol = applyColorBlind({hpR, hpG, 20, 255});
             int fillW = std::max(1, static_cast<int>(barW * pct));
-            fillRect(renderer, barX, barY, fillW, barH, hpR, hpG, 20, barA);
+            fillRect(renderer, barX, barY, fillW, barH, hpCol.r, hpCol.g, hpCol.b, barA);
             // Thin border
             SDL_SetRenderDrawColor(renderer, 40, 40, 40, static_cast<Uint8>(120 * fadeAlpha * alpha));
             SDL_Rect barBorder = {barX, barY, barW, barH};

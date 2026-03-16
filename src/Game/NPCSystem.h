@@ -8,6 +8,7 @@ enum class NPCType {
     DimRefugee,         // Trade offer (HP for shards, relic swap)
     LostEngineer,       // Repair/upgrade weapon temporarily
     EchoOfSelf,         // Mirror fight: defeat your copy for reward
+    Blacksmith,         // Upgrade weapons for shards (per-run)
     COUNT
 };
 

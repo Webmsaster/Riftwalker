@@ -3,6 +3,7 @@ project(Riftwalker VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
 
 # Find SDL2 packages (vcpkg CONFIG mode)
 find_package(SDL2 CONFIG REQUIRED)
@@ -57,4 +58,16 @@ if(WIN32)
         $<TARGET_FILE:SDL2_ttf::SDL2_ttf>
         $<TARGET_FILE_DIR:${PROJECT_NAME}>
     )
+
+    find_program(RIFTWALKER_POWERSHELL NAMES powershell pwsh REQUIRED)
+    add_test(
+        NAME smoke_regression_short
+        COMMAND "${RIFTWALKER_POWERSHELL}"
+                -NoProfile
+                -ExecutionPolicy Bypass
+                -File "${CMAKE_SOURCE_DIR}/tools/smoke-regression.ps1"
+                -Mode short
+                -ExePath "$<TARGET_FILE:${PROJECT_NAME}>"
+    )
+    set_tests_properties(smoke_regression_short PROPERTIES LABELS "smoke;ci")
 endif()

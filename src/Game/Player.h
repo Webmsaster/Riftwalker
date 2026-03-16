@@ -99,10 +99,16 @@ public:
     float speedBoostMultiplier = 1.5f;
     float damageBoostMultiplier = 1.5f;
 
+    // Blacksmith weapon upgrades (per-run, permanent within run)
+    float smithMeleeDmgMult = 1.0f;   // Melee damage multiplier from Blacksmith
+    float smithRangedDmgMult = 1.0f;  // Ranged damage multiplier from Blacksmith
+    float smithAtkSpdMult = 1.0f;     // Attack speed multiplier from Blacksmith
+
     // Pickup effect flags (consumed by PlayState for particles)
     bool pickupShieldPending = false;
     bool pickupSpeedPending = false;
     bool pickupDamagePending = false;
+    int weaponPickupPending = -1; // WeaponID cast to int, -1 = none
 
     // Ability state
     float slamFallStartY = 0;    // Y when slam initiated

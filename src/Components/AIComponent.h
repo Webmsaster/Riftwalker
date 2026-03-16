@@ -42,7 +42,10 @@ enum class EliteModifier {
     Teleporter,  // Purple: Teleports behind player every 3s
     Splitter,    // Green: Splits into 2 smaller copies on death
     Vampiric,    // DarkRed: Heals 20% of damage dealt
-    Explosive    // Orange: Explodes on death (40 DMG, 80px radius)
+    Explosive,   // Orange: Explodes on death (40 DMG, 80px radius)
+    FireAura,    // Flame aura: deals burn DoT to player in 100px proximity
+    HealAura,    // Green aura: heals nearby enemies 3 HP/s within 120px
+    ShieldAura   // Cyan aura: nearby enemies within 100px take 30% less damage
 };
 
 struct AIComponent : public Component {

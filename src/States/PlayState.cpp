@@ -16,6 +16,8 @@
 #include "Game/ClassSystem.h"
 #include "Game/LoreSystem.h"
 #include "Game/DailyRun.h"
+#include "Game/Bestiary.h"
+#include "Game/DimensionShiftBalance.h"
 #include "States/EndingState.h"
 #include "States/RunSummaryState.h"
 #include "Components/RelicComponent.h"
@@ -25,11 +27,79 @@
 #include <cstdio>
 #include <cstdarg>
 #include <algorithm>
+#include <string>
 
 extern bool g_autoSmokeTest;
 extern bool g_autoPlaytest;
+extern int g_forcedRunSeed;
+extern bool g_smokeRegression;
+extern int g_smokeTargetFloor;
+extern float g_smokeMaxRuntime;
+extern int g_smokeCompletedFloor;
+extern int g_smokeFailureCode;
+extern char g_smokeFailureReason[256];
 
 static FILE* g_smokeFile = nullptr;
+
+namespace {
+constexpr bool kUseAiFinalBackgroundArtTest = true;
+constexpr const char* kDimAFinalBackgroundPath =
+    "assets/ai/finals/backgrounds/run01/rw_bg_dima_run01_s1103_fin.png";
+constexpr const char* kDimBFinalBackgroundPath =
+    "assets/ai/finals/backgrounds/run01/rw_bg_dimb_run01_s2103_fin.png";
+constexpr const char* kBossFinalBackgroundPath =
+    "assets/ai/finals/boss/run01/rw_boss_run01_f03_s3120_fin.png";
+constexpr float kArtTestBackgroundParallaxX = 0.24f;
+
+void renderWholeArtBackground(SDL_Renderer* renderer,
+                              SDL_Texture* texture,
+                              const Vec2& camPos,
+                              int screenW,
+                              int screenH,
+                              int worldPixelWidth,
+                              float parallaxX,
+                              Uint8 colorR,
+                              Uint8 colorG,
+                              Uint8 colorB,
+                              Uint8 alpha) {
+    if (!texture) return;
+
+    int texW = 0;
+    int texH = 0;
+    if (SDL_QueryTexture(texture, nullptr, nullptr, &texW, &texH) != 0 || texW <= 0 || texH <= 0) {
+        return;
+    }
+
+    const float scaleX = static_cast<float>(screenW) / static_cast<float>(texW);
+    const float scaleY = static_cast<float>(screenH) / static_cast<float>(texH);
+    const float coverScale = std::max(scaleX, scaleY);
+    const float minCameraX = screenW * 0.5f;
+    const float maxCameraX = std::max(minCameraX, static_cast<float>(worldPixelWidth) - screenW * 0.5f);
+    const float cameraTravel = std::max(0.0f, maxCameraX - minCameraX);
+    const float requiredWidth = static_cast<float>(screenW) + cameraTravel * parallaxX;
+    const float scale = std::max(coverScale, requiredWidth / static_cast<float>(texW));
+    const int drawW = static_cast<int>(std::ceil(static_cast<float>(texW) * scale));
+    const int drawH = static_cast<int>(std::ceil(static_cast<float>(texH) * scale));
+
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureColorMod(texture, colorR, colorG, colorB);
+    SDL_SetTextureAlphaMod(texture, alpha);
+
+    float cameraT = 0.5f;
+    if (cameraTravel > 0.001f) {
+        cameraT = std::clamp((camPos.x - minCameraX) / cameraTravel, 0.0f, 1.0f);
+    }
+
+    const int travelPixels = std::max(0, drawW - screenW);
+    const int dstX = -static_cast<int>(std::round(static_cast<float>(travelPixels) * cameraT));
+    const int dstY = (screenH - drawH) / 2;
+    SDL_Rect dst{dstX, dstY, drawW, drawH};
+    SDL_RenderCopy(renderer, texture, nullptr, &dst);
+
+    SDL_SetTextureColorMod(texture, 255, 255, 255);
+    SDL_SetTextureAlphaMod(texture, 255);
+}
+}
 
 static void smokeLog(const char* fmt, ...) {
     char buf[512];
@@ -44,6 +114,552 @@ static void smokeLog(const char* fmt, ...) {
         fprintf(g_smokeFile, "%s\n", buf);
         fflush(g_smokeFile);
     }
+}
+
+enum SmokeRegressionFailureCode {
+    SmokeRegressionFailure_None = 0,
+    SmokeRegressionFailure_Topology = 2,
+    SmokeRegressionFailure_SpawnFallback = 3,
+    SmokeRegressionFailure_LevelTimeout = 4,
+    SmokeRegressionFailure_TotalTimeout = 5,
+    SmokeRegressionFailure_Progress = 6
+};
+
+static void smokeSetRegressionFailure(int code, const char* fmt, ...) {
+    if (!g_smokeRegression || g_smokeFailureCode != 0) return;
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(g_smokeFailureReason, sizeof(g_smokeFailureReason), fmt, args);
+    va_end(args);
+
+    g_smokeFailureCode = code;
+    smokeLog("[SMOKE] RESULT status=FAIL code=%d completedFloor=%d targetFloor=%d reason=%s",
+             code,
+             g_smokeCompletedFloor,
+             g_smokeTargetFloor,
+             g_smokeFailureReason);
+}
+
+static void smokeLogRegressionResult(const char* status, float runtimeSeconds) {
+    if (!g_smokeRegression) return;
+    smokeLog("[SMOKE] RESULT status=%s completedFloor=%d targetFloor=%d runtime=%.1f failureCode=%d reason=%s",
+             status,
+             g_smokeCompletedFloor,
+             g_smokeTargetFloor,
+             runtimeSeconds,
+             g_smokeFailureCode,
+             g_smokeFailureReason[0] ? g_smokeFailureReason : "none");
+}
+
+static std::string smokeFailureMaskToString(int failureMask) {
+    if (failureMask == LevelValidationFailure_None) {
+        return "none";
+    }
+
+    struct FailureName {
+        int bit;
+        const char* name;
+    };
+
+    static const FailureName kNames[] = {
+        {LevelValidationFailure_Spawn, "spawn"},
+        {LevelValidationFailure_Exit, "exit"},
+        {LevelValidationFailure_RiftAnchor, "rift_anchor"},
+        {LevelValidationFailure_RiftReachability, "rift_reach"},
+        {LevelValidationFailure_ExitReachability, "exit_reach"},
+        {LevelValidationFailure_MainPath, "main_path"},
+        {LevelValidationFailure_DimSwitch, "dim_switch"},
+        {LevelValidationFailure_DimPuzzle, "dim_puzzle"}
+    };
+
+    std::string result;
+    for (const auto& entry : kNames) {
+        if ((failureMask & entry.bit) == 0) continue;
+        if (!result.empty()) result += ",";
+        result += entry.name;
+    }
+    return result;
+}
+
+static int smokeFindTopologyRoomIndex(const LevelTopology& topology, const Vec2& worldPos) {
+    int tileX = static_cast<int>(worldPos.x) / 32;
+    int tileY = static_cast<int>(worldPos.y) / 32;
+    for (int i = 0; i < static_cast<int>(topology.rooms.size()); i++) {
+        const auto& room = topology.rooms[i];
+        if (tileX >= room.x && tileX < room.x + room.w &&
+            tileY >= room.y && tileY < room.y + room.h) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int smokeFindClosestTopologyRoomIndex(const LevelTopology& topology, const Vec2& worldPos) {
+    int tileX = static_cast<int>(worldPos.x) / 32;
+    int tileY = static_cast<int>(worldPos.y) / 32;
+    int bestRoom = -1;
+    int bestDist = 0;
+    for (int i = 0; i < static_cast<int>(topology.rooms.size()); i++) {
+        const auto& room = topology.rooms[i];
+        int dx = 0;
+        int dy = 0;
+        if (tileX < room.x) dx = room.x - tileX;
+        else if (tileX >= room.x + room.w) dx = tileX - (room.x + room.w - 1);
+        if (tileY < room.y) dy = room.y - tileY;
+        else if (tileY >= room.y + room.h) dy = tileY - (room.y + room.h - 1);
+        int dist = dx * dx + dy * dy;
+        if (bestRoom < 0 || dist < bestDist) {
+            bestRoom = i;
+            bestDist = dist;
+        }
+    }
+    return bestRoom;
+}
+
+struct SmokeTargetDebugInfo {
+    const char* type = "exit";
+    int index = -1;
+    int roomIndex = -1;
+    int tileX = -1;
+    int tileY = -1;
+    int requiredDimension = 0;
+    std::array<bool, 3> validDims{};
+    Vec2 position{};
+    float distance = 0.0f;
+    bool validated = false;
+};
+
+struct SmokeRecoveryAnchor {
+    bool valid = false;
+    bool targetsObjective = false;
+    bool spawnFallback = false;
+    const char* reason = "none";
+    int roomIndex = -1;
+    int tileX = -1;
+    int tileY = -1;
+    int dimension = 1;
+    Vec2 position{};
+};
+
+static int smokePickPreferredTargetDimension(const SmokeTargetDebugInfo& target, int currentDim) {
+    if (target.requiredDimension == 1 || target.requiredDimension == 2) {
+        return target.requiredDimension;
+    }
+    if (currentDim >= 1 && currentDim <= 2 && target.validDims[currentDim]) {
+        return currentDim;
+    }
+    if (target.validDims[1]) return 1;
+    if (target.validDims[2]) return 2;
+    return currentDim;
+}
+
+static void smokeLogLevelValidation(const Level& level) {
+    const auto& topology = level.getTopology();
+    smokeLog("[SMOKE]   validation: generatedValid=%d requestedSeed=%d usedSeed=%d attempt=%d mask=%s rooms=%d edges=%d switches=%d spawnRoom=%d exitRoom=%d",
+             topology.validation.passed ? 1 : 0,
+             topology.validation.requestedSeed,
+             topology.validation.usedSeed,
+             topology.validation.attempt,
+             smokeFailureMaskToString(topology.validation.failureMask).c_str(),
+             static_cast<int>(topology.rooms.size()),
+             static_cast<int>(topology.edges.size()),
+             static_cast<int>(topology.switches.size()),
+             topology.spawnRoomIndex,
+             topology.exitRoomIndex);
+
+    for (int i = 0; i < static_cast<int>(topology.rifts.size()); i++) {
+        const auto& rift = topology.rifts[i];
+        smokeLog("[SMOKE]   topo_rift[%d]: room=%d tile=(%d,%d) dims=%d%d requiredDim=%d validated=%d",
+                 i,
+                 rift.roomIndex,
+                 rift.tileX,
+                 rift.tileY,
+                 rift.accessibleDimensions[1] ? 1 : 0,
+                 rift.accessibleDimensions[2] ? 1 : 0,
+                 rift.requiredDimension,
+                 rift.validated ? 1 : 0);
+    }
+}
+
+static bool smokeIsValidRecoveryTile(const Level& level, int tileX, int tileY, int dimension) {
+    if (dimension < 1 || dimension > 2) return false;
+    if (!level.inBounds(tileX, tileY) ||
+        !level.inBounds(tileX, tileY + 1)) {
+        return false;
+    }
+
+    const auto& tile = level.getTile(tileX, tileY, dimension);
+    const auto& supportTile = level.getTile(tileX, tileY + 1, dimension);
+
+    if (tile.isSolid() || tile.isOneWay() || tile.isDangerous()) return false;
+    if (supportTile.isDangerous()) return false;
+    return supportTile.isSolid() || supportTile.isOneWay();
+}
+
+static bool smokeTryMakeRecoveryAnchor(const Level& level,
+                                       int roomIndex,
+                                       int tileX,
+                                       int tileY,
+                                       int dimension,
+                                       const char* reason,
+                                       bool targetsObjective,
+                                       bool spawnFallback,
+                                       SmokeRecoveryAnchor& out) {
+    if (!smokeIsValidRecoveryTile(level, tileX, tileY, dimension)) {
+        return false;
+    }
+
+    int tileSize = level.getTileSize();
+    out.valid = true;
+    out.targetsObjective = targetsObjective;
+    out.spawnFallback = spawnFallback;
+    out.reason = reason;
+    out.roomIndex = roomIndex;
+    out.tileX = tileX;
+    out.tileY = tileY;
+    out.dimension = dimension;
+    out.position = {
+        static_cast<float>(tileX * tileSize),
+        static_cast<float>(tileY * tileSize)
+    };
+    return true;
+}
+
+static bool smokeTryFindStandingTileInRoom(const Level& level,
+                                           const LevelGraphRoom& room,
+                                           int dimension,
+                                           int preferredTileX,
+                                           int preferredTileY,
+                                           int& outTileX,
+                                           int& outTileY) {
+    if (dimension < 1 || dimension > 2) return false;
+
+    int minX = std::max(room.x + 1, 0);
+    int maxX = std::min(room.x + room.w - 2, level.getWidth() - 1);
+    int minY = std::max(room.y + 1, 1);
+    int maxY = std::min(room.y + room.h - 3, level.getHeight() - 2);
+    if (minX > maxX || minY > maxY) return false;
+
+    preferredTileX = std::clamp(preferredTileX, minX, maxX);
+    preferredTileY = std::clamp(preferredTileY, minY, maxY);
+
+    bool found = false;
+    int bestScore = 0;
+    int bestX = preferredTileX;
+    int bestY = preferredTileY;
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            if (!smokeIsValidRecoveryTile(level, x, y, dimension)) continue;
+            int score = std::abs(x - preferredTileX) * 3 + std::abs(y - preferredTileY) * 5;
+            if (!found || score < bestScore) {
+                found = true;
+                bestScore = score;
+                bestX = x;
+                bestY = y;
+            }
+        }
+    }
+
+    if (!found) return false;
+    outTileX = bestX;
+    outTileY = bestY;
+    return true;
+}
+
+static bool smokeTryFindRoomRecoveryAnchor(const Level& level,
+                                           const LevelTopology& topology,
+                                           int roomIndex,
+                                           int primaryDimension,
+                                           int preferredTileX,
+                                           int preferredTileY,
+                                           const char* reason,
+                                           bool targetsObjective,
+                                           bool spawnFallback,
+                                           SmokeRecoveryAnchor& out) {
+    if (roomIndex < 0 || roomIndex >= static_cast<int>(topology.rooms.size())) {
+        return false;
+    }
+
+    const auto& room = topology.rooms[roomIndex];
+    bool triedDim[3] = {};
+    int dimOrder[2] = {
+        primaryDimension,
+        primaryDimension == 1 ? 2 : 1
+    };
+
+    for (int dim : dimOrder) {
+        if (dim < 1 || dim > 2 || triedDim[dim]) continue;
+        triedDim[dim] = true;
+        int anchorTileX = preferredTileX;
+        int anchorTileY = preferredTileY;
+        if (!smokeTryFindStandingTileInRoom(level, room, dim, preferredTileX, preferredTileY, anchorTileX, anchorTileY)) {
+            continue;
+        }
+        if (smokeTryMakeRecoveryAnchor(level,
+                                       roomIndex,
+                                       anchorTileX,
+                                       anchorTileY,
+                                       dim,
+                                       reason,
+                                       targetsObjective,
+                                       spawnFallback,
+                                       out)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static const LevelGraphEdge* smokeFindValidatedTopologyEdge(const LevelTopology& topology,
+                                                            int roomA,
+                                                            int roomB,
+                                                            int currentDim,
+                                                            int preferredDim) {
+    const LevelGraphEdge* fallback = nullptr;
+    const int preferredOrder[] = {currentDim, preferredDim};
+
+    for (int desiredDim : preferredOrder) {
+        if (desiredDim < 1 || desiredDim > 2) continue;
+        for (const auto& edge : topology.edges) {
+            bool samePair = (edge.fromRoom == roomA && edge.toRoom == roomB) ||
+                            (edge.fromRoom == roomB && edge.toRoom == roomA);
+            if (!samePair || !edge.validated || edge.dimension != desiredDim) continue;
+            return &edge;
+        }
+    }
+
+    for (const auto& edge : topology.edges) {
+        bool samePair = (edge.fromRoom == roomA && edge.toRoom == roomB) ||
+                        (edge.fromRoom == roomB && edge.toRoom == roomA);
+        if (!samePair || !edge.validated) continue;
+        if (!fallback) fallback = &edge;
+    }
+
+    return fallback;
+}
+
+static SmokeRecoveryAnchor smokeBuildRecoveryAnchor(const Level& level,
+                                                    const SmokeTargetDebugInfo& target,
+                                                    const Vec2& playerPos,
+                                                    int currentDim,
+                                                    int preferredTargetDim,
+                                                    bool collapsing) {
+    const auto& topology = level.getTopology();
+    SmokeRecoveryAnchor anchor;
+
+    auto buildSpawnFallback = [&]() {
+        SmokeRecoveryAnchor fallback;
+        int spawnDim = topology.spawnValid[currentDim] ? currentDim
+            : (topology.spawnValid[1] ? 1
+               : (topology.spawnValid[2] ? 2 : std::clamp(currentDim, 1, 2)));
+        fallback.valid = true;
+        fallback.spawnFallback = true;
+        fallback.reason = "spawn_fallback";
+        fallback.roomIndex = topology.spawnRoomIndex;
+        fallback.tileX = topology.spawnTileX;
+        fallback.tileY = topology.spawnTileY;
+        fallback.dimension = spawnDim;
+        fallback.position = level.getSpawnPoint();
+        return fallback;
+    };
+
+    if (topology.rooms.empty()) {
+        return buildSpawnFallback();
+    }
+
+    int playerRoom = smokeFindTopologyRoomIndex(topology, playerPos);
+    int referenceRoom = playerRoom >= 0 ? playerRoom : smokeFindClosestTopologyRoomIndex(topology, playerPos);
+    bool targetIsExit = std::strcmp(target.type, "exit") == 0;
+    bool targetObjective = target.validated &&
+                           target.roomIndex >= 0 &&
+                           target.tileX >= 0 &&
+                           target.tileY >= 0;
+
+    if (targetObjective && referenceRoom == target.roomIndex) {
+        bool triedDim[3] = {};
+        int dimOrder[2] = {preferredTargetDim, currentDim};
+        for (int dim : dimOrder) {
+            if (dim < 1 || dim > 2 || triedDim[dim]) continue;
+            triedDim[dim] = true;
+            if (((dim >= 1 && dim <= 2) && !target.validDims[dim]) && (target.validDims[1] || target.validDims[2])) {
+                continue;
+            }
+            if (smokeTryMakeRecoveryAnchor(level,
+                                           target.roomIndex,
+                                           target.tileX,
+                                           target.tileY,
+                                           dim,
+                                           targetIsExit ? "exit_anchor" : "target_anchor",
+                                           true,
+                                           false,
+                                           anchor)) {
+                return anchor;
+            }
+        }
+    }
+
+    if (targetObjective && referenceRoom >= 0 && referenceRoom != target.roomIndex) {
+        int step = (target.roomIndex > referenceRoom) ? 1 : -1;
+        int approachRoom = referenceRoom + step;
+        if (approachRoom >= 0 && approachRoom < static_cast<int>(topology.rooms.size())) {
+            const auto* edge = smokeFindValidatedTopologyEdge(topology, referenceRoom, approachRoom, currentDim, preferredTargetDim);
+            if (edge) {
+                const auto& room = topology.rooms[approachRoom];
+                int preferredTileX = (step > 0) ? room.x + 1 : room.x + room.w - 2;
+                int preferredTileY = room.y + room.h / 2;
+                const char* reason = edge->type == LevelGraphEdgeType::VerticalShaft
+                    ? "main_path_landing"
+                    : "main_path_anchor";
+                if (smokeTryFindRoomRecoveryAnchor(level,
+                                                   topology,
+                                                   approachRoom,
+                                                   edge->dimension,
+                                                   preferredTileX,
+                                                   preferredTileY,
+                                                   reason,
+                                                   false,
+                                                   false,
+                                                   anchor)) {
+                    return anchor;
+                }
+            }
+        }
+    }
+
+    if (targetObjective) {
+        if (smokeTryFindRoomRecoveryAnchor(level,
+                                           topology,
+                                           target.roomIndex,
+                                           preferredTargetDim,
+                                           target.tileX,
+                                           target.tileY,
+                                           targetIsExit && collapsing ? "exit_room_anchor" : "target_room_anchor",
+                                           true,
+                                           false,
+                                           anchor)) {
+            return anchor;
+        }
+    }
+
+    if (referenceRoom >= 0) {
+        const auto& room = topology.rooms[referenceRoom];
+        if (smokeTryFindRoomRecoveryAnchor(level,
+                                           topology,
+                                           referenceRoom,
+                                           currentDim,
+                                           room.x + room.w / 2,
+                                           room.y + room.h / 2,
+                                           "current_room_anchor",
+                                           false,
+                                           false,
+                                           anchor)) {
+            return anchor;
+        }
+    }
+
+    if (topology.spawnRoomIndex >= 0 && topology.spawnTileX >= 0 && topology.spawnTileY >= 0) {
+        bool triedDim[3] = {};
+        int dimOrder[2] = {currentDim, currentDim == 1 ? 2 : 1};
+        for (int dim : dimOrder) {
+            if (dim < 1 || dim > 2 || triedDim[dim] || !topology.spawnValid[dim]) continue;
+            triedDim[dim] = true;
+            if (smokeTryMakeRecoveryAnchor(level,
+                                           topology.spawnRoomIndex,
+                                           topology.spawnTileX,
+                                           topology.spawnTileY,
+                                           dim,
+                                           "spawn_anchor",
+                                           false,
+                                           true,
+                                           anchor)) {
+                return anchor;
+            }
+        }
+        if (smokeTryFindRoomRecoveryAnchor(level,
+                                           topology,
+                                           topology.spawnRoomIndex,
+                                           currentDim,
+                                           topology.spawnTileX,
+                                           topology.spawnTileY,
+                                           "spawn_room_anchor",
+                                           false,
+                                           true,
+                                           anchor)) {
+            return anchor;
+        }
+    }
+
+    return buildSpawnFallback();
+}
+
+static void smokeLogRecoveryAnchor(const char* label,
+                                   const Level& level,
+                                   int difficulty,
+                                   const Vec2& playerPos,
+                                   const SmokeTargetDebugInfo& target,
+                                   const SmokeRecoveryAnchor& anchor,
+                                   int currentDim) {
+    const auto& topology = level.getTopology();
+    int playerRoom = smokeFindTopologyRoomIndex(topology, playerPos);
+    smokeLog("[SMOKE] %s_ANCHOR floor=%d seed=%d pos=(%.0f,%.0f) room=%d dim=%d target=%s idx=%d targetRoom=%d reason=%s anchorRoom=%d anchorTile=(%d,%d) anchorPos=(%.0f,%.0f) anchorDim=%d objective=%d spawnFallback=%d genValidated=%d",
+             label,
+             difficulty,
+             level.getGenerationSeed(),
+             playerPos.x,
+             playerPos.y,
+             playerRoom,
+             currentDim,
+             target.type,
+             target.index,
+             target.roomIndex,
+             anchor.reason,
+             anchor.roomIndex,
+             anchor.tileX,
+             anchor.tileY,
+             anchor.position.x,
+             anchor.position.y,
+             anchor.dimension,
+             anchor.targetsObjective ? 1 : 0,
+             anchor.spawnFallback ? 1 : 0,
+             topology.validation.passed ? 1 : 0);
+}
+
+static void smokeLogRuntimeContext(const char* label,
+                                   const Level& level,
+                                   int difficulty,
+                                   const Vec2& playerPos,
+                                   int currentDim,
+                                   const SmokeTargetDebugInfo& target,
+                                   bool collapsing,
+                                   int repairedRifts) {
+    const auto& topology = level.getTopology();
+    int playerRoom = smokeFindTopologyRoomIndex(topology, playerPos);
+    smokeLog("[SMOKE] %s floor=%d seed=%d pos=(%.0f,%.0f) room=%d dim=%d target=%s idx=%d targetPos=(%.0f,%.0f) targetRoom=%d targetTile=(%d,%d) targetValid=%d dims=%d%d requiredDim=%d repaired=%d/%d collapsing=%d genValidated=%d genMask=%s",
+             label,
+             difficulty,
+             level.getGenerationSeed(),
+             playerPos.x,
+             playerPos.y,
+             playerRoom,
+             currentDim,
+             target.type,
+             target.index,
+             target.position.x,
+             target.position.y,
+             target.roomIndex,
+             target.tileX,
+             target.tileY,
+             target.validated ? 1 : 0,
+             target.validDims[1] ? 1 : 0,
+             target.validDims[2] ? 1 : 0,
+             target.requiredDimension,
+             repairedRifts,
+             static_cast<int>(level.getRiftPositions().size()),
+             collapsing ? 1 : 0,
+             topology.validation.passed ? 1 : 0,
+             smokeFailureMaskToString(topology.validation.failureMask).c_str());
 }
 
 static FILE* g_playtestFile = nullptr;
@@ -82,6 +698,11 @@ void PlayState::enter() {
 
 void PlayState::exit() {
     AudioManager::instance().stopAmbient();
+    AudioManager::instance().stopMusicLayers();
+    AudioManager::instance().stopThemeAmbient();
+    m_dimATestBackground = nullptr;
+    m_dimBTestBackground = nullptr;
+    m_bossTestBackground = nullptr;
     m_entities.clear();
     m_particles.clear();
     m_player.reset();
@@ -93,15 +714,28 @@ void PlayState::startNewRun() {
     m_entities.clear();
     m_particles.clear();
 
+    if (g_smokeRegression) {
+        g_smokeCompletedFloor = 0;
+        g_smokeFailureCode = 0;
+        g_smokeFailureReason[0] = '\0';
+    }
+
     m_currentDifficulty = 1;
     m_isDailyRun = g_dailyRunActive;
-    m_runSeed = m_isDailyRun ? DailyRun::getTodaySeed() : std::rand();
+    m_runSeed = (g_forcedRunSeed >= 0)
+        ? g_forcedRunSeed
+        : (m_isDailyRun ? DailyRun::getTodaySeed() : std::rand());
+    if (g_smokeRegression) {
+        std::srand(static_cast<unsigned int>(m_runSeed));
+    }
     g_dailyRunActive = false; // Reset flag
     enemiesKilled = 0;
     riftsRepaired = 0;
     roomsCleared = 0;
     shardsCollected = 0;
     m_collapsing = false;
+    m_riftDimensionHintTimer = 0;
+    m_riftDimensionHintRequiredDim = 0;
     m_tutorialTimer = 0;
     m_tutorialHintIndex = 0;
     m_tutorialHintShowTimer = 0;
@@ -169,11 +803,30 @@ void PlayState::startNewRun() {
     auto themes = WorldTheme::getRandomPair(m_runSeed);
     m_themeA = themes.first;
     m_themeB = themes.second;
+    m_dimATestBackground = nullptr;
+    m_dimBTestBackground = nullptr;
+    m_bossTestBackground = nullptr;
+    if (kUseAiFinalBackgroundArtTest) {
+        m_dimATestBackground = ResourceManager::instance().getTexture(kDimAFinalBackgroundPath);
+        m_dimBTestBackground = ResourceManager::instance().getTexture(kDimBFinalBackgroundPath);
+        m_bossTestBackground = ResourceManager::instance().getTexture(kBossFinalBackgroundPath);
+        if (!m_dimATestBackground) {
+            SDL_Log("AI test background missing for DIM-A: %s", kDimAFinalBackgroundPath);
+        }
+        if (!m_dimBTestBackground) {
+            SDL_Log("AI test background missing for DIM-B: %s", kDimBFinalBackgroundPath);
+        }
+        if (!m_bossTestBackground) {
+            SDL_Log("AI test background missing for boss floors: %s", kBossFinalBackgroundPath);
+        }
+    }
 
     m_dimManager = DimensionManager();
     m_dimManager.setDimColors(m_themeA.colors.background, m_themeB.colors.background);
     m_dimManager.particles = &m_particles;
     AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+    AudioManager::instance().startMusicLayers();
+    AudioManager::instance().playThemeAmbient(static_cast<int>(m_themeA.id));
 
     m_entropy = SuitEntropy();
     m_combatSystem.resetRunState();
@@ -188,12 +841,14 @@ void PlayState::startNewRun() {
     m_waveClearTimer = 0;
     m_playerDying = false;
     m_deathSequenceTimer = 0;
+    m_deathCause = 0;
 
     generateLevel();
     m_combatSystem.setPlayer(m_player.get());
     m_combatSystem.setDimensionManager(&m_dimManager);
     m_hud.setCombatSystem(&m_combatSystem);
     m_aiSystem.setLevel(m_level.get());
+    m_aiSystem.setPlayer(m_player.get());
 }
 
 void PlayState::generateLevel() {
@@ -260,6 +915,8 @@ void PlayState::generateLevel() {
     m_levelCompleteTimer = 0;
     m_activePuzzle.reset();
     m_nearRiftIndex = -1;
+    m_riftDimensionHintTimer = 0;
+    m_riftDimensionHintRequiredDim = 0;
     // FIX: Reset per-level rift tracking
     m_repairedRiftIndices.clear();
     m_levelRiftsRepaired = 0;
@@ -340,7 +997,7 @@ void PlayState::spawnEnemies() {
             // Elite modifier: 15% chance per enemy at difficulty 3+
             if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
                 && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < 15) {
-                EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 6);
+                EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 9);
                 Enemy::makeElite(e, mod);
             }
             // Mini-boss: promote first eligible enemy
@@ -402,6 +1059,20 @@ void PlayState::applyThemeVariant(Entity& e, int dimension) {
     sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.8f + accent.r * 0.2f);
     sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.8f + accent.g * 0.2f);
     sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.8f + accent.b * 0.2f);
+
+    // New Game+ scaling: enemies get stronger per NG+ tier
+    if (g_newGamePlusLevel > 0) {
+        float ngMult = 1.0f + g_newGamePlusLevel * 0.2f; // +20% per NG+ level
+        hp.maxHP *= ngMult;
+        hp.currentHP = hp.maxHP;
+        combat.meleeAttack.damage *= (1.0f + g_newGamePlusLevel * 0.15f);
+        combat.rangedAttack.damage *= (1.0f + g_newGamePlusLevel * 0.15f);
+        ai.chaseSpeed *= (1.0f + g_newGamePlusLevel * 0.05f);
+        // NG+ visual: slightly purple tint
+        sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + g_newGamePlusLevel * 15));
+        sprite.color.b = static_cast<Uint8>(std::min(255, sprite.color.b + g_newGamePlusLevel * 20));
+    }
+
     sprite.baseColor = sprite.color; // update base for wind-up restore
 }
 
@@ -580,6 +1251,7 @@ void PlayState::update(float dt) {
         // Update system pointers to new Player and Level (prevent dangling after regeneration)
         m_combatSystem.setPlayer(m_player.get());
         m_aiSystem.setLevel(m_level.get());
+        m_aiSystem.setPlayer(m_player.get());
         applyRunBuffs();
 
         // Restore relics and HP to new player entity
@@ -683,9 +1355,11 @@ void PlayState::update(float dt) {
         m_challengeTimer -= dt;
         if (m_challengeTimer <= 0 && !m_playerDying) {
             m_playerDying = true;
+            m_deathCause = 4; // Speedrun
             m_deathSequenceTimer = m_deathSequenceDuration;
             AudioManager::instance().play(SFX::PlayerDeath);
             m_camera.shake(15.0f, 0.6f);
+            game->getInputMutable().rumble(1.0f, 500);
             if (m_player) {
                 Vec2 pos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
                 m_particles.burst(pos, 30, {255, 200, 50, 255}, 250.0f, 5.0f);
@@ -715,11 +1389,25 @@ void PlayState::update(float dt) {
         m_activePuzzle->update(dt);
         return;
     }
+    if (m_activePuzzle && !m_activePuzzle->isActive()) {
+        m_activePuzzle.reset();
+    }
 
     auto& input = game->getInput();
 
     // Dimension switch
     if (input.isActionPressed(Action::DimensionSwitch)) {
+        if (m_smokeTest && m_player) {
+            Vec2 dimPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+            smokeLog("[SMOKE] DIM_REQUEST floor=%d seed=%d pos=(%.0f,%.0f) current=%d switching=%d cooldown=%.2f",
+                     m_currentDifficulty,
+                     m_level ? m_level->getGenerationSeed() : -1,
+                     dimPos.x,
+                     dimPos.y,
+                     m_dimManager.getCurrentDimension(),
+                     m_dimManager.isSwitching() ? 1 : 0,
+                     m_dimManager.getCooldownTimer());
+        }
         // Check if dimension is locked by Void Sovereign
         bool dimLocked = false;
         m_entities.forEach([&](Entity& e) {
@@ -731,9 +1419,18 @@ void PlayState::update(float dt) {
         if (dimLocked) {
             m_camera.shake(3.0f, 0.1f); // Feedback: can't switch
         } else if (m_dimManager.switchDimension()) {
+            if (m_smokeTest) {
+                smokeLog("[SMOKE] DIM_STARTED floor=%d seed=%d current=%d switching=%d cooldown=%.2f",
+                         m_currentDifficulty,
+                         m_level ? m_level->getGenerationSeed() : -1,
+                         m_dimManager.getCurrentDimension(),
+                         m_dimManager.isSwitching() ? 1 : 0,
+                         m_dimManager.getCooldownTimer());
+            }
             m_entropy.onDimensionSwitch();
             AudioManager::instance().play(SFX::DimensionSwitch);
             AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+            game->getInputMutable().rumble(0.3f, 100);
             m_screenEffects.triggerDimensionRipple();
 
             // Relic dimension-switch effects
@@ -894,6 +1591,7 @@ void PlayState::update(float dt) {
         });
         float hp = m_player ? m_player->getEntity()->getComponent<HealthComponent>().getPercent() : 1.0f;
         m_musicSystem.update(dt, nearEnemies, bossActive, hp, m_entropy.getEntropy());
+        AudioManager::instance().updateMusicLayers(m_musicSystem);
     }
 
     // Run time tracking
@@ -914,6 +1612,7 @@ void PlayState::update(float dt) {
         if (phys.onGround && !phys.wasOnGround && phys.landingImpactSpeed > 250.0f) {
             float t = std::min((phys.landingImpactSpeed - 250.0f) / 550.0f, 1.0f);
             m_camera.shake(2.0f + t * 6.0f, 0.08f + t * 0.12f);
+            game->getInputMutable().rumble(0.2f + t * 0.4f, 80 + static_cast<int>(t * 120));
 
             // Landing squash: sprite goes wide+short on impact
             auto& spr = m_player->getEntity()->getComponent<SpriteComponent>();
@@ -1111,6 +1810,7 @@ void PlayState::update(float dt) {
                 m_camera.shake(6.0f, 0.15f);
                 m_hud.triggerDamageFlash();
                 AudioManager::instance().play(SFX::PlayerHurt);
+                game->getInputMutable().rumble(0.6f, 150);
             }
         }
     }
@@ -1126,6 +1826,7 @@ void PlayState::update(float dt) {
             m_waveClearTimer = 2.0f;
             m_combatSystem.addHitFreeze(0.15f);
             m_camera.shake(10.0f, 0.3f);
+            game->getInputMutable().rumble(0.5f, 200);
             AudioManager::instance().play(SFX::ShrineBlessing);
             if (m_player) {
                 Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
@@ -1241,20 +1942,25 @@ void PlayState::update(float dt) {
                 }
             }
 
+            bool finalBossDefeated = (m_currentDifficulty >= 10 && bossIdx >= 4);
+
             // Track Void Sovereign defeat for ending sequence
-            if (m_currentDifficulty >= 10 && bossIdx >= 4) {
+            if (finalBossDefeated) {
                 m_voidSovereignDefeated = true;
-            }
+                m_deathCause = 5; // Victory
+                m_levelComplete = true;
+                m_levelCompleteTimer = 0;
+            } else {
+                // Boss kill unlocks exit: trigger collapse so player can escape
+                if (!m_collapsing) {
+                    m_collapsing = true;
+                    m_collapseTimer = 0;
+                    m_level->setExitActive(true);
+                }
 
-            // Boss kill unlocks exit: trigger collapse so player can escape
-            if (!m_collapsing) {
-                m_collapsing = true;
-                m_collapseTimer = 0;
-                m_level->setExitActive(true);
+                // Boss kill -> Relic choice (3 from pool)
+                showRelicChoice();
             }
-
-            // Boss kill -> Relic choice (3 from pool)
-            showRelicChoice();
         }
     }
 
@@ -1466,9 +2172,14 @@ void PlayState::update(float dt) {
 
     // Entropy
     m_entropy.update(dt);
+    if (m_dimManager.getCurrentDimension() == 2) {
+        const auto& shiftBalance = getDimensionShiftFloorBalance(m_currentDifficulty);
+        m_entropy.addEntropy(shiftBalance.dimBEntropyPerSecond * dt);
+    }
     if (m_entropy.isCritical() && !m_playerDying) {
         // Suit crash - run over with death sequence
         m_playerDying = true;
+        m_deathCause = 2; // Entropy
         m_deathSequenceTimer = m_deathSequenceDuration;
         AudioManager::instance().play(SFX::SuitEntropyCritical);
         m_camera.shake(15.0f, 0.6f);
@@ -1566,6 +2277,7 @@ void PlayState::update(float dt) {
             // Start death sequence: dramatic pause before ending run
             if (!m_playerDying) {
                 m_playerDying = true;
+                m_deathCause = 1; // HP depleted
                 m_deathSequenceTimer = m_deathSequenceDuration;
                 AudioManager::instance().play(SFX::PlayerDeath);
                 m_camera.shake(20.0f, 0.8f);
@@ -1679,8 +2391,14 @@ void PlayState::update(float dt) {
     if (m_levelComplete) {
         m_levelCompleteTimer += dt;
         if (m_levelCompleteTimer >= 2.0f) {
-            m_currentDifficulty++;
             roomsCleared++;
+
+            if (m_voidSovereignDefeated) {
+                endRun();
+                return;
+            }
+
+            m_currentDifficulty++;
             m_runSeed += 100;
 
             // Pick new theme pair every 3 levels
@@ -1689,6 +2407,7 @@ void PlayState::update(float dt) {
                 m_themeA = themes.first;
                 m_themeB = themes.second;
                 m_dimManager.setDimColors(m_themeA.colors.background, m_themeB.colors.background);
+                AudioManager::instance().playThemeAmbient(static_cast<int>(m_themeA.id));
             }
 
             // Open shop between levels (every level except first)
@@ -1712,6 +2431,7 @@ void PlayState::update(float dt) {
         }
         if (m_collapseTimer >= m_collapseMaxTime && !m_playerDying) {
             m_playerDying = true;
+            m_deathCause = 3; // Collapse
             m_deathSequenceTimer = m_deathSequenceDuration;
             AudioManager::instance().play(SFX::PlayerDeath);
             m_camera.shake(20.0f, 0.8f);
@@ -1727,6 +2447,7 @@ void PlayState::update(float dt) {
 
     // FIX: Decay exit locked hint timer
     if (m_exitLockedHintTimer > 0) m_exitLockedHintTimer -= dt;
+    if (m_riftDimensionHintTimer > 0) m_riftDimensionHintTimer -= dt;
 
     // Track dash count for achievement
     if (m_player && m_player->isDashing && m_player->dashTimer >= m_player->dashDuration - 0.02f) {
@@ -1783,6 +2504,14 @@ void PlayState::update(float dt) {
         if (m_player->pickupDamagePending) {
             emitBuffPickup({255, 80, 80, 220}, "DMG UP");
             m_player->pickupDamagePending = false;
+        }
+        if (m_player->weaponPickupPending >= 0) {
+            auto wid = static_cast<WeaponID>(m_player->weaponPickupPending);
+            bool melee = WeaponSystem::isMelee(wid);
+            SDL_Color wColor = melee ? SDL_Color{255, 180, 60, 220} : SDL_Color{60, 200, 255, 220};
+            emitBuffPickup(wColor, WeaponSystem::getWeaponName(wid));
+            m_camera.shake(10.0f, 0.3f);
+            m_player->weaponPickupPending = -1;
         }
     }
 
@@ -1931,12 +2660,14 @@ void PlayState::update(float dt) {
         }
     }
 
-    // Skill achievement kill tracking (before clear)
+    // Skill achievement kill tracking + kill feed (before clear)
     for (auto& ke : m_combatSystem.killEvents) {
         if (ke.wasAerial) m_aerialKillsThisRun++;
         if (ke.wasDash) m_dashKillsThisRun++;
         if (ke.wasCharged) m_chargedKillsThisRun++;
+        addKillFeedEntry(ke);
     }
+    updateKillFeed(dt);
 
     // Combat challenge tracking
     updateCombatChallenge(dt);
@@ -1985,21 +2716,60 @@ void PlayState::checkRiftInteraction() {
 
     Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
     auto rifts = m_level->getRiftPositions();
+    int currentDim = m_dimManager.getCurrentDimension();
 
     m_nearRiftIndex = -1;
+    float nearestRiftDist = 60.0f;
     for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
         // FIX: Skip already-repaired rifts
         if (m_repairedRiftIndices.count(i)) continue;
         float dx = playerPos.x - rifts[i].x;
         float dy = playerPos.y - rifts[i].y;
         float dist = std::sqrt(dx * dx + dy * dy);
-        if (dist < 60.0f) {
+        if (dist < nearestRiftDist) {
+            nearestRiftDist = dist;
             m_nearRiftIndex = i;
-            break;
         }
     }
 
     if (m_nearRiftIndex >= 0 && game->getInput().isActionPressed(Action::Interact)) {
+        if (m_smokeTest) {
+            const auto& topology = m_level->getTopology();
+            if (m_nearRiftIndex < static_cast<int>(topology.rifts.size())) {
+                const auto& topoRift = topology.rifts[m_nearRiftIndex];
+                smokeLog("[SMOKE] Rift attempt idx=%d room=%d tile=(%d,%d) dims=%d%d requiredDim=%d validated=%d genValidated=%d pos=(%.0f,%.0f) dim=%d",
+                         m_nearRiftIndex,
+                         topoRift.roomIndex,
+                         topoRift.tileX,
+                         topoRift.tileY,
+                         topoRift.accessibleDimensions[1] ? 1 : 0,
+                         topoRift.accessibleDimensions[2] ? 1 : 0,
+                         topoRift.requiredDimension,
+                         topoRift.validated ? 1 : 0,
+                         topology.validation.passed ? 1 : 0,
+                         playerPos.x,
+                         playerPos.y,
+                         currentDim);
+            }
+        }
+
+        int requiredDim = m_level->getRiftRequiredDimension(m_nearRiftIndex);
+        if (requiredDim != 0 && requiredDim != currentDim) {
+            m_riftDimensionHintTimer = 2.0f;
+            m_riftDimensionHintRequiredDim = requiredDim;
+            SDL_Color hintColor = (requiredDim == 2)
+                ? SDL_Color{255, 90, 145, 255}
+                : SDL_Color{90, 180, 255, 255};
+            m_particles.burst(rifts[m_nearRiftIndex], 10, hintColor, 80.0f, 1.4f);
+            if (m_smokeTest) {
+                smokeLog("[SMOKE] Rift blocked idx=%d currentDim=%d requiredDim=%d",
+                         m_nearRiftIndex,
+                         currentDim,
+                         requiredDim);
+            }
+            return;
+        }
+
         // Puzzle type progression: early = Timing (easiest), mid = Sequence, late = Alignment/Pattern
         int puzzleType;
         if (m_currentDifficulty <= 1) {
@@ -2020,28 +2790,46 @@ void PlayState::checkRiftInteraction() {
         m_activePuzzle->onComplete = [this, riftIdx](bool success) {
             if (success) {
                 AudioManager::instance().play(SFX::RiftRepair);
+                int requiredDim = m_level ? m_level->getRiftRequiredDimension(riftIdx) : 0;
+                const auto& shiftBalance = getDimensionShiftFloorBalance(m_currentDifficulty);
                 riftsRepaired++;
                 // FIX: Mark this rift as repaired and track per-level count
                 m_repairedRiftIndices.insert(riftIdx);
                 m_levelRiftsRepaired++;
                 m_entropy.onRiftRepaired();
+                if (requiredDim == 2) {
+                    m_entropy.reduceEntropy(shiftBalance.dimBEntropyRepairBonus);
+                }
                 game->getAchievements().unlock("rift_walker");
                 float riftShardMult = game->getRunBuffSystem().getShardMultiplier();
                 riftShardMult *= m_achievementShardMult;
                 if (m_player && m_player->getEntity()->hasComponent<RelicComponent>())
                     riftShardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
                 int riftShards = static_cast<int>((10 + m_currentDifficulty * 5) * riftShardMult);
+                if (requiredDim == 2) {
+                    riftShards = static_cast<int>(riftShards * shiftBalance.dimBShardMultiplier + 0.5f);
+                }
                 shardsCollected += riftShards;
                 game->getUpgradeSystem().addRiftShards(riftShards);
                 game->getUpgradeSystem().totalRiftsRepaired++;
 
+                SDL_Color repairColor = (requiredDim == 2)
+                    ? SDL_Color{255, 90, 145, 255}
+                    : SDL_Color{90, 180, 255, 255};
                 m_particles.burst(m_dimManager.playerPos, 40,
-                    {150, 80, 255, 255}, 250.0f, 6.0f);
+                    repairColor, 250.0f, 6.0f);
                 m_camera.shake(5.0f, 0.3f);
 
                 // Start collapse after all rifts in THIS level repaired
                 // (skip if already collapsing, e.g. boss kill already triggered it)
                 int totalRifts = static_cast<int>(m_level->getRiftPositions().size());
+                if (m_smokeTest) {
+                    smokeLog("[SMOKE] Rift repaired idx=%d repaired=%d/%d collapsing=%d",
+                             riftIdx,
+                             m_levelRiftsRepaired,
+                             totalRifts,
+                             m_collapsing ? 1 : 0);
+                }
                 if (m_levelRiftsRepaired >= totalRifts && !m_collapsing) {
                     m_collapsing = true;
                     m_collapseTimer = 0;
@@ -2051,8 +2839,10 @@ void PlayState::checkRiftInteraction() {
                 AudioManager::instance().play(SFX::RiftFail);
                 m_entropy.addEntropy(10.0f);
                 m_camera.shake(3.0f, 0.2f);
+                if (m_smokeTest) {
+                    smokeLog("[SMOKE] Rift puzzle failed idx=%d", riftIdx);
+                }
             }
-            m_activePuzzle.reset();
         };
 
         m_activePuzzle->activate();
@@ -2084,6 +2874,9 @@ void PlayState::checkExitReached() {
         }
         if (m_smokeTest) {
             smokeLog("[SMOKE] LEVEL %d COMPLETE! (%.1fs)", m_currentDifficulty, m_smokeRunTime);
+            if (g_smokeRegression) {
+                g_smokeCompletedFloor = std::max(g_smokeCompletedFloor, m_currentDifficulty);
+            }
         }
         AudioManager::instance().play(SFX::LevelComplete);
         m_camera.shake(10.0f, 0.3f);
@@ -2119,47 +2912,261 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     Vec2 camPos = m_camera.getPosition();
     Uint32 ticks = SDL_GetTicks();
-
-    // Layer 1: Distant stars (slow parallax)
-    for (int i = 0; i < 60; i++) {
-        // Deterministic pseudo-random positions based on index
-        int baseX = ((i * 7919 + 104729) % 2560) - 640;
-        int baseY = ((i * 6271 + 73856) % 1440) - 360;
-
-        float parallax = 0.05f;
-        int sx = baseX - static_cast<int>(camPos.x * parallax) % 2560;
-        int sy = baseY - static_cast<int>(camPos.y * parallax) % 1440;
-        // Wrap around screen
-        sx = ((sx % SCREEN_WIDTH) + SCREEN_WIDTH) % SCREEN_WIDTH;
-        sy = ((sy % SCREEN_HEIGHT) + SCREEN_HEIGHT) % SCREEN_HEIGHT;
-
-        float twinkle = 0.5f + 0.5f * std::sin(ticks * 0.002f + i * 1.7f);
-        Uint8 brightness = static_cast<Uint8>(30 + 40 * twinkle);
-        int size = (i % 3 == 0) ? 2 : 1;
-        SDL_SetRenderDrawColor(renderer, brightness, brightness,
-                               static_cast<Uint8>(brightness + 30), 255);
-        SDL_Rect star = {sx, sy, size, size};
-        SDL_RenderFillRect(renderer, &star);
+    SDL_Texture* artTestBackground = nullptr;
+    if (kUseAiFinalBackgroundArtTest) {
+        if (m_isBossLevel && m_bossTestBackground) {
+            artTestBackground = m_bossTestBackground;
+        } else {
+            artTestBackground = (m_dimManager.getCurrentDimension() == 1) ? m_dimATestBackground : m_dimBTestBackground;
+        }
     }
 
-    // Layer 2: Grid lines (medium parallax, gives depth)
-    float gridParallax = 0.15f;
-    int gridSpacing = 120;
-    int gridOffX = static_cast<int>(camPos.x * gridParallax) % gridSpacing;
-    int gridOffY = static_cast<int>(camPos.y * gridParallax) % gridSpacing;
+    if (artTestBackground) {
+        const int worldPixelWidth = m_level ? m_level->getPixelWidth() : SCREEN_WIDTH;
+        renderWholeArtBackground(renderer,
+                                 artTestBackground,
+                                 camPos,
+                                 SCREEN_WIDTH,
+                                 SCREEN_HEIGHT,
+                                 worldPixelWidth,
+                                 kArtTestBackgroundParallaxX,
+                                 164, 168, 174, 196);
 
-    Uint8 gridAlpha = 15;
-    SDL_SetRenderDrawColor(renderer,
-        static_cast<Uint8>(bgColor.r + 30 > 255 ? 255 : bgColor.r + 30),
-        static_cast<Uint8>(bgColor.g + 30 > 255 ? 255 : bgColor.g + 30),
-        static_cast<Uint8>(bgColor.b + 30 > 255 ? 255 : bgColor.b + 30),
-        gridAlpha);
+        // Keep AI backgrounds slightly subdued so gameplay silhouettes stay readable.
+        SDL_SetRenderDrawColor(renderer, 7, 9, 14, 92);
+        SDL_Rect dimmer{0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &dimmer);
 
-    for (int x = -gridOffX; x < SCREEN_WIDTH; x += gridSpacing) {
-        SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
-    }
-    for (int y = -gridOffY; y < SCREEN_HEIGHT; y += gridSpacing) {
-        SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
+        // Extra calm in the gameplay-heavy center band.
+        SDL_SetRenderDrawColor(renderer, 10, 12, 18, 28);
+        SDL_Rect outerCenterVeil{
+            SCREEN_WIDTH * 14 / 100,
+            SCREEN_HEIGHT * 20 / 100,
+            SCREEN_WIDTH * 72 / 100,
+            SCREEN_HEIGHT * 50 / 100
+        };
+        SDL_RenderFillRect(renderer, &outerCenterVeil);
+
+        SDL_SetRenderDrawColor(renderer, 12, 14, 22, 34);
+        SDL_Rect innerCenterVeil{
+            SCREEN_WIDTH * 24 / 100,
+            SCREEN_HEIGHT * 28 / 100,
+            SCREEN_WIDTH * 52 / 100,
+            SCREEN_HEIGHT * 34 / 100
+        };
+        SDL_RenderFillRect(renderer, &innerCenterVeil);
+    } else {
+        // Layer 1: Distant stars (slow parallax)
+        for (int i = 0; i < 60; i++) {
+            // Deterministic pseudo-random positions based on index
+            int baseX = ((i * 7919 + 104729) % 2560) - 640;
+            int baseY = ((i * 6271 + 73856) % 1440) - 360;
+
+            float parallax = 0.05f;
+            int sx = baseX - static_cast<int>(camPos.x * parallax) % 2560;
+            int sy = baseY - static_cast<int>(camPos.y * parallax) % 1440;
+            // Wrap around screen
+            sx = ((sx % SCREEN_WIDTH) + SCREEN_WIDTH) % SCREEN_WIDTH;
+            sy = ((sy % SCREEN_HEIGHT) + SCREEN_HEIGHT) % SCREEN_HEIGHT;
+
+            float twinkle = 0.5f + 0.5f * std::sin(ticks * 0.002f + i * 1.7f);
+            Uint8 brightness = static_cast<Uint8>(30 + 40 * twinkle);
+            int size = (i % 3 == 0) ? 2 : 1;
+            SDL_SetRenderDrawColor(renderer, brightness, brightness,
+                                   static_cast<Uint8>(brightness + 30), 255);
+            SDL_Rect star = {sx, sy, size, size};
+            SDL_RenderFillRect(renderer, &star);
+        }
+
+        // Layer 1.5: Nebula clouds (slow drift, theme-colored)
+        {
+            float nebulaParallax = 0.08f;
+            int nOffX = static_cast<int>(camPos.x * nebulaParallax);
+            int nOffY = static_cast<int>(camPos.y * nebulaParallax);
+            auto& accent = (m_dimManager.getCurrentDimension() == 1) ?
+                m_themeA.colors.accent : m_themeB.colors.accent;
+            for (int i = 0; i < 5; i++) {
+                int baseX = ((i * 12347 + 5281) % 2200) - 400;
+                int baseY = ((i * 8731 + 2917) % 1000) - 200;
+                int nx = ((baseX - nOffX) % 2000 + 2000) % 2000 - 400;
+                int ny = ((baseY - nOffY / 2) % 900 + 900) % 900 - 100;
+                int cloudW = 120 + (i * 37) % 180;
+                int cloudH = 40 + (i * 23) % 60;
+                float drift = std::sin(ticks * 0.0004f + i * 1.3f) * 15.0f;
+                nx += static_cast<int>(drift);
+                // Draw as overlapping semi-transparent circles
+                Uint8 na = static_cast<Uint8>(8 + 4 * std::sin(ticks * 0.001f + i));
+                SDL_SetRenderDrawColor(renderer, accent.r / 3, accent.g / 3, accent.b / 3, na);
+                for (int j = 0; j < 4; j++) {
+                    int cx = nx + (j * cloudW) / 4;
+                    int cy = ny + static_cast<int>(std::sin(j * 1.5f) * cloudH / 3);
+                    int rw = cloudW / 3 + (j * 13) % 20;
+                    int rh = cloudH / 2 + (j * 7) % 10;
+                    SDL_Rect cloud = {cx - rw / 2, cy - rh / 2, rw, rh};
+                    SDL_RenderFillRect(renderer, &cloud);
+                }
+            }
+        }
+
+        // Layer 2: Grid lines (medium parallax, gives depth)
+        float gridParallax = 0.15f;
+        int gridSpacing = 120;
+        int gridOffX = static_cast<int>(camPos.x * gridParallax) % gridSpacing;
+        int gridOffY = static_cast<int>(camPos.y * gridParallax) % gridSpacing;
+
+        Uint8 gridAlpha = 15;
+        SDL_SetRenderDrawColor(renderer,
+            static_cast<Uint8>(bgColor.r + 30 > 255 ? 255 : bgColor.r + 30),
+            static_cast<Uint8>(bgColor.g + 30 > 255 ? 255 : bgColor.g + 30),
+            static_cast<Uint8>(bgColor.b + 30 > 255 ? 255 : bgColor.b + 30),
+            gridAlpha);
+
+        for (int x = -gridOffX; x < SCREEN_WIDTH; x += gridSpacing) {
+            SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
+        }
+        for (int y = -gridOffY; y < SCREEN_HEIGHT; y += gridSpacing) {
+            SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
+        }
+
+        // Layer 2.5: Theme-specific silhouettes (0.1x parallax)
+        {
+            float silParallax = 0.1f;
+            int offX = static_cast<int>(camPos.x * silParallax);
+            int offY = static_cast<int>(camPos.y * silParallax);
+            const auto& theme = (m_dimManager.getCurrentDimension() == 1) ? m_themeA : m_themeB;
+            Uint8 silR = static_cast<Uint8>(std::min(255, bgColor.r + 15));
+            Uint8 silG = static_cast<Uint8>(std::min(255, bgColor.g + 15));
+            Uint8 silB = static_cast<Uint8>(std::min(255, bgColor.b + 15));
+            Uint8 silA = 30;
+            SDL_SetRenderDrawColor(renderer, silR, silG, silB, silA);
+
+            int themeId = static_cast<int>(theme.id);
+            for (int i = 0; i < 8; i++) {
+                int baseX = ((i * 8317 + 29741) % 2000) - 200;
+                int baseY = SCREEN_HEIGHT - 50 - ((i * 4729) % 200);
+                int sx = ((baseX - offX) % 1800 + 1800) % 1800 - 200;
+                int sy = baseY - (offY % 300);
+
+                switch (themeId) {
+                case 0: { // Victorian - gear outlines
+                    int cx = sx + 30; int cy = sy - 20;
+                    int r = 15 + (i % 3) * 8;
+                    for (int seg = 0; seg < 8; seg++) {
+                        float a1 = seg * 0.785f + ticks * 0.0003f * (i % 2 ? 1 : -1);
+                        float a2 = a1 + 0.5f;
+                        SDL_RenderDrawLine(renderer, cx + static_cast<int>(std::cos(a1) * r), cy + static_cast<int>(std::sin(a1) * r),
+                                           cx + static_cast<int>(std::cos(a2) * r), cy + static_cast<int>(std::sin(a2) * r));
+                    }
+                    break;
+                }
+                case 1: // DeepOcean - seaweed columns
+                    for (int s = 0; s < 4; s++) {
+                        int wx = sx + s * 8;
+                        int sway = static_cast<int>(std::sin(ticks * 0.001f + i + s * 0.5f) * 6);
+                        SDL_Rect seg = {wx + sway, sy - s * 25, 3, 25};
+                        SDL_RenderFillRect(renderer, &seg);
+                    }
+                    break;
+                case 2: { // NeonCity - building skyline
+                    int bw = 30 + (i * 17) % 40;
+                    int bh = 60 + (i * 31) % 120;
+                    SDL_Rect bld = {sx, SCREEN_HEIGHT - bh, bw, bh};
+                    SDL_RenderFillRect(renderer, &bld);
+                    // Window dots
+                    for (int wy = SCREEN_HEIGHT - bh + 8; wy < SCREEN_HEIGHT - 8; wy += 12) {
+                        for (int wx = sx + 4; wx < sx + bw - 4; wx += 8) {
+                            SDL_SetRenderDrawColor(renderer, silR, silG, static_cast<Uint8>(std::min(255, silB + 40)), 20);
+                            SDL_Rect win = {wx, wy, 3, 4};
+                            SDL_RenderFillRect(renderer, &win);
+                        }
+                    }
+                    SDL_SetRenderDrawColor(renderer, silR, silG, silB, silA);
+                    break;
+                }
+                case 3: { // AncientRuins - columns
+                    int colH = 80 + (i * 23) % 60;
+                    SDL_Rect col = {sx, SCREEN_HEIGHT - colH, 12, colH};
+                    SDL_RenderFillRect(renderer, &col);
+                    SDL_Rect cap = {sx - 4, SCREEN_HEIGHT - colH, 20, 6};
+                    SDL_RenderFillRect(renderer, &cap);
+                    break;
+                }
+                case 4: // CrystalCavern - stalactites
+                    for (int s = 0; s < 3; s++) {
+                        int tip = 30 + (i + s) * 13 % 50;
+                        int bx = sx + s * 20;
+                        SDL_RenderDrawLine(renderer, bx, 0, bx - 5, tip);
+                        SDL_RenderDrawLine(renderer, bx, 0, bx + 5, tip);
+                        SDL_RenderDrawLine(renderer, bx - 5, tip, bx + 5, tip);
+                    }
+                    break;
+                case 5: { // BioMechanical - pipes
+                    int pipeY = sy - 40;
+                    SDL_Rect pipe = {sx, pipeY, 60 + (i * 19) % 80, 6};
+                    SDL_RenderFillRect(renderer, &pipe);
+                    SDL_Rect joint = {sx + pipe.w, pipeY - 3, 6, 12};
+                    SDL_RenderFillRect(renderer, &joint);
+                    break;
+                }
+                case 6: // FrozenWasteland - ice spikes
+                    for (int s = 0; s < 3; s++) {
+                        int spikeH = 40 + (i + s) * 17 % 60;
+                        int bx = sx + s * 18;
+                        int by = SCREEN_HEIGHT;
+                        SDL_RenderDrawLine(renderer, bx - 6, by, bx, by - spikeH);
+                        SDL_RenderDrawLine(renderer, bx + 6, by, bx, by - spikeH);
+                    }
+                    break;
+                case 7: { // VolcanicCore - rock pinnacles
+                    int rockH = 50 + (i * 29) % 80;
+                    int bx = sx;
+                    int by = SCREEN_HEIGHT;
+                    SDL_RenderDrawLine(renderer, bx - 12, by, bx - 3, by - rockH);
+                    SDL_RenderDrawLine(renderer, bx + 12, by, bx + 3, by - rockH);
+                    SDL_Rect base = {bx - 12, by - 8, 24, 8};
+                    SDL_RenderFillRect(renderer, &base);
+                    break;
+                }
+                case 8: // FloatingIslands - cloud wisps
+                    for (int c = 0; c < 3; c++) {
+                        int cx = sx + c * 25;
+                        int cy = sy - 80 + static_cast<int>(std::sin(ticks * 0.0005f + i + c) * 10);
+                        SDL_Rect cloud = {cx, cy, 20 + c * 5, 6};
+                        SDL_RenderFillRect(renderer, &cloud);
+                    }
+                    break;
+                case 9: { // VoidRealm - fractured geometry
+                    int fx = sx; int fy = sy - 60;
+                    for (int s = 0; s < 4; s++) {
+                        float a = s * 1.57f + ticks * 0.0004f;
+                        int len = 15 + (i * 7 + s) % 20;
+                        SDL_RenderDrawLine(renderer, fx, fy, fx + static_cast<int>(std::cos(a) * len), fy + static_cast<int>(std::sin(a) * len));
+                    }
+                    break;
+                }
+                case 10: { // SpaceWestern - mesa silhouettes
+                    int mesaW = 50 + (i * 23) % 40;
+                    int mesaH = 40 + (i * 13) % 50;
+                    SDL_Rect mesa = {sx, SCREEN_HEIGHT - mesaH, mesaW, mesaH};
+                    SDL_RenderFillRect(renderer, &mesa);
+                    SDL_Rect top = {sx + 5, SCREEN_HEIGHT - mesaH - 8, mesaW - 10, 8};
+                    SDL_RenderFillRect(renderer, &top);
+                    break;
+                }
+                case 11: // Biopunk - organic bulbs
+                    for (int b = 0; b < 2; b++) {
+                        int bx = sx + b * 30;
+                        int by = sy - 30;
+                        int br = 8 + (i + b) % 6;
+                        SDL_Rect bulb = {bx - br, by - br, br * 2, br * 2};
+                        SDL_RenderDrawRect(renderer, &bulb);
+                        SDL_RenderDrawLine(renderer, bx, by + br, bx, by + br + 20);
+                    }
+                    break;
+                default: break;
+                }
+            }
+        }
     }
 
     // Layer 3: Floating dimension particles (close parallax)
@@ -2253,10 +3260,19 @@ void PlayState::render(SDL_Renderer* renderer) {
         int totalRifts = static_cast<int>(m_level->getRiftPositions().size());
         int remaining = totalRifts - m_levelRiftsRepaired;
         if (remaining > 0) {
+            int dimARemaining = 0;
+            int dimBRemaining = 0;
+            for (int i = 0; i < totalRifts; i++) {
+                if (m_repairedRiftIndices.count(i)) continue;
+                int requiredDim = m_level->getRiftRequiredDimension(i);
+                if (requiredDim == 2) dimBRemaining++;
+                else dimARemaining++;
+            }
             TTF_Font* font = game->getFont();
             if (font) {
-                char riftBuf[64];
-                std::snprintf(riftBuf, sizeof(riftBuf), "Rifts: %d / %d", m_levelRiftsRepaired, totalRifts);
+                char riftBuf[96];
+                std::snprintf(riftBuf, sizeof(riftBuf), "Rifts: %d / %d  [A:%d B:%d]",
+                              m_levelRiftsRepaired, totalRifts, dimARemaining, dimBRemaining);
                 SDL_Color rc = {180, 130, 255, 200};
                 SDL_Surface* rs = TTF_RenderText_Blended(font, riftBuf, rc);
                 if (rs) {
@@ -2295,12 +3311,74 @@ void PlayState::render(SDL_Renderer* renderer) {
         }
     }
 
+    if (m_riftDimensionHintTimer > 0 && m_riftDimensionHintRequiredDim > 0) {
+        TTF_Font* font = game->getFont();
+        if (font) {
+            const auto& shiftBalance = getDimensionShiftFloorBalance(m_currentDifficulty);
+            int dimBShardBonus = getDimensionShiftDimBShardBonusPercent(m_currentDifficulty);
+            Uint8 alpha = static_cast<Uint8>(std::min(1.0f, m_riftDimensionHintTimer) * 255);
+            SDL_Color hc = (m_riftDimensionHintRequiredDim == 2)
+                ? SDL_Color{255, 90, 145, alpha}
+                : SDL_Color{90, 180, 255, alpha};
+            char hintText[160];
+            if (m_riftDimensionHintRequiredDim == 2) {
+                std::snprintf(hintText, sizeof(hintText),
+                              "This rift stabilizes in DIM-B. +%d%% shards, -%.0f entropy on repair, +%.2f entropy/s.",
+                              dimBShardBonus,
+                              shiftBalance.dimBEntropyRepairBonus,
+                              shiftBalance.dimBEntropyPerSecond);
+            } else {
+                std::snprintf(hintText, sizeof(hintText),
+                              "This rift stabilizes in DIM-A. Safer route, no DIM-B pressure.");
+            }
+            SDL_Surface* hs = TTF_RenderText_Blended(font, hintText, hc);
+            if (hs) {
+                SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
+                if (ht) {
+                    SDL_SetTextureAlphaMod(ht, alpha);
+                    SDL_Rect hr = {640 - hs->w / 2, 482, hs->w, hs->h};
+                    SDL_RenderCopy(renderer, ht, nullptr, &hr);
+                    SDL_DestroyTexture(ht);
+                }
+                SDL_FreeSurface(hs);
+            }
+        }
+    }
+
     // Near rift indicator
     if (m_nearRiftIndex >= 0 && !m_activePuzzle) {
         TTF_Font* font = game->getFont();
         if (font) {
-            SDL_Color c = {180, 130, 255, 200};
-            SDL_Surface* s = TTF_RenderText_Blended(font, "Press F to repair rift", c);
+            const auto& shiftBalance = getDimensionShiftFloorBalance(m_currentDifficulty);
+            int dimBShardBonus = getDimensionShiftDimBShardBonusPercent(m_currentDifficulty);
+            int currentDim = m_dimManager.getCurrentDimension();
+            int requiredDim = m_level ? m_level->getRiftRequiredDimension(m_nearRiftIndex) : 0;
+            bool riftActive = requiredDim == 0 || requiredDim == currentDim;
+            SDL_Color c = (requiredDim == 2)
+                ? SDL_Color{255, 90, 145, 220}
+                : SDL_Color{90, 180, 255, 220};
+            char promptText[160];
+            std::snprintf(promptText, sizeof(promptText), "Press F to repair rift");
+            if (!riftActive) {
+                if (requiredDim == 2) {
+                    std::snprintf(promptText, sizeof(promptText),
+                                  "Shift to DIM-B: +%d%% shards, -%.0f entropy on repair",
+                                  dimBShardBonus,
+                                  shiftBalance.dimBEntropyRepairBonus);
+                } else {
+                    std::snprintf(promptText, sizeof(promptText),
+                                  "Shift to DIM-A to stabilize this rift");
+                }
+            } else if (requiredDim == 2) {
+                std::snprintf(promptText, sizeof(promptText),
+                              "Press F to repair volatile DIM-B rift (+%d%% shards, -%.0f entropy)",
+                              dimBShardBonus,
+                              shiftBalance.dimBEntropyRepairBonus);
+            } else if (requiredDim == 1) {
+                std::snprintf(promptText, sizeof(promptText),
+                              "Press F to repair stable DIM-A rift");
+            }
+            SDL_Surface* s = TTF_RenderText_Blended(font, promptText, c);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
@@ -2335,9 +3413,13 @@ void PlayState::render(SDL_Renderer* renderer) {
 
             float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.005f + i * 1.5f);
             Uint8 pa = static_cast<Uint8>(120 + 80 * pulse);
+            int requiredDim = m_level->getRiftRequiredDimension(i);
+            Uint8 rr = (requiredDim == 2) ? 255 : 90;
+            Uint8 rg = (requiredDim == 2) ? 90 : 180;
+            Uint8 rb = (requiredDim == 2) ? 145 : 255;
 
             // Diamond indicator
-            SDL_SetRenderDrawColor(renderer, 150, 80, 255, pa);
+            SDL_SetRenderDrawColor(renderer, rr, rg, rb, pa);
             SDL_Rect ind = {static_cast<int>(cx) - 5, static_cast<int>(cy) - 5, 10, 10};
             SDL_RenderFillRect(renderer, &ind);
 
@@ -2345,7 +3427,7 @@ void PlayState::render(SDL_Renderer* renderer) {
             float angle = std::atan2(sy - cy, sx - cx);
             int ax = static_cast<int>(cx + std::cos(angle) * 14);
             int ay = static_cast<int>(cy + std::sin(angle) * 14);
-            SDL_SetRenderDrawColor(renderer, 180, 120, 255, pa);
+            SDL_SetRenderDrawColor(renderer, rr, rg, rb, pa);
             SDL_RenderDrawLine(renderer, static_cast<int>(cx), static_cast<int>(cy), ax, ay);
         }
     }
@@ -2516,6 +3598,9 @@ void PlayState::render(SDL_Renderer* renderer) {
 
     // Floating damage numbers
     renderDamageNumbers(renderer, game->getFont());
+
+    // Kill feed (bottom-right)
+    renderKillFeed(renderer, game->getFont());
 
     // Boss HP bar at top of screen
     if (m_isBossLevel && !m_bossDefeated) {
@@ -3355,7 +4440,7 @@ void PlayState::updateSpawnWaves(float dt) {
             // Elite modifier in wave spawns
             if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
                 && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < 15) {
-                EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 6);
+                EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 9);
                 Enemy::makeElite(e, mod);
             }
         }
@@ -3514,8 +4599,19 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
 
     // === CONTEXT-BASED HINTS (any level, triggered by situation) ===
     if (!hint) {
+        if (!m_tutorialHintDone[16] && m_nearRiftIndex >= 0 && m_level) {
+            int requiredDim = m_level->getRiftRequiredDimension(m_nearRiftIndex);
+            int currentDim = m_dimManager.getCurrentDimension();
+            if (requiredDim > 0 && requiredDim != currentDim) {
+                hint = (requiredDim == 2)
+                    ? "This Rift only stabilizes in DIM-B. Shift with [E], but entropy rises faster there."
+                    : "This Rift only stabilizes in DIM-A. Shift with [E] to secure it safely.";
+                keyLabel = "E";
+                hintSlot = 16;
+            }
+        }
         // Near a rift: explain how to repair
-        if (!m_tutorialHintDone[6] && m_nearRiftIndex >= 0) {
+        if (!hint && !m_tutorialHintDone[6] && m_nearRiftIndex >= 0) {
             hint = "Repair this Rift! Solve the puzzle to reduce Entropy.";
             keyLabel = "F";
             if (riftsRepaired > 0) { conditionMet = true; hintSlot = 6; }
@@ -4356,15 +5452,82 @@ void PlayState::renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font) {
 }
 
 void PlayState::endRun() {
+    finalizeRun(false);
+}
+
+void PlayState::abandonRun() {
+    finalizeRun(true);
+}
+
+void PlayState::populateRunSummary(int runShards, bool isNewRecord) {
+    if (auto* summary = dynamic_cast<RunSummaryState*>(game->getState(StateID::RunSummary))) {
+        summary->enemiesKilled = enemiesKilled;
+        summary->riftsRepaired = riftsRepaired;
+        summary->roomsCleared = roomsCleared;
+        summary->shardsEarned = runShards;
+        summary->isNewRecord = isNewRecord;
+        summary->runTime = m_runTime;
+        summary->playerClass = g_selectedClass;
+        summary->difficulty = m_currentDifficulty;
+        summary->bestCombo = m_bestCombo;
+        summary->deathCause = m_deathCause;
+        summary->relicsCollected = 0;
+        if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
+            summary->relicsCollected = static_cast<int>(
+                m_player->getEntity()->getComponent<RelicComponent>().relics.size());
+        }
+        if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+            auto& cb = m_player->getEntity()->getComponent<CombatComponent>();
+            summary->meleeWeapon = cb.currentMelee;
+            summary->rangedWeapon = cb.currentRanged;
+        }
+        summary->peakDmgRaw = m_balanceStats.peakDmgRaw;
+        summary->peakDmgClamped = m_balanceStats.peakDmgClamped;
+        summary->peakSpdRaw = m_balanceStats.peakSpdRaw;
+        summary->peakSpdClamped = m_balanceStats.peakSpdClamped;
+        summary->cdFloorPercent = (m_balanceStats.activePlayTime > 0)
+            ? (m_balanceStats.cdFloorTime / m_balanceStats.activePlayTime * 100.0f) : 0;
+        summary->voidResProcs = m_combatSystem.voidResonanceProcs;
+        summary->peakResidueZones = m_balanceStats.peakResidueZones;
+        summary->peakVoidHunger = m_balanceStats.peakVoidHunger * 100.0f;
+        summary->finalVoidHunger = m_balanceStats.finalVoidHunger * 100.0f;
+    }
+}
+
+void PlayState::finalizeRun(bool abandoned) {
+    if (abandoned) {
+        game->changeState(StateID::Menu);
+        return;
+    }
+
     // Playtest mode: intercept endRun to restart instead of changing state
     if (m_playtest) {
         playtestOnDeath();
         return;
     }
+
     auto& upgrades = game->getUpgradeSystem();
+    bool isNewRecord = (roomsCleared > upgrades.bestRoomReached && roomsCleared > 0);
     upgrades.totalRuns++;
     upgrades.addRunRecord(roomsCleared, enemiesKilled, riftsRepaired,
-                          shardsCollected, m_currentDifficulty);
+                          shardsCollected, m_currentDifficulty,
+                          m_bestCombo, m_runTime, static_cast<int>(g_selectedClass), m_deathCause);
+    upgrades.bestRoomReached = std::max(upgrades.bestRoomReached, roomsCleared);
+
+    // Check class unlock conditions
+    if (roomsCleared >= 4 && !ClassSystem::isUnlocked(PlayerClass::Berserker)) {
+        ClassSystem::unlock(PlayerClass::Berserker);
+    }
+    if (m_dashKillsThisRun >= 10 && !ClassSystem::isUnlocked(PlayerClass::Phantom)) {
+        ClassSystem::unlock(PlayerClass::Phantom);
+    }
+
+    // Check milestone rewards
+    auto milestone = upgrades.checkMilestones();
+    if (milestone.bonusShards > 0) {
+        upgrades.addRiftShards(milestone.bonusShards);
+    }
+
     // Save bestiary progress
     Bestiary::save("bestiary_save.dat");
 
@@ -4378,8 +5541,9 @@ void PlayState::endRun() {
     AscensionSystem::riftCores += cores;
     AscensionSystem::save("ascension_save.dat");
 
-    // Void Sovereign defeated -> Ending sequence
+    // Void Sovereign defeated -> NG+ and Ending sequence
     if (m_voidSovereignDefeated) {
+        g_newGamePlusLevel++;
         if (auto* lore = game->getLoreSystem()) {
             lore->discover(LoreID::FinalRevelation);
             lore->save("riftwalker_lore.dat");
@@ -4397,39 +5561,11 @@ void PlayState::endRun() {
             ending->totalTime = m_runTime;
         }
         game->changeState(StateID::Ending);
-    } else {
-        // Copy balance stats to run summary
-        if (auto* summary = dynamic_cast<RunSummaryState*>(game->getState(StateID::RunSummary))) {
-            summary->enemiesKilled = enemiesKilled;
-            summary->riftsRepaired = riftsRepaired;
-            summary->roomsCleared = roomsCleared;
-            summary->runTime = m_runTime;
-            summary->playerClass = g_selectedClass;
-            summary->difficulty = m_currentDifficulty;
-            summary->bestCombo = m_bestCombo;
-            summary->relicsCollected = 0;
-            if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
-                summary->relicsCollected = static_cast<int>(
-                    m_player->getEntity()->getComponent<RelicComponent>().relics.size());
-            }
-            if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
-                auto& cb = m_player->getEntity()->getComponent<CombatComponent>();
-                summary->meleeWeapon = cb.currentMelee;
-                summary->rangedWeapon = cb.currentRanged;
-            }
-            summary->peakDmgRaw = m_balanceStats.peakDmgRaw;
-            summary->peakDmgClamped = m_balanceStats.peakDmgClamped;
-            summary->peakSpdRaw = m_balanceStats.peakSpdRaw;
-            summary->peakSpdClamped = m_balanceStats.peakSpdClamped;
-            summary->cdFloorPercent = (m_balanceStats.activePlayTime > 0)
-                ? (m_balanceStats.cdFloorTime / m_balanceStats.activePlayTime * 100.0f) : 0;
-            summary->voidResProcs = m_combatSystem.voidResonanceProcs;
-            summary->peakResidueZones = m_balanceStats.peakResidueZones;
-            summary->peakVoidHunger = m_balanceStats.peakVoidHunger * 100.0f;
-            summary->finalVoidHunger = m_balanceStats.finalVoidHunger * 100.0f;
-        }
-        game->changeState(StateID::RunSummary);
+        return;
     }
+
+    populateRunSummary(shardsCollected, isNewRecord);
+    game->changeState(StateID::RunSummary);
 }
 
 void PlayState::applyChallengeModifiers() {
@@ -4854,6 +5990,7 @@ void PlayState::renderNPCs(SDL_Renderer* renderer, TTF_Font* font) {
             case NPCType::DimRefugee:   col = {255, 180, 80, 255}; break;  // Orange
             case NPCType::LostEngineer: col = {180, 255, 120, 255}; break; // Green
             case NPCType::EchoOfSelf:   col = {220, 120, 255, 255}; break; // Purple
+            case NPCType::Blacksmith:   col = {255, 160, 50, 255}; break;  // Forge orange
             default:                    col = {200, 200, 200, 255}; break;
         }
 
@@ -4907,6 +6044,22 @@ void PlayState::renderNPCs(SDL_Renderer* renderer, TTF_Font* font) {
                 SDL_SetRenderDrawColor(renderer, 220, 120, 255, static_cast<Uint8>(100 * glow));
                 SDL_Rect mirrorR = {sr.x - 2, sr.y, sr.w + 4, sr.h};
                 SDL_RenderDrawRect(renderer, &mirrorR);
+                break;
+            }
+            case NPCType::Blacksmith: {
+                // Anvil shape above head
+                SDL_SetRenderDrawColor(renderer, 255, 160, 50, 180);
+                SDL_Rect anvil = {sr.x + sr.w / 2 - 6, sr.y - 8, 12, 4};
+                SDL_RenderFillRect(renderer, &anvil);
+                SDL_Rect base = {sr.x + sr.w / 2 - 3, sr.y - 4, 6, 4};
+                SDL_RenderFillRect(renderer, &base);
+                // Spark particles
+                float sparkPhase = std::sin(ticks * 0.008f + i) * 0.5f + 0.5f;
+                if (sparkPhase > 0.7f) {
+                    SDL_SetRenderDrawColor(renderer, 255, 220, 80, 200);
+                    SDL_Rect spark = {sr.x + sr.w / 2 + static_cast<int>(sparkPhase * 8) - 4, sr.y - 14, 2, 2};
+                    SDL_RenderFillRect(renderer, &spark);
+                }
                 break;
             }
             default: break;
@@ -5284,6 +6437,49 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
             m_showNPCDialog = false;
             break;
 
+        case NPCType::Blacksmith: {
+            auto options = NPCSystem::getDialogOptions(npc.type, stage);
+            bool isLeave = (choice == static_cast<int>(options.size()) - 1);
+            if (!isLeave && m_player) {
+                if (stage >= 2) {
+                    // Free masterwork: +30% both weapons
+                    m_player->smithMeleeDmgMult += 0.30f;
+                    m_player->smithRangedDmgMult += 0.30f;
+                    AudioManager::instance().play(SFX::ShrineBlessing);
+                    m_camera.shake(8.0f, 0.3f);
+                    m_particles.burst(npc.position, 30, {255, 200, 50, 255}, 200.0f, 4.0f);
+                } else if (stage >= 1) {
+                    int cost = (choice == 2) ? 45 : 35;
+                    if (shardsCollected >= cost) {
+                        shardsCollected -= cost;
+                        if (choice == 0) m_player->smithMeleeDmgMult += 0.25f;
+                        else if (choice == 1) m_player->smithRangedDmgMult += 0.25f;
+                        else m_player->smithAtkSpdMult += 0.15f;
+                        AudioManager::instance().play(SFX::ShrineBlessing);
+                        m_camera.shake(5.0f, 0.2f);
+                        m_particles.burst(npc.position, 20, {255, 180, 50, 255}, 150.0f, 3.0f);
+                    } else {
+                        AudioManager::instance().play(SFX::RiftFail);
+                    }
+                } else {
+                    int cost = 40;
+                    if (shardsCollected >= cost) {
+                        shardsCollected -= cost;
+                        if (choice == 0) m_player->smithMeleeDmgMult += 0.20f;
+                        else m_player->smithRangedDmgMult += 0.20f;
+                        AudioManager::instance().play(SFX::ShrineBlessing);
+                        m_camera.shake(5.0f, 0.2f);
+                        m_particles.burst(npc.position, 20, {255, 180, 50, 255}, 150.0f, 3.0f);
+                    } else {
+                        AudioManager::instance().play(SFX::RiftFail);
+                    }
+                }
+            }
+            npc.interacted = true;
+            m_showNPCDialog = false;
+            break;
+        }
+
         default:
             m_showNPCDialog = false;
             break;
@@ -5357,6 +6553,9 @@ void PlayState::applyAscensionModifiers() {
 void PlayState::updateSmokeTest(float dt) {
     if (!m_player || !m_level) return;
 
+    static float smokeRecoveryGraceTimer = 0;
+    static bool smokeRecoverySuppressedLogged = false;
+
     m_smokeRunTime += dt;
     m_smokeActionTimer -= dt;
     m_smokeDimTimer -= dt;
@@ -5366,21 +6565,6 @@ void PlayState::updateSmokeTest(float dt) {
     hp.currentHP = hp.maxHP;
     if (m_entropy.getPercent() > 0.5f) {
         m_entropy.reduceEntropy(m_entropy.getEntropy() * 0.5f);
-    }
-
-    // Auto-rescue: if bot fell far below spawn, teleport back
-    {
-        Vec2 pos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
-        Vec2 spawn = m_level->getSpawnPoint();
-        float maxDropBelow = 500.0f; // 15+ tiles below spawn = probably fell off
-        float mapBottom = m_level->getPixelHeight() * 0.85f;
-        if (pos.y > spawn.y + maxDropBelow || pos.y > mapBottom) {
-            auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
-            auto& phys2 = m_player->getEntity()->getComponent<PhysicsBody>();
-            transform.position = spawn;
-            phys2.velocity = {0, 0};
-            smokeLog("[SMOKE] Auto-rescue: fell too far (y=%.0f, spawn=%.0f), teleport to spawn", pos.y, spawn.y);
-        }
     }
 
     // All static navigation state (declared here, used throughout)
@@ -5394,24 +6578,103 @@ void PlayState::updateSmokeTest(float dt) {
     static bool stuckLogged = false;
     static int smokeSkipRiftMask = 0;
     static int smokeCurrentTarget = -1;
+    static int smokeLastTargetIndex = -2;
+    static int smokeLastTargetRoom = -2;
+    static bool smokeLastTargetWasExit = false;
+    if (smokeRecoveryGraceTimer > 0) smokeRecoveryGraceTimer -= dt;
+
+    const auto& topology = m_level->getTopology();
+    Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+    auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+
+    auto buildSmokeTargetInfo = [&]() {
+        SmokeTargetDebugInfo info;
+        info.type = "exit";
+        info.position = m_level->getExitPoint();
+        info.roomIndex = topology.exitRoomIndex;
+        info.tileX = topology.exitTileX;
+        info.tileY = topology.exitTileY;
+        info.validDims = topology.exitValid;
+        info.validated = topology.validation.passed &&
+                         topology.exitRoomIndex >= 0 &&
+                         (topology.exitValid[1] || topology.exitValid[2]);
+        info.distance = 99999.0f;
+
+        smokeCurrentTarget = -1;
+        auto rifts = m_level->getRiftPositions();
+        if (!m_collapsing) {
+            float nearestRiftDist = 99999.0f;
+            for (int ri = 0; ri < static_cast<int>(rifts.size()); ri++) {
+                if (m_repairedRiftIndices.count(ri)) continue;
+                if (smokeSkipRiftMask & (1 << ri)) continue;
+                float dx = rifts[ri].x - playerPos.x;
+                float dy = rifts[ri].y - playerPos.y;
+                float dist = std::sqrt(dx * dx + dy * dy);
+                if (dist < nearestRiftDist) {
+                    nearestRiftDist = dist;
+                    info.type = "rift";
+                    info.index = ri;
+                    info.position = rifts[ri];
+                    info.distance = dist;
+                    smokeCurrentTarget = ri;
+                    if (ri < static_cast<int>(topology.rifts.size())) {
+                        const auto& topoRift = topology.rifts[ri];
+                        info.roomIndex = topoRift.roomIndex;
+                        info.tileX = topoRift.tileX;
+                        info.tileY = topoRift.tileY;
+                        info.requiredDimension = topoRift.requiredDimension;
+                        info.validDims = topoRift.accessibleDimensions;
+                        info.validated = topoRift.validated;
+                    } else {
+                        info.roomIndex = -1;
+                        info.tileX = static_cast<int>(rifts[ri].x) / 32;
+                        info.tileY = static_cast<int>(rifts[ri].y) / 32;
+                        info.requiredDimension = 0;
+                        info.validDims = {};
+                        info.validated = false;
+                    }
+                }
+            }
+
+            if (nearestRiftDist > 99998.0f && smokeSkipRiftMask != 0) {
+                smokeSkipRiftMask = 0;
+                smokeLog("[SMOKE] Cleared skip mask - retrying all rifts");
+                for (int ri = 0; ri < static_cast<int>(rifts.size()); ri++) {
+                    if (m_repairedRiftIndices.count(ri)) continue;
+                    float dx = rifts[ri].x - playerPos.x;
+                    float dy = rifts[ri].y - playerPos.y;
+                    float dist = std::sqrt(dx * dx + dy * dy);
+                    if (dist < nearestRiftDist) {
+                        nearestRiftDist = dist;
+                        info.type = "rift";
+                        info.index = ri;
+                        info.position = rifts[ri];
+                        info.distance = dist;
+                        smokeCurrentTarget = ri;
+                        if (ri < static_cast<int>(topology.rifts.size())) {
+                            const auto& topoRift = topology.rifts[ri];
+                            info.roomIndex = topoRift.roomIndex;
+                            info.tileX = topoRift.tileX;
+                            info.tileY = topoRift.tileY;
+                            info.requiredDimension = topoRift.requiredDimension;
+                            info.validDims = topoRift.accessibleDimensions;
+                            info.validated = topoRift.validated;
+                        }
+                    }
+                }
+            }
+        }
+
+        return info;
+    };
+
+    SmokeTargetDebugInfo targetInfo = buildSmokeTargetInfo();
+    int currentDim = m_dimManager.getCurrentDimension();
+    int preferredTargetDim = smokePickPreferredTargetDimension(targetInfo, currentDim);
 
     // Heartbeat frame counter — proves game loop is alive
     static int smokeFrameCount = 0;
     smokeFrameCount++;
-
-    // Periodic status log every 5 seconds
-    static float lastStatusLog = 0;
-    if (m_smokeRunTime - lastStatusLog >= 5.0f) {
-        lastStatusLog = m_smokeRunTime;
-        Vec2 pos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
-        auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
-        int dim = m_dimManager.getCurrentDimension();
-        smokeLog("[SMOKE] t=%.0fs lvl=%d pos=(%.0f,%.0f) vel=(%.0f,%.0f) rifts=%d/%d ground=%d dim=%d collapsing=%d frames=%d",
-                m_smokeRunTime, m_currentDifficulty, pos.x, pos.y,
-                phys.velocity.x, phys.velocity.y,
-                m_levelRiftsRepaired, static_cast<int>(m_level->getRiftPositions().size()),
-                phys.onGround ? 1 : 0, dim, m_collapsing ? 1 : 0, smokeFrameCount);
-    }
 
     // Log level start once + reset per-level timer
     if (m_currentDifficulty != smokeLastLevel) {
@@ -5425,17 +6688,47 @@ void PlayState::updateSmokeTest(float dt) {
         stuckLogged = false;
         smokeSkipRiftMask = 0;
         smokeCurrentTarget = -1;
+        smokeLastTargetIndex = -2;
+        smokeLastTargetRoom = -2;
+        smokeLastTargetWasExit = false;
+        smokeRecoveryGraceTimer = 0;
+        smokeRecoverySuppressedLogged = false;
         auto rifts = m_level->getRiftPositions();
         Vec2 spawn = m_level->getSpawnPoint();
         Vec2 exit = m_level->getExitPoint();
+        int levelSeed = m_level->getGenerationSeed() != 0
+            ? m_level->getGenerationSeed()
+            : (m_runSeed + m_currentDifficulty);
         smokeLog("[SMOKE] === LEVEL %d START === seed=%d rooms=%dx%d rifts=%d",
-                m_currentDifficulty, m_runSeed + m_currentDifficulty,
+                m_currentDifficulty, levelSeed,
                 m_level->getWidth(), m_level->getHeight(),
                 static_cast<int>(rifts.size()));
+        {
+            const auto& shiftBalance = getDimensionShiftFloorBalance(m_currentDifficulty);
+            smokeLog("[SMOKE]   dim_shift: dimB=%d/%d ratio=%.2f dimBEntropy=%.2f dimBShardBonus=%d dimBRepairEntropy=%.1f",
+                     getDimensionShiftDimBRiftCount(m_currentDifficulty, static_cast<int>(rifts.size())),
+                     static_cast<int>(rifts.size()),
+                     shiftBalance.dimBRatio,
+                     shiftBalance.dimBEntropyPerSecond,
+                     getDimensionShiftDimBShardBonusPercent(m_currentDifficulty),
+                     shiftBalance.dimBEntropyRepairBonus);
+        }
         smokeLog("[SMOKE]   spawn=(%.0f,%.0f) exit=(%.0f,%.0f)",
                 spawn.x, spawn.y, exit.x, exit.y);
         for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
-            smokeLog("[SMOKE]   rift[%d]=(%.0f,%.0f)", i, rifts[i].x, rifts[i].y);
+            smokeLog("[SMOKE]   rift[%d]=(%.0f,%.0f) requiredDim=%d",
+                     i, rifts[i].x, rifts[i].y, m_level->getRiftRequiredDimension(i));
+        }
+        smokeLogLevelValidation(*m_level);
+        if (g_smokeRegression &&
+            (!topology.validation.passed || topology.validation.failureMask != LevelValidationFailure_None)) {
+            smokeSetRegressionFailure(SmokeRegressionFailure_Topology,
+                                      "level=%d seed=%d topology invalid mask=%s",
+                                      m_currentDifficulty,
+                                      levelSeed,
+                                      smokeFailureMaskToString(topology.validation.failureMask).c_str());
+            game->quit();
+            return;
         }
 
         // Validate: check exit has floor below in both dimensions
@@ -5460,7 +6753,9 @@ void PlayState::updateSmokeTest(float dt) {
             int rty = static_cast<int>(rifts[i].y) / 32;
             bool hasFloor = false;
             for (int b = 1; b <= 5; b++) {
-                if (m_level->isSolid(rtx, rty + b, 1) || m_level->isSolid(rtx, rty + b, 2)) {
+                bool supportA = m_level->isSolid(rtx, rty + b, 1) || m_level->isOneWay(rtx, rty + b, 1);
+                bool supportB = m_level->isSolid(rtx, rty + b, 2) || m_level->isOneWay(rtx, rty + b, 2);
+                if (supportA || supportB) {
                     hasFloor = true; break;
                 }
             }
@@ -5475,13 +6770,112 @@ void PlayState::updateSmokeTest(float dt) {
     }
     levelTimer += dt;
 
-    // Target: complete 5 levels (or quit after total 300s / 90s per level timeout)
-    static const int SMOKE_TARGET_LEVEL = 5;
-    if (m_currentDifficulty > SMOKE_TARGET_LEVEL) {
+    // Periodic status log every 5 seconds
+    static float lastStatusLog = 0;
+    if (m_smokeRunTime - lastStatusLog >= 5.0f) {
+        lastStatusLog = m_smokeRunTime;
+        int playerRoom = smokeFindTopologyRoomIndex(topology, playerPos);
+        smokeLog("[SMOKE] t=%.0fs lvl=%d pos=(%.0f,%.0f) room=%d vel=(%.0f,%.0f) rifts=%d/%d ground=%d dim=%d target=%s:%d targetRoom=%d targetDim=%d collapsing=%d frames=%d genValidated=%d",
+                m_smokeRunTime, m_currentDifficulty, playerPos.x, playerPos.y, playerRoom,
+                phys.velocity.x, phys.velocity.y,
+                m_levelRiftsRepaired, static_cast<int>(m_level->getRiftPositions().size()),
+                phys.onGround ? 1 : 0, currentDim,
+                targetInfo.type, targetInfo.index, targetInfo.roomIndex, preferredTargetDim,
+                m_collapsing ? 1 : 0, smokeFrameCount,
+                topology.validation.passed ? 1 : 0);
+    }
+
+    bool targetIsExit = std::strcmp(targetInfo.type, "exit") == 0;
+    if (targetIsExit != smokeLastTargetWasExit ||
+        targetInfo.index != smokeLastTargetIndex ||
+        targetInfo.roomIndex != smokeLastTargetRoom) {
+        smokeLastTargetWasExit = targetIsExit;
+        smokeLastTargetIndex = targetInfo.index;
+        smokeLastTargetRoom = targetInfo.roomIndex;
+        smokeLogRuntimeContext("TARGET", *m_level, m_currentDifficulty, playerPos, currentDim,
+                               targetInfo, m_collapsing, m_levelRiftsRepaired);
+    }
+
+    auto& inputMut = game->getInputMutable();
+    auto applyRecoveryAnchor = [&](const char* label,
+                                   const SmokeRecoveryAnchor& anchor,
+                                   bool armInteract,
+                                   bool resetNoProgressSkips) {
+        auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
+        smokeLogRecoveryAnchor(label, *m_level, m_currentDifficulty, playerPos, targetInfo, anchor, currentDim);
+        if (g_smokeRegression && anchor.spawnFallback) {
+            smokeSetRegressionFailure(SmokeRegressionFailure_SpawnFallback,
+                                      "%s seed=%d level=%d target=%s idx=%d room=%d reason=%s",
+                                      label,
+                                      m_level->getGenerationSeed(),
+                                      m_currentDifficulty,
+                                      targetInfo.type,
+                                      targetInfo.index,
+                                      targetInfo.roomIndex,
+                                      anchor.reason);
+            game->quit();
+            return;
+        }
+        transform.position = anchor.position;
+        phys.velocity = {0, 0};
+        smokeRecoveryGraceTimer = 1.5f;
+        smokeRecoverySuppressedLogged = false;
+        if (anchor.dimension != currentDim) {
+            inputMut.injectActionPress(Action::DimensionSwitch);
+            smokeLog("[SMOKE]   recovery align dim=%d -> %d via %s", currentDim, anchor.dimension, anchor.reason);
+        }
+        if (armInteract && !m_collapsing && smokeCurrentTarget >= 0 && anchor.roomIndex == targetInfo.roomIndex) {
+            inputMut.injectActionPress(Action::Interact);
+            smokeLog("[SMOKE]   recovery anchor is target room %d, arming interact for rift %d",
+                     anchor.roomIndex, smokeCurrentTarget);
+        }
+        lastStuckCheckPos = anchor.position;
+        stuckTimer = 0;
+        stuckLogged = false;
+        if (resetNoProgressSkips) {
+            noProgressSkips = 0;
+        }
+    };
+
+    // Auto-rescue: only below true map bottom or far below spawn.
+    {
+        Vec2 spawn = m_level->getSpawnPoint();
+        float maxDropBelow = std::max(500.0f, m_level->getPixelHeight() * 0.4f);
+        float mapBottom = m_level->getPixelHeight() + 96.0f;
+        if (playerPos.y > spawn.y + maxDropBelow || playerPos.y > mapBottom) {
+            if (smokeRecoveryGraceTimer > 0) {
+                if (!smokeRecoverySuppressedLogged) {
+                    smokeLog("[SMOKE] Rescue suppressed for %.1fs after recovery teleport", smokeRecoveryGraceTimer);
+                    smokeRecoverySuppressedLogged = true;
+                }
+            } else {
+                SmokeRecoveryAnchor recoveryAnchor = smokeBuildRecoveryAnchor(*m_level,
+                                                                              targetInfo,
+                                                                              playerPos,
+                                                                              currentDim,
+                                                                              preferredTargetDim,
+                                                                              m_collapsing);
+                const char* rescueLabel = recoveryAnchor.spawnFallback ? "AUTO_RESCUE_SPAWN" : "AUTO_RESCUE_PATH";
+                smokeLogRuntimeContext(rescueLabel, *m_level, m_currentDifficulty, playerPos, currentDim,
+                                       targetInfo, m_collapsing, m_levelRiftsRepaired);
+                applyRecoveryAnchor("AUTO_RESCUE", recoveryAnchor, false, false);
+                smokeLog("[SMOKE] Auto-rescue: fell too far (y=%.0f, spawn=%.0f, mapBottom=%.0f), teleport via %s room=%d",
+                         playerPos.y, spawn.y, mapBottom, recoveryAnchor.reason, recoveryAnchor.roomIndex);
+                return;
+            }
+        }
+    }
+
+    // Target: default 5 levels; regression mode can stop earlier with a fixed target floor.
+    int smokeTargetLevel = g_smokeRegression ? std::max(1, g_smokeTargetFloor) : 5;
+    if (m_currentDifficulty > smokeTargetLevel) {
         static bool successLogged = false;
         if (!successLogged) {
             successLogged = true;
-            smokeLog("[SMOKE] === SUCCESS === Completed %d levels in %.1fs!", SMOKE_TARGET_LEVEL, m_smokeRunTime);
+            if (g_smokeRegression) {
+                smokeLogRegressionResult("PASS", m_smokeRunTime);
+            }
+            smokeLog("[SMOKE] === SUCCESS === Completed %d levels in %.1fs!", smokeTargetLevel, m_smokeRunTime);
             writeBalanceSnapshot();
         }
         game->quit();
@@ -5494,6 +6888,17 @@ void PlayState::updateSmokeTest(float dt) {
                 m_currentDifficulty, m_levelRiftsRepaired,
                 static_cast<int>(m_level->getRiftPositions().size()),
                 m_collapsing ? 1 : 0);
+        smokeLogRuntimeContext("TIMEOUT", *m_level, m_currentDifficulty, playerPos, currentDim,
+                               targetInfo, m_collapsing, m_levelRiftsRepaired);
+        if (g_smokeRegression) {
+            smokeSetRegressionFailure(SmokeRegressionFailure_LevelTimeout,
+                                      "seed=%d level=%d timed out at %.1fs",
+                                      m_level->getGenerationSeed(),
+                                      m_currentDifficulty,
+                                      m_smokeRunTime);
+            game->quit();
+            return;
+        }
         // Force-advance to next level to continue testing
         smokeLog("[SMOKE] Force-advancing to next level...");
         m_currentDifficulty++;
@@ -5505,13 +6910,24 @@ void PlayState::updateSmokeTest(float dt) {
         generateLevel();
         m_combatSystem.setPlayer(m_player.get());
         m_aiSystem.setLevel(m_level.get());
+        m_aiSystem.setPlayer(m_player.get());
         levelTimer = 0;
         return;
     }
 
-    // Total timeout: 300s
-    if (m_smokeRunTime > 600.0f) {
-        smokeLog("[SMOKE] TOTAL TIMEOUT after 600s on level %d", m_currentDifficulty);
+    float smokeMaxRuntime = g_smokeRegression ? g_smokeMaxRuntime : 600.0f;
+    if (m_smokeRunTime > smokeMaxRuntime) {
+        smokeLog("[SMOKE] TOTAL TIMEOUT after %.0fs on level %d", smokeMaxRuntime, m_currentDifficulty);
+        smokeLogRuntimeContext("TOTAL_TIMEOUT", *m_level, m_currentDifficulty, playerPos, currentDim,
+                               targetInfo, m_collapsing, m_levelRiftsRepaired);
+        if (g_smokeRegression) {
+            smokeSetRegressionFailure(SmokeRegressionFailure_TotalTimeout,
+                                      "seed=%d completedFloor=%d targetFloor=%d runtime=%.1fs",
+                                      m_level->getGenerationSeed(),
+                                      g_smokeCompletedFloor,
+                                      g_smokeTargetFloor,
+                                      m_smokeRunTime);
+        }
         writeBalanceSnapshot();
         game->quit();
         return;
@@ -5584,13 +7000,12 @@ void PlayState::updateSmokeTest(float dt) {
     }
 
     // Navigate toward exit or nearest unrepaired rift
-    Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
-    Vec2 target = m_level->getExitPoint();
+    Vec2 target = targetInfo.position;
 
-    // If rifts remain and not collapsing, go to nearest unrepaired rift first
-    auto rifts = m_level->getRiftPositions();
-    float nearestRiftDist = 99999.0f;
-    if (!m_collapsing) {
+    // Legacy nearest-rift fallback remains inert; buildSmokeTargetInfo owns target selection.
+    [[maybe_unused]] auto rifts = m_level->getRiftPositions();
+    [[maybe_unused]] float nearestRiftDist = (std::strcmp(targetInfo.type, "rift") == 0) ? targetInfo.distance : 99999.0f;
+    if (false && !m_collapsing) {
         for (int ri = 0; ri < static_cast<int>(rifts.size()); ri++) {
             if (m_repairedRiftIndices.count(ri)) continue; // Skip repaired
             if (smokeSkipRiftMask & (1 << ri)) continue; // Skip temporarily unreachable
@@ -5624,8 +7039,6 @@ void PlayState::updateSmokeTest(float dt) {
     float dirX = target.x - playerPos.x;
     float dirY = target.y - playerPos.y;
     float distToTarget = std::sqrt(dirX * dirX + dirY * dirY);
-    auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
-    auto& inputMut = game->getInputMutable();
 
     // Progress tracking: detect no-progress situations (bouncing, circling)
     if (distToTarget < bestDistToTarget - 20.0f) {
@@ -5666,6 +7079,8 @@ void PlayState::updateSmokeTest(float dt) {
                 int tx = ptx + dx, ty = pty + dy;
                 if (m_level->inBounds(tx, ty) && m_level->isSolid(tx, ty, dim))
                     row[dx + 2] = '#';
+                else if (m_level->inBounds(tx, ty) && m_level->isOneWay(tx, ty, dim))
+                    row[dx + 2] = '-';
                 else
                     row[dx + 2] = '.';
             }
@@ -5674,29 +7089,38 @@ void PlayState::updateSmokeTest(float dt) {
         }
     }
 
-    // No-progress escape: try navigation tricks first, then teleport directly to target
+    // No-progress escape: recover toward a validated main-path or target anchor.
     if (noProgress) {
         noProgressTimer = 0;
         bestDistToTarget = 99999.0f;
         noProgressSkips++;
-        auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
-        if (noProgressSkips <= 1) {
-            // First attempt: try dim switch + teleport to spawn
-            smokeLog("[SMOKE] No progress (%d): dim-switch + teleport to spawn", noProgressSkips);
-            inputMut.injectActionPress(Action::DimensionSwitch);
-            transform.position = m_level->getSpawnPoint();
-            phys.velocity = {0, 0};
-            lastStuckCheckPos = m_level->getSpawnPoint();
-            return;
-        } else {
-            // After failed attempts: teleport directly to target (slightly above)
-            smokeLog("[SMOKE] No progress (%d): TELEPORT to target (%.0f,%.0f)", noProgressSkips, target.x, target.y);
-            transform.position = {target.x - 16.0f, target.y - 32.0f}; // 1 tile above, centered
-            phys.velocity = {0, 0};
-            lastStuckCheckPos = target;
-            noProgressSkips = 0; // Reset counter for next target
-            return;
-        }
+        int playerRoom = smokeFindTopologyRoomIndex(topology, playerPos);
+        bool sameRoomTarget = targetInfo.validated &&
+                              targetInfo.roomIndex >= 0 &&
+                              playerRoom == targetInfo.roomIndex;
+        SmokeRecoveryAnchor recoveryAnchor = smokeBuildRecoveryAnchor(*m_level,
+                                                                      targetInfo,
+                                                                      playerPos,
+                                                                      currentDim,
+                                                                      preferredTargetDim,
+                                                                      m_collapsing);
+        const char* contextLabel = recoveryAnchor.spawnFallback
+            ? "NO_PROGRESS_SPAWN"
+            : (recoveryAnchor.targetsObjective
+               ? (m_collapsing
+                  ? "NO_PROGRESS_EXIT"
+                  : (sameRoomTarget ? "NO_PROGRESS_TARGET_ROOM" : "NO_PROGRESS_TARGET"))
+               : "NO_PROGRESS_PATH");
+        smokeLog("[SMOKE] No progress (%d): recovery via %s room=%d tile=(%d,%d)",
+                 noProgressSkips,
+                 recoveryAnchor.reason,
+                 recoveryAnchor.roomIndex,
+                 recoveryAnchor.tileX,
+                 recoveryAnchor.tileY);
+        smokeLogRuntimeContext(contextLabel, *m_level, m_currentDifficulty, playerPos, currentDim,
+                               targetInfo, m_collapsing, m_levelRiftsRepaired);
+        applyRecoveryAnchor("NO_PROGRESS", recoveryAnchor, recoveryAnchor.targetsObjective, true);
+        return;
     }
 
     // Stuck escape (position locked) — dimension switch then teleport
@@ -5704,12 +7128,25 @@ void PlayState::updateSmokeTest(float dt) {
         inputMut.injectActionPress(Action::DimensionSwitch);
     }
     if (stuckTimer > 5.0f) {
-        auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
-        transform.position = m_level->getSpawnPoint();
-        phys.velocity = {0, 0};
-        stuckTimer = 0;
-        stuckLogged = false;
-        lastStuckCheckPos = m_level->getSpawnPoint();
+        int playerRoom = smokeFindTopologyRoomIndex(topology, playerPos);
+        bool sameRoomTarget = targetInfo.validated &&
+                              targetInfo.roomIndex >= 0 &&
+                              playerRoom == targetInfo.roomIndex;
+        SmokeRecoveryAnchor recoveryAnchor = smokeBuildRecoveryAnchor(*m_level,
+                                                                      targetInfo,
+                                                                      playerPos,
+                                                                      currentDim,
+                                                                      preferredTargetDim,
+                                                                      m_collapsing);
+        const char* contextLabel = recoveryAnchor.spawnFallback
+            ? "STUCK_SPAWN_RECOVERY"
+            : (recoveryAnchor.targetsObjective
+               ? (m_collapsing ? "STUCK_EXIT_RECOVERY"
+                               : (sameRoomTarget ? "STUCK_TARGET_RECOVERY" : "STUCK_OBJECTIVE_RECOVERY"))
+               : "STUCK_PATH_RECOVERY");
+        smokeLogRuntimeContext(contextLabel, *m_level, m_currentDifficulty, playerPos, currentDim,
+                               targetInfo, m_collapsing, m_levelRiftsRepaired);
+        applyRecoveryAnchor("STUCK", recoveryAnchor, recoveryAnchor.targetsObjective, false);
         return;
     }
 
@@ -5801,7 +7238,8 @@ void PlayState::updateSmokeTest(float dt) {
         bool noPlatformBelow = true;
         for (int dy = 1; dy <= 5; dy++) {
             for (int dx = -2; dx <= 2; dx++) {
-                if (m_level->inBounds(ptx + dx, pty + dy) && m_level->isSolid(ptx + dx, pty + dy, dim)) {
+                if (m_level->inBounds(ptx + dx, pty + dy) &&
+                    (m_level->isSolid(ptx + dx, pty + dy, dim) || m_level->isOneWay(ptx + dx, pty + dy, dim))) {
                     noPlatformBelow = false;
                     break;
                 }
@@ -5819,7 +7257,8 @@ void PlayState::updateSmokeTest(float dt) {
     }
 
     // Interact with rift when near
-    if (nearestRiftDist < 60.0f && !m_activePuzzle && m_nearRiftIndex >= 0) {
+    if (nearestRiftDist < 60.0f && !m_activePuzzle && m_nearRiftIndex >= 0 &&
+        m_level->isRiftActiveInDimension(m_nearRiftIndex, currentDim)) {
         game->getInputMutable().injectActionPress(Action::Interact);
         smokeLog("[SMOKE] Interacting with rift %d (dist=%.0f)", m_nearRiftIndex, nearestRiftDist);
     }
@@ -5853,10 +7292,11 @@ void PlayState::updateSmokeTest(float dt) {
         }
     }
 
-    // Dimension switch: more frequent to explore both dimensions
-    if (m_smokeDimTimer <= 0) {
+    // Topology-aware dimension alignment: only switch when the active target prefers the other dimension.
+    if (m_smokeDimTimer <= 0 && preferredTargetDim != currentDim) {
         inputMut.injectActionPress(Action::DimensionSwitch);
-        m_smokeDimTimer = 3.0f + static_cast<float>(std::rand() % 20) * 0.1f;
+        smokeLog("[SMOKE] Aligning dimension %d -> %d for %s target", currentDim, preferredTargetDim, targetInfo.type);
+        m_smokeDimTimer = 1.5f;
     }
 
     // Random dash for mobility
@@ -6104,12 +7544,15 @@ void PlayState::updatePlaytest(float dt) {
     int pty = static_cast<int>(playerPos.y) / 32;
     int dim = m_dimManager.getCurrentDimension();
     int otherDim = (dim == 1) ? 2 : 1;
+    static float ptRecoveryGraceTimer = 0;
+    if (ptRecoveryGraceTimer > 0) ptRecoveryGraceTimer -= dt;
 
     // Auto-rescue: fell below map (level gen issue, free teleport)
     {
         Vec2 spawn = m_level->getSpawnPoint();
+        float maxDropBelow = std::max(400.0f, m_level->getPixelHeight() * 0.4f);
         float mapBottom = m_level->getPixelHeight() * 0.85f;
-        if (playerPos.y > spawn.y + 400.0f || playerPos.y > mapBottom) {
+        if ((playerPos.y > spawn.y + maxDropBelow || playerPos.y > mapBottom) && ptRecoveryGraceTimer <= 0) {
             auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
             transform.position = spawn;
             phys.velocity = {0, 0};
@@ -6127,6 +7570,7 @@ void PlayState::updatePlaytest(float dt) {
     auto rifts = m_level->getRiftPositions();
     float nearestRiftDist = 99999.0f;
     int targetRiftIdx = -1;
+    int targetRequiredDim = 0;
 
     if (!m_collapsing) {
         for (int ri = 0; ri < static_cast<int>(rifts.size()); ri++) {
@@ -6139,6 +7583,7 @@ void PlayState::updatePlaytest(float dt) {
                 nearestRiftDist = d;
                 target = rifts[ri];
                 targetRiftIdx = ri;
+                targetRequiredDim = m_level->getRiftRequiredDimension(ri);
             }
         }
         // All skipped? Clear mask and retry
@@ -6153,6 +7598,7 @@ void PlayState::updatePlaytest(float dt) {
                     nearestRiftDist = d;
                     target = rifts[ri];
                     targetRiftIdx = ri;
+                    targetRequiredDim = m_level->getRiftRequiredDimension(ri);
                 }
             }
         }
@@ -6162,6 +7608,11 @@ void PlayState::updatePlaytest(float dt) {
     float dirY = target.y - playerPos.y;
     float distToTarget = std::sqrt(dirX * dirX + dirY * dirY);
     int moveDir = (dirX >= 0) ? 1 : -1;
+
+    if (!m_collapsing && targetRequiredDim > 0 && targetRequiredDim != dim && m_ptDimSwitchCD <= 0) {
+        inputMut.injectActionPress(Action::DimensionSwitch);
+        m_ptDimSwitchCD = 1.0f;
+    }
 
     // Progress tracking: detect when bot isn't getting closer to target
     if (distToTarget < m_ptBestDistToTarget - 20.0f) {
@@ -6190,6 +7641,11 @@ void PlayState::updatePlaytest(float dt) {
             // Second: teleport near target (costs HP as penalty)
             transform.position = {target.x - 16.0f, target.y - 32.0f};
             phys.velocity = {0, 0};
+            ptRecoveryGraceTimer = 1.5f;
+            if (!m_collapsing && targetRiftIdx >= 0 &&
+                m_level->isRiftActiveInDimension(targetRiftIdx, dim)) {
+                inputMut.injectActionPress(Action::Interact);
+            }
             m_ptLastCheckPos = target;
             m_ptNoProgressSkips = 0;
             return;
@@ -6319,7 +7775,8 @@ void PlayState::updatePlaytest(float dt) {
         bool noPlatformBelow = true;
         for (int dy = 1; dy <= 5; dy++) {
             for (int dx = -2; dx <= 2; dx++) {
-                if (m_level->inBounds(ptx + dx, pty + dy) && m_level->isSolid(ptx + dx, pty + dy, dim)) {
+                if (m_level->inBounds(ptx + dx, pty + dy) &&
+                    (m_level->isSolid(ptx + dx, pty + dy, dim) || m_level->isOneWay(ptx + dx, pty + dy, dim))) {
                     noPlatformBelow = false;
                     break;
                 }
@@ -6338,7 +7795,8 @@ void PlayState::updatePlaytest(float dt) {
     }
 
     // Interact with rift when near
-    if (nearestRiftDist < 60.0f && !m_activePuzzle && m_nearRiftIndex >= 0) {
+    if (nearestRiftDist < 60.0f && !m_activePuzzle && m_nearRiftIndex >= 0 &&
+        m_level->isRiftActiveInDimension(m_nearRiftIndex, dim)) {
         inputMut.injectActionPress(Action::Interact);
         playtestLog("  [%.0fs] Rift %d erreicht", m_playtestRunTimer, m_nearRiftIndex);
     }
@@ -6631,7 +8089,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
         }
     }
 
-    // Completion reward popup
+    // Completion reward popup (event chain)
     if (m_chainRewardTimer > 0) {
         float fadeT = std::min(m_chainRewardTimer / 4.0f, 1.0f);
         float alpha01 = (fadeT > 0.8f) ? (1.0f - fadeT) / 0.2f : (fadeT < 0.2f ? fadeT / 0.2f : 1.0f);
@@ -6666,5 +8124,89 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_DestroyTexture(rewTex);
             SDL_FreeSurface(rewSurf);
         }
+    }
+}
+
+// ─── Kill Feed ───
+
+void PlayState::addKillFeedEntry(const KillEvent& ke) {
+    auto& entry = m_killFeed[m_killFeedHead % MAX_KILL_FEED];
+    entry.timer = 4.0f; // visible for 4 seconds
+
+    // Get enemy name from Bestiary
+    const char* enemyName = "Enemy";
+    if (ke.enemyType >= 0 && ke.enemyType < static_cast<int>(EnemyType::Boss)) {
+        enemyName = Bestiary::getEntry(static_cast<EnemyType>(ke.enemyType)).name;
+    } else if (ke.wasBoss) {
+        enemyName = "BOSS";
+    }
+
+    // Build kill text with context
+    const char* prefix = "";
+    if (ke.wasMiniBoss) prefix = "[MINI-BOSS] ";
+    else if (ke.wasElite) prefix = "[ELITE] ";
+
+    const char* method = "";
+    if (ke.wasDash) method = " (Dash)";
+    else if (ke.wasCharged) method = " (Charged)";
+    else if (ke.wasSlam) method = " (Slam)";
+    else if (ke.wasComboFinisher) method = " (Finisher)";
+    else if (ke.wasAerial) method = " (Aerial)";
+    else if (ke.wasRanged) method = " (Ranged)";
+
+    std::snprintf(entry.text, sizeof(entry.text), "%s%s killed%s", prefix, enemyName, method);
+
+    // Color based on kill type
+    if (ke.wasBoss) entry.color = {255, 80, 80, 255};
+    else if (ke.wasMiniBoss) entry.color = {255, 160, 60, 255};
+    else if (ke.wasElite) entry.color = {200, 140, 255, 255};
+    else if (ke.wasDash || ke.wasCharged || ke.wasSlam) entry.color = {255, 215, 80, 255};
+    else if (ke.wasAerial || ke.wasComboFinisher) entry.color = {100, 220, 255, 255};
+    else entry.color = {180, 180, 200, 220};
+
+    m_killFeedHead++;
+}
+
+void PlayState::updateKillFeed(float dt) {
+    for (int i = 0; i < MAX_KILL_FEED; i++) {
+        if (m_killFeed[i].timer > 0) m_killFeed[i].timer -= dt;
+    }
+}
+
+void PlayState::renderKillFeed(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font) return;
+
+    int x = SCREEN_WIDTH - 20;
+    int y = SCREEN_HEIGHT - 140;
+
+    // Collect active entries in display order (newest at bottom)
+    struct DisplayEntry { const char* text; SDL_Color color; float timer; };
+    DisplayEntry display[MAX_KILL_FEED];
+    int count = 0;
+
+    for (int i = MAX_KILL_FEED - 1; i >= 0; i--) {
+        int idx = (m_killFeedHead - 1 - i + MAX_KILL_FEED * 2) % MAX_KILL_FEED;
+        if (m_killFeed[idx].timer > 0 && m_killFeed[idx].text[0] != '\0') {
+            display[count++] = {m_killFeed[idx].text, m_killFeed[idx].color, m_killFeed[idx].timer};
+        }
+    }
+
+    for (int i = 0; i < count; i++) {
+        float alpha = std::min(display[i].timer / 0.5f, 1.0f); // fade out in last 0.5s
+        SDL_Color c = display[i].color;
+        c.a = static_cast<Uint8>(c.a * alpha);
+
+        SDL_Surface* surf = TTF_RenderText_Blended(font, display[i].text, c);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, c.a);
+                SDL_Rect r = {x - surf->w, y, surf->w, surf->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &r);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(surf);
+        }
+        y += 18;
     }
 }

@@ -738,6 +738,253 @@ Mix_Chunk* SoundGenerator::ambientDimB() {
     return toChunk(s);
 }
 
+// Dynamic music layers
+
+Mix_Chunk* SoundGenerator::musicRhythm() {
+    // Percussive pulse loop - 4 seconds, ~120 BPM (8 beats)
+    auto s = generate(4.0f);
+    float beatInterval = 0.5f; // 120 BPM
+
+    for (int beat = 0; beat < 8; beat++) {
+        float t = beat * beatInterval;
+        // Kick drum: low sine sweep down
+        addSweep(s, 120.0f, 45.0f, 0.12f, 0.0f, t, t + 0.08f);
+        // Off-beat hi-hat (noise burst) on beats 1,3,5,7
+        if (beat % 2 == 1) {
+            addNoise(s, 0.04f, 0.0f, t, t + 0.03f);
+        }
+        // Accent on beats 0 and 4 (downbeats)
+        if (beat % 4 == 0) {
+            addSine(s, 80.0f, 0.08f, 0.0f, t, t + 0.1f);
+        }
+    }
+
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::musicIntensity() {
+    // Fast aggressive arpeggio loop - 4 seconds
+    auto s = generate(4.0f);
+
+    // Rising arpeggio pattern (minor scale feel)
+    float notes[] = {130.8f, 155.6f, 196.0f, 233.1f, 261.6f, 233.1f, 196.0f, 155.6f};
+    int numNotes = 8;
+    float noteLen = 0.125f; // 16th notes at 120 BPM
+    int totalSteps = static_cast<int>(4.0f / noteLen);
+
+    for (int i = 0; i < totalSteps; i++) {
+        float t = i * noteLen;
+        float freq = notes[i % numNotes];
+        // Square wave for aggressive edge
+        addSquare(s, freq, 0.04f, 0.0f, t, t + noteLen * 0.8f);
+        // Subtle sine for body
+        addSine(s, freq * 0.5f, 0.03f, 0.0f, t, t + noteLen * 0.6f);
+    }
+
+    // Subtle noise bed for grit
+    addNoise(s, 0.006f, 0.006f);
+
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::musicDanger() {
+    // Dissonant warning drone - 4 seconds
+    auto s = generate(4.0f);
+
+    // Tritone interval (most dissonant)
+    addSine(s, 73.4f, 0.07f, 0.07f);   // D2
+    addSine(s, 103.8f, 0.05f, 0.05f);  // Ab2 (tritone)
+
+    // Slow warbling alarm
+    int samples = static_cast<int>(4.0f * s.sampleRate);
+    for (int i = 0; i < samples; i++) {
+        float t = static_cast<float>(i) / s.sampleRate;
+        // Pulsing alarm: 2 Hz throb
+        float throb = (std::sin(2.0f * static_cast<float>(M_PI) * 2.0f * t) + 1.0f) * 0.5f;
+        // Warning tone
+        float sample = std::sin(2.0f * static_cast<float>(M_PI) * 440.0f * t) * throb * 0.03f;
+        // Detuned second for unease
+        sample += std::sin(2.0f * static_cast<float>(M_PI) * 466.2f * t) * throb * 0.02f;
+        s.data[i] = static_cast<Sint16>(std::clamp(
+            static_cast<int>(s.data[i] + sample * 32767), -32767, 32767));
+    }
+
+    // Filtered noise sweep
+    addNoise(s, 0.015f, 0.015f);
+
+    return toChunk(s);
+}
+
+Mix_Chunk* SoundGenerator::musicBoss() {
+    // Epic battle theme - 4 seconds, powerful and driving
+    auto s = generate(4.0f);
+
+    // Deep power bass (half-time feel)
+    float bassHits[] = {0.0f, 1.0f, 2.0f, 2.5f, 3.0f, 3.5f};
+    for (float t : bassHits) {
+        addSweep(s, 55.0f, 36.7f, 0.15f, 0.02f, t, t + 0.3f);
+        addSine(s, 27.5f, 0.08f, 0.0f, t, t + 0.4f);
+    }
+
+    // Driving rhythm (double-time kicks)
+    for (int i = 0; i < 16; i++) {
+        float t = i * 0.25f;
+        addSweep(s, 100.0f, 40.0f, 0.1f, 0.0f, t, t + 0.06f);
+        // Snare-like noise on 2 and 4
+        if (i % 4 == 2) {
+            addNoise(s, 0.06f, 0.0f, t, t + 0.05f);
+        }
+    }
+
+    // Power chord drone (root + fifth)
+    addSine(s, 55.0f, 0.06f, 0.06f);   // A1
+    addSine(s, 82.4f, 0.04f, 0.04f);   // E2 (fifth)
+    addSquare(s, 110.0f, 0.02f, 0.02f); // A2 grit
+
+    // Epic rising sweep every 2 seconds
+    addSweep(s, 200.0f, 600.0f, 0.0f, 0.04f, 0.0f, 1.0f);
+    addSweep(s, 200.0f, 800.0f, 0.0f, 0.05f, 2.0f, 3.5f);
+
+    return toChunk(s);
+}
+
+// Theme-specific ambient accents
+
+Mix_Chunk* SoundGenerator::themeAmbient(int themeId) {
+    auto s = generate(4.0f);
+    int samples = static_cast<int>(4.0f * s.sampleRate);
+
+    switch (themeId) {
+    case 0: // VictorianClockwork - ticking gears, steam hiss
+        for (int tick = 0; tick < 8; tick++) {
+            float t = tick * 0.5f;
+            addSine(s, 2000.0f, 0.03f, 0.0f, t, t + 0.02f); // tick
+            addSine(s, 1500.0f, 0.02f, 0.0f, t + 0.25f, t + 0.27f); // tock
+        }
+        addNoise(s, 0.008f, 0.008f); // steam bed
+        addSine(s, 30.0f, 0.03f, 0.03f); // machinery rumble
+        break;
+
+    case 1: // DeepOcean - bubbles, pressure, whale calls
+        for (int i = 0; i < samples; i++) {
+            float t = static_cast<float>(i) / s.sampleRate;
+            float bubble = std::sin(2.0f * static_cast<float>(M_PI) * (800.0f + 400.0f * std::sin(t * 3.0f)) * t);
+            float env = std::max(0.0f, std::sin(t * 2.5f)) * 0.015f;
+            s.data[i] = static_cast<Sint16>(std::clamp(
+                static_cast<int>(s.data[i] + bubble * env * 32767), -32767, 32767));
+        }
+        addSweep(s, 80.0f, 120.0f, 0.02f, 0.02f, 0.5f, 2.5f); // whale call
+        addSine(s, 25.0f, 0.04f, 0.04f); // pressure drone
+        break;
+
+    case 2: // NeonCity - electronic hum, city buzz
+        addSine(s, 60.0f, 0.03f, 0.03f); // power hum
+        addSine(s, 120.0f, 0.015f, 0.015f); // harmonic
+        for (int i = 0; i < samples; i++) {
+            float t = static_cast<float>(i) / s.sampleRate;
+            float buzz = std::sin(2.0f * static_cast<float>(M_PI) * 1000.0f * t);
+            float lfo = (std::sin(2.0f * static_cast<float>(M_PI) * 0.3f * t) + 1.0f) * 0.5f;
+            s.data[i] = static_cast<Sint16>(std::clamp(
+                static_cast<int>(s.data[i] + buzz * lfo * 0.008f * 32767), -32767, 32767));
+        }
+        break;
+
+    case 3: // AncientRuins - wind through stones, distant echoes
+        addNoise(s, 0.012f, 0.018f, 0.0f, 2.0f);
+        addNoise(s, 0.018f, 0.012f, 2.0f, 4.0f);
+        addSine(s, 220.0f, 0.0f, 0.02f, 1.0f, 1.5f); // echo ping
+        addSine(s, 220.0f, 0.02f, 0.0f, 1.5f, 2.5f);
+        addSine(s, 330.0f, 0.0f, 0.015f, 3.0f, 3.3f);
+        addSine(s, 330.0f, 0.015f, 0.0f, 3.3f, 4.0f);
+        break;
+
+    case 4: // CrystalCavern - resonant chimes, crystal ring
+        addSine(s, 1046.0f, 0.0f, 0.02f, 0.0f, 0.1f); // chime 1
+        addSine(s, 1046.0f, 0.02f, 0.0f, 0.1f, 1.5f);
+        addSine(s, 1318.0f, 0.0f, 0.015f, 1.5f, 1.6f); // chime 2
+        addSine(s, 1318.0f, 0.015f, 0.0f, 1.6f, 3.0f);
+        addSine(s, 784.0f, 0.0f, 0.018f, 2.8f, 2.9f); // chime 3
+        addSine(s, 784.0f, 0.018f, 0.0f, 2.9f, 4.0f);
+        addSine(s, 40.0f, 0.02f, 0.02f); // cave resonance
+        break;
+
+    case 5: // BioMechanical - organic pulse, machinery
+        for (int i = 0; i < samples; i++) {
+            float t = static_cast<float>(i) / s.sampleRate;
+            float pulse = (std::sin(2.0f * static_cast<float>(M_PI) * 1.2f * t) + 1.0f) * 0.5f;
+            float mech = std::sin(2.0f * static_cast<float>(M_PI) * 45.0f * t) * pulse * 0.03f;
+            mech += std::sin(2.0f * static_cast<float>(M_PI) * 90.0f * t) * pulse * 0.015f;
+            s.data[i] = static_cast<Sint16>(std::clamp(
+                static_cast<int>(s.data[i] + mech * 32767), -32767, 32767));
+        }
+        addNoise(s, 0.006f, 0.006f);
+        break;
+
+    case 6: // FrozenWasteland - howling wind, ice creak
+        addNoise(s, 0.01f, 0.025f, 0.0f, 2.0f); // wind rises
+        addNoise(s, 0.025f, 0.01f, 2.0f, 4.0f); // wind falls
+        addSweep(s, 400.0f, 600.0f, 0.01f, 0.02f, 0.5f, 1.5f); // wind whistle
+        addSweep(s, 600.0f, 350.0f, 0.02f, 0.0f, 1.5f, 2.5f);
+        addSine(s, 1800.0f, 0.0f, 0.01f, 3.0f, 3.1f); // ice crack
+        addSine(s, 1800.0f, 0.01f, 0.0f, 3.1f, 3.3f);
+        break;
+
+    case 7: // VolcanicCore - rumble, heat hiss, lava bubble
+        addSine(s, 20.0f, 0.05f, 0.05f); // deep rumble
+        addSine(s, 30.0f, 0.03f, 0.03f);
+        addNoise(s, 0.015f, 0.015f); // heat hiss
+        for (int b = 0; b < 3; b++) { // lava bubbles
+            float t = 0.8f + b * 1.2f;
+            addSweep(s, 60.0f, 200.0f, 0.03f, 0.0f, t, t + 0.15f);
+        }
+        break;
+
+    case 8: // FloatingIslands - airy wind, open space
+        addNoise(s, 0.008f, 0.012f, 0.0f, 2.0f);
+        addNoise(s, 0.012f, 0.008f, 2.0f, 4.0f);
+        addSine(s, 523.0f, 0.01f, 0.01f); // high airy tone
+        addSine(s, 659.0f, 0.008f, 0.008f); // harmony
+        break;
+
+    case 9: // VoidRealm - deep distortion, otherworldly
+        addSine(s, 22.0f, 0.06f, 0.06f); // sub-void drone
+        for (int i = 0; i < samples; i++) {
+            float t = static_cast<float>(i) / s.sampleRate;
+            float warp = std::sin(2.0f * static_cast<float>(M_PI) * (50.0f + 20.0f * std::sin(t * 0.7f)) * t);
+            s.data[i] = static_cast<Sint16>(std::clamp(
+                static_cast<int>(s.data[i] + warp * 0.025f * 32767), -32767, 32767));
+        }
+        addNoise(s, 0.01f, 0.01f);
+        break;
+
+    case 10: // SpaceWestern - desert wind, distant twang
+        addNoise(s, 0.01f, 0.015f, 0.0f, 2.0f);
+        addNoise(s, 0.015f, 0.01f, 2.0f, 4.0f);
+        addSweep(s, 300.0f, 280.0f, 0.0f, 0.015f, 1.0f, 1.05f); // twang
+        addSweep(s, 280.0f, 200.0f, 0.015f, 0.0f, 1.05f, 1.8f);
+        addSine(s, 35.0f, 0.02f, 0.02f); // low desert hum
+        break;
+
+    case 11: // Biopunk - bubbling, organic synth
+        for (int i = 0; i < samples; i++) {
+            float t = static_cast<float>(i) / s.sampleRate;
+            float bubble = std::sin(2.0f * static_cast<float>(M_PI) * (600.0f + 300.0f * std::sin(t * 5.0f)) * t);
+            float env = std::max(0.0f, std::sin(t * 4.0f)) * 0.012f;
+            float organic = std::sin(2.0f * static_cast<float>(M_PI) * 55.0f * t) * 0.025f;
+            float lfo = (std::sin(2.0f * static_cast<float>(M_PI) * 0.8f * t) + 1.0f) * 0.5f;
+            s.data[i] = static_cast<Sint16>(std::clamp(
+                static_cast<int>(s.data[i] + (bubble * env + organic * lfo) * 32767), -32767, 32767));
+        }
+        break;
+
+    default:
+        addNoise(s, 0.01f, 0.01f);
+        break;
+    }
+
+    return toChunk(s);
+}
+
 // Void Sovereign boss sounds
 
 Mix_Chunk* SoundGenerator::voidSovereignOrb() {

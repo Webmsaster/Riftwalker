@@ -1,6 +1,7 @@
 #pragma once
 #include "ECS/EntityManager.h"
 #include "Core/Camera.h"
+#include "WeaponSystem.h"
 
 enum class DropType { HealthOrb, RiftShard, ShieldOrb, SpeedBoost, DamageBoost };
 
@@ -14,4 +15,5 @@ public:
     static Entity& spawnSpeedBoost(EntityManager& entities, Vec2 pos, int dimension, Player* player);
     static Entity& spawnDamageBoost(EntityManager& entities, Vec2 pos, int dimension, Player* player);
     static void spawnRandomDrop(EntityManager& entities, Vec2 pos, int dimension, int difficulty, Player* player = nullptr);
+    static Entity& spawnWeaponDrop(EntityManager& entities, Vec2 pos, int dimension, WeaponID weapon, Player* player);
 };

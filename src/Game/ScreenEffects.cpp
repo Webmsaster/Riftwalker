@@ -116,15 +116,36 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH) {
         }
     }
 
-    // 5. Dimension ripple (horizontal scanlines spreading from center)
+    // 5. Dimension ripple (sweep + scanlines + color flash)
     if (m_rippleTimer > 0) {
-        float t = 1.0f - (m_rippleTimer / 0.4f);
+        float t = 1.0f - (m_rippleTimer / 0.5f);
+
+        // Vertical sweep line moving across screen
+        int sweepX = static_cast<int>(t * screenW);
+        Uint8 sweepA = static_cast<Uint8>((1.0f - t) * 180);
+        SDL_SetRenderDrawColor(renderer, 160, 220, 255, sweepA);
+        SDL_Rect sweep = {sweepX - 2, 0, 4, screenH};
+        SDL_RenderFillRect(renderer, &sweep);
+        // Glow around sweep
+        SDL_SetRenderDrawColor(renderer, 100, 180, 255, static_cast<Uint8>(sweepA / 3));
+        SDL_Rect sweepGlow = {sweepX - 15, 0, 30, screenH};
+        SDL_RenderFillRect(renderer, &sweepGlow);
+
+        // Brief full-screen color tint at start
+        if (t < 0.3f) {
+            Uint8 tintA = static_cast<Uint8>((0.3f - t) / 0.3f * 40);
+            SDL_SetRenderDrawColor(renderer, 80, 160, 255, tintA);
+            SDL_Rect full = {0, 0, screenW, screenH};
+            SDL_RenderFillRect(renderer, &full);
+        }
+
+        // Horizontal scanlines spreading from center
         int spread = static_cast<int>(t * screenH / 2);
-        Uint8 a = static_cast<Uint8>((1.0f - t) * 60);
-        for (int i = 0; i < 8; i++) {
-            int offset = spread + i * 4;
+        Uint8 a = static_cast<Uint8>((1.0f - t) * 50);
+        for (int i = 0; i < 12; i++) {
+            int offset = spread + i * 3;
             if (offset > screenH / 2) break;
-            SDL_SetRenderDrawColor(renderer, 100, 200, 255, static_cast<Uint8>(a * (1.0f - i * 0.1f)));
+            SDL_SetRenderDrawColor(renderer, 100, 200, 255, static_cast<Uint8>(a * (1.0f - i * 0.08f)));
             SDL_Rect lineUp = {0, screenH / 2 - offset, screenW, 1};
             SDL_Rect lineDown = {0, screenH / 2 + offset, screenW, 1};
             SDL_RenderFillRect(renderer, &lineUp);
@@ -183,5 +204,5 @@ void ScreenEffects::triggerBossIntro(const char* bossName) {
 }
 
 void ScreenEffects::triggerDimensionRipple() {
-    m_rippleTimer = 0.4f;
+    m_rippleTimer = 0.5f;
 }

@@ -87,15 +87,32 @@ public:
     int totalEnemiesKilled = 0;
     int totalRiftsRepaired = 0;
 
+    // Milestone rewards (cumulative unlock bonuses)
+    struct MilestoneBonus {
+        float bonusHP = 0;
+        float bonusDamageMult = 1.0f;
+        float bonusSpeed = 0;
+        int bonusShards = 0; // one-time shard grant per milestone
+    };
+    MilestoneBonus checkMilestones(); // returns newly unlocked bonuses
+    int milestonesUnlocked = 0; // persisted milestone count
+
     // Run history (leaderboard)
+    enum class DeathCause { Unknown = 0, HP, Entropy, Collapse, Speedrun, Victory };
     struct RunRecord {
         int rooms;
         int enemies;
         int rifts;
         int shards;
-        int difficulty; // highest difficulty reached
+        int difficulty;
+        int bestCombo = 0;
+        float runTime = 0;       // seconds
+        int playerClass = 0;     // PlayerClass as int
+        int deathCause = 0;      // DeathCause as int
     };
-    void addRunRecord(int rooms, int enemies, int rifts, int shards, int difficulty);
+    void addRunRecord(int rooms, int enemies, int rifts, int shards, int difficulty,
+                      int bestCombo = 0, float runTime = 0, int playerClass = 0, int deathCause = 0);
+    static const char* getDeathCauseName(int cause);
     const std::vector<RunRecord>& getRunHistory() const { return m_runHistory; }
 
 private:

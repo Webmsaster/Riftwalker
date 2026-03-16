@@ -1,9 +1,11 @@
 #include "ItemDrop.h"
 #include "Player.h"
+#include "WeaponSystem.h"
 #include "Components/TransformComponent.h"
 #include "Components/SpriteComponent.h"
 #include "Components/PhysicsBody.h"
 #include "Components/ColliderComponent.h"
+#include "Components/CombatComponent.h"
 #include "Components/HealthComponent.h"
 #include "Core/AudioManager.h"
 #include <cstdlib>
@@ -198,4 +200,47 @@ void ItemDrop::spawnRandomDrop(EntityManager& entities, Vec2 pos, int dimension,
         if (player) spawnDamageBoost(entities, pos, dimension, player);
     }
     // BALANCE: Nothing chance reduced 30% -> 20% (more rewarding combat)
+}
+
+Entity& ItemDrop::spawnWeaponDrop(EntityManager& entities, Vec2 pos, int dimension, WeaponID weapon, Player* player) {
+    auto& e = entities.addEntity("pickup_weapon");
+    e.dimension = dimension;
+
+    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 18, 18);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    // Color by weapon type: melee=orange, ranged=cyan
+    bool melee = WeaponSystem::isMelee(weapon);
+    if (melee)
+        sprite.setColor(255, 180, 60);
+    else
+        sprite.setColor(60, 200, 255);
+    sprite.renderLayer = 3;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 600.0f;
+    phys.velocity.y = -280.0f;
+    phys.velocity.x = (std::rand() % 120) - 60.0f;
+    phys.friction = 800.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 18;
+    col.height = 18;
+    col.layer = LAYER_PICKUP;
+    col.mask = LAYER_TILE | LAYER_PLAYER;
+    col.type = ColliderType::Trigger;
+    col.onTrigger = [weapon, player](Entity* self, Entity* other) {
+        if (other->getTag() == "player" && other->hasComponent<CombatComponent>() && player) {
+            auto& combat = other->getComponent<CombatComponent>();
+            if (WeaponSystem::isMelee(weapon))
+                combat.currentMelee = weapon;
+            else
+                combat.currentRanged = weapon;
+            player->applyWeaponStats();
+            player->weaponPickupPending = static_cast<int>(weapon);
+            AudioManager::instance().play(SFX::ShrineBlessing);
+            self->destroy();
+        }
+    };
+
+    return e;
 }

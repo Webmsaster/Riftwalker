@@ -143,7 +143,9 @@ void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int cu
 
     for (int y = startY; y <= endY; y++) {
         for (int x = startX; x <= endX; x++) {
-            if (!level->isSolid(x, y, collisionDim)) continue;
+            bool isSolid = level->isSolid(x, y, collisionDim);
+            bool isOneWay = level->isOneWay(x, y, collisionDim);
+            if (!isSolid && !isOneWay) continue;
 
             SDL_FRect tileRect = {
                 static_cast<float>(x * tileSize),
@@ -151,9 +153,6 @@ void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int cu
                 static_cast<float>(tileSize),
                 static_cast<float>(tileSize)
             };
-
-            // Check one-way platform
-            bool isOneWay = level->isOneWay(x, y, collisionDim);
 
             rect = collider.getWorldRect();
             if (!ColliderComponent::checkOverlap(rect, tileRect)) continue;

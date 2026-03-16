@@ -2,6 +2,7 @@
 #include "Core/Game.h"
 #include "Game/AchievementSystem.h"
 #include "Game/ClassSystem.h"
+#include "Game/UpgradeSystem.h"
 #include "Game/WeaponSystem.h"
 #include <cstdio>
 #include <cmath>
@@ -21,27 +22,6 @@ void RunSummaryState::enter() {
     m_fadeIn = 0;
     m_time = 0;
     m_statsTimer = 0;
-
-    // Load stats from last run record
-    auto& upgrades = game->getUpgradeSystem();
-    auto& history = upgrades.getRunHistory();
-    if (!history.empty()) {
-        // Find the record matching current run (most recent addition)
-        // The history is sorted, so we search for matching data
-        for (auto& r : history) {
-            if (r.rooms == roomsCleared && r.enemies == enemiesKilled) {
-                shardsEarned = r.shards;
-                break;
-            }
-        }
-    }
-
-    // Check for new record (compare against previous best before updating)
-    int prevBest = upgrades.bestRoomReached;
-    isNewRecord = (roomsCleared > prevBest && roomsCleared > 0);
-    if (roomsCleared > upgrades.bestRoomReached) {
-        upgrades.bestRoomReached = roomsCleared;
-    }
 }
 
 void RunSummaryState::handleEvent(const SDL_Event& event) {
@@ -152,6 +132,27 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
                 SDL_DestroyTexture(it);
             }
             SDL_FreeSurface(is);
+        }
+    }
+
+    // Death cause
+    if (deathCause > 0) {
+        const char* causeText = UpgradeSystem::getDeathCauseName(deathCause);
+        SDL_Color causeColor = (deathCause == 5)
+            ? SDL_Color{100, 255, 100, alpha}   // Victory: green
+            : SDL_Color{255, 120, 80, alpha};    // Death: red-orange
+        char causeLine[64];
+        std::snprintf(causeLine, sizeof(causeLine), "Cause: %s", causeText);
+        SDL_Surface* cs = TTF_RenderText_Blended(font, causeLine, causeColor);
+        if (cs) {
+            SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
+            if (ct) {
+                SDL_SetTextureAlphaMod(ct, alpha);
+                SDL_Rect cr = {640 - cs->w / 2, 172, cs->w, cs->h};
+                SDL_RenderCopy(renderer, ct, nullptr, &cr);
+                SDL_DestroyTexture(ct);
+            }
+            SDL_FreeSurface(cs);
         }
     }
 

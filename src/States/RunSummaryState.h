@@ -24,6 +24,7 @@ public:
     int difficulty = 1;
     int relicsCollected = 0;
     int bestCombo = 0;
+    int deathCause = 0; // UpgradeSystem::DeathCause
 
     // Balance summary
     float peakDmgRaw = 0;

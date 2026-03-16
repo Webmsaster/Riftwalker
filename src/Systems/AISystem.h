@@ -5,6 +5,7 @@
 
 class ParticleSystem;
 class CombatSystem;
+class Player;
 
 class AISystem {
 public:
@@ -14,6 +15,7 @@ public:
     void setCamera(Camera* cam) { m_camera = cam; }
     void setCombatSystem(CombatSystem* cs) { m_combatSystem = cs; }
     void setLevel(class Level* lvl) { m_level = lvl; }
+    void setPlayer(Player* p) { m_player = p; }
 
 private:
     void updateWalker(Entity& entity, float dt, Vec2 playerPos);
@@ -42,4 +44,5 @@ private:
     Camera* m_camera = nullptr;
     CombatSystem* m_combatSystem = nullptr;
     class Level* m_level = nullptr;
+    Player* m_player = nullptr;
 };

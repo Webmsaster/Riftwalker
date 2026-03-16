@@ -12,6 +12,7 @@
 #include "Core/AudioManager.h"
 #include "Game/Level.h"
 #include "Game/SpriteConfig.h"
+#include "Game/Player.h"
 #include <cmath>
 #include <cstdlib>
 
@@ -176,6 +177,61 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             }
 
             // Vampiric: heal percentage of damage dealt is handled in CombatSystem
+
+            // Fire Aura: burn player if within 100px
+            if (ai.eliteMod == EliteModifier::FireAura && e->hasComponent<TransformComponent>()) {
+                auto& t = e->getComponent<TransformComponent>();
+                float dist = std::abs(t.getCenter().x - playerPos.x) + std::abs(t.getCenter().y - playerPos.y);
+                if (dist < 100.0f && m_player && m_player->getEntity()->hasComponent<HealthComponent>()) {
+                    auto& php = m_player->getEntity()->getComponent<HealthComponent>();
+                    if (!php.isInvincible()) {
+                        m_player->burnTimer = std::max(m_player->burnTimer, 1.0f);
+                    }
+                }
+                // Visual: fire particles around elite
+                if (m_particles) {
+                    float auraPhase = std::fmod(ai.eliteGlowTimer * 8.0f, 6.28f);
+                    float ox = std::cos(auraPhase) * 20.0f;
+                    float oy = std::sin(auraPhase) * 12.0f;
+                    m_particles->burst({t.getCenter().x + ox, t.getCenter().y + oy}, 1,
+                                        {255, 100, 30, 180}, 40.0f, 1.5f);
+                }
+            }
+
+            // Heal Aura: heal nearby enemies 3 HP/s
+            if (ai.eliteMod == EliteModifier::HealAura && e->hasComponent<TransformComponent>()) {
+                auto& t = e->getComponent<TransformComponent>();
+                Vec2 center = t.getCenter();
+                entities.forEach([&](Entity& other) {
+                    if (&other == e || !other.isAlive()) return;
+                    if (other.getTag().find("enemy") == std::string::npos) return;
+                    if (!other.hasComponent<TransformComponent>() || !other.hasComponent<HealthComponent>()) return;
+                    auto& ot = other.getComponent<TransformComponent>();
+                    float dist = std::abs(ot.getCenter().x - center.x) + std::abs(ot.getCenter().y - center.y);
+                    if (dist < 120.0f) {
+                        other.getComponent<HealthComponent>().heal(3.0f * dt);
+                    }
+                });
+                // Visual: green heal particles
+                if (m_particles) {
+                    float auraPhase = std::fmod(ai.eliteGlowTimer * 5.0f, 6.28f);
+                    float ox = std::cos(auraPhase) * 22.0f;
+                    float oy = std::sin(auraPhase) * 14.0f;
+                    m_particles->burst({center.x + ox, center.y + oy}, 1,
+                                        {60, 230, 80, 160}, 30.0f, 1.5f);
+                }
+            }
+
+            // Shield Aura: mark handled in CombatSystem (damage reduction for nearby enemies)
+            // Visual particles only here
+            if (ai.eliteMod == EliteModifier::ShieldAura && e->hasComponent<TransformComponent>() && m_particles) {
+                auto& t = e->getComponent<TransformComponent>();
+                float auraPhase = std::fmod(ai.eliteGlowTimer * 6.0f, 6.28f);
+                float ox = std::cos(auraPhase) * 18.0f;
+                float oy = std::sin(auraPhase) * 10.0f;
+                m_particles->burst({t.getCenter().x + ox, t.getCenter().y + oy}, 1,
+                                    {60, 200, 255, 140}, 35.0f, 1.5f);
+            }
         }
 
         // Dimension behavior modifiers for dim-0 enemies

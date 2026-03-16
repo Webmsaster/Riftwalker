@@ -34,9 +34,13 @@ enum class StateID {
     ChallengeSelect,
     Bestiary,
     Lore,
-    Ending
+    Ending,
+    RunHistory
 };
 
 // Global difficulty setting (shared between states)
 enum class GameDifficulty { Easy = 0, Normal = 1, Hard = 2 };
 inline GameDifficulty g_selectedDifficulty = GameDifficulty::Normal;
+
+// New Game+ level (0 = first playthrough, 1+ = NG+ tiers)
+inline int g_newGamePlusLevel = 0;

@@ -9,8 +9,13 @@ Entity& EntityManager::addEntity(const std::string& tag) {
 }
 
 void EntityManager::update(float dt) {
+    std::vector<Entity*> snapshot;
+    snapshot.reserve(m_entities.size());
     for (auto& e : m_entities) {
-        if (e->isAlive()) e->update(dt);
+        if (e->isAlive()) snapshot.push_back(e.get());
+    }
+    for (Entity* e : snapshot) {
+        if (e && e->isAlive()) e->update(dt);
     }
 }
 
@@ -43,8 +48,13 @@ std::vector<Entity*> EntityManager::getEntitiesInDimension(int dim) const {
 }
 
 void EntityManager::forEach(const std::function<void(Entity&)>& func) {
+    std::vector<Entity*> snapshot;
+    snapshot.reserve(m_entities.size());
     for (auto& e : m_entities) {
-        if (e->isAlive()) func(*e);
+        if (e->isAlive()) snapshot.push_back(e.get());
+    }
+    for (Entity* e : snapshot) {
+        if (e && e->isAlive()) func(*e);
     }
 }
 

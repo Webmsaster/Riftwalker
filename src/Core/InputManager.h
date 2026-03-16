@@ -50,6 +50,11 @@ public:
     bool hasGamepad() const { return m_gamepad != nullptr; }
     float getGamepadAxis(SDL_GameControllerAxis axis) const;
 
+    // Haptic rumble (intensity 0.0-1.0, duration in ms)
+    void rumble(float intensity, int durationMs);
+    void setRumbleEnabled(bool enabled) { m_rumbleEnabled = enabled; }
+    bool isRumbleEnabled() const { return m_rumbleEnabled; }
+
     // Suit entropy can distort input
     void setInputDistortion(float amount) { m_distortion = amount; }
 
@@ -76,4 +81,5 @@ private:
     std::unordered_map<Action, SDL_GameControllerButton> m_padBindings;
 
     float m_distortion;
+    bool m_rumbleEnabled = true;
 };

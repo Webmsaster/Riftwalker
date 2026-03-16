@@ -1,6 +1,7 @@
 #include "AudioManager.h"
 #include "ResourceManager.h"
 #include "SoundGenerator.h"
+#include "MusicSystem.h"
 #include <SDL2/SDL.h>
 
 AudioManager& AudioManager::instance() {
@@ -21,6 +22,12 @@ void AudioManager::init() {
     // Generate ambient loops
     m_ambientA = SoundGenerator::ambientDimA();
     m_ambientB = SoundGenerator::ambientDimB();
+
+    // Generate dynamic music layers
+    m_layerRhythm = SoundGenerator::musicRhythm();
+    m_layerIntensity = SoundGenerator::musicIntensity();
+    m_layerDanger = SoundGenerator::musicDanger();
+    m_layerBoss = SoundGenerator::musicBoss();
 }
 
 void AudioManager::generateSounds() {
@@ -108,6 +115,14 @@ void AudioManager::shutdown() {
         if (m_ambientB) { Mix_FreeChunk(m_ambientB); m_ambientB = nullptr; }
         m_ambientChannel = -1;
         m_currentAmbientDim = 0;
+
+        stopMusicLayers();
+        if (m_layerRhythm) { Mix_FreeChunk(m_layerRhythm); m_layerRhythm = nullptr; }
+        if (m_layerIntensity) { Mix_FreeChunk(m_layerIntensity); m_layerIntensity = nullptr; }
+        if (m_layerDanger) { Mix_FreeChunk(m_layerDanger); m_layerDanger = nullptr; }
+        if (m_layerBoss) { Mix_FreeChunk(m_layerBoss); m_layerBoss = nullptr; }
+
+        stopThemeAmbient();
         Mix_CloseAudio();
         m_initialized = false;
     }
@@ -205,7 +220,83 @@ void AudioManager::toggleMute() {
     m_muted = !m_muted;
     if (m_muted) {
         Mix_VolumeMusic(0);
+        stopMusicLayers();
     } else {
         Mix_VolumeMusic(static_cast<int>(m_musicVolume * m_masterVolume));
     }
+}
+
+void AudioManager::startMusicLayers() {
+    if (!m_initialized || m_layersActive) return;
+
+    Mix_Chunk* layers[] = {m_layerRhythm, m_layerIntensity, m_layerDanger, m_layerBoss};
+    int channels[] = {14, 13, 12, 11};
+
+    for (int i = 0; i < 4; i++) {
+        if (!layers[i]) continue;
+        m_layerChannels[i] = Mix_PlayChannel(channels[i], layers[i], -1);
+        if (m_layerChannels[i] >= 0) {
+            Mix_Volume(m_layerChannels[i], 0); // Start silent
+        }
+    }
+    m_layersActive = true;
+}
+
+void AudioManager::stopMusicLayers() {
+    if (!m_layersActive) return;
+    for (int i = 0; i < 4; i++) {
+        if (m_layerChannels[i] >= 0) {
+            Mix_HaltChannel(m_layerChannels[i]);
+            m_layerChannels[i] = -1;
+        }
+    }
+    m_layersActive = false;
+}
+
+void AudioManager::updateMusicLayers(const MusicSystem& music) {
+    if (!m_initialized || m_muted || !m_layersActive) return;
+
+    float volumes[] = {
+        music.getRhythmVolume(),
+        music.getIntensityVolume(),
+        music.getDangerVolume(),
+        music.getBossVolume()
+    };
+
+    float maxLayerVol = m_musicVolume * m_masterVolume * 0.5f; // Music layers at 50% of music vol
+
+    for (int i = 0; i < 4; i++) {
+        if (m_layerChannels[i] >= 0) {
+            int vol = static_cast<int>(volumes[i] * maxLayerVol);
+            Mix_Volume(m_layerChannels[i], vol);
+        }
+    }
+}
+
+void AudioManager::playThemeAmbient(int themeId) {
+    if (!m_initialized || m_muted) return;
+    if (themeId == m_currentThemeId && m_themeAmbientChannel >= 0 && Mix_Playing(m_themeAmbientChannel)) return;
+
+    stopThemeAmbient();
+
+    m_themeAmbientChunk = SoundGenerator::themeAmbient(themeId);
+    if (!m_themeAmbientChunk) return;
+
+    m_themeAmbientChannel = Mix_PlayChannel(10, m_themeAmbientChunk, -1);
+    if (m_themeAmbientChannel >= 0) {
+        Mix_Volume(m_themeAmbientChannel, static_cast<int>(m_musicVolume * m_masterVolume * 0.4f));
+    }
+    m_currentThemeId = themeId;
+}
+
+void AudioManager::stopThemeAmbient() {
+    if (m_themeAmbientChannel >= 0) {
+        Mix_HaltChannel(m_themeAmbientChannel);
+        m_themeAmbientChannel = -1;
+    }
+    if (m_themeAmbientChunk) {
+        Mix_FreeChunk(m_themeAmbientChunk);
+        m_themeAmbientChunk = nullptr;
+    }
+    m_currentThemeId = -1;
 }

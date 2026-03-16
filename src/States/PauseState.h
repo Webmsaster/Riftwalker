@@ -11,6 +11,8 @@ public:
     void render(SDL_Renderer* renderer) override;
 
 private:
+    void renderRunStats(SDL_Renderer* renderer, TTF_Font* font);
+
     std::vector<Button> m_buttons;
     int m_selectedButton = 0;
     float m_time = 0;

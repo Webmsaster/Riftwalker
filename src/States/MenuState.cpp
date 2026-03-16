@@ -28,8 +28,9 @@ void MenuState::enter() {
     m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, "Bestiary");
     m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 5, btnW, btnH, "Achievements");
     m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 6, btnW, btnH, "Lore");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 7, btnW, btnH, "Options");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 8, btnW, btnH, "Quit");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 7, btnW, btnH, "Run History");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 8, btnW, btnH, "Options");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 9, btnW, btnH, "Quit");
 
     m_buttons[0].onClick = [this]() { game->changeState(StateID::ClassSelect); };
     m_buttons[1].onClick = [this]() { g_dailyRunActive = true; game->changeState(StateID::ClassSelect); };
@@ -38,8 +39,9 @@ void MenuState::enter() {
     m_buttons[4].onClick = [this]() { game->changeState(StateID::Bestiary); };
     m_buttons[5].onClick = [this]() { game->pushState(StateID::Achievements); };
     m_buttons[6].onClick = [this]() { game->changeState(StateID::Lore); };
-    m_buttons[7].onClick = [this]() { game->changeState(StateID::Options); };
-    m_buttons[8].onClick = [this]() { game->quit(); };
+    m_buttons[7].onClick = [this]() { game->pushState(StateID::RunHistory); };
+    m_buttons[8].onClick = [this]() { game->changeState(StateID::Options); };
+    m_buttons[9].onClick = [this]() { game->quit(); };
 
     m_selectedButton = 0;
     m_buttons[0].setSelected(true);

@@ -1,4 +1,5 @@
 #include "UpgradeSystem.h"
+#include "ClassSystem.h"
 #include <sstream>
 #include <algorithm>
 
@@ -77,13 +78,67 @@ float UpgradeSystem::getAbilityCooldownMultiplier() const { return 1.0f - getUpg
 float UpgradeSystem::getAbilityPowerMultiplier() const { return 1.0f + getUpgradeLevel(UpgradeID::AbilityPower) * 0.2f; }
 int UpgradeSystem::getShieldCapacityBonus() const { return getUpgradeLevel(UpgradeID::ShieldCapacity); }
 
-void UpgradeSystem::addRunRecord(int rooms, int enemies, int rifts, int shards, int difficulty) {
-    RunRecord record{rooms, enemies, rifts, shards, difficulty};
+void UpgradeSystem::addRunRecord(int rooms, int enemies, int rifts, int shards, int difficulty,
+                                  int bestCombo, float runTime, int playerClass, int deathCause) {
+    RunRecord record{rooms, enemies, rifts, shards, difficulty, bestCombo, runTime, playerClass, deathCause};
     m_runHistory.push_back(record);
     // Sort by rooms descending, keep top 10
     std::sort(m_runHistory.begin(), m_runHistory.end(),
         [](const RunRecord& a, const RunRecord& b) { return a.rooms > b.rooms; });
     if (m_runHistory.size() > 10) m_runHistory.resize(10);
+}
+
+const char* UpgradeSystem::getDeathCauseName(int cause) {
+    switch (cause) {
+        case 1: return "HP Depleted";
+        case 2: return "Entropy Overload";
+        case 3: return "Rift Collapse";
+        case 4: return "Time Expired";
+        case 5: return "Victory!";
+        default: return "Unknown";
+    }
+}
+
+UpgradeSystem::MilestoneBonus UpgradeSystem::checkMilestones() {
+    MilestoneBonus bonus;
+    int oldCount = milestonesUnlocked;
+    int newCount = 0;
+
+    // Milestone 1: 10 runs = +10 max HP
+    if (totalRuns >= 10) newCount = 1;
+    // Milestone 2: 50 runs = +5% damage
+    if (totalRuns >= 50) newCount = 2;
+    // Milestone 3: 100 kills = +50 shards
+    if (totalEnemiesKilled >= 100) newCount = std::max(newCount, 3);
+    // Milestone 4: 500 kills = +5% speed
+    if (totalEnemiesKilled >= 500) newCount = std::max(newCount, 4);
+    // Milestone 5: 1000 kills = +10% damage
+    if (totalEnemiesKilled >= 1000) newCount = std::max(newCount, 5);
+    // Milestone 6: reach floor 5 = +15 HP
+    if (bestRoomReached >= 5) newCount = std::max(newCount, 6);
+    // Milestone 7: reach floor 10 = +100 shards
+    if (bestRoomReached >= 10) newCount = std::max(newCount, 7);
+    // Milestone 8: 100 runs = +10% damage
+    if (totalRuns >= 100) newCount = std::max(newCount, 8);
+
+    // Only grant new milestones
+    if (newCount > oldCount) {
+        for (int i = oldCount + 1; i <= newCount; i++) {
+            switch (i) {
+                case 1: bonus.bonusHP += 10; break;
+                case 2: bonus.bonusDamageMult *= 1.05f; break;
+                case 3: bonus.bonusShards += 50; break;
+                case 4: bonus.bonusSpeed += 0.05f; break;
+                case 5: bonus.bonusDamageMult *= 1.10f; break;
+                case 6: bonus.bonusHP += 15; break;
+                case 7: bonus.bonusShards += 100; break;
+                case 8: bonus.bonusDamageMult *= 1.10f; break;
+            }
+        }
+        milestonesUnlocked = newCount;
+    }
+
+    return bonus;
 }
 
 std::string UpgradeSystem::serialize() const {
@@ -93,12 +148,20 @@ std::string UpgradeSystem::serialize() const {
     for (auto& u : m_upgrades) {
         ss << u.currentLevel << " ";
     }
-    // Serialize run history
+    // Serialize run history (extended format)
     ss << static_cast<int>(m_runHistory.size()) << " ";
     for (auto& r : m_runHistory) {
         ss << r.rooms << " " << r.enemies << " " << r.rifts << " "
-           << r.shards << " " << r.difficulty << " ";
+           << r.shards << " " << r.difficulty << " "
+           << r.bestCombo << " " << r.runTime << " "
+           << r.playerClass << " " << r.deathCause << " ";
     }
+    // Serialize class unlocks
+    for (int i = 0; i < 3; i++) {
+        ss << (ClassSystem::s_classUnlocked[i] ? 1 : 0) << " ";
+    }
+    // Serialize milestones
+    ss << milestonesUnlocked << " ";
     return ss.str();
 }
 
@@ -113,15 +176,29 @@ void UpgradeSystem::deserialize(const std::string& data) {
         if (u.currentLevel < 0) u.currentLevel = 0;
         if (u.currentLevel > u.maxLevel) u.currentLevel = u.maxLevel;
     }
-    // Deserialize run history
+    // Deserialize run history (extended format, backwards-compatible)
     int histCount = 0;
     if (ss >> histCount) {
         m_runHistory.clear();
         for (int i = 0; i < histCount && i < 10; i++) {
             RunRecord r{};
             if (ss >> r.rooms >> r.enemies >> r.rifts >> r.shards >> r.difficulty) {
+                // Extended fields may not exist in old saves
+                ss >> r.bestCombo >> r.runTime >> r.playerClass >> r.deathCause;
                 m_runHistory.push_back(r);
             }
         }
     }
+    // Deserialize class unlocks
+    ClassSystem::initUnlocks();
+    for (int i = 0; i < 3; i++) {
+        int val = 0;
+        if (ss >> val) {
+            ClassSystem::s_classUnlocked[i] = (val != 0);
+        }
+    }
+    ClassSystem::s_classUnlocked[0] = true; // Voidwalker always unlocked
+    // Deserialize milestones
+    int ms = 0;
+    if (ss >> ms) milestonesUnlocked = ms;
 }

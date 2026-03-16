@@ -22,9 +22,13 @@ void ClassSelectState::handleEvent(const SDL_Event& event) {
                 AudioManager::instance().play(SFX::MenuSelect);
                 break;
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
-                g_selectedClass = static_cast<PlayerClass>(m_selected);
-                AudioManager::instance().play(SFX::MenuConfirm);
-                game->changeState(StateID::DifficultySelect);
+                if (ClassSystem::isUnlocked(static_cast<PlayerClass>(m_selected))) {
+                    g_selectedClass = static_cast<PlayerClass>(m_selected);
+                    AudioManager::instance().play(SFX::MenuConfirm);
+                    game->changeState(StateID::DifficultySelect);
+                } else {
+                    AudioManager::instance().play(SFX::RiftFail);
+                }
                 break;
             case SDL_SCANCODE_ESCAPE:
                 AudioManager::instance().play(SFX::MenuConfirm);
@@ -104,14 +108,16 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
 void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
                                         const ClassData& data, int x, int y,
                                         int w, int h, bool selected) {
+    bool locked = !ClassSystem::isUnlocked(data.id);
+
     // Card background
-    Uint8 bgA = selected ? 80 : 30;
+    Uint8 bgA = locked ? 20 : (selected ? 80 : 30);
     SDL_SetRenderDrawColor(renderer, 20, 16, 35, bgA);
     SDL_Rect card = {x, y, w, h};
     SDL_RenderFillRect(renderer, &card);
 
     // Top accent bar in class color
-    Uint8 accentA = selected ? 220 : 80;
+    Uint8 accentA = locked ? 40 : (selected ? 220 : 80);
     SDL_SetRenderDrawColor(renderer, data.color.r, data.color.g, data.color.b, accentA);
     SDL_Rect accent = {x, y, w, 4};
     SDL_RenderFillRect(renderer, &accent);
@@ -216,6 +222,62 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
             SDL_DestroyTexture(amt);
         }
         SDL_FreeSurface(ams);
+    }
+
+    // Locked overlay: show requirement instead of stats
+    if (locked) {
+        // Dark overlay
+        SDL_SetRenderDrawColor(renderer, 5, 3, 15, 180);
+        SDL_Rect overlay = {x + 2, y + 180, w - 4, h - 185};
+        SDL_RenderFillRect(renderer, &overlay);
+
+        // Lock icon (simple padlock shape)
+        int lockCx = x + w / 2;
+        int lockCy = y + 280;
+        SDL_SetRenderDrawColor(renderer, 120, 100, 80, 200);
+        SDL_Rect lockBody = {lockCx - 15, lockCy, 30, 24};
+        SDL_RenderFillRect(renderer, &lockBody);
+        // Lock shackle (arc with lines)
+        SDL_RenderDrawLine(renderer, lockCx - 10, lockCy, lockCx - 10, lockCy - 12);
+        SDL_RenderDrawLine(renderer, lockCx + 10, lockCy, lockCx + 10, lockCy - 12);
+        SDL_RenderDrawLine(renderer, lockCx - 10, lockCy - 12, lockCx + 10, lockCy - 12);
+        // Keyhole
+        SDL_SetRenderDrawColor(renderer, 30, 25, 40, 255);
+        SDL_Rect keyhole = {lockCx - 3, lockCy + 8, 6, 8};
+        SDL_RenderFillRect(renderer, &keyhole);
+
+        // "LOCKED" text
+        SDL_Color lockColor = {180, 150, 80, 220};
+        SDL_Surface* ls = TTF_RenderText_Blended(font, "LOCKED", lockColor);
+        if (ls) {
+            SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
+            if (lt) {
+                int lw = static_cast<int>(ls->w * 1.2f);
+                int lh = static_cast<int>(ls->h * 1.2f);
+                SDL_Rect lr = {lockCx - lw / 2, lockCy + 35, lw, lh};
+                SDL_RenderCopy(renderer, lt, nullptr, &lr);
+                SDL_DestroyTexture(lt);
+            }
+            SDL_FreeSurface(ls);
+        }
+
+        // Unlock requirement
+        const char* req = ClassSystem::getUnlockRequirement(data.id);
+        SDL_Color reqColor = {140, 120, 90, 180};
+        SDL_Surface* rs = TTF_RenderText_Blended(font, req, reqColor);
+        if (rs) {
+            SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
+            if (rt) {
+                int maxW = w - 30;
+                float scale = (rs->w > maxW) ? static_cast<float>(maxW) / rs->w : 1.0f;
+                SDL_Rect rr = {lockCx - static_cast<int>(rs->w * scale) / 2, lockCy + 60,
+                               static_cast<int>(rs->w * scale), static_cast<int>(rs->h * scale)};
+                SDL_RenderCopy(renderer, rt, nullptr, &rr);
+                SDL_DestroyTexture(rt);
+            }
+            SDL_FreeSurface(rs);
+        }
+        return; // Skip stats for locked classes
     }
 
     // Stats: HP and Speed bars

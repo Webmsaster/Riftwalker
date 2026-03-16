@@ -21,6 +21,10 @@ struct KillEvent {
     bool wasRanged = false;
     bool wasAerial = false;    // player was airborne when killing
     bool wasSlam = false;      // ground slam kill
+    int enemyType = -1;        // EnemyType cast to int (-1 = unknown)
+    bool wasElite = false;
+    bool wasMiniBoss = false;
+    bool wasBoss = false;
 };
 
 class CombatSystem {
@@ -88,6 +92,7 @@ public:
 private:
     void processAttack(Entity& attacker, EntityManager& entities, int currentDim);
     void emitElementDeathFX(Vec2 pos, int element); // element: 0=none, 1=fire, 2=ice, 3=electric
+    void emitEnemyTypeDeathFX(Vec2 pos, int enemyType, SDL_Color color);
 
     ParticleSystem* m_particles = nullptr;
     Camera* m_camera = nullptr;

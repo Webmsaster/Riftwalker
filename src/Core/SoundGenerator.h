@@ -110,6 +110,15 @@ public:
     static Mix_Chunk* ambientDimA(); // Cool, ethereal drone
     static Mix_Chunk* ambientDimB(); // Warm, ominous drone
 
+    // Dynamic music layers (~4 seconds each, loop-friendly)
+    static Mix_Chunk* musicRhythm();    // Percussive pulse, fades in near enemies
+    static Mix_Chunk* musicIntensity(); // Aggressive tension, 3+ enemies or boss
+    static Mix_Chunk* musicDanger();    // Warning drone, low HP / high entropy
+    static Mix_Chunk* musicBoss();      // Epic battle theme, boss active
+
+    // Theme-specific ambient accents (~4 seconds, loop-friendly)
+    static Mix_Chunk* themeAmbient(int themeId); // 0-11 matching ThemeID
+
 private:
     struct Sample {
         std::vector<Sint16> data;

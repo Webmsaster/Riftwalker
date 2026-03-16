@@ -81,3 +81,30 @@ private:
     bool m_pendingPush = false;
     Uint8 m_transitionAlpha = 0;
 };
+
+// Accessibility globals
+// 0=Off, 1=Deuteranopia (red-green), 2=Tritanopia (blue-yellow)
+inline int g_colorBlindMode = 0;
+inline float g_hudScale = 1.0f; // 0.75 - 1.5
+
+// Color blind helper: remap colors for visibility
+inline SDL_Color applyColorBlind(SDL_Color c) {
+    if (g_colorBlindMode == 0) return c;
+    if (g_colorBlindMode == 1) { // Deuteranopia: shift red->orange, green->blue
+        if (c.r > 150 && c.g < 100) { // Red-ish → bright orange
+            c.g = static_cast<Uint8>(std::min(255, c.r / 2 + 80));
+            c.b = static_cast<Uint8>(std::min(255, 40));
+        } else if (c.g > 150 && c.r < 100) { // Green-ish → cyan/blue
+            c.b = c.g;
+            c.g = static_cast<Uint8>(c.g / 2);
+        }
+    } else if (g_colorBlindMode == 2) { // Tritanopia: shift blue->red, yellow→pink
+        if (c.b > 150 && c.r < 100) { // Blue-ish → magenta
+            c.r = c.b;
+            c.b = static_cast<Uint8>(c.b / 2);
+        } else if (c.r > 150 && c.g > 150 && c.b < 80) { // Yellow-ish → pink
+            c.g = static_cast<Uint8>(c.g / 3);
+        }
+    }
+    return c;
+}

@@ -97,6 +97,13 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                             ke.wasSlam = true;
                             if (m_player && m_player->getEntity()->hasComponent<PhysicsBody>())
                                 ke.wasAerial = !m_player->getEntity()->getComponent<PhysicsBody>().onGround;
+                            if (target.hasComponent<AIComponent>()) {
+                                auto& ai = target.getComponent<AIComponent>();
+                                ke.enemyType = static_cast<int>(ai.enemyType);
+                                ke.wasElite = ai.isElite;
+                                ke.wasMiniBoss = ai.isMiniBoss;
+                                ke.wasBoss = (ai.enemyType == EnemyType::Boss);
+                            }
                             killEvents.push_back(ke);
                         }
                         // Weapon mastery: slam counts as melee weapon kill
@@ -178,7 +185,14 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
                 if (e.getComponent<HealthComponent>().currentHP <= 0) {
                     killCount++;
                     // Kill event for combat challenges (burn DOT kill)
-                    killEvents.push_back(KillEvent{});
+                    {
+                        KillEvent ke{};
+                        ke.enemyType = static_cast<int>(ai.enemyType);
+                        ke.wasElite = ai.isElite;
+                        ke.wasMiniBoss = ai.isMiniBoss;
+                        ke.wasBoss = (ai.enemyType == EnemyType::Boss);
+                        killEvents.push_back(ke);
+                    }
                     // Weapon mastery: burn kills attributed to current melee
                     if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
                         int wIdx = static_cast<int>(m_player->getEntity()->getComponent<CombatComponent>().currentMelee);
@@ -256,7 +270,17 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
 
         // This enemy was killed by secondary/chain damage
         killCount++;
-        killEvents.push_back(KillEvent{});
+        {
+            KillEvent ke{};
+            if (e.hasComponent<AIComponent>()) {
+                auto& ai2 = e.getComponent<AIComponent>();
+                ke.enemyType = static_cast<int>(ai2.enemyType);
+                ke.wasElite = ai2.isElite;
+                ke.wasMiniBoss = ai2.isMiniBoss;
+                ke.wasBoss = (ai2.enemyType == EnemyType::Boss);
+            }
+            killEvents.push_back(ke);
+        }
 
         if (e.hasComponent<AIComponent>()) {
             auto& ai = e.getComponent<AIComponent>();
@@ -283,18 +307,45 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
         }
         ItemDrop::spawnRandomDrop(entities, deathPos, e.dimension, dropCount, m_player);
 
-        // Read element before destroy for themed death FX
+        // Weapon drop chance for zombie-sweep kills
+        if (e.hasComponent<AIComponent>()) {
+            auto& ai2 = e.getComponent<AIComponent>();
+            int weaponRoll = std::rand() % 100;
+            bool dropWeapon = false;
+            if (ai2.enemyType == EnemyType::Boss) dropWeapon = true;
+            else if (ai2.isMiniBoss && weaponRoll < 40) dropWeapon = true;
+            else if (ai2.isElite && weaponRoll < 20) dropWeapon = true;
+
+            if (dropWeapon && m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+                auto& pc = m_player->getEntity()->getComponent<CombatComponent>();
+                std::vector<WeaponID> candidates;
+                for (int w = 0; w < static_cast<int>(WeaponID::COUNT); w++) {
+                    auto wid = static_cast<WeaponID>(w);
+                    if (wid != pc.currentMelee && wid != pc.currentRanged)
+                        candidates.push_back(wid);
+                }
+                if (!candidates.empty()) {
+                    WeaponID drop = candidates[std::rand() % candidates.size()];
+                    ItemDrop::spawnWeaponDrop(entities, deathPos, e.dimension, drop, m_player);
+                }
+            }
+        }
+
+        // Read element + type before destroy for themed death FX
         int elemType = 0;
+        int eType = -1;
         if (e.hasComponent<AIComponent>()) {
             elemType = static_cast<int>(e.getComponent<AIComponent>().element);
+            eType = static_cast<int>(e.getComponent<AIComponent>().enemyType);
+        }
+
+        SDL_Color deathColor = {255, 255, 255, 255};
+        if (e.hasComponent<SpriteComponent>()) {
+            deathColor = e.getComponent<SpriteComponent>().color;
         }
 
         AudioManager::instance().play(SFX::EnemyDeath);
         if (m_particles) {
-            SDL_Color deathColor = {255, 255, 255, 255};
-            if (e.hasComponent<SpriteComponent>()) {
-                deathColor = e.getComponent<SpriteComponent>().color;
-            }
             m_particles->burst(deathPos, 25, deathColor, 200.0f, 4.0f);
             // Death launch: directional burst away from player
             if (m_player && m_player->getEntity()->hasComponent<TransformComponent>()) {
@@ -306,6 +357,7 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
             }
         }
         emitElementDeathFX(deathPos, elemType);
+        if (eType >= 0) emitEnemyTypeDeathFX(deathPos, eType, deathColor);
         if (m_camera) m_camera->shake(8.0f, 0.2f);
         e.destroy();
     });
@@ -587,6 +639,14 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
+            // Blacksmith weapon upgrade bonus (player only, per-run)
+            if (isPlayer && m_player) {
+                if (combat.currentAttack == AttackType::Ranged)
+                    damage *= m_player->smithRangedDmgMult;
+                else
+                    damage *= m_player->smithMeleeDmgMult;
+            }
+
             // Resonance damage bonus from rapid dimension switching
             if (isPlayer && m_dimMgr) {
                 damage *= m_dimMgr->getResonanceDamageMult();
@@ -706,6 +766,29 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     if (damage <= 0) {
                         m_damageEvents.push_back({targetCenter, absorbed, false, false});
                         return; // Fully absorbed by shield
+                    }
+                }
+            }
+
+            // Shield Aura: nearby ShieldAura elite reduces damage by 30%
+            if (isPlayer && target.hasComponent<AIComponent>() && target.hasComponent<TransformComponent>()) {
+                bool hasShieldAuraNearby = false;
+                entities.forEach([&](Entity& other) {
+                    if (hasShieldAuraNearby || &other == &target || !other.isAlive()) return;
+                    if (!other.hasComponent<AIComponent>() || !other.hasComponent<TransformComponent>()) return;
+                    auto& oAI = other.getComponent<AIComponent>();
+                    if (oAI.isElite && oAI.eliteMod == EliteModifier::ShieldAura) {
+                        auto& oT = other.getComponent<TransformComponent>();
+                        auto& tT = target.getComponent<TransformComponent>();
+                        float dist = std::abs(oT.getCenter().x - tT.getCenter().x)
+                                   + std::abs(oT.getCenter().y - tT.getCenter().y);
+                        if (dist < 100.0f) hasShieldAuraNearby = true;
+                    }
+                });
+                if (hasShieldAuraNearby) {
+                    damage *= 0.7f; // 30% damage reduction
+                    if (m_particles) {
+                        m_particles->burst(targetCenter, 4, {60, 200, 255, 180}, 50.0f, 1.0f);
                     }
                 }
             }
@@ -1096,6 +1179,11 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                             combat.currentAttack == AttackType::Melee && ks == 2);
                         if (m_player && m_player->getEntity()->hasComponent<PhysicsBody>())
                             ke.wasAerial = !m_player->getEntity()->getComponent<PhysicsBody>().onGround;
+                        auto& tAI2 = target.getComponent<AIComponent>();
+                        ke.enemyType = static_cast<int>(tAI2.enemyType);
+                        ke.wasElite = tAI2.isElite;
+                        ke.wasMiniBoss = tAI2.isMiniBoss;
+                        ke.wasBoss = (tAI2.enemyType == EnemyType::Boss);
                         killEvents.push_back(ke);
                     }
                     // Weapon mastery: attribute kill to attack weapon
@@ -1131,6 +1219,31 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         else if (tAI.isElite) dropCount = 2;
                     }
                     ItemDrop::spawnRandomDrop(entities, targetCenter, target.dimension, dropCount, m_player);
+
+                    // Weapon drop chance: elite 20%, mini-boss 40%, boss 100%
+                    if (target.hasComponent<AIComponent>()) {
+                        auto& tAI2 = target.getComponent<AIComponent>();
+                        int weaponRoll = std::rand() % 100;
+                        bool dropWeapon = false;
+                        if (tAI2.enemyType == EnemyType::Boss) dropWeapon = true;
+                        else if (tAI2.isMiniBoss && weaponRoll < 40) dropWeapon = true;
+                        else if (tAI2.isElite && weaponRoll < 20) dropWeapon = true;
+
+                        if (dropWeapon && m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+                            auto& pc = m_player->getEntity()->getComponent<CombatComponent>();
+                            // Pick a random weapon the player doesn't currently have equipped
+                            std::vector<WeaponID> candidates;
+                            for (int w = 0; w < static_cast<int>(WeaponID::COUNT); w++) {
+                                auto wid = static_cast<WeaponID>(w);
+                                if (wid != pc.currentMelee && wid != pc.currentRanged)
+                                    candidates.push_back(wid);
+                            }
+                            if (!candidates.empty()) {
+                                WeaponID drop = candidates[std::rand() % candidates.size()];
+                                ItemDrop::spawnWeaponDrop(entities, targetCenter, target.dimension, drop, m_player);
+                            }
+                        }
+                    }
                 }
 
                 // Elite on-death effects
@@ -1246,11 +1359,13 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 bool wasMB = false;
                 bool wasElite = false;
                 int targetElem = 0;
+                int targetType = -1;
                 if (target.hasComponent<AIComponent>()) {
                     auto& tAI = target.getComponent<AIComponent>();
                     wasMB = tAI.isMiniBoss;
                     wasElite = tAI.isElite;
                     targetElem = static_cast<int>(tAI.element);
+                    targetType = static_cast<int>(tAI.enemyType);
                 }
                 target.destroy();
                 if (m_particles) {
@@ -1268,6 +1383,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     }
                 }
                 emitElementDeathFX(targetCenter, targetElem);
+                if (targetType >= 0) emitEnemyTypeDeathFX(targetCenter, targetType, deathColor);
                 // Bigger shake on kill (extra for mini-bosses and elites)
                 if (m_camera && isPlayer) {
                     m_camera->shake(wasMB ? 12.0f : (wasElite ? 10.0f : 8.0f),
@@ -1350,6 +1466,51 @@ void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
     if (!piercing) {
         Entity* projPtr = &proj;
         hp.onDamage = [projPtr](float) { projPtr->destroy(); };
+    }
+}
+
+void CombatSystem::emitEnemyTypeDeathFX(Vec2 pos, int enemyType, SDL_Color color) {
+    if (!m_particles) return;
+    switch (static_cast<EnemyType>(enemyType)) {
+        case EnemyType::Walker: // Crumble: pieces falling down
+            for (int i = 0; i < 6; i++) {
+                float offX = (std::rand() % 30) - 15.0f;
+                m_particles->burst({pos.x + offX, pos.y}, 2, color, 60.0f, 3.0f);
+            }
+            break;
+        case EnemyType::Flyer: // Spiral fall trajectory
+            m_particles->directionalBurst(pos, 10, color, 90.0f, 60.0f, 200.0f, 3.0f);
+            m_particles->burst(pos, 4, {200, 200, 200, 150}, 80.0f, 2.0f); // feather-like
+            break;
+        case EnemyType::Charger: // Skid marks + dust cloud
+            m_particles->directionalBurst(pos, 8, {180, 160, 140, 200}, 0.0f, 30.0f, 150.0f, 2.5f);
+            m_particles->directionalBurst(pos, 8, {180, 160, 140, 200}, 180.0f, 30.0f, 150.0f, 2.5f);
+            break;
+        case EnemyType::Exploder: // Chain explosion ring
+            m_particles->burst(pos, 20, {255, 160, 40, 255}, 300.0f, 2.5f);
+            m_particles->burst(pos, 10, {255, 80, 20, 200}, 200.0f, 3.5f);
+            break;
+        case EnemyType::Turret: // Sparks and metal debris
+            m_particles->burst(pos, 12, {200, 200, 180, 220}, 180.0f, 3.0f);
+            m_particles->burst(pos, 6, {255, 255, 100, 255}, 120.0f, 1.5f); // sparks
+            break;
+        case EnemyType::Shielder: // Shield shatter
+            m_particles->burst(pos, 15, {80, 160, 255, 220}, 250.0f, 3.5f);
+            m_particles->burst(pos, 5, {180, 220, 255, 180}, 180.0f, 4.0f);
+            break;
+        case EnemyType::Crawler: // Goo splatter
+            m_particles->burst(pos, 10, {120, 200, 80, 220}, 150.0f, 3.5f);
+            m_particles->directionalBurst(pos, 6, {80, 160, 50, 200}, 90.0f, 50.0f, 100.0f, 2.5f);
+            break;
+        case EnemyType::Summoner: // Magical dissipation
+            m_particles->burst(pos, 8, {180, 80, 220, 200}, 200.0f, 4.0f);
+            m_particles->burst(pos, 12, {220, 140, 255, 150}, 120.0f, 3.0f);
+            break;
+        case EnemyType::Sniper: // Lens flare + precision sparks
+            m_particles->burst(pos, 8, {255, 60, 60, 220}, 180.0f, 2.0f);
+            m_particles->directionalBurst(pos, 4, {255, 255, 200, 255}, 0.0f, 180.0f, 300.0f, 1.5f);
+            break;
+        default: break;
     }
 }
 
