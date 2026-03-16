@@ -169,6 +169,8 @@ std::string UpgradeSystem::serialize() const {
     for (int i = 0; i < weaponCount; i++) {
         ss << (WeaponSystem::isUnlocked(static_cast<WeaponID>(i)) ? 1 : 0) << " ";
     }
+    // NG+ progress (appended for backward compatibility)
+    ss << highestNGPlusCompleted << " ";
     return ss.str();
 }
 
@@ -219,5 +221,10 @@ void UpgradeSystem::deserialize(const std::string& data) {
                 WeaponSystem::unlock(static_cast<WeaponID>(i));
             }
         }
+    }
+    // NG+ progress (optional for backward compatibility with old saves)
+    int ngp = 0;
+    if (ss >> ngp) {
+        highestNGPlusCompleted = std::max(0, std::min(ngp, 5));
     }
 }

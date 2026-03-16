@@ -2,6 +2,7 @@
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
 #include "Game/ClassSystem.h"
+#include "Game/UpgradeSystem.h"
 #include <cmath>
 #include <cstdio>
 
@@ -24,7 +25,13 @@ void DifficultySelectState::handleEvent(const SDL_Event& event) {
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
                 g_selectedDifficulty = static_cast<GameDifficulty>(m_selected);
                 AudioManager::instance().play(SFX::MenuConfirm);
-                game->changeState(StateID::Play);
+                // Route to NG+ selection if any NG+ tiers are unlocked, else start directly
+                if (game->getUpgradeSystem().getMaxUnlockedNGPlus() >= 0 + 1) {
+                    game->changeState(StateID::NGPlusSelect);
+                } else {
+                    g_selectedNGPlus = 0;
+                    game->changeState(StateID::Play);
+                }
                 break;
             case SDL_SCANCODE_ESCAPE:
                 AudioManager::instance().play(SFX::MenuConfirm);

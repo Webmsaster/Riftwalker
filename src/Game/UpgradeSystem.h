@@ -97,6 +97,13 @@ public:
     MilestoneBonus checkMilestones(); // returns newly unlocked bonuses
     int milestonesUnlocked = 0; // persisted milestone count
 
+    // NG+ tracking (persisted)
+    int highestNGPlusCompleted = 0;  // Highest NG+ tier beaten (0 = never won, 1-5 = beaten that tier)
+    int getMaxUnlockedNGPlus() const { return highestNGPlusCompleted; }
+    void unlockNGPlus(int tier) {
+        if (tier > highestNGPlusCompleted && tier <= 5) highestNGPlusCompleted = tier;
+    }
+
     // Run history (leaderboard)
     enum class DeathCause { Unknown = 0, HP, Entropy, Collapse, Speedrun, Victory };
     struct RunRecord {

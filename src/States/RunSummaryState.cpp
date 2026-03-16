@@ -133,6 +133,31 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             }
             SDL_FreeSurface(is);
         }
+
+        // NG+ tier badge (golden, shown below info line when tier > 0)
+        if (ngPlusTier > 0) {
+            static const char* s_ngpTitles[] = {
+                "", "NG+1 CHALLENGER", "NG+2 VETERAN", "NG+3 HARDENED",
+                "NG+4 VOID TOUCHED", "NG+5 RIFT SOVEREIGN"
+            };
+            const char* title = (ngPlusTier >= 1 && ngPlusTier <= 5) ? s_ngpTitles[ngPlusTier] : "";
+            float pulse = 0.8f + 0.2f * std::sin(m_time * 4.0f);
+            Uint8 ngA = static_cast<Uint8>(alpha * pulse);
+            SDL_Color ngC = {255, 210, 40, ngA};
+            SDL_Surface* ns = TTF_RenderText_Blended(font, title, ngC);
+            if (ns) {
+                SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
+                if (nt) {
+                    SDL_SetTextureAlphaMod(nt, ngA);
+                    int nw = static_cast<int>(ns->w * 1.1f);
+                    int nh = static_cast<int>(ns->h * 1.1f);
+                    SDL_Rect nr = {640 - nw / 2, 172, nw, nh};
+                    SDL_RenderCopy(renderer, nt, nullptr, &nr);
+                    SDL_DestroyTexture(nt);
+                }
+                SDL_FreeSurface(ns);
+            }
+        }
     }
 
     // Death cause

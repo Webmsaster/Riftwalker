@@ -25,6 +25,7 @@ public:
     int relicsCollected = 0;
     int bestCombo = 0;
     int deathCause = 0; // UpgradeSystem::DeathCause
+    int ngPlusTier = 0;            // NG+ tier this run was played on (0=Normal)
 
     // Balance summary
     float peakDmgRaw = 0;

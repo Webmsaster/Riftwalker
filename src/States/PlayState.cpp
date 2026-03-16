@@ -721,6 +721,8 @@ void PlayState::startNewRun() {
     }
 
     m_currentDifficulty = 1;
+    m_ngPlusTier = g_selectedNGPlus;      // Capture NG+ tier at run start
+    m_ngPlusForceSwitchTimer = 30.0f;     // NG+4 forced dim-switch interval
     m_isDailyRun = g_dailyRunActive;
     m_runSeed = (g_forcedRunSeed >= 0)
         ? g_forcedRunSeed
@@ -836,6 +838,10 @@ void PlayState::startNewRun() {
     AudioManager::instance().playThemeAmbient(static_cast<int>(m_themeA.id));
 
     m_entropy = SuitEntropy();
+    // NG+1: entropy decays 20% slower (passive decay reduced)
+    if (m_ngPlusTier >= 1) {
+        m_entropy.passiveDecay *= 0.8f;
+    }
     m_combatSystem.resetRunState();
     m_combatSystem.setParticleSystem(&m_particles);
     m_combatSystem.setCamera(&m_camera);
@@ -854,6 +860,7 @@ void PlayState::startNewRun() {
     m_combatSystem.setPlayer(m_player.get());
     m_combatSystem.setDimensionManager(&m_dimManager);
     m_hud.setCombatSystem(&m_combatSystem);
+    m_hud.setNGPlusTier(m_ngPlusTier);
     m_aiSystem.setLevel(m_level.get());
     m_aiSystem.setPlayer(m_player.get());
 }
@@ -987,6 +994,11 @@ void PlayState::spawnEnemies() {
     // Mini-boss: one per level at difficulty 2+, 15% chance (not on boss levels)
     bool miniBossSpawned = false;
 
+    // NG+2: double elite spawn rate (base 15% -> 30%)
+    int eliteChance = (m_ngPlusTier >= 2) ? 30 : 15;
+    // NG+4: mini-bosses in every level (100% chance, not just 15%)
+    int miniBossChance = (m_ngPlusTier >= 4) ? 100 : 15;
+
     if (!m_spawnWaves.empty()) {
         for (auto& sp : m_spawnWaves[0]) {
             auto& e = Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
@@ -994,6 +1006,8 @@ void PlayState::spawnEnemies() {
             if (e.hasComponent<AIComponent>()) e.getComponent<AIComponent>().spawnTimer = 0;
             // Theme-specific variant: stat mods, element affinity, color tint
             applyThemeVariant(e, sp.dimension);
+            // NG+ HP/DMG scaling applied after theme variant
+            applyNGPlusModifiers(e);
             // Elemental variant chance: 25% at difficulty 3+, only if theme didn't set element
             if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
                 && e.getComponent<AIComponent>().element == EnemyElement::None
@@ -1001,16 +1015,16 @@ void PlayState::spawnEnemies() {
                 EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
                 Enemy::applyElement(e, el);
             }
-            // Elite modifier: 15% chance per enemy at difficulty 3+
+            // Elite modifier: chance increases in NG+2
             if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
-                && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < 15) {
+                && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < eliteChance) {
                 EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 9);
                 Enemy::makeElite(e, mod);
             }
-            // Mini-boss: promote first eligible enemy
+            // Mini-boss: NG+4 spawns one in every level
             if (!miniBossSpawned && !m_isBossLevel && m_currentDifficulty >= 2
                 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
-                && std::rand() % 100 < 15) {
+                && std::rand() % 100 < miniBossChance) {
                 Enemy::makeMiniBoss(e);
                 miniBossSpawned = true;
             }
@@ -1083,6 +1097,40 @@ void PlayState::applyThemeVariant(Entity& e, int dimension) {
     sprite.baseColor = sprite.color; // update base for wind-up restore
 }
 
+void PlayState::applyNGPlusModifiers(Entity& e) {
+    // Apply NG+ HP and damage scaling to enemies. Bosses are included.
+    if (m_ngPlusTier <= 0) return;
+    if (!e.hasComponent<HealthComponent>() || !e.hasComponent<CombatComponent>()) return;
+
+    // NG+1: +25% HP, +15% DMG
+    // NG+3: cumulative to +50% HP total (applied on top of NG+1/2 chain)
+    // NG+5: cumulative to +100% HP total
+    float hpMult = 1.0f;
+    float dmgMult = 1.0f;
+    if (m_ngPlusTier >= 1) { hpMult *= 1.25f; dmgMult *= 1.15f; }
+    if (m_ngPlusTier >= 3) { hpMult *= 1.20f; }   // reaches ~50% total vs base
+    if (m_ngPlusTier >= 5) { hpMult *= 1.33f; }   // reaches ~100% total vs base
+
+    auto& hp = e.getComponent<HealthComponent>();
+    hp.maxHP *= hpMult;
+    hp.currentHP = hp.maxHP;
+
+    auto& combat = e.getComponent<CombatComponent>();
+    combat.meleeAttack.damage *= dmgMult;
+    combat.rangedAttack.damage *= dmgMult;
+
+    // NG+3+: tint enemy HP bar gold to signal the tier
+    if (e.hasComponent<SpriteComponent>()) {
+        auto& sprite = e.getComponent<SpriteComponent>();
+        // Subtle gold tint for NG+ enemies — blend toward gold without destroying theme color
+        float tintStrength = 0.08f + m_ngPlusTier * 0.03f; // 0.11-0.23 at NG+1-5
+        sprite.color.r = static_cast<Uint8>(std::min(255, static_cast<int>(sprite.color.r * (1.0f - tintStrength) + 255 * tintStrength)));
+        sprite.color.g = static_cast<Uint8>(std::min(255, static_cast<int>(sprite.color.g * (1.0f - tintStrength) + 200 * tintStrength)));
+        sprite.color.b = static_cast<Uint8>(std::min(255, static_cast<int>(sprite.color.b * (1.0f - tintStrength) + 30 * tintStrength)));
+        sprite.baseColor = sprite.color;
+    }
+}
+
 void PlayState::applyUpgrades() {
     if (!m_player) return;
     auto& upgrades = game->getUpgradeSystem();
@@ -1117,8 +1165,8 @@ void PlayState::applyUpgrades() {
     // Achievement DOT reduction applied to player
     m_player->dotDurationMult = achBonus.dotDurationMult;
 
-    // Store shard drop multiplier from achievements for use in shard calculations
-    m_achievementShardMult = achBonus.shardDropMult;
+    // Store shard drop multiplier from achievements + NG+ bonus (+20% per tier)
+    m_achievementShardMult = achBonus.shardDropMult * (1.0f + m_ngPlusTier * 0.20f);
 
     // Ability upgrades
     if (m_player->getEntity()->hasComponent<AbilityComponent>()) {
@@ -1398,6 +1446,19 @@ void PlayState::update(float dt) {
                 AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
                 m_screenEffects.triggerDimensionRipple();
             }
+        }
+    }
+
+    // NG+4: forced dimension switch every 30 seconds
+    if (m_ngPlusTier >= 4) {
+        m_ngPlusForceSwitchTimer -= dt;
+        if (m_ngPlusForceSwitchTimer <= 0) {
+            m_ngPlusForceSwitchTimer = 30.0f;
+            m_dimManager.switchDimension(true); // force = true, bypasses cooldown
+            m_camera.shake(8.0f, 0.3f);
+            AudioManager::instance().play(SFX::DimensionSwitch);
+            AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
+            m_screenEffects.triggerDimensionRipple();
         }
     }
 
@@ -4777,19 +4838,22 @@ void PlayState::updateSpawnWaves(float dt) {
     m_waveTimer -= dt;
     if (aliveEnemies <= 1 || m_waveTimer <= 0) {
         // Spawn next wave
+        int waveEliteChance = (m_ngPlusTier >= 2) ? 30 : 15; // NG+2: doubled elite rate
         for (auto& sp : m_spawnWaves[m_currentWave]) {
             auto& e = Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
             // Theme-specific variant
             applyThemeVariant(e, sp.dimension);
+            // NG+ scaling on wave enemies
+            applyNGPlusModifiers(e);
             if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
                 && e.getComponent<AIComponent>().element == EnemyElement::None
                 && std::rand() % 4 == 0) {
                 EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
                 Enemy::applyElement(e, el);
             }
-            // Elite modifier in wave spawns
+            // Elite modifier in wave spawns (NG+2 doubles rate)
             if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
-                && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < 15) {
+                && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < waveEliteChance) {
                 EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 9);
                 Enemy::makeElite(e, mod);
             }
@@ -5828,6 +5892,7 @@ void PlayState::populateRunSummary(int runShards, bool isNewRecord) {
         summary->difficulty = m_currentDifficulty;
         summary->bestCombo = m_bestCombo;
         summary->deathCause = m_deathCause;
+        summary->ngPlusTier = m_ngPlusTier;
         summary->relicsCollected = 0;
         if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
             summary->relicsCollected = static_cast<int>(
@@ -5926,6 +5991,11 @@ void PlayState::finalizeRun(bool abandoned) {
     // Void Sovereign defeated -> NG+ and Ending sequence
     if (m_voidSovereignDefeated) {
         g_newGamePlusLevel++;
+        // NG+ unlock: beating Normal unlocks NG+1, beating NG+X unlocks NG+X+1 (up to NG+5)
+        int nextTier = m_ngPlusTier + 1;
+        if (nextTier <= 5) {
+            upgrades.unlockNGPlus(nextTier);
+        }
         if (auto* lore = game->getLoreSystem()) {
             lore->discover(LoreID::FinalRevelation);
             lore->save("riftwalker_lore.dat");

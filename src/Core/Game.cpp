@@ -7,6 +7,7 @@
 #include "States/GameOverState.h"
 #include "States/OptionsState.h"
 #include "States/DifficultySelectState.h"
+#include "States/NGPlusSelectState.h"
 #include "States/KeybindingsState.h"
 #include "States/AchievementsState.h"
 #include "States/ShopState.h"
@@ -73,6 +74,7 @@ bool Game::init() {
     m_states[StateID::GameOver] = std::make_unique<GameOverState>();
     m_states[StateID::Options] = std::make_unique<OptionsState>();
     m_states[StateID::DifficultySelect] = std::make_unique<DifficultySelectState>();
+    m_states[StateID::NGPlusSelect] = std::make_unique<NGPlusSelectState>();
     m_states[StateID::Keybindings] = std::make_unique<KeybindingsState>();
     m_states[StateID::Achievements] = std::make_unique<AchievementsState>();
     m_states[StateID::Shop] = std::make_unique<ShopState>();
