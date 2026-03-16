@@ -274,6 +274,10 @@ void Player::update(float dt, const InputManager& input) {
         postDashInvisTimer -= dt;
     }
 
+    // Technomancer: construct cooldowns
+    if (turretCooldownTimer > 0) turretCooldownTimer -= dt;
+    if (trapCooldownTimer > 0) trapCooldownTimer -= dt;
+
     // Voidwalker: Rift Charge timer + shimmer particles
     if (riftChargeTimer > 0) {
         riftChargeTimer -= dt;
@@ -783,6 +787,14 @@ void Player::updateAnimation() {
         sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g + 30 * pulse));
     }
 
+    // Technomancer: subtle yellow-orange tech glow when constructs are active
+    if (isTechnomancer() && (activeTurrets > 0 || activeTraps > 0)) {
+        float intensity = static_cast<float>(activeTurrets + activeTraps) / (maxTurrets + maxTraps);
+        float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
+        sprite.color.r = static_cast<Uint8>(std::min(255.0f, sprite.color.r + 25 * intensity * pulse));
+        sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g + 15 * intensity * pulse));
+    }
+
     // Status effect tinting (overrides above for active effects)
     if (burnTimer > 0 && sprite.animState != AnimState::Hurt) {
         sprite.color.r = std::min(255, sprite.color.r + 100);
@@ -831,8 +843,153 @@ void Player::handleAbilities(float dt, const InputManager& input) {
     auto& phys = m_entity->getComponent<PhysicsBody>();
     auto& t = m_entity->getComponent<TransformComponent>();
 
-    // Ability 1: Ground Slam (must be in air)
-    if (input.isActionPressed(Action::Ability1) && abil.abilities[0].isReady()) {
+    // Technomancer: Deploy Turret (Ability1 / Q) and Shock Trap (Ability2 / E)
+    if (playerClass == PlayerClass::Technomancer) {
+        // Ability 1: Deploy Turret
+        if (input.isActionPressed(Action::Ability1) && turretCooldownTimer <= 0 && activeTurrets < maxTurrets && entityManager) {
+            const auto& classData = ClassSystem::getData(PlayerClass::Technomancer);
+            float turretDmg = 8.0f * classData.turretDamageMult;   // Construct Mastery: +20%
+            float turretLife = 12.0f * classData.turretDurationMult; // Construct Mastery: +50% longer
+
+            // Spawn turret entity at player's feet
+            Vec2 spawnPos = {t.getCenter().x + (facingRight ? 30.0f : -30.0f),
+                             t.position.y + t.height - 20.0f};
+
+            auto& turret = entityManager->addEntity("player_turret");
+            turret.dimension = 0; // exists in both dimensions
+            auto& tt = turret.addComponent<TransformComponent>(spawnPos.x - 10, spawnPos.y - 10, 20, 20);
+            auto& tSprite = turret.addComponent<SpriteComponent>();
+            tSprite.setColor(230, 180, 50);
+            tSprite.renderLayer = 2;
+
+            auto& tPhys = turret.addComponent<PhysicsBody>();
+            tPhys.useGravity = true;
+            tPhys.gravity = 980.0f;
+
+            auto& tCol = turret.addComponent<ColliderComponent>();
+            tCol.width = 20;
+            tCol.height = 20;
+            tCol.layer = LAYER_TRIGGER;
+            tCol.mask = LAYER_TILE;
+            tCol.type = ColliderType::Dynamic;
+
+            auto& tHP = turret.addComponent<HealthComponent>();
+            tHP.maxHP = turretLife; // lifetime timer stored as HP, decayed externally
+            tHP.currentHP = turretLife;
+            tHP.invulnerable = true;
+
+            auto& tCombat = turret.addComponent<CombatComponent>();
+            tCombat.rangedAttack.damage = turretDmg;
+            tCombat.rangedAttack.range = 160.0f;    // 60px detect range but 160px projectile range
+            tCombat.rangedAttack.cooldown = 1.5f;
+            tCombat.rangedAttack.type = AttackType::Ranged;
+
+            auto& tAI = turret.addComponent<AIComponent>();
+            tAI.enemyType = EnemyType::Turret; // reuse turret AI type
+            tAI.detectRange = 160.0f;
+            tAI.attackCooldown = 1.5f;
+            tAI.attackTimer = 0.5f; // brief delay before first shot
+
+            activeTurrets++;
+            turretCooldownTimer = turretCooldown;
+            AudioManager::instance().play(SFX::RiftRepair); // deploy sound
+
+            if (particles) {
+                particles->burst(spawnPos, 12, {230, 180, 50, 200}, 80.0f, 2.5f);
+            }
+        }
+
+        // Ability 2: Shock Trap
+        if (input.isActionPressed(Action::Ability2) && trapCooldownTimer <= 0 && activeTraps < maxTraps && entityManager) {
+            const auto& classData = ClassSystem::getData(PlayerClass::Technomancer);
+            float trapDmg = 25.0f * classData.turretDamageMult;    // Construct Mastery: +20%
+            float trapLife = 15.0f * classData.turretDurationMult;  // Construct Mastery: +50% longer
+
+            // Spawn trap at player's feet
+            Vec2 spawnPos = {t.getCenter().x, t.position.y + t.height - 6.0f};
+
+            auto& trap = entityManager->addEntity("player_trap");
+            trap.dimension = 0;
+            auto& trapT = trap.addComponent<TransformComponent>(spawnPos.x - 12, spawnPos.y - 6, 24, 12);
+            auto& trapSprite = trap.addComponent<SpriteComponent>();
+            trapSprite.setColor(255, 200, 50);
+            trapSprite.renderLayer = 1; // below entities
+
+            auto& trapPhys = trap.addComponent<PhysicsBody>();
+            trapPhys.useGravity = false; // sits on floor
+
+            auto& trapCol = trap.addComponent<ColliderComponent>();
+            trapCol.width = 24;
+            trapCol.height = 12;
+            trapCol.layer = LAYER_TRIGGER;
+            trapCol.mask = LAYER_ENEMY;
+            trapCol.type = ColliderType::Trigger;
+
+            auto& trapHP = trap.addComponent<HealthComponent>();
+            trapHP.maxHP = trapLife;
+            trapHP.currentHP = trapLife;
+            trapHP.invulnerable = true;
+
+            // Store damage in combat component for trigger callback
+            auto& trapCombat = trap.addComponent<CombatComponent>();
+            trapCombat.meleeAttack.damage = trapDmg;
+
+            // Trigger: on enemy contact, deal damage + stun + electric particles, then destroy
+            auto* playerPtr = this;
+            auto* csRef = combatSystemRef;
+            trapCol.onTrigger = [trapDmg, playerPtr, csRef](Entity* self, Entity* other) {
+                if (!other || !other->isAlive()) return;
+                if (other->getTag().find("enemy") == std::string::npos) return;
+                if (!other->hasComponent<HealthComponent>()) return;
+
+                auto& hp = other->getComponent<HealthComponent>();
+                hp.takeDamage(trapDmg);
+
+                // Stun for 1 second
+                if (other->hasComponent<AIComponent>()) {
+                    other->getComponent<AIComponent>().stun(1.0f);
+                }
+
+                // Knockback upward
+                if (other->hasComponent<PhysicsBody>()) {
+                    other->getComponent<PhysicsBody>().velocity.y -= 200.0f;
+                }
+
+                // Report damage event for floating numbers
+                if (csRef && other->hasComponent<TransformComponent>()) {
+                    Vec2 hitPos = other->getComponent<TransformComponent>().getCenter();
+                    csRef->addDamageEvent(hitPos, trapDmg, false, false, false);
+                }
+
+                // Electric particles at trap location
+                if (playerPtr->particles && self->hasComponent<TransformComponent>()) {
+                    Vec2 trapPos = self->getComponent<TransformComponent>().getCenter();
+                    playerPtr->particles->burst(trapPos, 20, {255, 255, 100, 255}, 120.0f, 3.0f);
+                    playerPtr->particles->burst(trapPos, 10, {100, 200, 255, 200}, 80.0f, 2.0f);
+                }
+
+                AudioManager::instance().play(SFX::ElectricChain);
+
+                // Destroy trap after triggering
+                if (playerPtr) playerPtr->activeTraps = std::max(0, playerPtr->activeTraps - 1);
+                self->destroy();
+            };
+
+            activeTraps++;
+            trapCooldownTimer = trapCooldown;
+            AudioManager::instance().play(SFX::DimensionSwitch); // place sound
+
+            if (particles) {
+                particles->burst(spawnPos, 8, {255, 200, 50, 200}, 60.0f, 2.0f);
+            }
+        }
+
+        // Phase Strike still available for Technomancer (Ability3)
+        // Fall through to Ability3 handling below
+    }
+
+    // Ability 1: Ground Slam (must be in air) — not for Technomancer (uses turret instead)
+    if (playerClass != PlayerClass::Technomancer && input.isActionPressed(Action::Ability1) && abil.abilities[0].isReady()) {
         if (!phys.onGround) {
             abil.slamFalling = true;
             slamFallStartY = t.position.y;
@@ -848,8 +1005,8 @@ void Player::handleAbilities(float dt, const InputManager& input) {
         }
     }
 
-    // Ability 2: Rift Shield
-    if (input.isActionPressed(Action::Ability2) && abil.abilities[1].isReady()) {
+    // Ability 2: Rift Shield — not for Technomancer (uses shock trap instead)
+    if (playerClass != PlayerClass::Technomancer && input.isActionPressed(Action::Ability2) && abil.abilities[1].isReady()) {
         abil.activate(1);
         abil.shieldHitsRemaining = abil.shieldMaxHits;
         abil.shieldAbsorbedDamage = 0;
@@ -1051,6 +1208,14 @@ void Player::applyClassStats() {
     if (playerClass == PlayerClass::Phantom && m_entity->hasComponent<AbilityComponent>()) {
         auto& abil = m_entity->getComponent<AbilityComponent>();
         abil.shieldMaxHits = 3 + 1;               // +1 max hits
+    }
+
+    // Technomancer: reset construct counts on class apply
+    if (playerClass == PlayerClass::Technomancer) {
+        activeTurrets = 0;
+        activeTraps = 0;
+        turretCooldownTimer = 0;
+        trapCooldownTimer = 0;
     }
 }
 

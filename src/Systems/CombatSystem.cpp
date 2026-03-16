@@ -13,6 +13,7 @@
 #include "Game/Player.h"
 #include "Game/RelicSystem.h"
 #include "Game/RelicSynergy.h"
+#include "Game/ClassSystem.h"
 #include "Game/Enemy.h"
 #include "Game/Bestiary.h"
 #include "Game/ClassSystem.h"
@@ -327,6 +328,11 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             float projDamage = atkData.damage;
             if (isPlayer && attacker.hasComponent<RelicComponent>()) {
                 projDamage *= RelicSystem::getCursedRangedMult(attacker.getComponent<RelicComponent>());
+            }
+
+            // Technomancer: +10% ranged damage (Construct Mastery passive)
+            if (isPlayer && m_player && m_player->playerClass == PlayerClass::Technomancer) {
+                projDamage *= ClassSystem::getData(PlayerClass::Technomancer).rangedDmgBonus;
             }
 
             // Weapon-specific ranged behavior (player only)

@@ -167,6 +167,10 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         else if (bt == 2) renderDimensionalArchitect(renderer, screenRect, entity, alpha);
         else if (bt == 1) renderVoidWyrm(renderer, screenRect, entity, alpha);
         else renderBoss(renderer, screenRect, entity, alpha);
+    } else if (tag == "player_turret") {
+        renderPlayerTurret(renderer, screenRect, entity, alpha);
+    } else if (tag == "player_trap") {
+        renderShockTrap(renderer, screenRect, entity, alpha);
     } else if (tag.find("pickup_") == 0) {
         renderPickup(renderer, screenRect, entity, alpha);
     } else if (tag == "projectile") {
@@ -1951,5 +1955,108 @@ void RenderSystem::renderVoidSovereign(SDL_Renderer* renderer, SDL_Rect rect, En
         // Phase markers at 70% and 40%
         fillRect(renderer, bX + static_cast<int>(barW * 0.7f), bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.5f));
         fillRect(renderer, bX + static_cast<int>(barW * 0.4f), bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.5f));
+    }
+}
+
+void RenderSystem::renderPlayerTurret(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    int cx = x + w / 2;
+    bool flipped = entity.hasComponent<SpriteComponent>() && entity.getComponent<SpriteComponent>().flipX;
+
+    // Lifetime glow: pulse faster as turret nears expiry
+    float lifePct = 1.0f;
+    if (entity.hasComponent<HealthComponent>()) {
+        auto& hp = entity.getComponent<HealthComponent>();
+        lifePct = std::max(0.0f, hp.currentHP / std::max(0.01f, hp.maxHP));
+    }
+    float time = SDL_GetTicks() * 0.001f;
+    float pulse = 0.7f + 0.3f * std::sin(time * (3.0f + (1.0f - lifePct) * 8.0f));
+
+    // Base platform
+    fillRect(renderer, x - 2, y + h - 6, w + 4, 6, 180, 140, 40, a);
+    fillRect(renderer, x, y + h - 8, w, 4, 160, 120, 30, a);
+
+    // Main body (small square)
+    Uint8 bodyR = static_cast<Uint8>(200 * pulse);
+    Uint8 bodyG = static_cast<Uint8>(160 * pulse);
+    Uint8 bodyB = static_cast<Uint8>(40 * pulse);
+    fillRect(renderer, x + 2, y + 2, w - 4, h - 10, bodyR, bodyG, bodyB, a);
+    // Inner detail
+    fillRect(renderer, x + 4, y + 4, w - 8, h - 14, 170, 130, 30, a);
+
+    // Barrel (extends in facing direction)
+    int barrelY = y + h / 3;
+    int barrelLen = w / 2 + 4;
+    if (!flipped) {
+        fillRect(renderer, x + w - 2, barrelY, barrelLen, 4, 200, 170, 50, a);
+        fillRect(renderer, x + w + barrelLen - 3, barrelY - 1, 3, 6, 230, 200, 80, a);
+        // Muzzle glow
+        fillRect(renderer, x + w + barrelLen - 1, barrelY, 2, 4,
+                 255, 220, static_cast<Uint8>(80 * pulse), a);
+    } else {
+        fillRect(renderer, x - barrelLen + 2, barrelY, barrelLen, 4, 200, 170, 50, a);
+        fillRect(renderer, x - barrelLen, barrelY - 1, 3, 6, 230, 200, 80, a);
+        fillRect(renderer, x - barrelLen, barrelY, 2, 4,
+                 255, 220, static_cast<Uint8>(80 * pulse), a);
+    }
+
+    // Top indicator light (yellow/orange glow)
+    fillRect(renderer, cx - 2, y, 4, 3, 255, 200, static_cast<Uint8>(50 * pulse), a);
+
+    // Lifetime bar underneath
+    if (lifePct < 1.0f) {
+        int barW2 = w + 4;
+        fillRect(renderer, x - 2, y + h + 2, barW2, 2, 40, 30, 20, static_cast<Uint8>(a * 0.6f));
+        Uint8 lR = static_cast<Uint8>(230 * lifePct + 200 * (1.0f - lifePct));
+        Uint8 lG = static_cast<Uint8>(180 * lifePct + 50 * (1.0f - lifePct));
+        fillRect(renderer, x - 2, y + h + 2, static_cast<int>(barW2 * lifePct), 2, lR, lG, 40, a);
+    }
+}
+
+void RenderSystem::renderShockTrap(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    int cx = x + w / 2;
+    int cy = y + h / 2;
+    float time = SDL_GetTicks() * 0.001f;
+
+    // Pulse effect (flat diamond shape)
+    float pulse = 0.5f + 0.5f * std::sin(time * 5.0f);
+    Uint8 trapR = 255;
+    Uint8 trapG = static_cast<Uint8>(180 + 50 * pulse);
+    Uint8 trapB = static_cast<Uint8>(30 + 70 * pulse);
+
+    // Diamond shape using 4 triangles approximated by rotated rects
+    // Top half diamond
+    for (int dy = -h / 2; dy <= 0; dy++) {
+        int halfW = static_cast<int>((w / 2) * (1.0f - static_cast<float>(-dy) / (h / 2)));
+        SDL_SetRenderDrawColor(renderer, trapR, trapG, trapB, a);
+        SDL_RenderDrawLine(renderer, cx - halfW, cy + dy, cx + halfW, cy + dy);
+    }
+    // Bottom half diamond
+    for (int dy = 0; dy <= h / 2; dy++) {
+        int halfW = static_cast<int>((w / 2) * (1.0f - static_cast<float>(dy) / (h / 2)));
+        SDL_SetRenderDrawColor(renderer, trapR, trapG, trapB, a);
+        SDL_RenderDrawLine(renderer, cx - halfW, cy + dy, cx + halfW, cy + dy);
+    }
+
+    // Inner glow (smaller diamond)
+    Uint8 innerA = static_cast<Uint8>(180 * pulse);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 100, innerA);
+    for (int dy = -h / 4; dy <= h / 4; dy++) {
+        int halfW = static_cast<int>((w / 4) * (1.0f - static_cast<float>(std::abs(dy)) / (h / 4)));
+        SDL_RenderDrawLine(renderer, cx - halfW, cy + dy, cx + halfW, cy + dy);
+    }
+
+    // Electric spark lines (animated)
+    SDL_SetRenderDrawColor(renderer, 200, 255, 255, static_cast<Uint8>(120 * pulse));
+    for (int i = 0; i < 4; i++) {
+        float angle = time * 3.0f + i * 1.5708f; // 90 degree spacing, rotating
+        int sx = cx + static_cast<int>(std::cos(angle) * (w / 2 + 2));
+        int sy = cy + static_cast<int>(std::sin(angle) * (h / 2 + 1));
+        int ex = cx + static_cast<int>(std::cos(angle) * (w / 2 + 6));
+        int ey = cy + static_cast<int>(std::sin(angle) * (h / 2 + 3));
+        SDL_RenderDrawLine(renderer, sx, sy, ex, ey);
     }
 }

@@ -36,6 +36,17 @@ public:
     bool isRiftChargeActive() const { return riftChargeTimer > 0 && playerClass == PlayerClass::Voidwalker; }
     void activateRiftCharge();
 
+    // Technomancer: Construct Mastery — turrets and traps
+    int activeTurrets = 0;
+    int maxTurrets = 2;
+    int activeTraps = 0;
+    int maxTraps = 3;
+    float turretCooldownTimer = 0;
+    float turretCooldown = 10.0f;
+    float trapCooldownTimer = 0;
+    float trapCooldown = 6.0f;
+    bool isTechnomancer() const { return playerClass == PlayerClass::Technomancer; }
+
     // Berserker: Momentum - kill streaks build stacks for speed/attack speed
     int momentumStacks = 0;
     int momentumMaxStacks = 5;

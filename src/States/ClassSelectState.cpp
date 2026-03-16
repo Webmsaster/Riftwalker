@@ -71,16 +71,17 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
         }
     }
 
-    // 3 class cards side by side
-    int cardW = 340;
+    // Class cards side by side (auto-size for any count)
+    int cardW = (ClassSystem::CLASS_COUNT <= 3) ? 340 : 280;
     int cardH = 440;
-    int totalW = cardW * 3 + 30 * 2; // 30px gap
+    int gap = (ClassSystem::CLASS_COUNT <= 3) ? 30 : 20;
+    int totalW = cardW * ClassSystem::CLASS_COUNT + gap * (ClassSystem::CLASS_COUNT - 1);
     int startX = 640 - totalW / 2;
     int cardY = 110;
 
     for (int i = 0; i < ClassSystem::CLASS_COUNT; i++) {
         const auto& data = ClassSystem::getData(i);
-        int cx = startX + i * (cardW + 30);
+        int cx = startX + i * (cardW + gap);
         bool selected = (i == m_selected);
         renderClassCard(renderer, font, data, cx, cardY, cardW, cardH, selected);
     }
@@ -354,6 +355,58 @@ void ClassSelectState::renderClassPreview(SDL_Renderer* renderer, const ClassDat
             Uint8 a = static_cast<Uint8>(100 + 50 * std::sin(t * 3.0f + i));
             SDL_SetRenderDrawColor(renderer, 60, 220, 200, a);
             SDL_RenderDrawLine(renderer, lx, ly, lx + static_cast<int>(len), ly);
+        }
+    } else if (data.id == PlayerClass::Technomancer) {
+        // Mini turret on the right side
+        int turretX = cx + bw / 2 + 10;
+        int turretY = cy + bh / 4;
+        float turretPulse = 0.6f + 0.4f * std::sin(t * 4.0f);
+        // Turret base
+        SDL_SetRenderDrawColor(renderer, 180, 140, 40, 200);
+        SDL_Rect tBase = {turretX - 8, turretY + 4, 16, 6};
+        SDL_RenderFillRect(renderer, &tBase);
+        // Turret body
+        SDL_SetRenderDrawColor(renderer, 200, 160, 50, 220);
+        SDL_Rect tBody = {turretX - 6, turretY - 4, 12, 10};
+        SDL_RenderFillRect(renderer, &tBody);
+        // Turret barrel (oscillates to track)
+        float barrelAngle = std::sin(t * 2.5f) * 0.4f;
+        int bx2 = turretX + static_cast<int>(std::cos(barrelAngle) * 14);
+        int by2 = turretY + static_cast<int>(std::sin(barrelAngle) * 14) - 2;
+        SDL_SetRenderDrawColor(renderer, 230, 190, 60, 220);
+        SDL_RenderDrawLine(renderer, turretX + 4, turretY - 1, bx2, by2);
+        SDL_RenderDrawLine(renderer, turretX + 4, turretY, bx2, by2 + 1);
+        // Muzzle flash
+        SDL_SetRenderDrawColor(renderer, 255, 220, 80, static_cast<Uint8>(180 * turretPulse));
+        SDL_Rect muzzle = {bx2 - 1, by2 - 1, 3, 3};
+        SDL_RenderFillRect(renderer, &muzzle);
+
+        // Shock trap on the left side (pulsing diamond)
+        int trapX = cx - bw / 2 - 14;
+        int trapY = cy + bh / 4 + 4;
+        float trapPulse = 0.5f + 0.5f * std::sin(t * 5.0f);
+        SDL_SetRenderDrawColor(renderer, 255, static_cast<Uint8>(200 + 30 * trapPulse),
+                               static_cast<Uint8>(50 + 50 * trapPulse), 200);
+        // Diamond shape
+        SDL_RenderDrawLine(renderer, trapX, trapY - 5, trapX + 5, trapY);
+        SDL_RenderDrawLine(renderer, trapX + 5, trapY, trapX, trapY + 5);
+        SDL_RenderDrawLine(renderer, trapX, trapY + 5, trapX - 5, trapY);
+        SDL_RenderDrawLine(renderer, trapX - 5, trapY, trapX, trapY - 5);
+        // Inner glow
+        SDL_SetRenderDrawColor(renderer, 255, 255, 100, static_cast<Uint8>(150 * trapPulse));
+        SDL_Rect trapGlow = {trapX - 2, trapY - 2, 4, 4};
+        SDL_RenderFillRect(renderer, &trapGlow);
+
+        // Rotating gear particles around body
+        for (int i = 0; i < 6; i++) {
+            float angle = t * 1.5f + i * 1.047f;
+            float radius = bw / 2 + 6.0f + 3.0f * std::sin(t * 3.0f + i);
+            int gx = cx + static_cast<int>(std::cos(angle) * radius);
+            int gy = cy + static_cast<int>(std::sin(angle) * radius * 0.6f);
+            Uint8 ga = static_cast<Uint8>(80 + 60 * std::sin(t * 2.0f + i));
+            SDL_SetRenderDrawColor(renderer, 230, 180, 50, ga);
+            SDL_Rect gear = {gx - 1, gy - 1, 3, 3};
+            SDL_RenderFillRect(renderer, &gear);
         }
     }
 }

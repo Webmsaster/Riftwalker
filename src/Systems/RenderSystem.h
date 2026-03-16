@@ -32,6 +32,8 @@ private:
     void renderVoidSovereign(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderProjectile(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderPlayerTurret(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderShockTrap(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
 
     // Sprite-based rendering (returns true if sprite was rendered)
     bool renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
