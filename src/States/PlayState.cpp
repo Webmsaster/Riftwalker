@@ -2333,6 +2333,7 @@ void PlayState::update(float dt) {
         playerGrounded = phys.onGround;
     }
     m_camera.follow(camTarget, dt, playerVel, playerGrounded);
+    m_camera.shakeMultiplier = g_shakeIntensity; // apply settings slider
     m_camera.update(dt);
 
     // Spawn waves

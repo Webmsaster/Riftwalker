@@ -45,4 +45,9 @@ private:
     // Ability ready flash: brief glow when cooldown finishes
     float m_abilityReadyFlash[4] = {};  // melee, ranged, dash, dim-switch
     bool m_abilityWasOnCooldown[4] = {};
+
+    // Off-screen texture for HUD opacity (lazily created, freed on resize)
+    SDL_Texture* m_hudTarget = nullptr;
+    int m_hudTargetW = 0;
+    int m_hudTargetH = 0;
 };

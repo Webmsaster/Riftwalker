@@ -14,6 +14,12 @@
 #include <unordered_map>
 #include <stack>
 
+// Global audio/visual settings (defined in main.cpp, persisted in riftwalker_settings.cfg)
+extern float g_sfxVolume;      // 0.0 - 1.0
+extern float g_musicVolume;    // 0.0 - 1.0
+extern float g_shakeIntensity; // 0.0 - 2.0 (camera shake multiplier)
+extern float g_hudOpacity;     // 0.5 - 1.0
+
 class Game {
 public:
     Game();
@@ -23,6 +29,7 @@ public:
     void run();
     void quit() { m_running = false; }
     void shutdown();
+    void saveSettings(); // persist audio/visual settings to riftwalker_settings.cfg
 
     // State management
     void changeState(StateID id);
