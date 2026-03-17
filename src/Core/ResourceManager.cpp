@@ -163,6 +163,8 @@ void ResourceManager::ensurePlaceholderTextures(const std::string& baseDir) {
         { "void_wyrm.png",      64, 64,  40, 160, 120,  20, 100,  80 }, // teal boss
         { "dimensional_architect.png", 64, 64, 80, 80, 200, 50, 50, 150 }, // blue boss
         { "temporal_weaver.png",64, 64, 220, 180,  40, 160, 130,  20 }, // gold boss
+        { "void_sovereign.png", 96, 96, 100,  20, 160,  60,  10, 100 }, // dark-purple boss
+        { "entropy_incarnate.png",64,64,180,  30,  30, 130,  20,  20 }, // crimson boss
         // Special entity placeholders
         { "rift.png",           32, 32, 120,  40, 200,  80,  20, 150 }, // purple rift
         { "exit.png",           32, 32,  40, 200,  80,  20, 140,  50 }, // green exit

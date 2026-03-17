@@ -176,6 +176,8 @@ bool SpriteConfig::applyBossPlaceholder(SpriteComponent& sprite, int bossType) {
         case 1: file = "void_wyrm.png";             sz = 64; break;
         case 2: file = "dimensional_architect.png"; sz = 64; break;
         case 3: file = "temporal_weaver.png";       sz = 64; break;
+        case 4: file = "void_sovereign.png";       sz = 96; break;
+        case 5: file = "entropy_incarnate.png";    sz = 64; break;
         default: break;
     }
     auto* tex = loadPlaceholder(file);
