@@ -282,7 +282,12 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
         int autoIdx = getAutoTileIndex(tx, ty, dim);
         // Row 0 of tileset, column = auto-tile index (0-15)
         SDL_Rect srcRect = { autoIdx * m_tileSize, 0, m_tileSize, m_tileSize };
-        SDL_SetTextureColorMod(m_tileset, tile.color.r, tile.color.g, tile.color.b);
+        // Lighten the color mod so tileset texture detail shows through
+        // Blend tile color toward white (30% tile, 70% white) to preserve texture contrast
+        Uint8 modR = static_cast<Uint8>(tile.color.r + (255 - tile.color.r) * 7 / 10);
+        Uint8 modG = static_cast<Uint8>(tile.color.g + (255 - tile.color.g) * 7 / 10);
+        Uint8 modB = static_cast<Uint8>(tile.color.b + (255 - tile.color.b) * 7 / 10);
+        SDL_SetTextureColorMod(m_tileset, modR, modG, modB);
         SDL_SetTextureAlphaMod(m_tileset, tile.color.a);
         SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
         SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
@@ -366,7 +371,16 @@ void Level::renderOneWayTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& ti
 }
 
 void Level::renderSpikeTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile) const {
-    // Draw triangular spikes
+    // Use tileset row 1, col 0-3 for spike tiles
+    if (m_tileset) {
+        SDL_Rect srcRect = { 0, m_tileSize, m_tileSize, m_tileSize };
+        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
+        SDL_SetTextureAlphaMod(m_tileset, 255);
+        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
+        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
+        return;
+    }
+    // Procedural fallback: Draw triangular spikes
     int spikeCount = 3;
     int spikeW = sr.w / spikeCount;
 
@@ -572,6 +586,16 @@ void Level::renderExit(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const 
 }
 
 void Level::renderFireTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    // Use tileset row 1, col 4-7 for fire tiles
+    if (m_tileset) {
+        int frame = (ticks / 200) % 4; // Animate through 4 fire frames
+        SDL_Rect srcRect = { (4 + frame) * m_tileSize, m_tileSize, m_tileSize, m_tileSize };
+        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
+        SDL_SetTextureAlphaMod(m_tileset, 255);
+        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
+        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
+        return;
+    }
     float time = ticks * 0.005f;
 
     // Base lava/fire glow
