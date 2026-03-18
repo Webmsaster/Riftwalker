@@ -2,6 +2,23 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <SDL2/SDL.h>
+
+static void backupFile(const std::string& path) {
+    std::ifstream src(path, std::ios::binary);
+    if (!src) return;
+    std::ofstream dst(path + ".bak", std::ios::binary);
+    if (dst) dst << src.rdbuf();
+}
+
+static std::ifstream openWithBackupFallback(const std::string& path) {
+    std::ifstream file(path);
+    if (file.is_open() && file.peek() != std::ifstream::traits_type::eof()) return file;
+    file.close();
+    file.open(path + ".bak");
+    if (file.is_open()) SDL_Log("Using backup save: %s.bak", path.c_str());
+    return file;
+}
 
 void AchievementSystem::init() {
     m_achievements = {
@@ -70,6 +87,7 @@ const AchievementNotification* AchievementSystem::getActiveNotification() const 
 }
 
 bool AchievementSystem::save(const std::string& filepath) const {
+    backupFile(filepath);
     std::ofstream file(filepath);
     if (!file.is_open()) return false;
 
@@ -82,7 +100,7 @@ bool AchievementSystem::save(const std::string& filepath) const {
 }
 
 bool AchievementSystem::load(const std::string& filepath) {
-    std::ifstream file(filepath);
+    std::ifstream file = openWithBackupFallback(filepath);
     if (!file.is_open()) return false;
 
     std::string line;

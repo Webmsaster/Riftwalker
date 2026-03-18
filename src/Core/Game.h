@@ -48,6 +48,7 @@ public:
     int getShopDifficulty() const { return m_shopDifficulty; }
     TTF_Font* getFont() const { return m_font; }
     int getFPS() const { return m_timer.getFPS(); }
+    float getInterpolation() const { return m_timer.getInterpolation(); }
     SDL_Renderer* getRenderer() const { return m_window ? m_window->getSDLRenderer() : nullptr; }
     Window* getWindow() const { return m_window.get(); }
 

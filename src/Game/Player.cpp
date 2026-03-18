@@ -21,6 +21,7 @@ Player::Player(EntityManager& entities) {
     m_entity = &entities.addEntity("player");
 
     auto& t = m_entity->addComponent<TransformComponent>(100.0f, 100.0f, 28, 48);
+    (void)t;
     auto& sprite = m_entity->addComponent<SpriteComponent>();
     sprite.setColor(60, 120, 220); // Blue player
     sprite.renderLayer = 2;
@@ -256,11 +257,11 @@ void Player::update(float dt, const InputManager& input) {
 
         // Ground Slam: fast fall in progress
         if (abil.slamFalling) {
-            auto& phys = m_entity->getComponent<PhysicsBody>();
-            phys.velocity.y = 800.0f; // Fast slam fall
-            phys.velocity.x *= 0.3f;  // Reduce horizontal movement
+            auto& slamPhys = m_entity->getComponent<PhysicsBody>();
+            slamPhys.velocity.y = 800.0f; // Fast slam fall
+            slamPhys.velocity.x *= 0.3f;  // Reduce horizontal movement
 
-            if (phys.onGround) {
+            if (slamPhys.onGround) {
                 // Slam landed!
                 abil.slamFalling = false;
                 auto& t = m_entity->getComponent<TransformComponent>();
@@ -857,16 +858,16 @@ void Player::updateAnimation() {
 
     // Status effect tinting (overrides above for active effects)
     if (burnTimer > 0 && sprite.animState != AnimState::Hurt) {
-        sprite.color.r = std::min(255, sprite.color.r + 100);
+        sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + 100));
         sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.6f);
     }
     if (freezeTimer > 0) {
         sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.5f);
         sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.7f);
-        sprite.color.b = std::min(255, sprite.color.b + 80);
+        sprite.color.b = static_cast<Uint8>(std::min(255, sprite.color.b + 80));
     }
     if (poisonTimer > 0) {
-        sprite.color.g = std::min(255, sprite.color.g + 60);
+        sprite.color.g = static_cast<Uint8>(std::min(255, sprite.color.g + 60));
         sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.7f);
     }
 
@@ -918,6 +919,7 @@ void Player::handleAbilities(float dt, const InputManager& input) {
             auto& turret = entityManager->addEntity("player_turret");
             turret.dimension = 0; // exists in both dimensions
             auto& tt = turret.addComponent<TransformComponent>(spawnPos.x - 10, spawnPos.y - 10, 20, 20);
+            (void)tt;
             auto& tSprite = turret.addComponent<SpriteComponent>();
             tSprite.setColor(230, 180, 50);
             tSprite.renderLayer = 2;
@@ -971,6 +973,7 @@ void Player::handleAbilities(float dt, const InputManager& input) {
             auto& trap = entityManager->addEntity("player_trap");
             trap.dimension = 0;
             auto& trapT = trap.addComponent<TransformComponent>(spawnPos.x - 12, spawnPos.y - 6, 24, 12);
+            (void)trapT;
             auto& trapSprite = trap.addComponent<SpriteComponent>();
             trapSprite.setColor(255, 200, 50);
             trapSprite.renderLayer = 1; // below entities
@@ -1129,6 +1132,7 @@ void Player::handleAbilities(float dt, const InputManager& input) {
             // Teleport
             t.position.x = teleportX - t.width * 0.5f;
             t.position.y = teleportY;
+            t.prevPosition = t.position; // Sync for interpolation (no smear on teleport)
             phys.velocity = {0, 0};
             facingRight = (dx > 0) ? false : true; // face toward enemy (behind them)
             m_entity->getComponent<SpriteComponent>().flipX = !facingRight;
@@ -1413,6 +1417,7 @@ void Player::fireGrapplingHook(const Vec2& dir) {
     Vec2 spawnPos = t.getCenter();
 
     auto& hookT = hook.addComponent<TransformComponent>(spawnPos.x - 4, spawnPos.y - 4, 8, 8);
+    (void)hookT;
     auto& hookSprite = hook.addComponent<SpriteComponent>();
     hookSprite.setColor(200, 160, 80); // Brownish-gold hook
     hookSprite.renderLayer = 3;

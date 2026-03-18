@@ -67,7 +67,7 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
             if (t) {
                 int tw = static_cast<int>(s->w * 1.5f);
                 int th = static_cast<int>(s->h * 1.5f);
-                SDL_Rect r = {640 - tw / 2, 50, tw, th};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 50, tw, th};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -80,7 +80,7 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
     int cardH = 440;
     int gap = (ClassSystem::CLASS_COUNT <= 3) ? 30 : 20;
     int totalW = cardW * ClassSystem::CLASS_COUNT + gap * (ClassSystem::CLASS_COUNT - 1);
-    int startX = 640 - totalW / 2;
+    int startX = SCREEN_WIDTH / 2 - totalW / 2;
     int cardY = 110;
 
     for (int i = 0; i < ClassSystem::CLASS_COUNT; i++) {
@@ -97,7 +97,7 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {640 - ns->w / 2, 680, ns->w, ns->h};
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, 680, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }

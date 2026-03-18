@@ -26,7 +26,7 @@ void DifficultySelectState::handleEvent(const SDL_Event& event) {
                 g_selectedDifficulty = static_cast<GameDifficulty>(m_selected);
                 AudioManager::instance().play(SFX::MenuConfirm);
                 // Route to NG+ selection if any NG+ tiers are unlocked, else start directly
-                if (game->getUpgradeSystem().getMaxUnlockedNGPlus() >= 0 + 1) {
+                if (game->getUpgradeSystem().getMaxUnlockedNGPlus() >= 1) {
                     game->changeState(StateID::NGPlusSelect);
                 } else {
                     g_selectedNGPlus = 0;
@@ -68,7 +68,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
-                SDL_Rect cr = {640 - cs->w / 2, 60, cs->w, cs->h};
+                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 60, cs->w, cs->h};
                 SDL_RenderCopy(renderer, ct, nullptr, &cr);
                 SDL_DestroyTexture(ct);
             }
@@ -85,7 +85,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
             if (t) {
                 int tw = static_cast<int>(s->w * 1.5f);
                 int th = static_cast<int>(s->h * 1.5f);
-                SDL_Rect r = {640 - tw / 2, 100, tw, th};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 100, tw, th};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -107,7 +107,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
     int startY = 240;
     int cardH = 100;
     int cardW = 500;
-    int cardX = 640 - cardW / 2;
+    int cardX = SCREEN_WIDTH / 2 - cardW / 2;
 
     for (int i = 0; i < 3; i++) {
         int y = startY + i * (cardH + 15);
@@ -173,7 +173,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {640 - ns->w / 2, 660, ns->w, ns->h};
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, 660, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }

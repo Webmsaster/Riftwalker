@@ -592,8 +592,13 @@ int main(int argc, char* argv[]) {
     }
 
     if (g_autoSmokeTest || g_autoPlaytest) {
-        freopen("NUL", "w", stderr);
-        freopen("NUL", "w", stdout);
+#ifdef _WIN32
+        const char* devNull = "NUL";
+#else
+        const char* devNull = "/dev/null";
+#endif
+        (void)freopen(devNull, "w", stderr);
+        (void)freopen(devNull, "w", stdout);
     }
 
     unsigned int globalRandomSeed = static_cast<unsigned int>(std::time(nullptr));

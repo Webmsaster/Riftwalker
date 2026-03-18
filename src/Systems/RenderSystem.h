@@ -7,11 +7,12 @@
 class RenderSystem {
 public:
     void render(SDL_Renderer* renderer, EntityManager& entities,
-                const Camera& camera, int currentDimension, float dimBlendAlpha = 0.0f);
+                const Camera& camera, int currentDimension, float dimBlendAlpha = 0.0f,
+                float interpolation = 1.0f);
 
 private:
     void renderEntity(SDL_Renderer* renderer, Entity& entity, const Camera& camera,
-                      float alpha = 1.0f);
+                      float alpha = 1.0f, float interpolation = 1.0f);
 
     // Custom procedural rendering per entity type
     void renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);

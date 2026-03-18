@@ -48,4 +48,5 @@ private:
     float m_time = 0;
     float m_statsTimer = 0; // controls sequential stat reveal
     int   m_todayRank  = 0; // 1-based rank in today's daily leaderboard (0=not ranked)
+    bool  m_gradeAchievementChecked = false; // one-shot guard for S-grade achievement
 };

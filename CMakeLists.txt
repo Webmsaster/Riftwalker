@@ -21,6 +21,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
+# MSVC: enable C++ exception handling + suppress common noise warnings
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /EHsc /wd4100 /wd4189)
+endif()
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
     $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>

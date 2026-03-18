@@ -1,4 +1,5 @@
 #include "RunBuffSystem.h"
+#include "AscensionSystem.h"
 #include <algorithm>
 
 RunBuffSystem::RunBuffSystem() {
@@ -45,7 +46,8 @@ std::vector<RunBuff> RunBuffSystem::generateShopOffering(int difficulty) {
         std::swap(available[i], available[j]);
     }
 
-    int count = std::min(static_cast<int>(available.size()), 3 + (difficulty >= 4 ? 1 : 0));
+    int extra = (AscensionSystem::currentLevel > 0 && AscensionSystem::getLevel(AscensionSystem::currentLevel).extraShopSlot) ? 1 : 0;
+    int count = std::min(static_cast<int>(available.size()), 3 + (difficulty >= 4 ? 1 : 0) + extra);
     available.resize(count);
 
     // Sort by tier for display

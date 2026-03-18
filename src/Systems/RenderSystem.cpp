@@ -1,5 +1,6 @@
 #include "RenderSystem.h"
 #include "Core/Game.h"
+#include "States/GameState.h"
 #include "Components/TransformComponent.h"
 #include "Components/SpriteComponent.h"
 #include "Components/AnimationComponent.h"
@@ -50,7 +51,8 @@ void RenderSystem::drawLine(SDL_Renderer* r, int x1, int y1, int x2, int y2,
 }
 
 void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
-                          const Camera& camera, int currentDimension, float dimBlendAlpha) {
+                          const Camera& camera, int currentDimension, float dimBlendAlpha,
+                          float interpolation) {
     struct RenderEntry {
         Entity* entity;
         int layer;
@@ -88,15 +90,25 @@ void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
         [](const RenderEntry& a, const RenderEntry& b) { return a.layer < b.layer; });
 
     for (auto& entry : entries) {
-        renderEntity(renderer, *entry.entity, camera, entry.alpha);
+        renderEntity(renderer, *entry.entity, camera, entry.alpha, interpolation);
     }
 }
 
 void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
-                                 const Camera& camera, float alpha) {
+                                 const Camera& camera, float alpha, float interpolation) {
     auto& transform = entity.getComponent<TransformComponent>();
-    SDL_FRect worldRect = transform.getRect();
+    // Use interpolated position for smooth rendering between physics steps
+    SDL_FRect worldRect = transform.getInterpolatedRect(interpolation);
     SDL_Rect screenRect = camera.worldToScreen(worldRect);
+
+    // Viewport culling: skip entities entirely off-screen (with generous margin)
+    constexpr int CULL_MARGIN = 100;
+    int screenW = GameState::SCREEN_WIDTH;
+    int screenH = GameState::SCREEN_HEIGHT;
+    if (screenRect.x + screenRect.w < -CULL_MARGIN || screenRect.x > screenW + CULL_MARGIN ||
+        screenRect.y + screenRect.h < -CULL_MARGIN || screenRect.y > screenH + CULL_MARGIN) {
+        return;
+    }
 
     const std::string& tag = entity.getTag();
 
@@ -1020,7 +1032,6 @@ void RenderSystem::renderShielder(SDL_Renderer* renderer, SDL_Rect rect, Entity&
 void RenderSystem::renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
-    auto& sprite = entity.getComponent<SpriteComponent>();
     float time = SDL_GetTicks() * 0.005f;
 
     // Floating bob
@@ -1143,7 +1154,6 @@ void RenderSystem::renderSummoner(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     auto& sprite = entity.getComponent<SpriteComponent>();
-    bool flipped = sprite.flipX;
     float time = SDL_GetTicks() * 0.004f;
 
     // Robed body (trapezoid shape)

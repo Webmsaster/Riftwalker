@@ -410,9 +410,9 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             SDL_Rect chargeRect = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
             SDL_RenderDrawRect(renderer, &chargeRect);
             // Small timer bar below class icon
-            int barW = static_cast<int>(iconSize * pct);
+            int chargeBarW = static_cast<int>(iconSize * pct);
             SDL_SetRenderDrawColor(renderer, 80, 160, 255, 200);
-            SDL_Rect chargeBar = {iconX, iconY + iconSize + 2, barW, 3};
+            SDL_Rect chargeBar = {iconX, iconY + iconSize + 2, chargeBarW, 3};
             SDL_RenderFillRect(renderer, &chargeBar);
         }
     }
@@ -902,13 +902,13 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
             // Combo timer bar (shrinking, width scales with combo)
             float timerPct = combat.comboTimer / std::max(0.01f, combat.comboWindow);
-            int barW = static_cast<int>(80 * comboScale);
-            int barX = screenW / 2 - barW / 2;
+            int comboBarW = static_cast<int>(80 * comboScale);
+            int barX = screenW / 2 - comboBarW / 2;
             int barY = comboY + static_cast<int>(40 * comboScale) + 4;
-            SDL_Rect timerBg = {barX, barY, barW, 4};
+            SDL_Rect timerBg = {barX, barY, comboBarW, 4};
             SDL_SetRenderDrawColor(renderer, 40, 40, 50, 150);
             SDL_RenderFillRect(renderer, &timerBg);
-            SDL_Rect timerFill = {barX, barY, static_cast<int>(barW * timerPct), 4};
+            SDL_Rect timerFill = {barX, barY, static_cast<int>(comboBarW * timerPct), 4};
             SDL_SetRenderDrawColor(renderer, comboColor.r, comboColor.g, comboColor.b, 200);
             SDL_RenderFillRect(renderer, &timerFill);
         }

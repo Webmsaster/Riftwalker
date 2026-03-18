@@ -38,6 +38,12 @@ void RunHistoryState::handleEvent(const SDL_Event& event) {
                 break;
             case SDL_SCANCODE_DOWN: case SDL_SCANCODE_S:
                 m_scrollOffset++;
+                {
+                    const auto& hist = game->getUpgradeSystem().getRunHistory();
+                    int maxVis = (Game::SCREEN_HEIGHT - 160) / 24; // match render maxVisible calc
+                    int maxScroll = std::max(0, static_cast<int>(hist.size()) - maxVis);
+                    if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
+                }
                 break;
             default: break;
         }

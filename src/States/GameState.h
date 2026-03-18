@@ -11,7 +11,7 @@ public:
     virtual ~GameState() = default;
     virtual void enter() {}
     virtual void exit() {}
-    virtual void handleEvent(const SDL_Event& event) {}
+    virtual void handleEvent([[maybe_unused]] const SDL_Event& event) {}
     virtual void update(float dt) = 0;
     virtual void render(SDL_Renderer* renderer) = 0;
 

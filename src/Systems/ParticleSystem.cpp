@@ -58,10 +58,19 @@ void ParticleSystem::update(float dt) {
 }
 
 void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
+    int screenW = 0, screenH = 0;
+    SDL_GetRendererOutputSize(renderer, &screenW, &screenH);
+    constexpr int CULL_MARGIN = 50;
+
     for (auto& p : m_particles) {
         if (!p.alive || p.size <= 0) continue;
 
-        float lifeRatio = 1.0f - (p.lifetime / p.maxLifetime);
+        Vec2 screen = camera.worldToScreen(p.position);
+        // Viewport culling: skip off-screen particles
+        if (screen.x < -CULL_MARGIN || screen.x > screenW + CULL_MARGIN ||
+            screen.y < -CULL_MARGIN || screen.y > screenH + CULL_MARGIN) continue;
+
+        float lifeRatio = 1.0f - (p.lifetime / std::max(0.001f, p.maxLifetime));
 
         Uint8 r = p.color.r, g = p.color.g, b = p.color.b;
         if (p.useColorLerp) {
@@ -71,7 +80,6 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
         }
         Uint8 alpha = static_cast<Uint8>(p.color.a * (1.0f - lifeRatio * lifeRatio));
 
-        Vec2 screen = camera.worldToScreen(p.position);
         SDL_Rect rect = {
             static_cast<int>(screen.x - p.size / 2),
             static_cast<int>(screen.y - p.size / 2),
@@ -85,7 +93,8 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
 }
 
 void ParticleSystem::spawnParticle(const ParticleEmitter& emitter) {
-    if (m_particles.size() >= MAX_PARTICLES) return;
+    if (static_cast<int>(m_particles.size()) >= MAX_PARTICLES) return;
+    if (m_particles.capacity() == 0) m_particles.reserve(MAX_PARTICLES);
 
     Particle p;
     p.position = emitter.position;
@@ -204,5 +213,6 @@ void ParticleSystem::addEmitter(const ParticleEmitter& emitter) {
 
 void ParticleSystem::clear() {
     m_particles.clear();
+    m_particles.reserve(MAX_PARTICLES);
     m_emitters.clear();
 }

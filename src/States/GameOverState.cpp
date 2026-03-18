@@ -2,9 +2,15 @@
 #include "Core/Game.h"
 #include <cmath>
 #include <cstdlib>
+#include <cstdio>
 
 extern bool g_autoSmokeTest;
 extern bool g_autoPlaytest;
+
+int GameOverState::s_deathCause = 0;
+int GameOverState::s_floorsCleared = 0;
+int GameOverState::s_killCount = 0;
+float GameOverState::s_runTime = 0.0f;
 
 void GameOverState::enter() {
     if (g_autoSmokeTest || g_autoPlaytest) {
@@ -13,6 +19,15 @@ void GameOverState::enter() {
     }
     m_timer = 0;
     m_glitchIntensity = 1.0f;
+
+    // Select subtitle based on death cause
+    switch (s_deathCause) {
+        case 1:  m_subtitleText = "Hull integrity failure — HP depleted"; break;
+        case 2:  m_subtitleText = "Suit entropy reached critical level"; break;
+        case 3:  m_subtitleText = "Dimensional rift collapsed"; break;
+        case 4:  m_subtitleText = "Time expired — speedrun failed"; break;
+        default: m_subtitleText = "Suit entropy reached critical level"; break;
+    }
 }
 
 void GameOverState::handleEvent(const SDL_Event& event) {
@@ -67,12 +82,12 @@ void GameOverState::render(SDL_Renderer* renderer) {
     SDL_Rect vigTop = {0, 0, SCREEN_WIDTH, 80};
     SDL_RenderFillRect(renderer, &vigTop);
     // Bottom
-    SDL_Rect vigBot = {0, 640, SCREEN_WIDTH, 80};
+    SDL_Rect vigBot = {0, SCREEN_HEIGHT - 80, SCREEN_WIDTH, 80};
     SDL_RenderFillRect(renderer, &vigBot);
     // Sides
     SDL_Rect vigL = {0, 0, 60, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &vigL);
-    SDL_Rect vigR = {1220, 0, 60, SCREEN_HEIGHT};
+    SDL_Rect vigR = {SCREEN_WIDTH - 60, 0, 60, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &vigR);
 
     TTF_Font* font = game->getFont();
@@ -83,7 +98,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
     if (textSurf) {
         int tw = textSurf->w * 2;
         int th = textSurf->h * 2;
-        int tx = 640 - tw / 2;
+        int tx = SCREEN_WIDTH / 2 - tw / 2;
         int ty = 280;
 
         // Glitch offset
@@ -131,12 +146,37 @@ void GameOverState::render(SDL_Renderer* renderer) {
         float subAlpha = std::min(1.0f, (m_timer - 0.5f) * 2.0f);
         Uint8 sa = static_cast<Uint8>(180 * subAlpha);
         SDL_Color sc = {180, 60, 60, sa};
-        SDL_Surface* ss = TTF_RenderText_Blended(font, "Suit entropy reached critical level", sc);
+        SDL_Surface* ss = TTF_RenderText_Blended(font, m_subtitleText, sc);
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
                 SDL_SetTextureAlphaMod(st, sa);
-                SDL_Rect sr = {640 - ss->w / 2, 370, ss->w, ss->h};
+                SDL_Rect sr = {SCREEN_WIDTH / 2 - ss->w / 2, 370, ss->w, ss->h};
+                SDL_RenderCopy(renderer, st, nullptr, &sr);
+                SDL_DestroyTexture(st);
+            }
+            SDL_FreeSurface(ss);
+        }
+    }
+
+    // Run stats (floors, kills, time)
+    if (m_timer > 0.8f) {
+        float statsAlpha = std::min(1.0f, (m_timer - 0.8f) * 2.0f);
+        Uint8 sa = static_cast<Uint8>(160 * statsAlpha);
+        SDL_Color statCol = {160, 100, 100, sa};
+
+        char buf[128];
+        int mins = static_cast<int>(s_runTime) / 60;
+        int secs = static_cast<int>(s_runTime) % 60;
+        std::snprintf(buf, sizeof(buf), "Floor %d  |  %d Kills  |  %d:%02d",
+                      s_floorsCleared, s_killCount, mins, secs);
+
+        SDL_Surface* ss = TTF_RenderText_Blended(font, buf, statCol);
+        if (ss) {
+            SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
+            if (st) {
+                SDL_SetTextureAlphaMod(st, sa);
+                SDL_Rect sr = {SCREEN_WIDTH / 2 - ss->w / 2, 398, ss->w, ss->h};
                 SDL_RenderCopy(renderer, st, nullptr, &sr);
                 SDL_DestroyTexture(st);
             }
@@ -171,7 +211,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
                 SDL_SetTextureAlphaMod(ct, ba);
-                SDL_Rect cr = {640 - cs->w / 2, barY + barH + 5, cs->w, cs->h};
+                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, barY + barH + 5, cs->w, cs->h};
                 SDL_RenderCopy(renderer, ct, nullptr, &cr);
                 SDL_DestroyTexture(ct);
             }
@@ -189,7 +229,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
         if (s2) {
             SDL_Texture* t2 = SDL_CreateTextureFromSurface(renderer, s2);
             if (t2) {
-                SDL_Rect r2 = {640 - s2->w / 2, 500, s2->w, s2->h};
+                SDL_Rect r2 = {SCREEN_WIDTH / 2 - s2->w / 2, 500, s2->w, s2->h};
                 SDL_RenderCopy(renderer, t2, nullptr, &r2);
                 SDL_DestroyTexture(t2);
             }

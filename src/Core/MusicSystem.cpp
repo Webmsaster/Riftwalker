@@ -89,6 +89,21 @@ float MusicSystem::getCombatIntensity() const {
 void MusicSystem::startTrack(Mix_Chunk* newTrack) {
     if (!newTrack) return;
 
+    // If a crossfade is already in progress, abort it cleanly before starting a new one.
+    // This prevents m_fadingTrack from being leaked when themes switch rapidly.
+    if (m_crossfading) {
+        if (m_fadingChannel >= 0) {
+            Mix_HaltChannel(m_fadingChannel);
+            m_fadingChannel = -1;
+        }
+        if (m_fadingTrack) {
+            Mix_FreeChunk(m_fadingTrack);
+            m_fadingTrack = nullptr;
+        }
+        m_crossfading = false;
+        m_crossfadeTimer = 0;
+    }
+
     // Move current active track to fading slot
     if (m_fadingChannel >= 0) {
         Mix_HaltChannel(m_fadingChannel);

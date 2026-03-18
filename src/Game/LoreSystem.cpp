@@ -1,5 +1,22 @@
 #include "Game/LoreSystem.h"
 #include <fstream>
+#include <SDL2/SDL.h>
+
+static void backupFile(const std::string& path) {
+    std::ifstream src(path, std::ios::binary);
+    if (!src) return;
+    std::ofstream dst(path + ".bak", std::ios::binary);
+    if (dst) dst << src.rdbuf();
+}
+
+static std::ifstream openWithBackupFallback(const std::string& path) {
+    std::ifstream file(path);
+    if (file.is_open() && file.peek() != std::ifstream::traits_type::eof()) return file;
+    file.close();
+    file.open(path + ".bak");
+    if (file.is_open()) SDL_Log("Using backup save: %s.bak", path.c_str());
+    return file;
+}
 
 void LoreSystem::init() {
     m_fragments.clear();
@@ -112,6 +129,7 @@ int LoreSystem::discoveredCount() const {
 }
 
 void LoreSystem::save(const std::string& path) const {
+    backupFile(path);
     std::ofstream file(path);
     if (!file.is_open()) return;
     for (auto& f : m_fragments) {
@@ -120,7 +138,7 @@ void LoreSystem::save(const std::string& path) const {
 }
 
 void LoreSystem::load(const std::string& path) {
-    std::ifstream file(path);
+    std::ifstream file = openWithBackupFallback(path);
     if (!file.is_open()) return;
     int id, disc;
     while (file >> id >> disc) {

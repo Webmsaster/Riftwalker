@@ -119,6 +119,7 @@ void RiftPuzzle::updateSequence(float dt) {
 }
 
 void RiftPuzzle::updateAlignment(float dt) {
+    (void)dt;
     // Nothing to update continuously
 }
 

@@ -52,8 +52,13 @@ public:
     void resetAll();
 
     // Currency
+    static constexpr int MAX_SHARDS = 999999;
     int getRiftShards() const { return m_riftShards; }
-    void addRiftShards(int amount) { m_riftShards += amount; }
+    void addRiftShards(int amount) {
+        m_riftShards += amount;
+        if (m_riftShards > MAX_SHARDS) m_riftShards = MAX_SHARDS;
+        if (m_riftShards < 0) m_riftShards = 0;
+    }
     void setRiftShards(int amount) { m_riftShards = amount; }
 
     // Apply upgrades to game stats

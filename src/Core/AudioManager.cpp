@@ -225,8 +225,11 @@ void AudioManager::toggleMute() {
     if (m_muted) {
         Mix_VolumeMusic(0);
         stopMusicLayers();
+        Mix_HaltChannel(10); // ThemeAmbient
+        Mix_HaltChannel(15); // Ambient loop
     } else {
         Mix_VolumeMusic(static_cast<int>(m_musicVolume * m_masterVolume));
+        startMusicLayers();
     }
 }
 

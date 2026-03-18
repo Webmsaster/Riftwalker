@@ -99,12 +99,13 @@ Vec2 Camera::worldToScreen(Vec2 worldPos) const {
 
 SDL_Rect Camera::worldToScreen(SDL_FRect worldRect) const {
     Vec2 screen = worldToScreen(Vec2{worldRect.x, worldRect.y});
-    return {
-        static_cast<int>(screen.x),
-        static_cast<int>(screen.y),
-        static_cast<int>(worldRect.w * zoom),
-        static_cast<int>(worldRect.h * zoom)
-    };
+    // Use rounding instead of truncation to prevent 1px gaps between tiles
+    int x = static_cast<int>(std::round(screen.x));
+    int y = static_cast<int>(std::round(screen.y));
+    // Width/height use ceil to ensure tiles cover their full area
+    int w = static_cast<int>(std::ceil(worldRect.w * zoom));
+    int h = static_cast<int>(std::ceil(worldRect.h * zoom));
+    return {x, y, w, h};
 }
 
 void Camera::setBounds(float minX, float minY, float maxX, float maxY) {

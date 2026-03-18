@@ -27,6 +27,11 @@ void PauseState::enter() {
     m_buttons[0].onClick = [this]() { game->popState(); };
     m_buttons[1].onClick = [this]() { game->pushState(StateID::DailyLeaderboard); };
     m_buttons[2].onClick = [this]() {
+        if (!m_confirmAbandon) {
+            m_confirmAbandon = true;
+            m_buttons[2].setText("Confirm Abandon?");
+            return;
+        }
         if (auto* playState = dynamic_cast<PlayState*>(game->getState(StateID::Play))) {
             playState->abandonRun();
             return;
@@ -50,12 +55,14 @@ void PauseState::handleEvent(const SDL_Event& event) {
                 m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
                 m_buttons[m_selectedButton].setSelected(true);
                 AudioManager::instance().play(SFX::MenuSelect);
+                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[2].setText("Abandon Run"); }
                 break;
             case SDL_SCANCODE_S: case SDL_SCANCODE_DOWN:
                 m_buttons[m_selectedButton].setSelected(false);
                 m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
                 m_buttons[m_selectedButton].setSelected(true);
                 AudioManager::instance().play(SFX::MenuSelect);
+                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[2].setText("Abandon Run"); }
                 break;
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
                 AudioManager::instance().play(SFX::MenuConfirm);
@@ -69,6 +76,33 @@ void PauseState::handleEvent(const SDL_Event& event) {
 
 void PauseState::update(float dt) {
     m_time += dt;
+
+    // Gamepad navigation — only active when a gamepad is connected to avoid
+    // doubling up with the keyboard handling already in handleEvent()
+    auto& input = game->getInput();
+    if (!input.hasGamepad()) return;
+    if (input.isActionPressed(Action::MenuUp)) {
+        m_buttons[m_selectedButton].setSelected(false);
+        m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
+        m_buttons[m_selectedButton].setSelected(true);
+        AudioManager::instance().play(SFX::MenuSelect);
+        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[2].setText("Abandon Run"); }
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        m_buttons[m_selectedButton].setSelected(false);
+        m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
+        m_buttons[m_selectedButton].setSelected(true);
+        AudioManager::instance().play(SFX::MenuSelect);
+        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[2].setText("Abandon Run"); }
+    }
+    if (input.isActionPressed(Action::Confirm)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        if (m_buttons[m_selectedButton].onClick)
+            m_buttons[m_selectedButton].onClick();
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        game->popState();
+    }
 }
 
 void PauseState::render(SDL_Renderer* renderer) {
@@ -105,19 +139,21 @@ void PauseState::render(SDL_Renderer* renderer) {
 
     // Corner accents
     int cornerSize = 12;
+    int panelBot = 180 + 460;   // panel startY + panel height
+    int panelRight = 60 + 1160; // panel startX + panel width
     SDL_SetRenderDrawColor(renderer, 150, 100, 255, static_cast<Uint8>(100 + 50 * pulse));
     // Top-left
     SDL_RenderDrawLine(renderer, 60, 180, 60 + cornerSize, 180);
     SDL_RenderDrawLine(renderer, 60, 180, 60, 180 + cornerSize);
     // Top-right
-    SDL_RenderDrawLine(renderer, 1220, 180, 1220 - cornerSize, 180);
-    SDL_RenderDrawLine(renderer, 1220, 180, 1220, 180 + cornerSize);
+    SDL_RenderDrawLine(renderer, panelRight, 180, panelRight - cornerSize, 180);
+    SDL_RenderDrawLine(renderer, panelRight, 180, panelRight, 180 + cornerSize);
     // Bottom-left
-    SDL_RenderDrawLine(renderer, 60, 640, 60 + cornerSize, 640);
-    SDL_RenderDrawLine(renderer, 60, 640, 60, 640 - cornerSize);
+    SDL_RenderDrawLine(renderer, 60, panelBot, 60 + cornerSize, panelBot);
+    SDL_RenderDrawLine(renderer, 60, panelBot, 60, panelBot - cornerSize);
     // Bottom-right
-    SDL_RenderDrawLine(renderer, 1220, 640, 1220 - cornerSize, 640);
-    SDL_RenderDrawLine(renderer, 1220, 640, 1220, 640 - cornerSize);
+    SDL_RenderDrawLine(renderer, panelRight, panelBot, panelRight - cornerSize, panelBot);
+    SDL_RenderDrawLine(renderer, panelRight, panelBot, panelRight, panelBot - cornerSize);
 
     // Title with glow
     TTF_Font* font = game->getFont();
@@ -155,8 +191,22 @@ void PauseState::render(SDL_Renderer* renderer) {
     }
 
     // Buttons
-    for (auto& btn : m_buttons) {
-        btn.render(renderer, font);
+    for (int i = 0; i < static_cast<int>(m_buttons.size()); i++) {
+        // Highlight Abandon Run button in red while confirming
+        if (i == 2 && m_confirmAbandon) {
+            SDL_Color savedNormal = m_buttons[i].normalColor;
+            SDL_Color savedSelected = m_buttons[i].selectedColor;
+            SDL_Color savedText = m_buttons[i].textColor;
+            m_buttons[i].normalColor   = {120, 20, 20, 255};
+            m_buttons[i].selectedColor = {200, 40, 40, 255};
+            m_buttons[i].textColor     = {255, 180, 180, 255};
+            m_buttons[i].render(renderer, font);
+            m_buttons[i].normalColor   = savedNormal;
+            m_buttons[i].selectedColor = savedSelected;
+            m_buttons[i].textColor     = savedText;
+        } else {
+            m_buttons[i].render(renderer, font);
+        }
     }
 
     // Run stats panels

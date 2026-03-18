@@ -7,13 +7,25 @@
 
 int DailyRun::getTodaySeed() {
     time_t now = time(nullptr);
-    struct tm* t = localtime(&now);
+    struct tm tBuf = {};
+#ifdef _WIN32
+    localtime_s(&tBuf, &now);
+#else
+    localtime_r(&now, &tBuf);
+#endif
+    struct tm* t = &tBuf;
     return (t->tm_year + 1900) * 10000 + (t->tm_mon + 1) * 100 + t->tm_mday;
 }
 
 std::string DailyRun::getTodayDate() {
     time_t now = time(nullptr);
-    struct tm* t = localtime(&now);
+    struct tm tBuf2 = {};
+#ifdef _WIN32
+    localtime_s(&tBuf2, &now);
+#else
+    localtime_r(&now, &tBuf2);
+#endif
+    struct tm* t = &tBuf2;
     char buf[12];
     snprintf(buf, sizeof(buf), "%04d-%02d-%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday);
     return std::string(buf);
@@ -31,8 +43,7 @@ void DailyRun::addRecord(int score, int kills, int difficulty) {
     e.score = score;
     e.kills = kills;
     auto date = getTodayDate();
-    strncpy(e.date, date.c_str(), sizeof(e.date) - 1);
-    e.date[sizeof(e.date) - 1] = '\0';
+    snprintf(e.date, sizeof(e.date), "%s", date.c_str());
     addEntry(e);
 }
 
@@ -141,8 +152,7 @@ void DailyRun::load(const std::string& path) {
         std::string dateStr;
         while (f >> dateStr >> e.score >> e.floors >> e.kills >> e.rifts
                   >> e.shards >> e.bestCombo >> e.runTime >> e.playerClass >> e.deathCause) {
-            strncpy(e.date, dateStr.c_str(), sizeof(e.date) - 1);
-            e.date[sizeof(e.date) - 1] = '\0';
+            snprintf(e.date, sizeof(e.date), "%s", dateStr.c_str());
             m_entries.push_back(e);
         }
     } else {
@@ -150,15 +160,13 @@ void DailyRun::load(const std::string& path) {
         DailyLeaderboardEntry e;
         int difficulty = 0;
         if (f >> e.score >> e.kills >> difficulty) {
-            strncpy(e.date, firstToken.c_str(), sizeof(e.date) - 1);
-            e.date[sizeof(e.date) - 1] = '\0';
+            snprintf(e.date, sizeof(e.date), "%s", firstToken.c_str());
             m_entries.push_back(e);
         }
         std::string dateStr;
         while (f >> dateStr >> e.score >> e.kills >> difficulty) {
             e = DailyLeaderboardEntry{};
-            strncpy(e.date, dateStr.c_str(), sizeof(e.date) - 1);
-            e.date[sizeof(e.date) - 1] = '\0';
+            snprintf(e.date, sizeof(e.date), "%s", dateStr.c_str());
             m_entries.push_back(e);
         }
     }

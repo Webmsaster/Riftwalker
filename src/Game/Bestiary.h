@@ -27,7 +27,7 @@ public:
     static int getDiscoveredCount();
     static int getTotalCount();
 
-    // Boss entries use negative indices: -1=Guardian, -2=Wyrm, -3=Architect, -4=TemporalWeaver
+    // Boss entries: 0=Guardian, 1=Wyrm, 2=Architect, 3=TemporalWeaver, 4=VoidSovereign, 5=EntropyIncarnate
     static const BestiaryEntry& getBossEntry(int bossType);
 
     static void save(const std::string& filepath);

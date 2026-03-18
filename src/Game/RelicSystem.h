@@ -14,8 +14,8 @@ public:
     static const RelicData& getRelicData(RelicID id);
     static const std::vector<RelicData>& getAllRelics();
 
-    // Generate a relic choice (3 relics from pool, weighted by tier)
-    static std::vector<RelicID> generateChoice(int difficulty, const std::vector<ActiveRelic>& owned);
+    // Generate a relic choice (count relics from pool, weighted by tier)
+    static std::vector<RelicID> generateChoice(int difficulty, const std::vector<ActiveRelic>& owned, int count = 3);
 
     // Generate a cursed-only relic choice (for secret rooms / special encounters)
     static std::vector<RelicID> generateCursedChoice(int difficulty, const std::vector<ActiveRelic>& owned);

@@ -14,7 +14,10 @@ static constexpr int OPT_MUSIC    = 2;
 static constexpr int OPT_MUTE     = 3;
 static constexpr int OPT_FULLSCR  = 4;
 static constexpr int OPT_SHAKE    = 5;
-static constexpr int OPT_HUD_OPAC = 6;
+static constexpr int OPT_HUD_OPAC   = 6;
+static constexpr int OPT_RUMBLE     = OPT_HUD_OPAC + 1;
+static constexpr int OPT_COLORBLIND = OPT_HUD_OPAC + 2;
+static constexpr int OPT_HUDSCALE   = OPT_HUD_OPAC + 3;
 // Controls / Reset / Back are the last 3 (special buttons)
 
 void OptionsState::enter() {
@@ -95,9 +98,9 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     m_options[OPT_FULLSCR].value  = 0;
                     m_options[OPT_SHAKE].value    = 100;
                     m_options[OPT_HUD_OPAC].value = 100;
-                    m_options[OPT_HUD_OPAC + 1].value = 1;  // Rumble on
-                    m_options[OPT_HUD_OPAC + 2].value = 0;  // Color blind off
-                    m_options[OPT_HUD_OPAC + 3].value = 100; // HUD scale 100%
+                    m_options[OPT_RUMBLE].value     = 1;   // Rumble on
+                    m_options[OPT_COLORBLIND].value = 0;   // Color blind off
+                    m_options[OPT_HUDSCALE].value   = 100; // HUD scale 100%
                     for (size_t i = 0; i < m_options.size() - 3; i++) applyOption(static_cast<int>(i));
                     game->saveSettings();
                     AudioManager::instance().play(SFX::MenuConfirm);
@@ -156,14 +159,14 @@ void OptionsState::applyOption(int index) {
         case OPT_HUD_OPAC:
             g_hudOpacity = m_options[OPT_HUD_OPAC].value / 100.0f;
             break;
-        case OPT_HUD_OPAC + 1: // Controller Rumble
-            game->getInputMutable().setRumbleEnabled(m_options[OPT_HUD_OPAC + 1].value == 1);
+        case OPT_RUMBLE: // Controller Rumble
+            game->getInputMutable().setRumbleEnabled(m_options[OPT_RUMBLE].value == 1);
             break;
-        case OPT_HUD_OPAC + 2: // Color Blind Mode
-            g_colorBlindMode = m_options[OPT_HUD_OPAC + 2].value;
+        case OPT_COLORBLIND: // Color Blind Mode
+            g_colorBlindMode = m_options[OPT_COLORBLIND].value;
             break;
-        case OPT_HUD_OPAC + 3: // HUD Scale
-            g_hudScale = m_options[OPT_HUD_OPAC + 3].value / 100.0f;
+        case OPT_HUDSCALE: // HUD Scale
+            g_hudScale = m_options[OPT_HUDSCALE].value / 100.0f;
             break;
     }
 }

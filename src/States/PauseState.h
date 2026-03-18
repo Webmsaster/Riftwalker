@@ -16,4 +16,5 @@ private:
     std::vector<Button> m_buttons;
     int m_selectedButton = 0;
     float m_time = 0;
+    bool m_confirmAbandon = false;
 };

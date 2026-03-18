@@ -1,7 +1,6 @@
 #include "MenuState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
-#include "Game/AscensionSystem.h"
 #include "Game/Bestiary.h"
 #include "Game/DailyRun.h"
 #include <algorithm>
@@ -14,7 +13,7 @@ void MenuState::enter() {
     AscensionSystem::load("ascension_save.dat");
     Bestiary::load("bestiary_save.dat");
 
-    int cx = 640;
+    int cx = SCREEN_WIDTH / 2;
     int startY = 365;
     int btnW = 260;
     int btnH = 34;
@@ -84,6 +83,29 @@ void MenuState::update(float dt) {
         if (m_fadeIn > 1.0f) m_fadeIn = 1.0f;
     }
 
+    // Gamepad navigation — only active when a gamepad is connected to avoid
+    // doubling up with the keyboard handling already in handleEvent()
+    auto& input = game->getInput();
+    if (input.hasGamepad()) {
+    if (input.isActionPressed(Action::MenuUp)) {
+        m_buttons[m_selectedButton].setSelected(false);
+        m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
+        m_buttons[m_selectedButton].setSelected(true);
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        m_buttons[m_selectedButton].setSelected(false);
+        m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
+        m_buttons[m_selectedButton].setSelected(true);
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::Confirm)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        if (m_buttons[m_selectedButton].onClick)
+            m_buttons[m_selectedButton].onClick();
+    }
+    } // end hasGamepad()
+
     // Spawn particles from portal area
     if (m_bgParticles.size() < 80) {
         float angle = static_cast<float>(std::rand()) / RAND_MAX * 6.283185f;
@@ -92,7 +114,7 @@ void MenuState::update(float dt) {
         bool dimA = std::rand() % 2 == 0;
 
         Particle p;
-        p.x = 640.0f + std::cos(angle) * dist;
+        p.x = static_cast<float>(SCREEN_WIDTH / 2) + std::cos(angle) * dist;
         p.y = 240.0f + std::sin(angle) * dist * 0.7f;
         p.vx = std::cos(angle) * speed;
         p.vy = std::sin(angle) * speed - 15.0f;
@@ -119,7 +141,7 @@ void MenuState::update(float dt) {
 }
 
 void MenuState::renderPortal(SDL_Renderer* renderer) {
-    int cx = 640, cy = 240;
+    int cx = SCREEN_WIDTH / 2, cy = 240;
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     // Outer glow rings
@@ -212,7 +234,7 @@ void MenuState::renderTitle(SDL_Renderer* renderer, TTF_Font* font) {
 
     int tw = surface->w * 2;
     int th = surface->h * 2;
-    int tx = 640 - tw / 2;
+    int tx = SCREEN_WIDTH / 2 - tw / 2;
     int ty = 100;
 
     // Glow layers (additive blending for bloom effect)
@@ -240,7 +262,7 @@ void MenuState::renderTitle(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, sub);
         if (st) {
             SDL_SetTextureAlphaMod(st, subAlpha);
-            SDL_Rect sr = {640 - sub->w / 2, 170, sub->w, sub->h};
+            SDL_Rect sr = {SCREEN_WIDTH / 2 - sub->w / 2, 170, sub->w, sub->h};
             SDL_RenderCopy(renderer, st, nullptr, &sr);
             SDL_DestroyTexture(st);
         }
@@ -293,7 +315,7 @@ void MenuState::render(SDL_Renderer* renderer) {
                 SDL_SetTextureAlphaMod(st, shardAlpha);
 
                 // Diamond icon
-                int iconX = 640 - ss->w / 2 - 20;
+                int iconX = SCREEN_WIDTH / 2 - ss->w / 2 - 20;
                 int iconY = 388;
                 SDL_SetRenderDrawColor(renderer, 180, 140, 255, shardAlpha);
                 SDL_RenderDrawLine(renderer, iconX, iconY, iconX + 6, iconY - 8);
@@ -301,7 +323,7 @@ void MenuState::render(SDL_Renderer* renderer) {
                 SDL_RenderDrawLine(renderer, iconX + 12, iconY, iconX + 6, iconY + 8);
                 SDL_RenderDrawLine(renderer, iconX + 6, iconY + 8, iconX, iconY);
 
-                SDL_Rect sr = {640 - ss->w / 2, 380, ss->w, ss->h};
+                SDL_Rect sr = {SCREEN_WIDTH / 2 - ss->w / 2, 380, ss->w, ss->h};
                 SDL_RenderCopy(renderer, st, nullptr, &sr);
                 SDL_DestroyTexture(st);
             }
@@ -323,7 +345,7 @@ void MenuState::render(SDL_Renderer* renderer) {
             SDL_Texture* at = SDL_CreateTextureFromSurface(renderer, as);
             if (at) {
                 SDL_SetTextureAlphaMod(at, aa);
-                SDL_Rect ar = {640 - as->w / 2, 400, as->w, as->h};
+                SDL_Rect ar = {SCREEN_WIDTH / 2 - as->w / 2, 400, as->w, as->h};
                 SDL_RenderCopy(renderer, at, nullptr, &ar);
                 SDL_DestroyTexture(at);
             }
@@ -337,7 +359,7 @@ void MenuState::render(SDL_Renderer* renderer) {
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
-                SDL_Rect cr = {640 - cs->w / 2, 405 + ascTextH, cs->w, cs->h};
+                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 405 + ascTextH, cs->w, cs->h};
                 SDL_RenderCopy(renderer, ct, nullptr, &cr);
                 SDL_DestroyTexture(ct);
             }
@@ -357,7 +379,7 @@ void MenuState::render(SDL_Renderer* renderer) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {640 - s->w / 2, 695, s->w, s->h};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 695, s->w, s->h};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }

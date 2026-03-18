@@ -16,6 +16,7 @@ void UpgradeState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
         auto& upgrades = game->getUpgradeSystem();
         int total = static_cast<int>(upgrades.getUpgrades().size());
+        if (total == 0) return;
 
         switch (event.key.keysym.scancode) {
             case SDL_SCANCODE_ESCAPE:

@@ -25,7 +25,9 @@ bool SpriteConfig::setupPlayer(AnimationComponent& anim, SpriteComponent& sprite
     auto* tex = ResourceManager::instance().getTexture("assets/textures/player/player.png");
     if (!tex) {
         // Fall back to placeholder — procedural rendering remains active as next fallback
-        applyPlayerPlaceholder(sprite);
+        if (!applyPlayerPlaceholder(sprite)) {
+            SDL_Log("Warning: Both texture and placeholder failed for player");
+        }
         return false;
     }
 
@@ -65,7 +67,9 @@ bool SpriteConfig::setupEnemy(AnimationComponent& anim, SpriteComponent& sprite,
     auto* tex = ResourceManager::instance().getTexture(path);
     if (!tex) {
         // Fall back to placeholder; procedural rendering is still the final fallback
-        applyEnemyPlaceholder(sprite, type);
+        if (!applyEnemyPlaceholder(sprite, type)) {
+            SDL_Log("Warning: Both texture and placeholder failed for enemy type %d", static_cast<int>(type));
+        }
         return false;
     }
 
@@ -105,7 +109,9 @@ bool SpriteConfig::setupBoss(AnimationComponent& anim, SpriteComponent& sprite, 
     auto* tex = ResourceManager::instance().getTexture(path);
     if (!tex) {
         // Fall back to placeholder; procedural rendering is still the final fallback
-        applyBossPlaceholder(sprite, bossType);
+        if (!applyBossPlaceholder(sprite, bossType)) {
+            SDL_Log("Warning: Both texture and placeholder failed for boss type %d", bossType);
+        }
         return false;
     }
 

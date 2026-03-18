@@ -78,7 +78,7 @@ const std::vector<RelicData>& RelicSystem::getAllRelics() {
     return s_relicData;
 }
 
-std::vector<RelicID> RelicSystem::generateChoice(int difficulty, const std::vector<ActiveRelic>& owned) {
+std::vector<RelicID> RelicSystem::generateChoice(int difficulty, const std::vector<ActiveRelic>& owned, int count) {
     initRelicData();
     // Build pool excluding already-owned relics
     std::vector<RelicID> pool;
@@ -110,9 +110,9 @@ std::vector<RelicID> RelicSystem::generateChoice(int difficulty, const std::vect
         for (int w = 0; w < weight; w++) pool.push_back(id);
     }
 
-    // Pick 3 unique relics
+    // Pick unique relics
     std::vector<RelicID> choices;
-    for (int i = 0; i < 3 && !pool.empty(); i++) {
+    for (int i = 0; i < count && !pool.empty(); i++) {
         int idx = std::rand() % pool.size();
         RelicID pick = pool[idx];
         // Remove all instances of this relic from pool
@@ -129,6 +129,7 @@ RelicID RelicSystem::generateDrop(int difficulty, const std::vector<ActiveRelic>
 }
 
 std::vector<RelicID> RelicSystem::generateCursedChoice(int difficulty, const std::vector<ActiveRelic>& owned) {
+    (void)difficulty;
     initRelicData();
     // Build pool of only cursed relics not yet owned
     std::vector<RelicID> pool;
@@ -155,6 +156,7 @@ std::vector<RelicID> RelicSystem::generateCursedChoice(int difficulty, const std
 
 void RelicSystem::applyStatEffects(RelicComponent& relics, Player& player,
                                     HealthComponent& hp, CombatComponent& combat) {
+    (void)combat;
     // Recalculate stats from scratch based on active relics
     float hpBonus = 0;
     float speedMult = 1.0f;

@@ -8,7 +8,7 @@ class Component {
 public:
     virtual ~Component() = default;
     virtual void init() {}
-    virtual void update(float dt) {}
+    virtual void update([[maybe_unused]] float dt) {}
 
     Entity* entity = nullptr;
     bool active = true;

@@ -14,6 +14,10 @@ InputManager::InputManager()
     std::memset(m_currKeyState, 0, sizeof(m_currKeyState));
     std::memset(m_pressedBuffer, 0, sizeof(m_pressedBuffer));
     std::memset(m_releasedBuffer, 0, sizeof(m_releasedBuffer));
+    std::memset(m_prevPadState, 0, sizeof(m_prevPadState));
+    std::memset(m_currPadState, 0, sizeof(m_currPadState));
+    std::memset(m_padPressedBuffer, 0, sizeof(m_padPressedBuffer));
+    std::memset(m_padReleasedBuffer, 0, sizeof(m_padReleasedBuffer));
 
     // Open first available gamepad
     for (int i = 0; i < SDL_NumJoysticks(); i++) {
@@ -79,11 +83,23 @@ void InputManager::update() {
         if (m_currKeyState[i] && !m_prevKeyState[i]) m_pressedBuffer[i] = 1;
         if (!m_currKeyState[i] && m_prevKeyState[i]) m_releasedBuffer[i] = 1;
     }
+
+    // Gamepad button state tracking for press/release edge detection
+    std::memcpy(m_prevPadState, m_currPadState, sizeof(m_currPadState));
+    if (m_gamepad) {
+        for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; i++) {
+            m_currPadState[i] = SDL_GameControllerGetButton(m_gamepad, static_cast<SDL_GameControllerButton>(i));
+            if (m_currPadState[i] && !m_prevPadState[i]) m_padPressedBuffer[i] = 1;
+            if (!m_currPadState[i] && m_prevPadState[i]) m_padReleasedBuffer[i] = 1;
+        }
+    }
 }
 
 void InputManager::clearPressedBuffers() {
     std::memset(m_pressedBuffer, 0, sizeof(m_pressedBuffer));
     std::memset(m_releasedBuffer, 0, sizeof(m_releasedBuffer));
+    std::memset(m_padPressedBuffer, 0, sizeof(m_padPressedBuffer));
+    std::memset(m_padReleasedBuffer, 0, sizeof(m_padReleasedBuffer));
 }
 
 void InputManager::injectActionPress(Action action) {
@@ -119,11 +135,18 @@ bool InputManager::checkBinding(Action action, bool (InputManager::*check)(SDL_S
     auto it = m_keyBindings.find(action);
     if (it != m_keyBindings.end() && (this->*check)(it->second)) return true;
 
-    // Check gamepad
+    // Check gamepad with proper edge detection
     if (m_gamepad) {
         auto pit = m_padBindings.find(action);
         if (pit != m_padBindings.end()) {
-            return SDL_GameControllerGetButton(m_gamepad, pit->second);
+            int btn = static_cast<int>(pit->second);
+            if (check == &InputManager::isKeyDown) {
+                return m_currPadState[btn] != 0;
+            } else if (check == &InputManager::isKeyPressed) {
+                return m_padPressedBuffer[btn] != 0;
+            } else { // isKeyReleased
+                return m_padReleasedBuffer[btn] != 0;
+            }
         }
     }
     return false;
@@ -259,7 +282,7 @@ bool InputManager::loadBindings(const std::string& filepath) {
         int actionId, scancodeId;
         if (iss >> actionId >> scancodeId) {
             if (scancodeId < 0 || scancodeId >= SDL_NUM_SCANCODES) continue;
-            if (actionId < 0) continue;
+            if (actionId < 0 || actionId > static_cast<int>(Action::Ability3)) continue;
             auto action = static_cast<Action>(actionId);
             auto scancode = static_cast<SDL_Scancode>(scancodeId);
             m_keyBindings[action] = scancode;

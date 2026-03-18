@@ -9,12 +9,13 @@ Entity& EntityManager::addEntity(const std::string& tag) {
 }
 
 void EntityManager::update(float dt) {
-    std::vector<Entity*> snapshot;
-    snapshot.reserve(m_entities.size());
+    m_snapshotBuffer.clear();
+    if (m_snapshotBuffer.capacity() < m_entities.size())
+        m_snapshotBuffer.reserve(m_entities.size());
     for (auto& e : m_entities) {
-        if (e->isAlive()) snapshot.push_back(e.get());
+        if (e->isAlive()) m_snapshotBuffer.push_back(e.get());
     }
-    for (Entity* e : snapshot) {
+    for (Entity* e : m_snapshotBuffer) {
         if (e && e->isAlive()) e->update(dt);
     }
 }
@@ -27,33 +28,34 @@ void EntityManager::refresh() {
     );
 }
 
-std::vector<Entity*> EntityManager::getEntitiesByTag(const std::string& tag) const {
-    std::vector<Entity*> result;
+const std::vector<Entity*>& EntityManager::getEntitiesByTag(const std::string& tag) const {
+    m_tagQueryBuffer.clear();
     for (auto& e : m_entities) {
         if (e->isAlive() && e->getTag() == tag) {
-            result.push_back(e.get());
+            m_tagQueryBuffer.push_back(e.get());
         }
     }
-    return result;
+    return m_tagQueryBuffer;
 }
 
-std::vector<Entity*> EntityManager::getEntitiesInDimension(int dim) const {
-    std::vector<Entity*> result;
+const std::vector<Entity*>& EntityManager::getEntitiesInDimension(int dim) const {
+    m_dimQueryBuffer.clear();
     for (auto& e : m_entities) {
         if (e->isAlive() && (e->dimension == 0 || e->dimension == dim)) {
-            result.push_back(e.get());
+            m_dimQueryBuffer.push_back(e.get());
         }
     }
-    return result;
+    return m_dimQueryBuffer;
 }
 
 void EntityManager::forEach(const std::function<void(Entity&)>& func) {
-    std::vector<Entity*> snapshot;
-    snapshot.reserve(m_entities.size());
+    m_snapshotBuffer.clear();
+    if (m_snapshotBuffer.capacity() < m_entities.size())
+        m_snapshotBuffer.reserve(m_entities.size());
     for (auto& e : m_entities) {
-        if (e->isAlive()) snapshot.push_back(e.get());
+        if (e->isAlive()) m_snapshotBuffer.push_back(e.get());
     }
-    for (Entity* e : snapshot) {
+    for (Entity* e : m_snapshotBuffer) {
         if (e && e->isAlive()) func(*e);
     }
 }

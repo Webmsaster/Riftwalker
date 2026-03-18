@@ -6,6 +6,7 @@ NPCData NPCSystem::createNPC(NPCType type, Vec2 pos, int dimension) {
     npc.position = pos;
     npc.dimension = dimension;
 
+    // Legacy fields — dialog is rendered via NPCSystem::getGreeting()/getDialogOptions() instead
     switch (type) {
         case NPCType::RiftScholar:
             npc.name = "Rift Scholar";

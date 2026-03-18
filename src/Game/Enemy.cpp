@@ -52,7 +52,7 @@ void Enemy::applyElement(Entity& e, EnemyElement element) {
 
     switch (element) {
         case EnemyElement::Fire:
-            sprite.color.r = std::min(255, sprite.color.r + 80);
+            sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + 80));
             sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.6f);
             sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.3f);
             combat.meleeAttack.damage *= 1.2f;
@@ -60,13 +60,13 @@ void Enemy::applyElement(Entity& e, EnemyElement element) {
         case EnemyElement::Ice:
             sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.4f);
             sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.7f);
-            sprite.color.b = std::min(255, sprite.color.b + 100);
+            sprite.color.b = static_cast<Uint8>(std::min(255, sprite.color.b + 100));
             hp.maxHP *= 1.15f;
             hp.currentHP = hp.maxHP;
             break;
         case EnemyElement::Electric:
-            sprite.color.r = std::min(255, sprite.color.r + 60);
-            sprite.color.g = std::min(255, sprite.color.g + 80);
+            sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + 60));
+            sprite.color.g = static_cast<Uint8>(std::min(255, sprite.color.g + 80));
             sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.4f);
             combat.meleeAttack.damage *= 1.1f;
             hp.maxHP *= 1.1f;
@@ -106,7 +106,7 @@ Entity& Enemy::createWalker(EntityManager& entities, Vec2 pos, int dimension) {
     auto& e = entities.addEntity("enemy_walker");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 28, 32);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 28, 32);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(200, 60, 60);
     sprite.renderLayer = 2;
@@ -154,7 +154,7 @@ Entity& Enemy::createFlyer(EntityManager& entities, Vec2 pos, int dimension) {
     auto& e = entities.addEntity("enemy_flyer");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 24, 24);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 24, 24);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(180, 80, 200);
     sprite.renderLayer = 2;
@@ -200,7 +200,7 @@ Entity& Enemy::createTurret(EntityManager& entities, Vec2 pos, int dimension) {
     auto& e = entities.addEntity("enemy_turret");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 28, 28);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 28, 28);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(200, 200, 60);
     sprite.renderLayer = 2;
@@ -242,7 +242,7 @@ Entity& Enemy::createCharger(EntityManager& entities, Vec2 pos, int dimension) {
     auto& e = entities.addEntity("enemy_charger");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 36, 28);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 36, 28);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(220, 120, 40);
     sprite.renderLayer = 2;
@@ -289,7 +289,7 @@ Entity& Enemy::createPhaser(EntityManager& entities, Vec2 pos, int dimension) {
     auto& e = entities.addEntity("enemy_phaser");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 26, 40);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 26, 40);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(100, 50, 200);
     sprite.renderLayer = 2;
@@ -335,7 +335,7 @@ Entity& Enemy::createExploder(EntityManager& entities, Vec2 pos, int dimension) 
     auto& e = entities.addEntity("enemy_exploder");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 22, 22);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 22, 22);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(255, 80, 30); // Bright orange-red
     sprite.renderLayer = 2;
@@ -384,7 +384,7 @@ Entity& Enemy::createShielder(EntityManager& entities, Vec2 pos, int dimension) 
     auto& e = entities.addEntity("enemy_shielder");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 32, 36);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 32, 36);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(80, 180, 220); // Blue-cyan
     sprite.renderLayer = 2;
@@ -434,7 +434,7 @@ Entity& Enemy::createCrawler(EntityManager& entities, Vec2 pos, int dimension) {
     auto& e = entities.addEntity("enemy_crawler");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 26, 18);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 26, 18);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(60, 160, 80); // Dark green
     sprite.renderLayer = 2;
@@ -481,7 +481,7 @@ Entity& Enemy::createSummoner(EntityManager& entities, Vec2 pos, int dimension) 
     auto& e = entities.addEntity("enemy_summoner");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 30, 38);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 30, 38);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(180, 50, 220); // Purple
     sprite.renderLayer = 2;
@@ -528,7 +528,7 @@ Entity& Enemy::createSniper(EntityManager& entities, Vec2 pos, int dimension) {
     auto& e = entities.addEntity("enemy_sniper");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 24, 34);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 24, 34);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(200, 180, 40); // Gold-yellow
     sprite.renderLayer = 2;
@@ -579,7 +579,7 @@ Entity& Enemy::createMinion(EntityManager& entities, Vec2 pos, int dimension) {
     auto& e = entities.addEntity("enemy_minion");
     e.dimension = dimension;
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 16, 16);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 16, 16);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(200, 100, 255); // Light purple
     sprite.renderLayer = 2;
@@ -625,7 +625,7 @@ Entity& Enemy::createVoidWyrm(EntityManager& entities, Vec2 pos, int dimension, 
     e.dimension = dimension;
 
     // Wyrm is 48x48, more agile than Rift Guardian
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 48, 48);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 48, 48);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(40, 180, 120); // Deep teal-green
     sprite.renderLayer = 2;
@@ -684,7 +684,7 @@ Entity& Enemy::createBoss(EntityManager& entities, Vec2 pos, int dimension, int 
     e.dimension = dimension;
 
     // Boss is large: 64x64
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 64, 64);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 64, 64);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(200, 40, 180); // Dark magenta
     sprite.renderLayer = 2;
@@ -761,7 +761,7 @@ void Enemy::makeElite(Entity& e, EliteModifier mod) {
             combat.rangedAttack.damage *= 1.5f;
             ai.chaseSpeed *= 1.3f;
             ai.patrolSpeed *= 1.3f;
-            sprite.color.r = std::min(255, sprite.color.r + 120);
+            sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + 120));
             sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.3f);
             sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.3f);
             break;
@@ -770,26 +770,26 @@ void Enemy::makeElite(Entity& e, EliteModifier mod) {
             ai.eliteShieldRegenTimer = 5.0f;
             sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.4f);
             sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.6f);
-            sprite.color.b = std::min(255, sprite.color.b + 120);
+            sprite.color.b = static_cast<Uint8>(std::min(255, sprite.color.b + 120));
             break;
         case EliteModifier::Teleporter:
             ai.eliteTeleportTimer = 3.0f;
             sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + 60));
             sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.4f);
-            sprite.color.b = std::min(255, sprite.color.b + 100);
+            sprite.color.b = static_cast<Uint8>(std::min(255, sprite.color.b + 100));
             break;
         case EliteModifier::Splitter:
             sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.5f);
-            sprite.color.g = std::min(255, sprite.color.g + 100);
+            sprite.color.g = static_cast<Uint8>(std::min(255, sprite.color.g + 100));
             sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.5f);
             break;
         case EliteModifier::Vampiric:
-            sprite.color.r = std::min(255, sprite.color.r + 80);
+            sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + 80));
             sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.2f);
             sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.3f);
             break;
         case EliteModifier::Explosive:
-            sprite.color.r = std::min(255, sprite.color.r + 100);
+            sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + 100));
             sprite.color.g = static_cast<Uint8>(std::min(255, sprite.color.g + 60));
             sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.2f);
             break;
@@ -800,13 +800,13 @@ void Enemy::makeElite(Entity& e, EliteModifier mod) {
             break;
         case EliteModifier::HealAura:
             sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.3f);
-            sprite.color.g = std::min(255, sprite.color.g + 130);
+            sprite.color.g = static_cast<Uint8>(std::min(255, sprite.color.g + 130));
             sprite.color.b = static_cast<Uint8>(std::min(255, sprite.color.b / 2 + 40));
             break;
         case EliteModifier::ShieldAura:
             sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.3f);
-            sprite.color.g = std::min(255, sprite.color.g + 80);
-            sprite.color.b = std::min(255, sprite.color.b + 150);
+            sprite.color.g = static_cast<Uint8>(std::min(255, sprite.color.g + 80));
+            sprite.color.b = static_cast<Uint8>(std::min(255, sprite.color.b + 150));
             break;
         default: break;
     }
@@ -818,7 +818,7 @@ Entity& Enemy::createTemporalWeaver(EntityManager& entities, Vec2 pos, int dimen
     e.dimension = dimension;
 
     // Temporal Weaver: 52x52, floating clockwork entity
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 52, 52);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 52, 52);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(180, 160, 80); // Golden clockwork
     sprite.renderLayer = 2;
@@ -881,7 +881,7 @@ Entity& Enemy::createDimensionalArchitect(EntityManager& entities, Vec2 pos, int
     e.dimension = dimension;
 
     // Architect: 56x56, floating geometric entity
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 56, 56);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 56, 56);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(120, 80, 200); // Deep purple
     sprite.renderLayer = 2;
@@ -943,7 +943,7 @@ Entity& Enemy::createDimensionalArchitect(EntityManager& entities, Vec2 pos, int
 Entity& Enemy::createVoidSovereign(EntityManager& entities, Vec2 pos, int dimension, int difficulty) {
     auto& e = entities.addEntity("enemy_boss");
 
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 80, 80);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 80, 80);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(80, 0, 120); // Dark violet
     sprite.renderLayer = 2;
@@ -1006,7 +1006,7 @@ Entity& Enemy::createEntropyIncarnate(EntityManager& entities, Vec2 pos, int dim
     e.dimension = dimension;
 
     // Entropy Incarnate: 64x64, dark purple void entity with glowing core
-    auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 64, 64);
+    e.addComponent<TransformComponent>(pos.x, pos.y, 64, 64);
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(100, 20, 140); // Dark purple-void
     sprite.renderLayer = 2;

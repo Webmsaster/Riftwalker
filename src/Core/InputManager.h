@@ -80,6 +80,12 @@ private:
     std::unordered_map<Action, SDL_Scancode> m_keyBindings;
     std::unordered_map<Action, SDL_GameControllerButton> m_padBindings;
 
+    // Gamepad button state tracking for press/release edge detection
+    Uint8 m_prevPadState[SDL_CONTROLLER_BUTTON_MAX];
+    Uint8 m_currPadState[SDL_CONTROLLER_BUTTON_MAX];
+    Uint8 m_padPressedBuffer[SDL_CONTROLLER_BUTTON_MAX];
+    Uint8 m_padReleasedBuffer[SDL_CONTROLLER_BUTTON_MAX];
+
     float m_distortion;
     bool m_rumbleEnabled = true;
 };

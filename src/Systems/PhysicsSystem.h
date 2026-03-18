@@ -22,7 +22,8 @@ public:
 
 private:
     void applyGravity(Entity& entity, float dt);
-    void applyVelocity(Entity& entity, float dt);
+    // Returns true if stepped collision was used (terrain already resolved)
+    bool applyVelocity(Entity& entity, float dt, Level* level, int currentDimension);
     void resolveTerrainCollision(Entity& entity, Level* level, int currentDimension);
 
     std::vector<ProjectileImpact> m_projectileImpacts;

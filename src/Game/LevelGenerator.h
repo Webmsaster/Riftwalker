@@ -48,6 +48,10 @@ private:
     WorldTheme m_themeA;
     WorldTheme m_themeB;
     std::mt19937 m_rng;
+    float m_trapDensityMult = 1.0f;
+
+public:
+    void setTrapDensityMult(float m) { m_trapDensityMult = m; }
 
     static const std::vector<RoomTemplate>& getRoomTemplates();
 };

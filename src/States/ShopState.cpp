@@ -1,6 +1,7 @@
 #include "ShopState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Game/AscensionSystem.h"
 #include <SDL2/SDL_ttf.h>
 #include <cstdio>
 #include <cmath>
@@ -18,6 +19,11 @@ void ShopState::enter() {
     auto& buffs = game->getRunBuffSystem();
     // Difficulty from PlayState (stored in Game)
     m_offerings = buffs.generateShopOffering(game->getShopDifficulty());
+    // Ascension shop discount
+    if (AscensionSystem::currentLevel > 0) {
+        float disc = AscensionSystem::getLevel(AscensionSystem::currentLevel).shopDiscountMult;
+        for (auto& o : m_offerings) o.cost = static_cast<int>(o.cost * disc);
+    }
     m_selectedIndex = 0;
     m_animTimer = 0;
     m_purchasedThisVisit = false;
@@ -219,6 +225,11 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         default: tierColor = {180, 180, 180, 255}; tierLabel = "???"; break;
     }
 
+    // Selected bob animation — apply before drawing so frame and content move together
+    if (selected) {
+        y -= static_cast<int>(std::sin(SDL_GetTicks() * 0.005f) * 4);
+    }
+
     // Card background
     SDL_SetRenderDrawColor(renderer, 20, 15, 35, 240);
     SDL_Rect bg = {x, y, w, h};
@@ -241,9 +252,6 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         SDL_Rect glow2 = {x - 5, y - 5, w + 10, h + 10};
         SDL_SetRenderDrawColor(renderer, tierColor.r, tierColor.g, tierColor.b, static_cast<Uint8>(ga / 2));
         SDL_RenderDrawRect(renderer, &glow2);
-
-        // Selected bob animation
-        y -= static_cast<int>(std::sin(ticks * 0.005f) * 4);
     }
 
     // Tier header bar
@@ -364,16 +372,16 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
                 SDL_FreeSurface(bs);
             }
         } else if (selected && !affordable) {
-            SDL_Color nc = {200, 80, 80, 180};
-            SDL_Surface* ns = TTF_RenderText_Blended(font, "Not Enough Shards", nc);
-            if (ns) {
-                SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
+            SDL_Color errColor = {200, 80, 80, 180};
+            SDL_Surface* errSurf = TTF_RenderText_Blended(font, "Not Enough Shards", errColor);
+            if (errSurf) {
+                SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, errSurf);
                 if (nt) {
-                    SDL_Rect nr = {x + w / 2 - ns->w / 2, y + h - 40, ns->w, ns->h};
+                    SDL_Rect nr = {x + w / 2 - errSurf->w / 2, y + h - 40, errSurf->w, errSurf->h};
                     SDL_RenderCopy(renderer, nt, nullptr, &nr);
                     SDL_DestroyTexture(nt);
                 }
-                SDL_FreeSurface(ns);
+                SDL_FreeSurface(errSurf);
             }
         }
     }

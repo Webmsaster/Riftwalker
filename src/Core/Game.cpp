@@ -22,6 +22,22 @@
 #include <fstream>
 #include <sstream>
 
+static void backupFile(const std::string& path) {
+    std::ifstream src(path, std::ios::binary);
+    if (!src) return;
+    std::ofstream dst(path + ".bak", std::ios::binary);
+    if (dst) dst << src.rdbuf();
+}
+
+static std::ifstream openWithBackupFallback(const std::string& path) {
+    std::ifstream file(path);
+    if (file.is_open() && file.peek() != std::ifstream::traits_type::eof()) return file;
+    file.close();
+    file.open(path + ".bak");
+    if (file.is_open()) SDL_Log("Using backup save: %s.bak", path.c_str());
+    return file;
+}
+
 Game::Game() {}
 
 Game::~Game() {
@@ -289,6 +305,7 @@ void Game::changeState(StateID id) {
 }
 
 void Game::pushState(StateID id) {
+    if (m_transition != TransitionState::None) return; // Block during transition
     // Push is immediate (e.g. pause menu) - no fade needed
     auto it = m_states.find(id);
     if (it != m_states.end()) {
@@ -301,13 +318,14 @@ void Game::pushState(StateID id) {
 void Game::popState() {
     if (!m_stateStack.empty()) {
         if (m_currentState) m_currentState->exit();
+        saveSaveData(); // Save after state exit to persist shop purchases etc.
         m_currentState = m_stateStack.top();
         m_stateStack.pop();
     }
 }
 
 void Game::loadSaveData() {
-    std::ifstream file("riftwalker_save.dat");
+    std::ifstream file = openWithBackupFallback("riftwalker_save.dat");
     if (file.is_open()) {
         std::stringstream ss;
         ss << file.rdbuf();
@@ -321,10 +339,14 @@ void Game::loadSaveData() {
         std::string key;
         float value;
         while (cfg >> key >> value) {
-            if (key == "sfx_volume")      g_sfxVolume      = value;
+            if (key == "sfx_volume")           g_sfxVolume      = value;
             else if (key == "music_volume")    g_musicVolume    = value;
             else if (key == "shake_intensity") g_shakeIntensity = value;
             else if (key == "hud_opacity")     g_hudOpacity     = value;
+            else if (key == "color_blind")     g_colorBlindMode = static_cast<int>(value);
+            else if (key == "hud_scale")       g_hudScale       = value;
+            else if (key == "fullscreen")      { if (m_window && static_cast<int>(value) != 0 && !m_window->isFullscreen()) m_window->toggleFullscreen(); }
+            else if (key == "rumble")          { m_input.setRumbleEnabled(static_cast<int>(value) != 0); }
         }
         cfg.close();
     }
@@ -335,6 +357,7 @@ void Game::loadSaveData() {
 }
 
 void Game::saveSaveData() {
+    backupFile("riftwalker_save.dat");
     std::ofstream file("riftwalker_save.dat");
     if (file.is_open()) {
         file << m_upgrades.serialize();
@@ -342,23 +365,20 @@ void Game::saveSaveData() {
     }
 
     // Save audio/visual settings
-    std::ofstream cfg("riftwalker_settings.cfg");
-    if (cfg.is_open()) {
-        cfg << "sfx_volume "      << g_sfxVolume      << "\n";
-        cfg << "music_volume "    << g_musicVolume     << "\n";
-        cfg << "shake_intensity " << g_shakeIntensity  << "\n";
-        cfg << "hud_opacity "     << g_hudOpacity      << "\n";
-        cfg.close();
-    }
+    saveSettings();
 }
 
 void Game::saveSettings() {
     std::ofstream cfg("riftwalker_settings.cfg");
     if (cfg.is_open()) {
-        cfg << "sfx_volume "      << g_sfxVolume      << "\n";
-        cfg << "music_volume "    << g_musicVolume     << "\n";
-        cfg << "shake_intensity " << g_shakeIntensity  << "\n";
-        cfg << "hud_opacity "     << g_hudOpacity      << "\n";
+        cfg << "sfx_volume "      << g_sfxVolume       << "\n";
+        cfg << "music_volume "    << g_musicVolume      << "\n";
+        cfg << "shake_intensity " << g_shakeIntensity   << "\n";
+        cfg << "hud_opacity "     << g_hudOpacity       << "\n";
+        cfg << "color_blind "     << g_colorBlindMode   << "\n";
+        cfg << "hud_scale "       << g_hudScale         << "\n";
+        cfg << "fullscreen "      << (m_window ? (m_window->isFullscreen() ? 1 : 0) : 0) << "\n";
+        cfg << "rumble "           << (m_input.isRumbleEnabled() ? 1 : 0) << "\n";
         cfg.close();
     }
 }

@@ -64,6 +64,10 @@ void NGPlusSelectState::handleEvent(const SDL_Event& event) {
                 AudioManager::instance().play(SFX::MenuSelect);
                 break;
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
+                if (m_selected > m_maxTier) {
+                    AudioManager::instance().play(SFX::RiftFail);
+                    break;
+                }
                 g_selectedNGPlus = m_selected;
                 AudioManager::instance().play(SFX::MenuConfirm);
                 game->changeState(StateID::Play);

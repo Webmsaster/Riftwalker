@@ -41,8 +41,9 @@ void KeybindingsState::handleEvent(const SDL_Event& event) {
             return;
         }
 
-        // Block F11 (fullscreen toggle)
-        if (key == SDL_SCANCODE_F11) return;
+        // Block F11 (fullscreen toggle) and debug keys
+        if (key == SDL_SCANCODE_F11 || key == SDL_SCANCODE_F3 ||
+            key == SDL_SCANCODE_F4 || key == SDL_SCANCODE_F6) return;
 
         auto& input = game->getInputMutable();
         Action currentAction = m_items[m_selected].action;

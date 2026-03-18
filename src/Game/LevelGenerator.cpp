@@ -969,8 +969,9 @@ void LevelGenerator::generateRoom(Level& level, int roomX, int roomY,
     }
 
     // Floor spikes
-    if (theme.hazardDensity > 0) {
-        int spikeCount = static_cast<int>(roomW * theme.hazardDensity);
+    float hazardDensity = theme.hazardDensity * m_trapDensityMult;
+    if (hazardDensity > 0) {
+        int spikeCount = static_cast<int>(roomW * hazardDensity);
         for (int i = 0; i < spikeCount; i++) {
             int sx = roomX + 2 + m_rng() % (roomW - 4);
             Tile spike;
@@ -980,8 +981,8 @@ void LevelGenerator::generateRoom(Level& level, int roomX, int roomY,
         }
 
         // Ceiling spikes for high-hazard themes
-        if (theme.hazardDensity > 0.15f) {
-            int ceilSpikes = static_cast<int>(roomW * (theme.hazardDensity - 0.1f));
+        if (hazardDensity > 0.15f) {
+            int ceilSpikes = static_cast<int>(roomW * (hazardDensity - 0.1f));
             for (int i = 0; i < ceilSpikes; i++) {
                 int sx = roomX + 2 + m_rng() % (roomW - 4);
                 Tile spike;
@@ -992,8 +993,8 @@ void LevelGenerator::generateRoom(Level& level, int roomX, int roomY,
         }
 
         // Fire pits (replace some floor spikes at higher hazard density)
-        if (theme.hazardDensity > 0.1f) {
-            int fireCount = static_cast<int>(roomW * (theme.hazardDensity - 0.05f) * 0.5f);
+        if (hazardDensity > 0.1f) {
+            int fireCount = static_cast<int>(roomW * (hazardDensity - 0.05f) * 0.5f);
             for (int i = 0; i < fireCount; i++) {
                 int fx = roomX + 2 + m_rng() % (roomW - 4);
                 int fy = roomY + roomH - 2;
@@ -1007,7 +1008,7 @@ void LevelGenerator::generateRoom(Level& level, int roomX, int roomY,
         }
 
         // Conveyor belts (on platforms, medium+ hazard)
-        if (theme.hazardDensity > 0.08f && roomW >= 8) {
+        if (hazardDensity > 0.08f && roomW >= 8) {
             int conveyorChance = m_rng() % 4;
             if (conveyorChance == 0) {
                 int cx = roomX + 2 + m_rng() % (roomW / 2);
@@ -1026,7 +1027,7 @@ void LevelGenerator::generateRoom(Level& level, int roomX, int roomY,
         }
 
         // Laser emitters (on walls, higher difficulty)
-        if (theme.hazardDensity > 0.12f && roomH >= 6) {
+        if (hazardDensity > 0.12f && roomH >= 6) {
             int laserChance = m_rng() % 5;
             if (laserChance == 0) {
                 // Place on left wall shooting right
@@ -1049,7 +1050,7 @@ void LevelGenerator::generateRoom(Level& level, int roomX, int roomY,
     }
 
     // Theme-specific hazards: place Ice, Crumbling, GravityWell, Teleporter based on theme
-    if (theme.hazardDensity > 0 && roomW >= 6 && roomH >= 5) {
+    if (hazardDensity > 0 && roomW >= 6 && roomH >= 5) {
         switch (theme.id) {
         case ThemeID::FrozenWasteland: {
             // Ice patches on floor (reduced friction)
@@ -1566,6 +1567,9 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
             ey = startY + 2;
         }
 
+        // Ground-based enemies need solid tile below (skip for Flyer=1 and Crawler=7)
+        if (type != 1 && type != 7 && !level.isSolid(ex, ey + 1, dim)) continue;
+
         // At difficulty 3+, 30% of enemies are dimension-exclusive (only in one dim),
         // forcing tactical dimension switching. Others use dim 0 (both dimensions).
         int spawnDim = 0; // default: visible in both
@@ -1974,6 +1978,7 @@ void LevelGenerator::placeRandomEvents(Level& level, const std::vector<LGRoom>& 
 }
 
 RoomTemplate LevelGenerator::getRandomRoom(int difficulty) {
+    (void)difficulty;
     auto& templates = getRoomTemplates();
     if (templates.empty()) return {12, 8, {}};
     return templates[m_rng() % templates.size()];
@@ -2158,11 +2163,13 @@ void LevelGenerator::placeNPCs(Level& level, const std::vector<LGRoom>& rooms, i
         int ny = room.y + room.h - 3;
         int dim = (m_rng() % 2 == 0) ? 1 : 2;
 
+        bool placed = false;
         for (int attempt = 0; attempt < 10; attempt++) {
-            if (!level.isSolid(nx, ny, dim) && level.isSolid(nx, ny + 1, dim)) break;
+            if (!level.isSolid(nx, ny, dim) && level.isSolid(nx, ny + 1, dim)) { placed = true; break; }
             nx = room.x + 2 + m_rng() % std::max(1, room.w - 4);
             ny = room.y + 2 + m_rng() % std::max(1, room.h - 4);
         }
+        if (!placed) continue; // Skip this NPC if no valid position found
 
         Vec2 pos = {static_cast<float>(nx * 32), static_cast<float>(ny * 32)};
         NPCData npc = NPCSystem::createNPC(type, pos, dim);

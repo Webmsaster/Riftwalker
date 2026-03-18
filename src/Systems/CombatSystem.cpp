@@ -1269,8 +1269,8 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                                 // Smaller + weaker split copy
                                 if (splitE.hasComponent<TransformComponent>()) {
                                     auto& st = splitE.getComponent<TransformComponent>();
-                                    st.width *= 0.7f;
-                                    st.height *= 0.7f;
+                                    st.width = static_cast<int>(st.width * 0.7f);
+                                    st.height = static_cast<int>(st.height * 0.7f);
                                 }
                                 if (splitE.hasComponent<HealthComponent>()) {
                                     auto& sh = splitE.getComponent<HealthComponent>();
@@ -1411,6 +1411,7 @@ void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
     proj.dimension = dimension;
 
     auto& t = proj.addComponent<TransformComponent>(pos.x - 4, pos.y - 4, 8, 8);
+    (void)t;
     auto& sprite = proj.addComponent<SpriteComponent>();
     if (piercing) {
         sprite.setColor(160, 80, 255); // Purple beam color for piercing

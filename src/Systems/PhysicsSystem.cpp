@@ -17,11 +17,14 @@ void PhysicsSystem::update(EntityManager& entities, float dt, Level* level, int 
         phys.wasOnGround = phys.onGround;
 
         applyGravity(*e, dt);
-        applyVelocity(*e, dt);
+        bool steppedCollision = applyVelocity(*e, dt, level, currentDimension);
+        if (!e->isAlive()) continue; // Projectile destroyed during substep
         phys.onIce = false; // Reset before this frame's tile checks
 
         if (level && e->hasComponent<ColliderComponent>()) {
-            resolveTerrainCollision(*e, level, currentDimension);
+            // Skip terrain resolution if stepped collision already handled it
+            if (!steppedCollision)
+                resolveTerrainCollision(*e, level, currentDimension);
 
             // Ice tile: set flag for next frame's friction reduction
             auto& t = e->getComponent<TransformComponent>();
@@ -91,7 +94,7 @@ void PhysicsSystem::applyGravity(Entity& entity, float dt) {
     }
 }
 
-void PhysicsSystem::applyVelocity(Entity& entity, float dt) {
+bool PhysicsSystem::applyVelocity(Entity& entity, float dt, Level* level, int currentDimension) {
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
 
@@ -110,7 +113,30 @@ void PhysicsSystem::applyVelocity(Entity& entity, float dt) {
         }
     }
 
+    // Stepped collision for fast-moving entities to prevent tunneling
+    bool hasCollider = level && entity.hasComponent<ColliderComponent>();
+    if (hasCollider) {
+        float speed = std::sqrt(phys.velocity.x * phys.velocity.x + phys.velocity.y * phys.velocity.y);
+        float maxStep = level->getTileSize() * 0.5f;
+        float totalDist = speed * dt;
+
+        if (totalDist > maxStep && speed > 0.0f) {
+            int steps = static_cast<int>(std::ceil(totalDist / maxStep));
+            // Cap to a sane maximum to avoid extreme subdivision
+            if (steps > 16) steps = 16;
+            float subDt = dt / steps;
+            for (int s = 0; s < steps; s++) {
+                transform.position += phys.velocity * subDt;
+                resolveTerrainCollision(entity, level, currentDimension);
+                if (!entity.isAlive()) break; // Projectile destroyed on hit
+            }
+            return true; // Terrain collision already resolved per substep
+        }
+    }
+
+    // Normal single-step movement for slow entities or those without colliders
     transform.position += phys.velocity * dt;
+    return false;
 }
 
 void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int currentDimension) {

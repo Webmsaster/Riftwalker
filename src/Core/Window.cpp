@@ -38,6 +38,7 @@ Window::~Window() {
 void Window::toggleFullscreen() {
     m_fullscreen = !m_fullscreen;
     SDL_SetWindowFullscreen(m_window, m_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+    SDL_GetWindowSize(m_window, &m_width, &m_height);
 }
 
 void Window::setTitle(const std::string& title) {

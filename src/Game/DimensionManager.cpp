@@ -59,8 +59,8 @@ void DimensionManager::update(float dt) {
         if (m_glitchIntensity < 0) m_glitchIntensity = 0;
     }
 
-    // Decay resonance over time
-    if (m_resonance > 0) {
+    // Decay resonance over time (not during switch animation — switching should never drain)
+    if (m_resonance > 0 && !m_switching) {
         m_resonance -= m_resonanceDecay * dt;
         if (m_resonance < 0) m_resonance = 0;
     }

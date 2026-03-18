@@ -17,6 +17,7 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
     e.dimension = dimension;
 
     auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 14, 14);
+    (void)t;
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(80, 230, 80);
     sprite.renderLayer = 3;
@@ -61,6 +62,7 @@ Entity& ItemDrop::spawnRiftShard(EntityManager& entities, Vec2 pos, int dimensio
     e.dimension = dimension;
 
     auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 12, 12);
+    (void)t;
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(180, 130, 255);
     sprite.renderLayer = 3;
@@ -96,6 +98,7 @@ Entity& ItemDrop::spawnShieldOrb(EntityManager& entities, Vec2 pos, int dimensio
     e.dimension = dimension;
 
     auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 14, 14);
+    (void)t;
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(100, 180, 255); // Blue shield
     sprite.renderLayer = 3;
@@ -130,6 +133,7 @@ Entity& ItemDrop::spawnSpeedBoost(EntityManager& entities, Vec2 pos, int dimensi
     e.dimension = dimension;
 
     auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 12, 12);
+    (void)t;
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(255, 255, 80); // Yellow speed
     sprite.renderLayer = 3;
@@ -163,6 +167,7 @@ Entity& ItemDrop::spawnDamageBoost(EntityManager& entities, Vec2 pos, int dimens
     e.dimension = dimension;
 
     auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 12, 12);
+    (void)t;
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(255, 80, 80); // Red damage
     sprite.renderLayer = 3;
@@ -228,6 +233,7 @@ Entity& ItemDrop::spawnWeaponDrop(EntityManager& entities, Vec2 pos, int dimensi
     e.dimension = dimension;
 
     auto& t = e.addComponent<TransformComponent>(pos.x, pos.y, 18, 18);
+    (void)t;
     auto& sprite = e.addComponent<SpriteComponent>();
     // Color by weapon type: melee=orange, ranged=cyan
     bool melee = WeaponSystem::isMelee(weapon);

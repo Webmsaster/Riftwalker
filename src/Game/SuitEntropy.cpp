@@ -39,6 +39,8 @@ void SuitEntropy::update(float dt) {
             m_forceSwitchTimer = 0;
             m_forceSwitch = true;
         }
+    } else {
+        m_forceSwitchTimer = 0; // Reset timer when entropy drops below threshold
     }
 }
 

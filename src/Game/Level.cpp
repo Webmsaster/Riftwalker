@@ -89,6 +89,7 @@ int Level::getAutoTileIndex(int tx, int ty, int dim) const {
 
 void Level::renderTilesetTile(SDL_Renderer* renderer, SDL_Rect destRect,
                                int tilesetRow, int tilesetCol, const Tile& tile) {
+    if (!m_tileset) return;
     SDL_Rect srcRect = {
         tilesetCol * m_tileSize,
         tilesetRow * m_tileSize,
@@ -313,9 +314,9 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
     SDL_RenderFillRect(renderer, &shade);
 
     // Highlight on exposed edges (brighter)
-    Uint8 hiR = std::min(255, tile.color.r + 35);
-    Uint8 hiG = std::min(255, tile.color.g + 35);
-    Uint8 hiB = std::min(255, tile.color.b + 35);
+    Uint8 hiR = static_cast<Uint8>(std::min(255, tile.color.r + 35));
+    Uint8 hiG = static_cast<Uint8>(std::min(255, tile.color.g + 35));
+    Uint8 hiB = static_cast<Uint8>(std::min(255, tile.color.b + 35));
 
     if (emptyAbove) {
         SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, 200);
@@ -350,15 +351,27 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
 }
 
 void Level::renderOneWayTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile) const {
-    // Top surface line (thick)
+    // Use tileset row 2, col 0 for one-way platforms
+    if (m_tileset) {
+        SDL_Rect srcRect = { 0, 2 * m_tileSize, m_tileSize, m_tileSize };
+        Uint8 modR = static_cast<Uint8>(tile.color.r + (255 - tile.color.r) * 7 / 10);
+        Uint8 modG = static_cast<Uint8>(tile.color.g + (255 - tile.color.g) * 7 / 10);
+        Uint8 modB = static_cast<Uint8>(tile.color.b + (255 - tile.color.b) * 7 / 10);
+        SDL_SetTextureColorMod(m_tileset, modR, modG, modB);
+        SDL_SetTextureAlphaMod(m_tileset, tile.color.a);
+        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
+        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
+        return;
+    }
+    // Procedural fallback: Top surface line (thick)
     SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, 255);
     SDL_Rect topBar = {sr.x, sr.y, sr.w, 4};
     SDL_RenderFillRect(renderer, &topBar);
 
     // Highlight on top
-    Uint8 hiR = std::min(255, tile.color.r + 50);
-    Uint8 hiG = std::min(255, tile.color.g + 50);
-    Uint8 hiB = std::min(255, tile.color.b + 50);
+    Uint8 hiR = static_cast<Uint8>(std::min(255, tile.color.r + 50));
+    Uint8 hiG = static_cast<Uint8>(std::min(255, tile.color.g + 50));
+    Uint8 hiB = static_cast<Uint8>(std::min(255, tile.color.b + 50));
     SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, 200);
     SDL_Rect highlight = {sr.x, sr.y, sr.w, 2};
     SDL_RenderFillRect(renderer, &highlight);
@@ -636,14 +649,25 @@ void Level::renderFireTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile
 }
 
 void Level::renderConveyorTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
-    // Base belt
+    // Use tileset row 1, col 8-11 for conveyor
+    if (m_tileset) {
+        int frame = (ticks / 150) % 4;
+        SDL_Rect srcRect = { (8 + frame) * m_tileSize, m_tileSize, m_tileSize, m_tileSize };
+        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
+        SDL_SetTextureAlphaMod(m_tileset, 255);
+        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
+        SDL_RendererFlip flip = (tile.variant == 1) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+        SDL_RenderCopyEx(renderer, m_tileset, &srcRect, &sr, 0, nullptr, flip);
+        return;
+    }
+    // Procedural fallback: Base belt
     SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, 255);
     SDL_RenderFillRect(renderer, &sr);
 
     // Top surface
-    Uint8 hiR = std::min(255, tile.color.r + 30);
-    Uint8 hiG = std::min(255, tile.color.g + 30);
-    Uint8 hiB = std::min(255, tile.color.b + 30);
+    Uint8 hiR = static_cast<Uint8>(std::min(255, tile.color.r + 30));
+    Uint8 hiG = static_cast<Uint8>(std::min(255, tile.color.g + 30));
+    Uint8 hiB = static_cast<Uint8>(std::min(255, tile.color.b + 30));
     SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, 255);
     SDL_Rect top = {sr.x, sr.y, sr.w, 3};
     SDL_RenderFillRect(renderer, &top);
@@ -671,7 +695,18 @@ void Level::renderConveyorTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& 
 }
 
 void Level::renderLaserEmitter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
-    // Dark metallic block
+    (void)tile;
+    // Use tileset row 1, col 12-15 for laser emitter
+    if (m_tileset) {
+        int frame = (ticks / 200) % 4;
+        SDL_Rect srcRect = { (12 + frame) * m_tileSize, m_tileSize, m_tileSize, m_tileSize };
+        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
+        SDL_SetTextureAlphaMod(m_tileset, 255);
+        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
+        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
+        return;
+    }
+    // Procedural fallback: Dark metallic block
     SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
     SDL_RenderFillRect(renderer, &sr);
 
@@ -882,7 +917,18 @@ void Level::updateTiles(float dt) {
 }
 
 void Level::renderIceTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
-    // Icy blue surface
+    (void)tile;
+    // Use tileset row 2, col 4-7 for ice tiles
+    if (m_tileset) {
+        int frame = (ticks / 400) % 4;
+        SDL_Rect srcRect = { (4 + frame) * m_tileSize, 2 * m_tileSize, m_tileSize, m_tileSize };
+        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
+        SDL_SetTextureAlphaMod(m_tileset, 230);
+        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
+        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
+        return;
+    }
+    // Procedural fallback: Icy blue surface
     SDL_SetRenderDrawColor(renderer, 140, 200, 240, 220);
     SDL_RenderFillRect(renderer, &sr);
     // Frost pattern
@@ -896,7 +942,18 @@ void Level::renderIceTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile,
 }
 
 void Level::renderGravityWell(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
-    // Dark purple background
+    (void)tile;
+    // Use tileset row 2, col 12-15 for gravity wells
+    if (m_tileset) {
+        int frame = (ticks / 300) % 4;
+        SDL_Rect srcRect = { (12 + frame) * m_tileSize, 2 * m_tileSize, m_tileSize, m_tileSize };
+        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
+        SDL_SetTextureAlphaMod(m_tileset, 220);
+        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
+        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
+        return;
+    }
+    // Procedural fallback: Dark purple background
     SDL_SetRenderDrawColor(renderer, 40, 20, 60, 200);
     SDL_RenderFillRect(renderer, &sr);
     // Swirling rings
@@ -918,7 +975,18 @@ void Level::renderGravityWell(SDL_Renderer* renderer, SDL_Rect sr, const Tile& t
 }
 
 void Level::renderTeleporter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
-    // Glowing portal
+    (void)tile;
+    // Use tileset row 3, col 10-11 for teleporter
+    if (m_tileset) {
+        int frame = (ticks / 300) % 2;
+        SDL_Rect srcRect = { (10 + frame) * m_tileSize, 3 * m_tileSize, m_tileSize, m_tileSize };
+        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
+        SDL_SetTextureAlphaMod(m_tileset, 230);
+        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
+        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
+        return;
+    }
+    // Procedural fallback: Glowing portal
     float time = ticks * 0.005f;
     float pulse = 0.5f + 0.5f * std::sin(time);
     // Base
@@ -939,6 +1007,7 @@ void Level::renderTeleporter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& ti
 }
 
 void Level::renderCrumblingTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
+    (void)ticks;
     if (tile.crumbled) return; // Don't render broken tiles
 
     // Base color with crumble shake

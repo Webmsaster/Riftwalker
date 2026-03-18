@@ -14,6 +14,9 @@
 extern bool g_autoSmokeTest;
 extern bool g_autoPlaytest;
 
+// Forward declaration (defined below update())
+static const char* getGrade(int rooms, int enemies, int rifts);
+
 void RunSummaryState::enter() {
     // Automated modes: auto-skip run summary
     if (g_autoSmokeTest || g_autoPlaytest) {
@@ -24,6 +27,7 @@ void RunSummaryState::enter() {
     m_fadeIn = 0;
     m_time = 0;
     m_statsTimer = 0;
+    m_gradeAchievementChecked = false;
 
     // Load today rank for the daily leaderboard display
     m_todayRank = 0;
@@ -37,7 +41,8 @@ void RunSummaryState::enter() {
 void RunSummaryState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN && m_fadeIn >= 1.0f) {
         if (event.key.keysym.scancode == SDL_SCANCODE_RETURN ||
-            event.key.keysym.scancode == SDL_SCANCODE_SPACE) {
+            event.key.keysym.scancode == SDL_SCANCODE_SPACE ||
+            event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
             game->changeState(StateID::Menu);
         } else if (event.key.keysym.scancode == SDL_SCANCODE_L && isDailyRun) {
             game->pushState(StateID::DailyLeaderboard);
@@ -52,6 +57,15 @@ void RunSummaryState::update(float dt) {
         if (m_fadeIn > 1.0f) m_fadeIn = 1.0f;
     }
     m_statsTimer += dt;
+
+    // One-shot S-grade achievement unlock (was incorrectly in render())
+    if (!m_gradeAchievementChecked) {
+        m_gradeAchievementChecked = true;
+        const char* grade = getGrade(roomsCleared, enemiesKilled, riftsRepaired);
+        if (grade[0] == 'S') {
+            game->getAchievements().unlock("grade_s");
+        }
+    }
 }
 
 static const char* getGrade(int rooms, int enemies, int rifts) {
@@ -106,12 +120,12 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             // Glow
             SDL_SetTextureBlendMode(tt, SDL_BLENDMODE_ADD);
             SDL_SetTextureAlphaMod(tt, static_cast<Uint8>(alpha * 0.15f));
-            SDL_Rect glowR = {640 - tw / 2 - 3, 67, tw + 6, th + 6};
+            SDL_Rect glowR = {SCREEN_WIDTH / 2 - tw / 2 - 3, 67, tw + 6, th + 6};
             SDL_RenderCopy(renderer, tt, nullptr, &glowR);
             // Main
             SDL_SetTextureBlendMode(tt, SDL_BLENDMODE_BLEND);
             SDL_SetTextureAlphaMod(tt, alpha);
-            SDL_Rect tr = {640 - tw / 2, 70, tw, th};
+            SDL_Rect tr = {SCREEN_WIDTH / 2 - tw / 2, 70, tw, th};
             SDL_RenderCopy(renderer, tt, nullptr, &tr);
             SDL_DestroyTexture(tt);
         }
@@ -139,7 +153,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_Texture* it = SDL_CreateTextureFromSurface(renderer, is);
             if (it) {
                 SDL_SetTextureAlphaMod(it, alpha);
-                SDL_Rect ir = {640 - is->w / 2, 152, is->w, is->h};
+                SDL_Rect ir = {SCREEN_WIDTH / 2 - is->w / 2, 152, is->w, is->h};
                 SDL_RenderCopy(renderer, it, nullptr, &ir);
                 SDL_DestroyTexture(it);
             }
@@ -163,7 +177,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
                     SDL_SetTextureAlphaMod(nt, ngA);
                     int nw = static_cast<int>(ns->w * 1.1f);
                     int nh = static_cast<int>(ns->h * 1.1f);
-                    SDL_Rect nr = {640 - nw / 2, 172, nw, nh};
+                    SDL_Rect nr = {SCREEN_WIDTH / 2 - nw / 2, 172, nw, nh};
                     SDL_RenderCopy(renderer, nt, nullptr, &nr);
                     SDL_DestroyTexture(nt);
                 }
@@ -185,7 +199,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
                 SDL_SetTextureAlphaMod(ct, alpha);
-                SDL_Rect cr = {640 - cs->w / 2, 172, cs->w, cs->h};
+                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 172, cs->w, cs->h};
                 SDL_RenderCopy(renderer, ct, nullptr, &cr);
                 SDL_DestroyTexture(ct);
             }
@@ -198,11 +212,6 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
     SDL_Color gradeColor = getGradeColor(grade);
     gradeColor.a = alpha;
 
-    // S-grade achievement
-    if (grade[0] == 'S') {
-        game->getAchievements().unlock("grade_s");
-    }
-
     if (m_statsTimer > 0.2f) {
         char gradeText[16];
         std::snprintf(gradeText, sizeof(gradeText), "Grade: %s", grade);
@@ -212,7 +221,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             if (gt) {
                 SDL_SetTextureAlphaMod(gt, alpha);
                 // Render grade larger
-                SDL_Rect gr = {640 - gs->w, 178, gs->w * 2, gs->h * 2};
+                SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w, 178, gs->w * 2, gs->h * 2};
                 SDL_RenderCopy(renderer, gt, nullptr, &gr);
                 SDL_DestroyTexture(gt);
             }
@@ -315,7 +324,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
                 SDL_SetTextureAlphaMod(ht, ba);
-                SDL_Rect hr = {640 - hs->w / 2, by + 4, hs->w, hs->h};
+                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, by + 4, hs->w, hs->h};
                 SDL_RenderCopy(renderer, ht, nullptr, &hr);
                 SDL_DestroyTexture(ht);
             }
@@ -407,7 +416,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
                 SDL_SetTextureAlphaMod(rt, ra);
                 int rw = static_cast<int>(rs->w * 1.5f);
                 int rh = static_cast<int>(rs->h * 1.5f);
-                SDL_Rect rr = {640 - rw / 2, recordY + 5, rw, rh};
+                SDL_Rect rr = {SCREEN_WIDTH / 2 - rw / 2, recordY + 5, rw, rh};
                 SDL_RenderCopy(renderer, rt, nullptr, &rr);
                 SDL_DestroyTexture(rt);
             }
@@ -417,7 +426,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         // Sparkle particles around record text
         for (int i = 0; i < 8; i++) {
             float angle = m_time * 2.0f + i * (6.283185f / 8);
-            int sx = 640 + static_cast<int>(std::cos(angle) * 180);
+            int sx = SCREEN_WIDTH / 2 + static_cast<int>(std::cos(angle) * 180);
             int sy = recordY + 20 + static_cast<int>(std::sin(angle) * 12);
             Uint8 sa = static_cast<Uint8>(ra * (0.5f + 0.5f * std::sin(m_time * 5.0f + i)));
             SDL_SetRenderDrawColor(renderer, 255, 230, 100, sa);
@@ -539,7 +548,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             if (dls) {
                 SDL_Texture* dlt = SDL_CreateTextureFromSurface(renderer, dls);
                 if (dlt) {
-                    SDL_Rect dlr = {640 - dls->w / 2, 640, dls->w, dls->h};
+                    SDL_Rect dlr = {SCREEN_WIDTH / 2 - dls->w / 2, 640, dls->w, dls->h};
                     SDL_RenderCopy(renderer, dlt, nullptr, &dlr);
                     SDL_DestroyTexture(dlt);
                 }
@@ -552,7 +561,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {640 - s->w / 2, 660, s->w, s->h};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 660, s->w, s->h};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }

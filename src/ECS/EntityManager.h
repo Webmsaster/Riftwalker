@@ -10,19 +10,18 @@ public:
     void update(float dt);
     void refresh(); // Remove dead entities
 
-    std::vector<Entity*> getEntitiesByTag(const std::string& tag) const;
-    std::vector<Entity*> getEntitiesInDimension(int dim) const;
+    const std::vector<Entity*>& getEntitiesByTag(const std::string& tag) const;
+    const std::vector<Entity*>& getEntitiesInDimension(int dim) const;
 
     template <typename T>
-    std::vector<Entity*> getEntitiesWithComponent() const {
-        std::vector<Entity*> result;
-        result.reserve(m_entities.size() / 2);
+    const std::vector<Entity*>& getEntitiesWithComponent() const {
+        m_componentQueryBuffer.clear();
         for (auto& e : m_entities) {
             if (e->isAlive() && e->hasComponent<T>()) {
-                result.push_back(e.get());
+                m_componentQueryBuffer.push_back(e.get());
             }
         }
-        return result;
+        return m_componentQueryBuffer;
     }
 
     void forEach(const std::function<void(Entity&)>& func);
@@ -31,4 +30,8 @@ public:
 
 private:
     std::vector<std::unique_ptr<Entity>> m_entities;
+    mutable std::vector<Entity*> m_snapshotBuffer;       // Reusable buffer for update()/forEach()
+    mutable std::vector<Entity*> m_tagQueryBuffer;       // Reusable buffer for getEntitiesByTag()
+    mutable std::vector<Entity*> m_dimQueryBuffer;       // Reusable buffer for getEntitiesInDimension()
+    mutable std::vector<Entity*> m_componentQueryBuffer; // Reusable buffer for getEntitiesWithComponent()
 };
