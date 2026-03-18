@@ -32,6 +32,12 @@ public:
     bool isDailyRun     = false;
     bool isNewDailyBest = false;
 
+    // Extended run stats
+    int dimensionSwitches = 0;
+    int damageTaken = 0;
+    int aerialKills = 0;
+    int dashKills = 0;
+
     // Balance summary
     float peakDmgRaw = 0;
     float peakDmgClamped = 0;

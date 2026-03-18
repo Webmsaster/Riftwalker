@@ -2,6 +2,8 @@
 #include "Components/RelicComponent.h"
 #include <vector>
 #include <functional>
+#include <random>
+#include <cstdint>
 
 class EntityManager;
 class Player;
@@ -10,6 +12,9 @@ struct CombatComponent;
 
 class RelicSystem {
 public:
+    // Seed the RNG for reproducible runs (e.g. daily run seed)
+    static void seed(uint32_t s);
+
     // Get static relic definitions
     static const RelicData& getRelicData(RelicID id);
     static const std::vector<RelicData>& getAllRelics();

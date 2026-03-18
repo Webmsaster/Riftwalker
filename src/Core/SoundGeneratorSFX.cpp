@@ -694,3 +694,31 @@ Mix_Chunk* SoundGenerator::chargeReady() {
     addSine(s, 1760.0f, 0.08f, 0.0f, 0.08f, 0.2f);  // A6 sparkle tail
     return toChunk(s);
 }
+
+// ---- Volume slider preview ping ----
+
+Mix_Chunk* SoundGenerator::volumePreview() {
+    // Short 440 Hz sine ping, 0.2s, clean fade-in/out
+    auto s = generate(0.2f);
+    addSine(s, 440.0f, 0.0f, 0.3f, 0.0f, 0.04f);   // fast attack
+    addSine(s, 440.0f, 0.3f, 0.0f, 0.04f, 0.2f);    // decay to silence
+    addSine(s, 880.0f, 0.0f, 0.08f, 0.02f, 0.12f);  // subtle overtone
+    return toChunk(s);
+}
+
+// ---- Technomancer shock trap placement sound ----
+
+Mix_Chunk* SoundGenerator::shockTrap() {
+    // Electric buzz: 120 Hz square wave with high-freq modulation, quick crack at end
+    auto s = generate(0.3f);
+    // Core electric buzz: square wave decaying over 0.25s
+    addSquare(s, 120.0f, 0.4f, 0.0f, 0.0f, 0.25f);
+    // High-frequency modulation sizzle
+    addSquare(s, 800.0f, 0.15f, 0.0f, 0.0f, 0.18f);
+    // Spark crackle burst at the end
+    addNoise(s, 0.0f, 0.25f, 0.22f, 0.27f);
+    addNoise(s, 0.25f, 0.0f, 0.27f, 0.3f);
+    // Sub-harmonic thud on placement
+    addSine(s, 60.0f, 0.3f, 0.0f, 0.0f, 0.08f);
+    return toChunk(s);
+}

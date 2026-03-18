@@ -31,4 +31,5 @@ private:
     bool isBackItem(int idx) const { return idx == static_cast<int>(m_items.size()) + 1; }
 
     void refreshBindings();
+    void confirmSelected();
 };

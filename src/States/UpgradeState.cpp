@@ -5,6 +5,11 @@
 #include <cstdio>
 #include <cmath>
 
+// Layout constants
+static constexpr int UPGRADE_MARGIN = 100;
+static constexpr int UPGRADE_ITEM_H = 65;
+static constexpr int UPGRADE_START_Y = 105;
+
 void UpgradeState::enter() {
     m_selectedUpgrade = 0;
     m_scrollOffset = 0;
@@ -12,10 +17,22 @@ void UpgradeState::enter() {
     m_flashTimer = 0;
 }
 
+void UpgradeState::purchaseSelected() {
+    auto& upgrades = game->getUpgradeSystem();
+    auto& upgradeList = upgrades.getUpgrades();
+    if (m_selectedUpgrade < static_cast<int>(upgradeList.size())) {
+        if (upgrades.purchaseUpgrade(upgradeList[m_selectedUpgrade].id)) {
+            m_flashTimer = 0.5f;
+            AudioManager::instance().play(SFX::Pickup);
+        }
+    }
+}
+
 void UpgradeState::handleEvent(const SDL_Event& event) {
+    auto& upgrades = game->getUpgradeSystem();
+    int total = static_cast<int>(upgrades.getUpgrades().size());
+
     if (event.type == SDL_KEYDOWN) {
-        auto& upgrades = game->getUpgradeSystem();
-        int total = static_cast<int>(upgrades.getUpgrades().size());
         if (total == 0) return;
 
         switch (event.key.keysym.scancode) {
@@ -36,17 +53,44 @@ void UpgradeState::handleEvent(const SDL_Event& event) {
                 if (m_selectedUpgrade < m_scrollOffset) m_scrollOffset = m_selectedUpgrade;
                 AudioManager::instance().play(SFX::MenuSelect);
                 break;
-            case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE: {
-                auto& upgradeList = upgrades.getUpgrades();
-                if (m_selectedUpgrade < static_cast<int>(upgradeList.size())) {
-                    if (upgrades.purchaseUpgrade(upgradeList[m_selectedUpgrade].id)) {
-                        m_flashTimer = 0.5f;
-                        AudioManager::instance().play(SFX::Pickup);
-                    }
+            case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
+                purchaseSelected();
+                break;
+            default: break;
+        }
+    }
+
+    // Mouse hover: update selection
+    if (event.type == SDL_MOUSEMOTION && total > 0) {
+        int mx = event.motion.x, my = event.motion.y;
+        const int margin = 100, itemH = 65, startY = 105;
+        int endIdx = std::min(m_scrollOffset + VISIBLE_ITEMS, total);
+        for (int i = m_scrollOffset; i < endIdx; i++) {
+            int y = startY + (i - m_scrollOffset) * itemH;
+            SDL_Rect card = {margin, y, SCREEN_WIDTH - margin * 2, itemH - 4};
+            if (mx >= card.x && mx < card.x + card.w && my >= card.y && my < card.y + card.h) {
+                if (i != m_selectedUpgrade) {
+                    m_selectedUpgrade = i;
+                    AudioManager::instance().play(SFX::MenuSelect);
                 }
                 break;
             }
-            default: break;
+        }
+    }
+
+    // Mouse click: select + purchase
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && total > 0) {
+        int mx = event.button.x, my = event.button.y;
+        const int margin = 100, itemH = 65, startY = 105;
+        int endIdx = std::min(m_scrollOffset + VISIBLE_ITEMS, total);
+        for (int i = m_scrollOffset; i < endIdx; i++) {
+            int y = startY + (i - m_scrollOffset) * itemH;
+            SDL_Rect card = {margin, y, SCREEN_WIDTH - margin * 2, itemH - 4};
+            if (mx >= card.x && mx < card.x + card.w && my >= card.y && my < card.y + card.h) {
+                m_selectedUpgrade = i;
+                purchaseSelected();
+                break;
+            }
         }
     }
 }
@@ -89,9 +133,9 @@ void UpgradeState::render(SDL_Renderer* renderer) {
     auto& upgrades = game->getUpgradeSystem();
     auto& upgradeList = upgrades.getUpgrades();
 
-    int margin = 100;
-    int itemH = 65;
-    int startY = 105;
+    int margin = UPGRADE_MARGIN;
+    int itemH  = UPGRADE_ITEM_H;
+    int startY = UPGRADE_START_Y;
 
     if (!font) return;
 

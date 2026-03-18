@@ -3,8 +3,14 @@
 #include "Game/RelicSynergy.h"
 #include "Components/HealthComponent.h"
 #include "Components/CombatComponent.h"
-#include <cstdlib>
 #include <algorithm>
+#include <random>
+
+static std::mt19937 s_rng{std::random_device{}()};
+
+void RelicSystem::seed(uint32_t s) {
+    s_rng.seed(s);
+}
 
 // === Balance Safety Rails ===
 static constexpr float MAX_ATK_SPEED_MULT = 1.6f;       // Hard cap on attack speed
@@ -113,7 +119,7 @@ std::vector<RelicID> RelicSystem::generateChoice(int difficulty, const std::vect
     // Pick unique relics
     std::vector<RelicID> choices;
     for (int i = 0; i < count && !pool.empty(); i++) {
-        int idx = std::rand() % pool.size();
+        int idx = std::uniform_int_distribution<int>(0, static_cast<int>(pool.size()) - 1)(s_rng);
         RelicID pick = pool[idx];
         // Remove all instances of this relic from pool
         pool.erase(std::remove(pool.begin(), pool.end(), pick), pool.end());
@@ -125,7 +131,7 @@ std::vector<RelicID> RelicSystem::generateChoice(int difficulty, const std::vect
 RelicID RelicSystem::generateDrop(int difficulty, const std::vector<ActiveRelic>& owned) {
     auto choices = generateChoice(difficulty, owned);
     if (choices.empty()) return RelicID::None;
-    return choices[std::rand() % choices.size()];
+    return choices[std::uniform_int_distribution<int>(0, static_cast<int>(choices.size()) - 1)(s_rng)];
 }
 
 std::vector<RelicID> RelicSystem::generateCursedChoice(int difficulty, const std::vector<ActiveRelic>& owned) {
@@ -146,7 +152,7 @@ std::vector<RelicID> RelicSystem::generateCursedChoice(int difficulty, const std
     // Pick up to 3 unique cursed relics
     std::vector<RelicID> choices;
     for (int i = 0; i < 3 && !pool.empty(); i++) {
-        int idx = std::rand() % pool.size();
+        int idx = std::uniform_int_distribution<int>(0, static_cast<int>(pool.size()) - 1)(s_rng);
         RelicID pick = pool[idx];
         pool.erase(std::remove(pool.begin(), pool.end(), pick), pool.end());
         choices.push_back(pick);
@@ -276,7 +282,7 @@ bool RelicSystem::rollEchoStrike(const RelicComponent& relics) {
     for (auto& r : relics.relics) {
         if (r.id == RelicID::EchoStrike) {
             float chance = RelicSynergy::getEchoStrikeChance(relics);
-            return (std::rand() % 100) < static_cast<int>(chance * 100);
+            return std::uniform_real_distribution<float>(0.0f, 1.0f)(s_rng) < chance;
         }
     }
     return false;
@@ -378,7 +384,7 @@ void RelicSystem::updateTimedEffects(RelicComponent& relics, float dt) {
             relics.chaosOrbTimer = 30.0f;
             // Pick a random common/rare effect
             int effects[] = {0, 1, 2, 3, 4, 5}; // IronHeart through LuckyCoin effects
-            relics.chaosOrbCurrentEffect = effects[std::rand() % 6];
+            relics.chaosOrbCurrentEffect = effects[std::uniform_int_distribution<int>(0, 5)(s_rng)];
         }
     }
 }
@@ -396,7 +402,7 @@ void RelicSystem::onEnemyKill(RelicComponent& relics) {
         if (relics.chaosRiftKillCount >= 10) {
             relics.chaosRiftKillCount = 0;
             relics.chaosRiftBuffTimer = 15.0f;
-            relics.chaosRiftBuffType = std::rand() % 4; // 0=speed, 1=dmg, 2=armor, 3=regen
+            relics.chaosRiftBuffType = std::uniform_int_distribution<int>(0, 3)(s_rng); // 0=speed, 1=dmg, 2=armor, 3=regen
         }
     }
 }

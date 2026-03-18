@@ -59,13 +59,20 @@ void OptionsState::handleEvent(const SDL_Event& event) {
             case SDL_SCANCODE_A: case SDL_SCANCODE_LEFT:
                 if (m_selected < static_cast<int>(m_options.size()) - 3) { // not Controls/Reset/Back
                     auto& opt = m_options[m_selected];
+                    int prevVal = opt.value;
                     if (opt.isToggle) {
                         opt.value = opt.value ? 0 : 1;
                     } else {
                         opt.value = std::max(opt.minVal, opt.value - opt.step);
                     }
                     applyOption(m_selected);
-                    AudioManager::instance().play(SFX::MenuSelect);
+                    // Play volume preview ping when a volume slider actually changed
+                    if (opt.value != prevVal &&
+                        (m_selected == OPT_MASTER || m_selected == OPT_SFX || m_selected == OPT_MUSIC)) {
+                        AudioManager::instance().play(SFX::VolumePreview);
+                    } else {
+                        AudioManager::instance().play(SFX::MenuSelect);
+                    }
                     game->saveSettings();
                 }
                 break;
@@ -73,13 +80,20 @@ void OptionsState::handleEvent(const SDL_Event& event) {
             case SDL_SCANCODE_D: case SDL_SCANCODE_RIGHT:
                 if (m_selected < static_cast<int>(m_options.size()) - 3) { // not Controls/Reset/Back
                     auto& opt = m_options[m_selected];
+                    int prevVal = opt.value;
                     if (opt.isToggle) {
                         opt.value = opt.value ? 0 : 1;
                     } else {
                         opt.value = std::min(opt.maxVal, opt.value + opt.step);
                     }
                     applyOption(m_selected);
-                    AudioManager::instance().play(SFX::MenuSelect);
+                    // Play volume preview ping when a volume slider actually changed
+                    if (opt.value != prevVal &&
+                        (m_selected == OPT_MASTER || m_selected == OPT_SFX || m_selected == OPT_MUSIC)) {
+                        AudioManager::instance().play(SFX::VolumePreview);
+                    } else {
+                        AudioManager::instance().play(SFX::MenuSelect);
+                    }
                     game->saveSettings();
                 }
                 break;

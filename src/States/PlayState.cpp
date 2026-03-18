@@ -119,6 +119,9 @@ void PlayState::startNewRun() {
     m_runSeed = (g_forcedRunSeed >= 0)
         ? g_forcedRunSeed
         : (m_isDailyRun ? DailyRun::getTodaySeed() : std::rand());
+    // Seed mt19937-based RNG in game systems for reproducibility
+    RelicSystem::seed(static_cast<uint32_t>(m_runSeed));
+    game->getRunBuffSystem().seed(static_cast<uint32_t>(m_runSeed));
     if (g_smokeRegression) {
         std::srand(static_cast<unsigned int>(m_runSeed));
     }
@@ -150,6 +153,8 @@ void PlayState::startNewRun() {
     m_dashKillsThisRun = 0;
     m_chargedKillsThisRun = 0;
     m_tookDamageThisLevel = false;
+    m_dimensionSwitches = 0;
+    m_totalDamageTaken = 0;
     m_pendingLevelGen = false;
     m_showRelicChoice = false;
     m_relicChoices.clear();
@@ -898,6 +903,7 @@ void PlayState::update(float dt) {
         if (dimLocked) {
             m_camera.shake(3.0f, 0.1f); // Feedback: can't switch
         } else if (m_dimManager.switchDimension()) {
+            m_dimensionSwitches++; // Track total dimension switches for run summary
             if (m_smokeTest) {
                 smokeLog("[SMOKE] DIM_STARTED floor=%d seed=%d current=%d switching=%d cooldown=%.2f",
                          m_currentDifficulty,
@@ -1467,6 +1473,7 @@ void PlayState::update(float dt) {
         if (evt.isPlayerDamage) {
             m_tookDamageThisLevel = true;
             m_tookDamageThisWave = true;
+            m_totalDamageTaken += static_cast<int>(evt.damage);
             // Screen shake + damage flash + hurt SFX on enemy combat hits
             // Skip if source already handled feedback (hazards, DoT)
             if (!evt.feedbackHandled) {
@@ -3014,6 +3021,10 @@ void PlayState::populateRunSummary(int runShards, bool isNewRecord) {
             summary->meleeWeapon = cb.currentMelee;
             summary->rangedWeapon = cb.currentRanged;
         }
+        summary->dimensionSwitches = m_dimensionSwitches;
+        summary->damageTaken = m_totalDamageTaken;
+        summary->aerialKills = m_aerialKillsThisRun;
+        summary->dashKills = m_dashKillsThisRun;
         summary->peakDmgRaw = m_balanceStats.peakDmgRaw;
         summary->peakDmgClamped = m_balanceStats.peakDmgClamped;
         summary->peakSpdRaw = m_balanceStats.peakSpdRaw;

@@ -1,4 +1,5 @@
 #include "ParticleSystem.h"
+#include "Core/Game.h"
 #include <cmath>
 #include <algorithm>
 
@@ -79,6 +80,10 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
             b = lerpByte(p.color.b, p.colorEnd.b, lifeRatio);
         }
         Uint8 alpha = static_cast<Uint8>(p.color.a * (1.0f - lifeRatio * lifeRatio));
+
+        // Apply color-blind filter to particle colors
+        SDL_Color filtered = applyColorBlind({r, g, b, alpha});
+        r = filtered.r; g = filtered.g; b = filtered.b;
 
         SDL_Rect rect = {
             static_cast<int>(screen.x - p.size / 2),

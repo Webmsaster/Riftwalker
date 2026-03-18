@@ -300,9 +300,10 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    int margin = 15;
-    int barW = 220;
-    int barH = 18;
+    // Scale all panel layout constants with g_hudScale
+    int margin = static_cast<int>(15 * g_hudScale);
+    int barW   = static_cast<int>(220 * g_hudScale);
+    int barH   = static_cast<int>(18 * g_hudScale);
 
     // Semi-transparent HUD backing panel
     SDL_Rect hudBg = {margin - 5, margin - 5, barW + 20, barH * 4 + 70};
@@ -314,9 +315,9 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Class icon (small colored square with class initial)
     if (player) {
         const auto& classData = ClassSystem::getData(player->playerClass);
-        int iconSize = 20;
+        int iconSize = static_cast<int>(20 * g_hudScale);
         int iconX = margin;
-        int iconY = margin - 2;
+        int iconY = margin - static_cast<int>(2 * g_hudScale);
 
         // Icon background
         SDL_SetRenderDrawColor(renderer, classData.color.r, classData.color.g, classData.color.b, 200);
@@ -417,7 +418,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
-    int hpBarOffset = 26; // offset HP bar to the right of class icon
+    int hpBarOffset = static_cast<int>(26 * g_hudScale); // offset HP bar to the right of class icon
 
     // HP Bar
     if (player && player->getEntity() && player->getEntity()->hasComponent<HealthComponent>()) {
@@ -536,9 +537,9 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Ability bar with cooldown indicators
     if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>()) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();
-        int abY = margin + (barH + 6) * 3;
-        int iconSize = 22;
-        int iconGap = 6;
+        int abY = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3;
+        int iconSize = static_cast<int>(22 * g_hudScale);
+        int iconGap  = static_cast<int>(6 * g_hudScale);
 
         struct AbilityInfo {
             float cooldownPct; // 0=on cooldown, 1=ready
@@ -647,10 +648,10 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
     // Active buff indicators (below ability bar)
     if (player) {
-        int buffY = margin + (barH + 6) * 3 + 36;
+        int buffY = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + static_cast<int>(36 * g_hudScale);
         int buffX = margin;
-        int buffSize = 16;
-        int buffGap = 4;
+        int buffSize = static_cast<int>(16 * g_hudScale);
+        int buffGap  = static_cast<int>(4 * g_hudScale);
 
         auto drawBuff = [&](const char* label, float timer, float maxTime, SDL_Color color) {
             if (timer <= 0) return;
@@ -697,9 +698,9 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Ability icons (below active buffs)
     if (player && player->getEntity() && player->getEntity()->hasComponent<AbilityComponent>()) {
         auto& abil = player->getEntity()->getComponent<AbilityComponent>();
-        int abStartY = margin + (barH + 6) * 3 + 58;
-        int abIconSize = 26;
-        int abIconGap = 6;
+        int abStartY  = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + static_cast<int>(58 * g_hudScale);
+        int abIconSize = static_cast<int>(26 * g_hudScale);
+        int abIconGap  = static_cast<int>(6 * g_hudScale);
 
         struct AbilityIconInfo {
             const char* label;

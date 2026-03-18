@@ -28,74 +28,110 @@ void KeybindingsState::refreshBindings() {
     }
 }
 
+void KeybindingsState::confirmSelected() {
+    if (isBackItem(m_selected)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::Options);
+    } else if (isResetItem(m_selected)) {
+        game->getInputMutable().resetToDefaults();
+        refreshBindings();
+        AudioManager::instance().play(SFX::MenuConfirm);
+    } else {
+        // Start listening for new key
+        m_listening = true;
+        m_blinkTimer = 0;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+}
+
 void KeybindingsState::handleEvent(const SDL_Event& event) {
-    if (event.type != SDL_KEYDOWN) return;
+    if (event.type == SDL_KEYDOWN) {
+        SDL_Scancode key = event.key.keysym.scancode;
 
-    SDL_Scancode key = event.key.keysym.scancode;
+        if (m_listening) {
+            // Cancel rebind
+            if (key == SDL_SCANCODE_ESCAPE) {
+                m_listening = false;
+                AudioManager::instance().play(SFX::MenuSelect);
+                return;
+            }
 
-    if (m_listening) {
-        // Cancel rebind
-        if (key == SDL_SCANCODE_ESCAPE) {
+            // Block F11 (fullscreen toggle) and debug keys
+            if (key == SDL_SCANCODE_F11 || key == SDL_SCANCODE_F3 ||
+                key == SDL_SCANCODE_F4 || key == SDL_SCANCODE_F6) return;
+
+            auto& input = game->getInputMutable();
+            Action currentAction = m_items[m_selected].action;
+            SDL_Scancode oldKey = m_items[m_selected].key;
+
+            // Check for conflict and swap
+            if (input.isKeyUsedByOtherAction(key, currentAction)) {
+                Action conflicting = input.getActionForKey(key);
+                input.rebindKey(conflicting, oldKey);
+            }
+
+            input.rebindKey(currentAction, key);
             m_listening = false;
-            AudioManager::instance().play(SFX::MenuSelect);
+            refreshBindings();
+            AudioManager::instance().play(SFX::MenuConfirm);
             return;
         }
 
-        // Block F11 (fullscreen toggle) and debug keys
-        if (key == SDL_SCANCODE_F11 || key == SDL_SCANCODE_F3 ||
-            key == SDL_SCANCODE_F4 || key == SDL_SCANCODE_F6) return;
+        // Normal navigation
+        switch (key) {
+            case SDL_SCANCODE_W: case SDL_SCANCODE_UP:
+                m_selected = (m_selected - 1 + totalItems()) % totalItems();
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
 
-        auto& input = game->getInputMutable();
-        Action currentAction = m_items[m_selected].action;
-        SDL_Scancode oldKey = m_items[m_selected].key;
+            case SDL_SCANCODE_S: case SDL_SCANCODE_DOWN:
+                m_selected = (m_selected + 1) % totalItems();
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
 
-        // Check for conflict and swap
-        if (input.isKeyUsedByOtherAction(key, currentAction)) {
-            Action conflicting = input.getActionForKey(key);
-            input.rebindKey(conflicting, oldKey);
-        }
+            case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
+                confirmSelected();
+                break;
 
-        input.rebindKey(currentAction, key);
-        m_listening = false;
-        refreshBindings();
-        AudioManager::instance().play(SFX::MenuConfirm);
-        return;
-    }
-
-    // Normal navigation
-    switch (key) {
-        case SDL_SCANCODE_W: case SDL_SCANCODE_UP:
-            m_selected = (m_selected - 1 + totalItems()) % totalItems();
-            AudioManager::instance().play(SFX::MenuSelect);
-            break;
-
-        case SDL_SCANCODE_S: case SDL_SCANCODE_DOWN:
-            m_selected = (m_selected + 1) % totalItems();
-            AudioManager::instance().play(SFX::MenuSelect);
-            break;
-
-        case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
-            if (isBackItem(m_selected)) {
+            case SDL_SCANCODE_ESCAPE:
                 AudioManager::instance().play(SFX::MenuConfirm);
                 game->changeState(StateID::Options);
-            } else if (isResetItem(m_selected)) {
-                game->getInputMutable().resetToDefaults();
-                refreshBindings();
-                AudioManager::instance().play(SFX::MenuConfirm);
-            } else {
-                // Start listening for new key
-                m_listening = true;
-                m_blinkTimer = 0;
-                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+
+            default: break;
+        }
+    }
+
+    // Mouse hover: update selection (not while listening for a key)
+    if (event.type == SDL_MOUSEMOTION && !m_listening) {
+        int mx = event.motion.x, my = event.motion.y;
+        const int startY = 120, itemH = 48, cardW = 500, cardX = 640 - cardW / 2;
+        for (int i = 0; i < totalItems(); i++) {
+            int y = startY + i * itemH;
+            SDL_Rect card = {cardX, y, cardW, itemH - 6};
+            if (mx >= card.x && mx < card.x + card.w && my >= card.y && my < card.y + card.h) {
+                if (i != m_selected) {
+                    m_selected = i;
+                    AudioManager::instance().play(SFX::MenuSelect);
+                }
+                break;
             }
-            break;
+        }
+    }
 
-        case SDL_SCANCODE_ESCAPE:
-            AudioManager::instance().play(SFX::MenuConfirm);
-            game->changeState(StateID::Options);
-            break;
-
-        default: break;
+    // Mouse click: select + confirm (not while listening)
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && !m_listening) {
+        int mx = event.button.x, my = event.button.y;
+        const int startY = 120, itemH = 48, cardW = 500, cardX = 640 - cardW / 2;
+        for (int i = 0; i < totalItems(); i++) {
+            int y = startY + i * itemH;
+            SDL_Rect card = {cardX, y, cardW, itemH - 6};
+            if (mx >= card.x && mx < card.x + card.w && my >= card.y && my < card.y + card.h) {
+                m_selected = i;
+                confirmSelected();
+                break;
+            }
+        }
     }
 }
 

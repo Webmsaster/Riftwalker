@@ -14,6 +14,7 @@ public:
 private:
     void renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, int y,
                     int w, int h, bool selected, bool affordable);
+    void confirmSelection();
 
     std::vector<RunBuff> m_offerings;
     int m_selectedIndex = 0;

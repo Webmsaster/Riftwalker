@@ -6,6 +6,14 @@
 #include <cstdio>
 #include <cmath>
 
+// Layout constants
+static constexpr int SHOP_CARD_W   = 220;
+static constexpr int SHOP_CARD_H   = 300;
+static constexpr int SHOP_CARD_GAP = 30;
+static constexpr int SHOP_CARD_Y   = 130;
+static constexpr int SHOP_SKIP_W   = 160;
+static constexpr int SHOP_SKIP_H   = 50;
+
 extern bool g_autoSmokeTest;
 extern bool g_autoPlaytest;
 
@@ -32,52 +40,116 @@ void ShopState::enter() {
 void ShopState::exit() {
 }
 
-void ShopState::handleEvent(const SDL_Event& event) {
-    if (event.type != SDL_KEYDOWN) return;
-
-    int totalOptions = static_cast<int>(m_offerings.size()) + 1; // +1 for Skip
-
-    switch (event.key.keysym.scancode) {
-        case SDL_SCANCODE_A: case SDL_SCANCODE_LEFT:
-            m_selectedIndex = (m_selectedIndex - 1 + totalOptions) % totalOptions;
-            AudioManager::instance().play(SFX::MenuSelect);
-            break;
-        case SDL_SCANCODE_D: case SDL_SCANCODE_RIGHT:
-            m_selectedIndex = (m_selectedIndex + 1) % totalOptions;
-            AudioManager::instance().play(SFX::MenuSelect);
-            break;
-        case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE: {
-            if (m_selectedIndex >= static_cast<int>(m_offerings.size())) {
-                // Skip - continue to next level
-                AudioManager::instance().play(SFX::MenuConfirm);
-                game->popState(); // Return to PlayState which will generate next level
-            } else {
-                // Try to purchase
-                auto& buffs = game->getRunBuffSystem();
-                int shards = game->getUpgradeSystem().getRiftShards();
-                auto& offering = m_offerings[m_selectedIndex];
-                if (shards >= offering.cost) {
-                    if (buffs.purchase(offering.id, shards)) {
-                        game->getUpgradeSystem().setRiftShards(shards);
-                        m_purchasedThisVisit = true;
-                        AudioManager::instance().play(SFX::Pickup);
-                        // Remove from offerings
-                        m_offerings.erase(m_offerings.begin() + m_selectedIndex);
-                        if (m_selectedIndex >= static_cast<int>(m_offerings.size())) {
-                            m_selectedIndex = static_cast<int>(m_offerings.size());
-                        }
-                    }
-                } else {
-                    AudioManager::instance().play(SFX::RiftFail);
+void ShopState::confirmSelection() {
+    if (m_selectedIndex >= static_cast<int>(m_offerings.size())) {
+        // Skip - continue to next level
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->popState();
+    } else {
+        // Try to purchase
+        auto& buffs = game->getRunBuffSystem();
+        int shards = game->getUpgradeSystem().getRiftShards();
+        auto& offering = m_offerings[m_selectedIndex];
+        if (shards >= offering.cost) {
+            if (buffs.purchase(offering.id, shards)) {
+                game->getUpgradeSystem().setRiftShards(shards);
+                m_purchasedThisVisit = true;
+                AudioManager::instance().play(SFX::Pickup);
+                // Remove from offerings
+                m_offerings.erase(m_offerings.begin() + m_selectedIndex);
+                if (m_selectedIndex >= static_cast<int>(m_offerings.size())) {
+                    m_selectedIndex = static_cast<int>(m_offerings.size());
                 }
             }
-            break;
+        } else {
+            AudioManager::instance().play(SFX::RiftFail);
         }
-        case SDL_SCANCODE_ESCAPE:
-            AudioManager::instance().play(SFX::MenuConfirm);
-            game->popState();
-            break;
-        default: break;
+    }
+}
+
+void ShopState::handleEvent(const SDL_Event& event) {
+    int totalOptions = static_cast<int>(m_offerings.size()) + 1; // +1 for Skip
+
+    if (event.type == SDL_KEYDOWN) {
+        switch (event.key.keysym.scancode) {
+            case SDL_SCANCODE_A: case SDL_SCANCODE_LEFT:
+                m_selectedIndex = (m_selectedIndex - 1 + totalOptions) % totalOptions;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_D: case SDL_SCANCODE_RIGHT:
+                m_selectedIndex = (m_selectedIndex + 1) % totalOptions;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
+                confirmSelection();
+                break;
+            case SDL_SCANCODE_ESCAPE:
+                AudioManager::instance().play(SFX::MenuConfirm);
+                game->popState();
+                break;
+            default: break;
+        }
+    }
+
+    // Mouse hover: highlight card or skip button
+    if (event.type == SDL_MOUSEMOTION) {
+        int mx = event.motion.x, my = event.motion.y;
+        int totalCards = static_cast<int>(m_offerings.size());
+        int cardW = 220, cardH = 300, cardGap = 30;
+        int totalWidth = totalCards * cardW + (totalCards - 1) * cardGap;
+        int startX = (Game::SCREEN_WIDTH - totalWidth) / 2;
+        int cardY = 130;
+
+        int newSel = -1;
+        for (int i = 0; i < totalCards; i++) {
+            int cx = startX + i * (cardW + cardGap);
+            if (mx >= cx && mx < cx + cardW && my >= cardY && my < cardY + cardH) {
+                newSel = i;
+                break;
+            }
+        }
+        if (newSel == -1) {
+            // Check skip button
+            int skipW = 160, skipH = 50;
+            int skipX = 640 - skipW / 2;
+            int skipY = cardY + cardH + 50;
+            if (mx >= skipX && mx < skipX + skipW && my >= skipY && my < skipY + skipH)
+                newSel = totalCards; // skip index
+        }
+        if (newSel >= 0 && newSel != m_selectedIndex) {
+            m_selectedIndex = newSel;
+            AudioManager::instance().play(SFX::MenuSelect);
+        }
+    }
+
+    // Mouse click: select + confirm
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        int mx = event.button.x, my = event.button.y;
+        int totalCards = static_cast<int>(m_offerings.size());
+        int cardW = 220, cardH = 300, cardGap = 30;
+        int totalWidth = totalCards * cardW + (totalCards - 1) * cardGap;
+        int startX = (Game::SCREEN_WIDTH - totalWidth) / 2;
+        int cardY = 130;
+
+        int clicked = -1;
+        for (int i = 0; i < totalCards; i++) {
+            int cx = startX + i * (cardW + cardGap);
+            if (mx >= cx && mx < cx + cardW && my >= cardY && my < cardY + cardH) {
+                clicked = i;
+                break;
+            }
+        }
+        if (clicked == -1) {
+            int skipW = 160, skipH = 50;
+            int skipX = 640 - skipW / 2;
+            int skipY = cardY + cardH + 50;
+            if (mx >= skipX && mx < skipX + skipW && my >= skipY && my < skipY + skipH)
+                clicked = totalCards;
+        }
+        if (clicked >= 0) {
+            m_selectedIndex = clicked;
+            confirmSelection();
+        }
     }
 }
 
@@ -140,11 +212,11 @@ void ShopState::render(SDL_Renderer* renderer) {
 
     // Cards layout
     int totalCards = static_cast<int>(m_offerings.size());
-    int cardW = 220, cardH = 300;
-    int cardGap = 30;
+    int cardW = SHOP_CARD_W, cardH = SHOP_CARD_H;
+    int cardGap = SHOP_CARD_GAP;
     int totalWidth = totalCards * cardW + (totalCards - 1) * cardGap;
     int startX = (Game::SCREEN_WIDTH - totalWidth) / 2;
-    int cardY = 130;
+    int cardY = SHOP_CARD_Y;
     int shards = game->getUpgradeSystem().getRiftShards();
 
     for (int i = 0; i < totalCards; i++) {
@@ -157,7 +229,7 @@ void ShopState::render(SDL_Renderer* renderer) {
     // Skip button
     {
         bool skipSelected = (m_selectedIndex >= totalCards);
-        int skipW = 160, skipH = 50;
+        int skipW = SHOP_SKIP_W, skipH = SHOP_SKIP_H;
         int skipX = 640 - skipW / 2;
         int skipY = cardY + cardH + 50;
 

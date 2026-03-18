@@ -74,6 +74,36 @@ void MenuState::handleEvent(const SDL_Event& event) {
             default: break;
         }
     }
+
+    if (event.type == SDL_MOUSEMOTION) {
+        int mx = event.motion.x, my = event.motion.y;
+        for (int i = 0; i < static_cast<int>(m_buttons.size()); i++) {
+            if (m_buttons[i].isHovered(mx, my)) {
+                if (i != m_selectedButton) {
+                    m_buttons[m_selectedButton].setSelected(false);
+                    m_selectedButton = i;
+                    m_buttons[m_selectedButton].setSelected(true);
+                    AudioManager::instance().play(SFX::MenuSelect);
+                }
+                break;
+            }
+        }
+    }
+
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        int mx = event.button.x, my = event.button.y;
+        for (int i = 0; i < static_cast<int>(m_buttons.size()); i++) {
+            if (m_buttons[i].isHovered(mx, my)) {
+                m_buttons[m_selectedButton].setSelected(false);
+                m_selectedButton = i;
+                m_buttons[m_selectedButton].setSelected(true);
+                AudioManager::instance().play(SFX::MenuConfirm);
+                if (m_buttons[m_selectedButton].onClick)
+                    m_buttons[m_selectedButton].onClick();
+                break;
+            }
+        }
+    }
 }
 
 void MenuState::update(float dt) {

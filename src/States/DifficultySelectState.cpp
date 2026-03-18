@@ -11,6 +11,17 @@ void DifficultySelectState::enter() {
     m_time = 0;
 }
 
+void DifficultySelectState::handleConfirm() {
+    g_selectedDifficulty = static_cast<GameDifficulty>(m_selected);
+    AudioManager::instance().play(SFX::MenuConfirm);
+    if (game->getUpgradeSystem().getMaxUnlockedNGPlus() >= 1) {
+        game->changeState(StateID::NGPlusSelect);
+    } else {
+        g_selectedNGPlus = 0;
+        game->changeState(StateID::Play);
+    }
+}
+
 void DifficultySelectState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
         switch (event.key.keysym.scancode) {
@@ -23,21 +34,45 @@ void DifficultySelectState::handleEvent(const SDL_Event& event) {
                 AudioManager::instance().play(SFX::MenuSelect);
                 break;
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
-                g_selectedDifficulty = static_cast<GameDifficulty>(m_selected);
-                AudioManager::instance().play(SFX::MenuConfirm);
-                // Route to NG+ selection if any NG+ tiers are unlocked, else start directly
-                if (game->getUpgradeSystem().getMaxUnlockedNGPlus() >= 1) {
-                    game->changeState(StateID::NGPlusSelect);
-                } else {
-                    g_selectedNGPlus = 0;
-                    game->changeState(StateID::Play);
-                }
+                handleConfirm();
                 break;
             case SDL_SCANCODE_ESCAPE:
                 AudioManager::instance().play(SFX::MenuConfirm);
                 game->changeState(StateID::Menu);
                 break;
             default: break;
+        }
+    }
+
+    // Card layout — mirrors render() calculations exactly
+    int cardH = 100;
+    int cardW = 500;
+    int cardX = SCREEN_WIDTH / 2 - cardW / 2;
+    int startY = 240;
+
+    if (event.type == SDL_MOUSEMOTION) {
+        int mx = event.motion.x, my = event.motion.y;
+        for (int i = 0; i < 3; i++) {
+            int y = startY + i * (cardH + 15);
+            if (mx >= cardX && mx < cardX + cardW && my >= y && my < y + cardH) {
+                if (i != m_selected) {
+                    m_selected = i;
+                    AudioManager::instance().play(SFX::MenuSelect);
+                }
+                break;
+            }
+        }
+    }
+
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        int mx = event.button.x, my = event.button.y;
+        for (int i = 0; i < 3; i++) {
+            int y = startY + i * (cardH + 15);
+            if (mx >= cardX && mx < cardX + cardW && my >= y && my < y + cardH) {
+                m_selected = i;
+                handleConfirm();
+                break;
+            }
         }
     }
 }

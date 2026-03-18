@@ -194,6 +194,10 @@ private:
     int m_chargedKillsThisRun = 0;
     bool m_tookDamageThisLevel = false;
 
+    // Extended run stats (for RunSummaryState)
+    int m_dimensionSwitches = 0;
+    int m_totalDamageTaken = 0;
+
     // Teleporter cooldown (reset per run)
     float m_teleportCooldown = 0;
 

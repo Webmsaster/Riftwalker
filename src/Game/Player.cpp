@@ -1040,7 +1040,7 @@ void Player::handleAbilities(float dt, const InputManager& input) {
 
             activeTraps++;
             trapCooldownTimer = trapCooldown;
-            AudioManager::instance().play(SFX::DimensionSwitch); // place sound
+            AudioManager::instance().play(SFX::ShockTrap); // placement buzz
 
             if (particles) {
                 particles->burst(spawnPos, 8, {255, 200, 50, 200}, 60.0f, 2.0f);

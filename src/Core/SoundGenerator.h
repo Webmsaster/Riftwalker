@@ -112,6 +112,12 @@ public:
     // Low HP warning heartbeat
     static Mix_Chunk* heartbeat();
 
+    // Volume slider preview ping
+    static Mix_Chunk* volumePreview();
+
+    // Technomancer shock trap placement sound
+    static Mix_Chunk* shockTrap();
+
     // Ambient music loops (~4 seconds each)
     static Mix_Chunk* ambientDimA(); // Cool, ethereal drone
     static Mix_Chunk* ambientDimB(); // Warm, ominous drone

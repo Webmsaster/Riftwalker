@@ -9,6 +9,7 @@ public:
     void render(SDL_Renderer* renderer) override;
 
 private:
+    void handleConfirm();
     int m_selected = 1; // Default: Normal
     float m_time = 0;
 };

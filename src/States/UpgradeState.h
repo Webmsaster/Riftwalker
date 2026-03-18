@@ -13,6 +13,7 @@ public:
 private:
     void renderText(SDL_Renderer* renderer, TTF_Font* font,
                     const char* text, int x, int y, SDL_Color color);
+    void purchaseSelected();
 
     int m_selectedUpgrade = 0;
     int m_scrollOffset = 0;

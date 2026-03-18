@@ -1,6 +1,7 @@
 #include "RunBuffSystem.h"
 #include "AscensionSystem.h"
 #include <algorithm>
+#include <random>
 
 RunBuffSystem::RunBuffSystem() {
     m_buffs = {
@@ -18,6 +19,10 @@ RunBuffSystem::RunBuffSystem() {
         {RunBuffID::PhantomStep,       "Phantom Step",      "Invincible After Dim-Switch",  80,  BuffTier::Legendary},
     };
     reset();
+}
+
+void RunBuffSystem::seed(uint32_t s) {
+    m_rng.seed(s);
 }
 
 void RunBuffSystem::reset() {
@@ -42,7 +47,7 @@ std::vector<RunBuff> RunBuffSystem::generateShopOffering(int difficulty) {
 
     // Shuffle and pick 3-4 items
     for (int i = static_cast<int>(available.size()) - 1; i > 0; i--) {
-        int j = std::rand() % (i + 1);
+        int j = std::uniform_int_distribution<int>(0, i)(m_rng);
         std::swap(available[i], available[j]);
     }
 

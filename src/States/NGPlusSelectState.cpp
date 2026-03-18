@@ -52,6 +52,16 @@ void NGPlusSelectState::enter() {
     m_time = 0;
 }
 
+void NGPlusSelectState::handleConfirm() {
+    if (m_selected > m_maxTier) {
+        AudioManager::instance().play(SFX::RiftFail);
+        return;
+    }
+    g_selectedNGPlus = m_selected;
+    AudioManager::instance().play(SFX::MenuConfirm);
+    game->changeState(StateID::Play);
+}
+
 void NGPlusSelectState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
         switch (event.key.keysym.scancode) {
@@ -64,19 +74,46 @@ void NGPlusSelectState::handleEvent(const SDL_Event& event) {
                 AudioManager::instance().play(SFX::MenuSelect);
                 break;
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
-                if (m_selected > m_maxTier) {
-                    AudioManager::instance().play(SFX::RiftFail);
-                    break;
-                }
-                g_selectedNGPlus = m_selected;
-                AudioManager::instance().play(SFX::MenuConfirm);
-                game->changeState(StateID::Play);
+                handleConfirm();
                 break;
             case SDL_SCANCODE_ESCAPE:
                 AudioManager::instance().play(SFX::MenuConfirm);
                 game->changeState(StateID::DifficultySelect);
                 break;
             default: break;
+        }
+    }
+
+    // Card layout mirrors render() calculations exactly
+    int cardW        = 700;
+    int cardH        = 78;
+    int cardX        = 640 - cardW / 2;
+    int startY       = 155;
+    int totalOptions = std::min(m_maxTier + 2, 6);
+
+    if (event.type == SDL_MOUSEMOTION) {
+        int mx = event.motion.x, my = event.motion.y;
+        for (int i = 0; i < totalOptions; i++) {
+            int y = startY + i * (cardH + 8);
+            if (mx >= cardX && mx < cardX + cardW && my >= y && my < y + cardH) {
+                if (i != m_selected) {
+                    m_selected = i;
+                    AudioManager::instance().play(SFX::MenuSelect);
+                }
+                break;
+            }
+        }
+    }
+
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        int mx = event.button.x, my = event.button.y;
+        for (int i = 0; i < totalOptions; i++) {
+            int y = startY + i * (cardH + 8);
+            if (mx >= cardX && mx < cardX + cardW && my >= y && my < y + cardH) {
+                m_selected = i;
+                handleConfirm();
+                break;
+            }
         }
     }
 }

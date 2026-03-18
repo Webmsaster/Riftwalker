@@ -11,6 +11,13 @@
 #include <cmath>
 #include <cstdio>
 
+// Layout constants
+static constexpr int PANEL_X      = 60;
+static constexpr int PANEL_Y      = 180;
+static constexpr int PANEL_W      = 1160;
+static constexpr int PANEL_H      = 460;
+static constexpr int BOTTOM_BAR_Y = 720 - 3; // SCREEN_HEIGHT - 3
+
 void PauseState::enter() {
     int cx = 640;
     int startY = 320;
@@ -72,6 +79,37 @@ void PauseState::handleEvent(const SDL_Event& event) {
             default: break;
         }
     }
+
+    if (event.type == SDL_MOUSEMOTION) {
+        int mx = event.motion.x, my = event.motion.y;
+        for (int i = 0; i < static_cast<int>(m_buttons.size()); i++) {
+            if (m_buttons[i].isHovered(mx, my)) {
+                if (i != m_selectedButton) {
+                    m_buttons[m_selectedButton].setSelected(false);
+                    m_selectedButton = i;
+                    m_buttons[m_selectedButton].setSelected(true);
+                    AudioManager::instance().play(SFX::MenuSelect);
+                    if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[2].setText("Abandon Run"); }
+                }
+                break;
+            }
+        }
+    }
+
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        int mx = event.button.x, my = event.button.y;
+        for (int i = 0; i < static_cast<int>(m_buttons.size()); i++) {
+            if (m_buttons[i].isHovered(mx, my)) {
+                m_buttons[m_selectedButton].setSelected(false);
+                m_selectedButton = i;
+                m_buttons[m_selectedButton].setSelected(true);
+                AudioManager::instance().play(SFX::MenuConfirm);
+                if (m_buttons[m_selectedButton].onClick)
+                    m_buttons[m_selectedButton].onClick();
+                break;
+            }
+        }
+    }
 }
 
 void PauseState::update(float dt) {
@@ -126,12 +164,12 @@ void PauseState::render(SDL_Renderer* renderer) {
     // Top/bottom border bars
     SDL_SetRenderDrawColor(renderer, 120, 80, 200, borderAlpha);
     SDL_Rect topBar = {0, 0, SCREEN_WIDTH, 3};
-    SDL_Rect botBar = {0, 717, SCREEN_WIDTH, 3};
+    SDL_Rect botBar = {0, BOTTOM_BAR_Y, SCREEN_WIDTH, 3};
     SDL_RenderFillRect(renderer, &topBar);
     SDL_RenderFillRect(renderer, &botBar);
 
     // Central panel background (wider to include stats)
-    SDL_Rect panelBg = {60, 180, 1160, 460};
+    SDL_Rect panelBg = {PANEL_X, PANEL_Y, PANEL_W, PANEL_H};
     SDL_SetRenderDrawColor(renderer, 10, 10, 20, 200);
     SDL_RenderFillRect(renderer, &panelBg);
     SDL_SetRenderDrawColor(renderer, 80, 60, 140, 100);
@@ -139,18 +177,18 @@ void PauseState::render(SDL_Renderer* renderer) {
 
     // Corner accents
     int cornerSize = 12;
-    int panelBot = 180 + 460;   // panel startY + panel height
-    int panelRight = 60 + 1160; // panel startX + panel width
+    int panelBot   = PANEL_Y + PANEL_H;
+    int panelRight = PANEL_X + PANEL_W;
     SDL_SetRenderDrawColor(renderer, 150, 100, 255, static_cast<Uint8>(100 + 50 * pulse));
     // Top-left
-    SDL_RenderDrawLine(renderer, 60, 180, 60 + cornerSize, 180);
-    SDL_RenderDrawLine(renderer, 60, 180, 60, 180 + cornerSize);
+    SDL_RenderDrawLine(renderer, PANEL_X, PANEL_Y, PANEL_X + cornerSize, PANEL_Y);
+    SDL_RenderDrawLine(renderer, PANEL_X, PANEL_Y, PANEL_X, PANEL_Y + cornerSize);
     // Top-right
-    SDL_RenderDrawLine(renderer, panelRight, 180, panelRight - cornerSize, 180);
-    SDL_RenderDrawLine(renderer, panelRight, 180, panelRight, 180 + cornerSize);
+    SDL_RenderDrawLine(renderer, panelRight, PANEL_Y, panelRight - cornerSize, PANEL_Y);
+    SDL_RenderDrawLine(renderer, panelRight, PANEL_Y, panelRight, PANEL_Y + cornerSize);
     // Bottom-left
-    SDL_RenderDrawLine(renderer, 60, panelBot, 60 + cornerSize, panelBot);
-    SDL_RenderDrawLine(renderer, 60, panelBot, 60, panelBot - cornerSize);
+    SDL_RenderDrawLine(renderer, PANEL_X, panelBot, PANEL_X + cornerSize, panelBot);
+    SDL_RenderDrawLine(renderer, PANEL_X, panelBot, PANEL_X, panelBot - cornerSize);
     // Bottom-right
     SDL_RenderDrawLine(renderer, panelRight, panelBot, panelRight - cornerSize, panelBot);
     SDL_RenderDrawLine(renderer, panelRight, panelBot, panelRight, panelBot - cornerSize);

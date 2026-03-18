@@ -23,8 +23,9 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         srcRect = anim.getCurrentSrcRect();
     }
 
-    // Apply color modulation and alpha
-    SDL_SetTextureColorMod(sprite.texture, sprite.color.r, sprite.color.g, sprite.color.b);
+    // Apply color modulation and alpha (run through color-blind filter)
+    SDL_Color filteredColor = applyColorBlind(sprite.color);
+    SDL_SetTextureColorMod(sprite.texture, filteredColor.r, filteredColor.g, filteredColor.b);
     SDL_SetTextureAlphaMod(sprite.texture, static_cast<Uint8>(sprite.color.a * alpha));
     SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
 

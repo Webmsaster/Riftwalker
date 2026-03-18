@@ -38,6 +38,8 @@ enum class SFX {
     LoreDiscover,
     ChargeReady,
     Heartbeat,
+    VolumePreview,
+    ShockTrap,
     COUNT
 };
 

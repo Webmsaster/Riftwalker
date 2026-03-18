@@ -11,6 +11,7 @@ public:
     void render(SDL_Renderer* renderer) override;
 
 private:
+    void handleConfirm();
     int m_selected = 0;   // currently highlighted tier (0=Normal, 1-5=NG+X)
     int m_maxTier = 0;    // highest unlocked tier
     float m_time = 0;

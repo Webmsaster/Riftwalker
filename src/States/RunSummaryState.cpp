@@ -232,16 +232,20 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
     // Stats (reveal one by one)
     struct Stat { const char* label; int value; SDL_Color barColor; };
     Stat stats[] = {
-        {"Rooms Cleared", roomsCleared, {100, 200, 255, 255}},
-        {"Enemies Defeated", enemiesKilled, {255, 100, 80, 255}},
-        {"Rifts Repaired", riftsRepaired, {180, 100, 255, 255}},
-        {"Shards Earned", shardsEarned, {255, 200, 80, 255}},
-        {"Relics Collected", relicsCollected, {200, 140, 255, 255}},
-        {"Best Combo", bestCombo, {255, 180, 60, 255}},
-        {"Total Runs", game->getUpgradeSystem().totalRuns, {150, 150, 180, 255}},
+        {"Rooms Cleared",     roomsCleared,                             {100, 200, 255, 255}},
+        {"Enemies Defeated",  enemiesKilled,                            {255, 100,  80, 255}},
+        {"Rifts Repaired",    riftsRepaired,                            {180, 100, 255, 255}},
+        {"Shards Earned",     shardsEarned,                             {255, 200,  80, 255}},
+        {"Relics Collected",  relicsCollected,                          {200, 140, 255, 255}},
+        {"Best Combo",        bestCombo,                                {255, 180,  60, 255}},
+        {"Dim Switches",      dimensionSwitches,                        { 80, 210, 255, 255}},
+        {"Damage Taken",      damageTaken,                              {255,  80, 120, 255}},
+        {"Aerial Kills",      aerialKills,                              {180, 255, 140, 255}},
+        {"Dash Kills",        dashKills,                                {120, 200, 255, 255}},
+        {"Total Runs",        game->getUpgradeSystem().totalRuns,       {150, 150, 180, 255}},
     };
 
-    int statCount = 7;
+    int statCount = 11;
     int baseY = 250;
     int statH = 38;
     float revealDelay = 0.35f;

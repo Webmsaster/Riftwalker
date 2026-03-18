@@ -37,6 +37,46 @@ void ClassSelectState::handleEvent(const SDL_Event& event) {
             default: break;
         }
     }
+
+    // Card layout — mirrors render() calculations exactly
+    int cardW = (ClassSystem::CLASS_COUNT <= 3) ? 340 : 280;
+    int cardH = 440;
+    int gap   = (ClassSystem::CLASS_COUNT <= 3) ? 30  : 20;
+    int totalW = cardW * ClassSystem::CLASS_COUNT + gap * (ClassSystem::CLASS_COUNT - 1);
+    int startX = SCREEN_WIDTH / 2 - totalW / 2;
+    int cardY  = 110;
+
+    if (event.type == SDL_MOUSEMOTION) {
+        int mx = event.motion.x, my = event.motion.y;
+        for (int i = 0; i < ClassSystem::CLASS_COUNT; i++) {
+            int cx = startX + i * (cardW + gap);
+            if (mx >= cx && mx < cx + cardW && my >= cardY && my < cardY + cardH) {
+                if (i != m_selected) {
+                    m_selected = i;
+                    AudioManager::instance().play(SFX::MenuSelect);
+                }
+                break;
+            }
+        }
+    }
+
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        int mx = event.button.x, my = event.button.y;
+        for (int i = 0; i < ClassSystem::CLASS_COUNT; i++) {
+            int cx = startX + i * (cardW + gap);
+            if (mx >= cx && mx < cx + cardW && my >= cardY && my < cardY + cardH) {
+                m_selected = i;
+                if (ClassSystem::isUnlocked(static_cast<PlayerClass>(m_selected))) {
+                    g_selectedClass = static_cast<PlayerClass>(m_selected);
+                    AudioManager::instance().play(SFX::MenuConfirm);
+                    game->changeState(StateID::DifficultySelect);
+                } else {
+                    AudioManager::instance().play(SFX::RiftFail);
+                }
+                break;
+            }
+        }
+    }
 }
 
 void ClassSelectState::update(float dt) {

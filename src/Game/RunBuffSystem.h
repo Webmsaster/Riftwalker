@@ -2,7 +2,8 @@
 #include <SDL2/SDL.h>
 #include <string>
 #include <vector>
-#include <cstdlib>
+#include <random>
+#include <cstdint>
 
 enum class BuffTier { Common = 0, Rare = 1, Legendary = 2 };
 
@@ -36,6 +37,9 @@ public:
     RunBuffSystem();
 
     void reset(); // Clear all buffs for new run
+
+    // Seed the RNG for reproducible runs (e.g. daily run seed)
+    void seed(uint32_t s);
 
     // Shop: generate random selection
     std::vector<RunBuff> generateShopOffering(int difficulty);
@@ -71,4 +75,5 @@ private:
     std::vector<RunBuff> m_buffs;
     bool m_active[static_cast<int>(RunBuffID::COUNT)] = {};
     bool m_extraLifeAvailable = false;
+    std::mt19937 m_rng{std::random_device{}()};
 };
