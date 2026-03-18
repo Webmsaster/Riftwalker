@@ -1600,14 +1600,17 @@ void PlayState::update(float dt) {
                     if (m_currentDifficulty >= 11 && bossIdx >= 5) {
                         // Entropy Incarnate killed
                         Bestiary::onBossKill(5);
+                        Bestiary::save("bestiary_save.dat");
                         AudioManager::instance().play(SFX::LoreDiscover);
                     } else if (m_currentDifficulty >= 10 && bossIdx >= 4) {
                         // Void Sovereign killed
                         lore->discover(LoreID::SovereignTruth);
                         Bestiary::onBossKill(4);
+                        Bestiary::save("bestiary_save.dat");
                         AudioManager::instance().play(SFX::LoreDiscover);
                     } else {
                         Bestiary::onBossKill(bossTypeForLore);
+                        Bestiary::save("bestiary_save.dat");
                         if (bossTypeForLore == 0) lore->discover(LoreID::BossMemory1);
                         else if (bossTypeForLore == 1) lore->discover(LoreID::BossMemory2);
                         else if (bossTypeForLore == 2) lore->discover(LoreID::BossMemory3);
@@ -2622,6 +2625,8 @@ void PlayState::checkExitReached() {
         }
         m_levelComplete = true;
         m_levelCompleteTimer = 0;
+        // Persist bestiary progress on level exit
+        Bestiary::save("bestiary_save.dat");
         // Flawless Floor: completed level without taking damage
         if (!m_tookDamageThisLevel) {
             game->getAchievements().unlock("flawless_floor");

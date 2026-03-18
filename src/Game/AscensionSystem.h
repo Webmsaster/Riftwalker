@@ -17,6 +17,7 @@ struct AscensionLevel {
     bool keepWeaponUpgrade = false;
     bool extraShopSlot = false;
     bool abilitiesStartHalfCD = false;
+    bool bossExtraPhase = false;     // Bosses get a 4th phase at 15% HP
 };
 
 class AscensionSystem {

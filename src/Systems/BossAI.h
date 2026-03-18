@@ -5,6 +5,7 @@
 // dependencies so individual boss files stay concise.
 
 #include "AISystem.h"
+#include "Game/AscensionSystem.h"
 #include "Components/AIComponent.h"
 #include "Components/TransformComponent.h"
 #include "Components/PhysicsBody.h"

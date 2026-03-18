@@ -11,7 +11,16 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
     if (entity.hasComponent<HealthComponent>()) {
         auto& hp = entity.getComponent<HealthComponent>();
         float hpPct = hp.getPercent();
-        if (hpPct < 0.33f && ai.bossPhase < 3) {
+        // Phase 4 (Ascension 7+): boss extra phase at 15% HP
+        bool extraPhase = (AscensionSystem::currentLevel > 0 &&
+            AscensionSystem::getLevel(AscensionSystem::currentLevel).bossExtraPhase);
+        if (extraPhase && hpPct < 0.15f && ai.bossPhase < 4) {
+            ai.bossPhase = 4;
+            ai.bossEnraged = true;
+            if (m_camera) m_camera->shake(20.0f, 0.8f);
+            if (m_particles) m_particles->burst(pos, 70, {255, 30, 30, 255}, 400.0f, 6.0f);
+            AudioManager::instance().play(SFX::SuitEntropyCritical);
+        } else if (hpPct < 0.33f && ai.bossPhase < 3) {
             ai.bossPhase = 3;
             ai.bossEnraged = true;
             if (m_camera) m_camera->shake(15.0f, 0.5f);
@@ -334,6 +343,7 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
             case 1: sprite.setColor(200, static_cast<Uint8>(40 + 40 * pulse), 180); break;
             case 2: sprite.setColor(220, static_cast<Uint8>(100 * pulse), 100); break;
             case 3: sprite.setColor(255, static_cast<Uint8>(40 * pulse), static_cast<Uint8>(40 * pulse)); break;
+            case 4: sprite.setColor(255, static_cast<Uint8>(20 * pulse), static_cast<Uint8>(60 + 40 * pulse)); break; // Deep crimson-magenta
         }
     }
 }

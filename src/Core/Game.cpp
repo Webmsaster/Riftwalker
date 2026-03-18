@@ -169,6 +169,29 @@ void Game::handleEvents() {
             m_window->toggleFullscreen();
         }
 
+        if (event.type == SDL_WINDOWEVENT &&
+            event.window.event == SDL_WINDOWEVENT_RESIZED) {
+            m_window->onResize(event.window.data1, event.window.data2);
+        }
+
+        // Map raw window mouse coordinates to logical (1280x720) space so all
+        // states work correctly regardless of current window size.
+        SDL_Renderer* ren = m_window->getSDLRenderer();
+        if (event.type == SDL_MOUSEMOTION) {
+            float lx, ly;
+            SDL_RenderWindowToLogical(ren,
+                event.motion.x, event.motion.y, &lx, &ly);
+            event.motion.x = static_cast<Sint32>(lx);
+            event.motion.y = static_cast<Sint32>(ly);
+        } else if (event.type == SDL_MOUSEBUTTONDOWN ||
+                   event.type == SDL_MOUSEBUTTONUP) {
+            float lx, ly;
+            SDL_RenderWindowToLogical(ren,
+                event.button.x, event.button.y, &lx, &ly);
+            event.button.x = static_cast<Sint32>(lx);
+            event.button.y = static_cast<Sint32>(ly);
+        }
+
         m_input.handleEvent(event);
 
         if (m_currentState) {

@@ -11,7 +11,16 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityMa
     if (entity.hasComponent<HealthComponent>()) {
         auto& hp = entity.getComponent<HealthComponent>();
         float hpPct = hp.getPercent();
-        if (hpPct < 0.33f && ai.bossPhase < 3) {
+        // Phase 4 (Ascension 7+): boss extra phase at 15% HP
+        bool extraPhase = (AscensionSystem::currentLevel > 0 &&
+            AscensionSystem::getLevel(AscensionSystem::currentLevel).bossExtraPhase);
+        if (extraPhase && hpPct < 0.15f && ai.bossPhase < 4) {
+            ai.bossPhase = 4;
+            ai.bossEnraged = true;
+            if (m_camera) m_camera->shake(20.0f, 0.8f);
+            if (m_particles) m_particles->burst(pos, 70, {50, 255, 80, 255}, 400.0f, 6.0f);
+            AudioManager::instance().play(SFX::SuitEntropyCritical);
+        } else if (hpPct < 0.33f && ai.bossPhase < 3) {
             ai.bossPhase = 3;
             ai.bossEnraged = true;
             if (m_camera) m_camera->shake(15.0f, 0.5f);
@@ -346,6 +355,7 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityMa
             case 1: sprite.setColor(40, static_cast<Uint8>(160 + 40 * pulse), 120); break;
             case 2: sprite.setColor(60, static_cast<Uint8>(200 + 55 * pulse), 80); break;
             case 3: sprite.setColor(static_cast<Uint8>(100 + 80 * pulse), 255, static_cast<Uint8>(60 * pulse)); break;
+            case 4: sprite.setColor(static_cast<Uint8>(160 + 80 * pulse), 255, static_cast<Uint8>(100 + 60 * pulse)); break; // Bright toxic green
         }
     }
 }

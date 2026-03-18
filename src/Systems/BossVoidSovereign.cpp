@@ -16,7 +16,14 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
 
     // Phase transitions
     float hpPct = hp.getPercent();
-    if (hpPct <= 0.4f && ai.bossPhase < 3) {
+    bool extraPhase = (AscensionSystem::currentLevel > 0 &&
+        AscensionSystem::getLevel(AscensionSystem::currentLevel).bossExtraPhase);
+    if (extraPhase && hpPct <= 0.15f && ai.bossPhase < 4) {
+        ai.bossPhase = 4;
+        if (m_camera) m_camera->shake(20.0f, 1.0f);
+        if (m_particles) m_particles->burst(pos, 70, {200, 0, 255, 255}, 400.0f, 7.0f);
+        AudioManager::instance().play(SFX::SuitEntropyCritical);
+    } else if (hpPct <= 0.4f && ai.bossPhase < 3) {
         ai.bossPhase = 3;
         if (m_camera) m_camera->shake(15.0f, 0.8f);
     } else if (hpPct <= 0.7f && ai.bossPhase < 2) {
@@ -402,5 +409,8 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
         case 3:
             sprite.setColor(static_cast<Uint8>(140 + 80 * pulse), static_cast<Uint8>(40 * pulse), static_cast<Uint8>(180 + 60 * pulse));
             break;
+        case 4:
+            sprite.setColor(static_cast<Uint8>(200 + 55 * pulse), static_cast<Uint8>(30 * pulse), static_cast<Uint8>(220 + 35 * pulse));
+            break; // Bright void purple
     }
 }

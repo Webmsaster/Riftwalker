@@ -11,10 +11,13 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
     float hpPct = hp.getPercent();
 
     // Phase transitions
-    int newPhase = (hpPct > 0.66f) ? 1 : (hpPct > 0.33f) ? 2 : 3;
+    bool extraPhase = (AscensionSystem::currentLevel > 0 &&
+        AscensionSystem::getLevel(AscensionSystem::currentLevel).bossExtraPhase);
+    int newPhase = (extraPhase && hpPct <= 0.15f) ? 4 :
+                   (hpPct > 0.66f) ? 1 : (hpPct > 0.33f) ? 2 : 3;
     if (newPhase != ai.bossPhase) {
         ai.bossPhase = newPhase;
-        ai.archSwapSize = (newPhase == 1) ? 3 : (newPhase == 2) ? 5 : 7;
+        ai.archSwapSize = (newPhase == 1) ? 3 : (newPhase == 2) ? 5 : (newPhase == 3) ? 7 : 9;
         // Reset timers so next attacks use new phase parameters
         ai.archSwapTimer = 1.5f;
         ai.archRiftTimer = 2.0f;
@@ -298,6 +301,7 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
             case 1: sprite.setColor(80, static_cast<Uint8>(150 + 40 * pulse), 255); break;
             case 2: sprite.setColor(static_cast<Uint8>(120 + 40 * pulse), 100, 255); break;
             case 3: sprite.setColor(static_cast<Uint8>(180 + 75 * pulse), static_cast<Uint8>(60 * pulse), 255); break;
+            case 4: sprite.setColor(static_cast<Uint8>(220 + 35 * pulse), static_cast<Uint8>(40 * pulse), static_cast<Uint8>(200 + 55 * pulse)); break; // Bright magenta
         }
     }
 }

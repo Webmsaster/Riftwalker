@@ -1525,6 +1525,9 @@ void PlayState::renderKeyBox(SDL_Renderer* renderer, TTF_Font* font,
 void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
     if (!font) return;
 
+    // Only show tutorial hints on the first run (totalRuns == 0 means no completed run yet)
+    if (game->getUpgradeSystem().totalRuns > 0) return;
+
     // Context-based hint system: show hints when conditions are met
     const char* hint = nullptr;
     const char* keyLabel = nullptr;

@@ -28,6 +28,7 @@ Window::Window(const std::string& title, int width, int height, bool fullscreen)
     }
 
     SDL_RenderSetLogicalSize(m_renderer, width, height);
+    SDL_SetWindowMinimumSize(m_window, 640, 360);
 }
 
 Window::~Window() {
@@ -43,4 +44,12 @@ void Window::toggleFullscreen() {
 
 void Window::setTitle(const std::string& title) {
     SDL_SetWindowTitle(m_window, title.c_str());
+}
+
+void Window::onResize(int w, int h) {
+    m_width  = w;
+    m_height = h;
+    // Update title bar to show current window resolution
+    SDL_SetWindowTitle(m_window,
+        ("Riftwalker [" + std::to_string(w) + "x" + std::to_string(h) + "]").c_str());
 }

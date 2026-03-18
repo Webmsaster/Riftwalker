@@ -27,16 +27,18 @@ void PauseState::enter() {
 
     m_buttons.clear();
     m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, "Resume");
-    m_buttons.emplace_back(cx - btnW / 2, startY + btnH + gap, btnW, btnH, "Daily Leaderboard");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Abandon Run");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Quit to Menu");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 1, btnW, btnH, "Daily Leaderboard");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Options");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Abandon Run");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, "Quit to Menu");
 
     m_buttons[0].onClick = [this]() { game->popState(); };
     m_buttons[1].onClick = [this]() { game->pushState(StateID::DailyLeaderboard); };
-    m_buttons[2].onClick = [this]() {
+    m_buttons[2].onClick = [this]() { game->pushState(StateID::Options); };
+    m_buttons[3].onClick = [this]() {
         if (!m_confirmAbandon) {
             m_confirmAbandon = true;
-            m_buttons[2].setText("Confirm Abandon?");
+            m_buttons[3].setText("Confirm Abandon?");
             return;
         }
         if (auto* playState = dynamic_cast<PlayState*>(game->getState(StateID::Play))) {
@@ -45,7 +47,7 @@ void PauseState::enter() {
         }
         game->changeState(StateID::Menu);
     };
-    m_buttons[3].onClick = [this]() { game->changeState(StateID::Menu); };
+    m_buttons[4].onClick = [this]() { game->changeState(StateID::Menu); };
 
     m_selectedButton = 0;
     m_buttons[0].setSelected(true);
@@ -62,14 +64,14 @@ void PauseState::handleEvent(const SDL_Event& event) {
                 m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
                 m_buttons[m_selectedButton].setSelected(true);
                 AudioManager::instance().play(SFX::MenuSelect);
-                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[2].setText("Abandon Run"); }
+                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[3].setText("Abandon Run"); }
                 break;
             case SDL_SCANCODE_S: case SDL_SCANCODE_DOWN:
                 m_buttons[m_selectedButton].setSelected(false);
                 m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
                 m_buttons[m_selectedButton].setSelected(true);
                 AudioManager::instance().play(SFX::MenuSelect);
-                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[2].setText("Abandon Run"); }
+                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[3].setText("Abandon Run"); }
                 break;
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
                 AudioManager::instance().play(SFX::MenuConfirm);
@@ -89,7 +91,7 @@ void PauseState::handleEvent(const SDL_Event& event) {
                     m_selectedButton = i;
                     m_buttons[m_selectedButton].setSelected(true);
                     AudioManager::instance().play(SFX::MenuSelect);
-                    if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[2].setText("Abandon Run"); }
+                    if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[3].setText("Abandon Run"); }
                 }
                 break;
             }
@@ -124,14 +126,14 @@ void PauseState::update(float dt) {
         m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
         m_buttons[m_selectedButton].setSelected(true);
         AudioManager::instance().play(SFX::MenuSelect);
-        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[2].setText("Abandon Run"); }
+        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[3].setText("Abandon Run"); }
     }
     if (input.isActionPressed(Action::MenuDown)) {
         m_buttons[m_selectedButton].setSelected(false);
         m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
         m_buttons[m_selectedButton].setSelected(true);
         AudioManager::instance().play(SFX::MenuSelect);
-        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[2].setText("Abandon Run"); }
+        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[3].setText("Abandon Run"); }
     }
     if (input.isActionPressed(Action::Confirm)) {
         AudioManager::instance().play(SFX::MenuConfirm);
@@ -231,7 +233,7 @@ void PauseState::render(SDL_Renderer* renderer) {
     // Buttons
     for (int i = 0; i < static_cast<int>(m_buttons.size()); i++) {
         // Highlight Abandon Run button in red while confirming
-        if (i == 2 && m_confirmAbandon) {
+        if (i == 3 && m_confirmAbandon) {
             SDL_Color savedNormal = m_buttons[i].normalColor;
             SDL_Color savedSelected = m_buttons[i].selectedColor;
             SDL_Color savedText = m_buttons[i].textColor;

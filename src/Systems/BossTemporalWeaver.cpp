@@ -9,7 +9,10 @@ void AISystem::updateTemporalWeaver(Entity& entity, float dt, Vec2 playerPos, En
 
     // Phase determination based on HP
     float hpPct = hp.getPercent();
-    if (hpPct > 0.66f) ai.bossPhase = 1;
+    bool extraPhase = (AscensionSystem::currentLevel > 0 &&
+        AscensionSystem::getLevel(AscensionSystem::currentLevel).bossExtraPhase);
+    if (extraPhase && hpPct <= 0.15f) ai.bossPhase = 4;
+    else if (hpPct > 0.66f) ai.bossPhase = 1;
     else if (hpPct > 0.33f) ai.bossPhase = 2;
     else ai.bossPhase = 3;
 
@@ -197,6 +200,7 @@ void AISystem::updateTemporalWeaver(Entity& entity, float dt, Vec2 playerPos, En
             case 1: sprite.setColor(180, static_cast<Uint8>(160 + 40 * pulse), 80); break;
             case 2: sprite.setColor(200, static_cast<Uint8>(140 + 60 * pulse), static_cast<Uint8>(60 + 40 * pulse)); break;
             case 3: sprite.setColor(static_cast<Uint8>(220 + 35 * pulse), static_cast<Uint8>(100 * pulse), static_cast<Uint8>(40 * pulse)); break;
+            case 4: sprite.setColor(255, static_cast<Uint8>(60 + 50 * pulse), static_cast<Uint8>(20 * pulse)); break; // Blazing gold-red
         }
     }
 }
