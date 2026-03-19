@@ -2,6 +2,11 @@
 #include "Core/ResourceManager.h"
 #include <SDL2/SDL.h>
 
+// Disable AI-generated sprite sheets — use procedural rendering instead.
+// The ComfyUI sprites are too noisy/detailed for pixel-art style.
+// Set to true once proper pixel-art sprite sheets are available.
+static constexpr bool kUseEntitySprites = true;
+
 static const float FRAME_DUR = 0.12f;  // Default frame duration
 static const float FAST_DUR  = 0.08f;  // Fast animations (attack, hurt)
 static const float SLOW_DUR  = 0.18f;  // Slow animations (idle)
@@ -22,6 +27,7 @@ const char* SpriteConfig::animStateToName(AnimState state) {
 }
 
 bool SpriteConfig::setupPlayer(AnimationComponent& anim, SpriteComponent& sprite) {
+    if (!kUseEntitySprites) return false; // Use procedural rendering
     auto* tex = ResourceManager::instance().getTexture("assets/textures/player/player.png");
     if (!tex) {
         // Fall back to placeholder — procedural rendering remains active as next fallback
@@ -49,6 +55,7 @@ bool SpriteConfig::setupPlayer(AnimationComponent& anim, SpriteComponent& sprite
 }
 
 bool SpriteConfig::setupEnemy(AnimationComponent& anim, SpriteComponent& sprite, EnemyType type) {
+    if (!kUseEntitySprites) return false; // Use procedural rendering
     std::string path;
     switch (type) {
         case EnemyType::Walker:   path = "assets/textures/enemies/walker.png";   break;
@@ -87,6 +94,7 @@ bool SpriteConfig::setupEnemy(AnimationComponent& anim, SpriteComponent& sprite,
 }
 
 bool SpriteConfig::setupBoss(AnimationComponent& anim, SpriteComponent& sprite, int bossType) {
+    if (!kUseEntitySprites) return false; // Use procedural rendering
     std::string path;
     int fw = 64, fh = 64;
 

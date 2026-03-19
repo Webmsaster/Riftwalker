@@ -14,10 +14,11 @@ void MenuState::enter() {
     Bestiary::load("bestiary_save.dat");
 
     int cx = SCREEN_WIDTH / 2;
-    int startY = 365;
     int btnW = 260;
-    int btnH = 34;
-    int gap = 3;
+    int btnH = 30;
+    int gap = 2;
+    int totalMenuH = 11 * (btnH + gap) - gap;
+    int startY = SCREEN_HEIGHT - totalMenuH - 16;
 
     m_buttons.clear();
     m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, "New Run");

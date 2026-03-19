@@ -46,7 +46,7 @@ extern FILE* g_playtestFile;
 extern void smokeLog(const char* fmt, ...);
 
 namespace {
-constexpr bool kUseAiFinalBackgroundArtTest = true;
+constexpr bool kUseAiFinalBackgroundArtTest = false;
 constexpr const char* kDimAFinalBackgroundPath =
     "assets/ai/finals/backgrounds/run01/rw_bg_dima_run01_s1103_fin.png";
 constexpr const char* kDimBFinalBackgroundPath =
@@ -58,7 +58,6 @@ constexpr const char* kBossFinalBackgroundPath =
 void PlayState::enter() {
     if (g_autoSmokeTest) {
         m_smokeTest = true;
-        m_showDebugOverlay = true;
         // Open persistent log file
         if (g_smokeFile) fclose(g_smokeFile);
         g_smokeFile = fopen("smoke_test.log", "w");
@@ -69,7 +68,6 @@ void PlayState::enter() {
     }
     if (g_autoPlaytest) {
         m_playtest = true;
-        m_showDebugOverlay = true;
         if (g_playtestFile) fclose(g_playtestFile);
         g_playtestFile = fopen("playtest_report.log", "w");
         m_playtestRun = 0;

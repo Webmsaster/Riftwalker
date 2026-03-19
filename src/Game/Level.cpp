@@ -58,6 +58,13 @@ bool Level::inBounds(int x, int y) const {
 }
 
 bool Level::loadTileset(const std::string& path) {
+    // AI-generated tileset disabled — procedural rendering looks cleaner.
+    // Set kUseTileset to true once proper pixel-art tileset is available.
+    constexpr bool kUseTileset = true;
+    if (!kUseTileset) {
+        SDL_Log("Tileset disabled (using procedural rendering)");
+        return false;
+    }
     m_tileset = ResourceManager::instance().getTexture(path);
     if (m_tileset) {
         SDL_Log("Tileset loaded: %s", path.c_str());
@@ -284,10 +291,10 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
         // Row 0 of tileset, column = auto-tile index (0-15)
         SDL_Rect srcRect = { autoIdx * m_tileSize, 0, m_tileSize, m_tileSize };
         // Lighten the color mod so tileset texture detail shows through
-        // Blend tile color toward white (30% tile, 70% white) to preserve texture contrast
-        Uint8 modR = static_cast<Uint8>(tile.color.r + (255 - tile.color.r) * 7 / 10);
-        Uint8 modG = static_cast<Uint8>(tile.color.g + (255 - tile.color.g) * 7 / 10);
-        Uint8 modB = static_cast<Uint8>(tile.color.b + (255 - tile.color.b) * 7 / 10);
+        // Blend tile color toward white (60% tile, 40% white) to preserve texture contrast
+        Uint8 modR = static_cast<Uint8>(tile.color.r + (255 - tile.color.r) * 4 / 10);
+        Uint8 modG = static_cast<Uint8>(tile.color.g + (255 - tile.color.g) * 4 / 10);
+        Uint8 modB = static_cast<Uint8>(tile.color.b + (255 - tile.color.b) * 4 / 10);
         SDL_SetTextureColorMod(m_tileset, modR, modG, modB);
         SDL_SetTextureAlphaMod(m_tileset, tile.color.a);
         SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
@@ -351,19 +358,8 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
 }
 
 void Level::renderOneWayTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile) const {
-    // Use tileset row 2, col 0 for one-way platforms
-    if (m_tileset) {
-        SDL_Rect srcRect = { 0, 2 * m_tileSize, m_tileSize, m_tileSize };
-        Uint8 modR = static_cast<Uint8>(tile.color.r + (255 - tile.color.r) * 7 / 10);
-        Uint8 modG = static_cast<Uint8>(tile.color.g + (255 - tile.color.g) * 7 / 10);
-        Uint8 modB = static_cast<Uint8>(tile.color.b + (255 - tile.color.b) * 7 / 10);
-        SDL_SetTextureColorMod(m_tileset, modR, modG, modB);
-        SDL_SetTextureAlphaMod(m_tileset, tile.color.a);
-        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
-        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
-        return;
-    }
-    // Procedural fallback: Top surface line (thick)
+    // Always use procedural rendering (tileset tile doesn't match one-way style)
+    // Procedural: Top surface line (thick)
     SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, 255);
     SDL_Rect topBar = {sr.x, sr.y, sr.w, 4};
     SDL_RenderFillRect(renderer, &topBar);
@@ -384,16 +380,8 @@ void Level::renderOneWayTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& ti
 }
 
 void Level::renderSpikeTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile) const {
-    // Use tileset row 1, col 0-3 for spike tiles
-    if (m_tileset) {
-        SDL_Rect srcRect = { 0, m_tileSize, m_tileSize, m_tileSize };
-        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
-        SDL_SetTextureAlphaMod(m_tileset, 255);
-        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
-        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
-        return;
-    }
-    // Procedural fallback: Draw triangular spikes
+    // Always use procedural rendering (tileset spike tile doesn't match)
+    // Procedural: Draw triangular spikes
     int spikeCount = 3;
     int spikeW = sr.w / spikeCount;
 
@@ -599,16 +587,7 @@ void Level::renderExit(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks) const 
 }
 
 void Level::renderFireTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
-    // Use tileset row 1, col 4-7 for fire tiles
-    if (m_tileset) {
-        int frame = (ticks / 200) % 4; // Animate through 4 fire frames
-        SDL_Rect srcRect = { (4 + frame) * m_tileSize, m_tileSize, m_tileSize, m_tileSize };
-        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
-        SDL_SetTextureAlphaMod(m_tileset, 255);
-        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
-        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
-        return;
-    }
+    // Always use procedural rendering (tileset fire tiles don't match expected style)
     float time = ticks * 0.005f;
 
     // Base lava/fire glow
@@ -649,18 +628,8 @@ void Level::renderFireTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile
 }
 
 void Level::renderConveyorTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
-    // Use tileset row 1, col 8-11 for conveyor
-    if (m_tileset) {
-        int frame = (ticks / 150) % 4;
-        SDL_Rect srcRect = { (8 + frame) * m_tileSize, m_tileSize, m_tileSize, m_tileSize };
-        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
-        SDL_SetTextureAlphaMod(m_tileset, 255);
-        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
-        SDL_RendererFlip flip = (tile.variant == 1) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-        SDL_RenderCopyEx(renderer, m_tileset, &srcRect, &sr, 0, nullptr, flip);
-        return;
-    }
-    // Procedural fallback: Base belt
+    // Always use procedural rendering (tileset conveyor tiles don't match)
+    // Procedural: Base belt
     SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, 255);
     SDL_RenderFillRect(renderer, &sr);
 
@@ -696,17 +665,8 @@ void Level::renderConveyorTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& 
 
 void Level::renderLaserEmitter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
     (void)tile;
-    // Use tileset row 1, col 12-15 for laser emitter
-    if (m_tileset) {
-        int frame = (ticks / 200) % 4;
-        SDL_Rect srcRect = { (12 + frame) * m_tileSize, m_tileSize, m_tileSize, m_tileSize };
-        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
-        SDL_SetTextureAlphaMod(m_tileset, 255);
-        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
-        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
-        return;
-    }
-    // Procedural fallback: Dark metallic block
+    // Always use procedural rendering (tileset laser tiles don't match)
+    // Procedural: Dark metallic block
     SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
     SDL_RenderFillRect(renderer, &sr);
 
@@ -918,17 +878,8 @@ void Level::updateTiles(float dt) {
 
 void Level::renderIceTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
     (void)tile;
-    // Use tileset row 2, col 4-7 for ice tiles
-    if (m_tileset) {
-        int frame = (ticks / 400) % 4;
-        SDL_Rect srcRect = { (4 + frame) * m_tileSize, 2 * m_tileSize, m_tileSize, m_tileSize };
-        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
-        SDL_SetTextureAlphaMod(m_tileset, 230);
-        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
-        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
-        return;
-    }
-    // Procedural fallback: Icy blue surface
+    // Always use procedural rendering (tileset ice tiles don't match)
+    // Procedural: Icy blue surface
     SDL_SetRenderDrawColor(renderer, 140, 200, 240, 220);
     SDL_RenderFillRect(renderer, &sr);
     // Frost pattern
@@ -943,17 +894,8 @@ void Level::renderIceTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile,
 
 void Level::renderGravityWell(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
     (void)tile;
-    // Use tileset row 2, col 12-15 for gravity wells
-    if (m_tileset) {
-        int frame = (ticks / 300) % 4;
-        SDL_Rect srcRect = { (12 + frame) * m_tileSize, 2 * m_tileSize, m_tileSize, m_tileSize };
-        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
-        SDL_SetTextureAlphaMod(m_tileset, 220);
-        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
-        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
-        return;
-    }
-    // Procedural fallback: Dark purple background
+    // Always use procedural rendering (tileset gravity tiles don't match)
+    // Procedural: Dark purple background
     SDL_SetRenderDrawColor(renderer, 40, 20, 60, 200);
     SDL_RenderFillRect(renderer, &sr);
     // Swirling rings
@@ -976,17 +918,8 @@ void Level::renderGravityWell(SDL_Renderer* renderer, SDL_Rect sr, const Tile& t
 
 void Level::renderTeleporter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
     (void)tile;
-    // Use tileset row 3, col 10-11 for teleporter
-    if (m_tileset) {
-        int frame = (ticks / 300) % 2;
-        SDL_Rect srcRect = { (10 + frame) * m_tileSize, 3 * m_tileSize, m_tileSize, m_tileSize };
-        SDL_SetTextureColorMod(m_tileset, 255, 255, 255);
-        SDL_SetTextureAlphaMod(m_tileset, 230);
-        SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
-        SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
-        return;
-    }
-    // Procedural fallback: Glowing portal
+    // Always use procedural rendering (tileset teleporter tiles don't match)
+    // Procedural: Glowing portal
     float time = ticks * 0.005f;
     float pulse = 0.5f + 0.5f * std::sin(time);
     // Base
