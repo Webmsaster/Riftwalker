@@ -10,7 +10,18 @@
 #include "Components/RelicComponent.h"
 #include "Game/RelicSystem.h"
 #include "Core/AudioManager.h"
+#include "Core/ResourceManager.h"
 #include <cstdlib>
+
+// Pickup spritesheet: assets/textures/pickups/pickups.png
+// 4 columns x 5 rows of 16x16 icons
+// Row mapping: 0=red/health, 1=blue/shield, 2=purple/shard, 3=yellow/speed+green, 4=misc
+static void applyPickupSprite(SpriteComponent& sprite, int col, int row) {
+    auto* tex = ResourceManager::instance().getTexture("assets/textures/pickups/pickups.png");
+    if (!tex) return;
+    sprite.texture = tex;
+    sprite.srcRect = {col * 16, row * 16, 16, 16};
+}
 
 Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimension, Player* player) {
     auto& e = entities.addEntity("pickup_health");
@@ -21,6 +32,7 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(80, 230, 80);
     sprite.renderLayer = 3;
+    applyPickupSprite(sprite, 0, 4); // Green gem (row 4, col 0)
 
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 600.0f;
@@ -66,6 +78,7 @@ Entity& ItemDrop::spawnRiftShard(EntityManager& entities, Vec2 pos, int dimensio
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(180, 130, 255);
     sprite.renderLayer = 3;
+    applyPickupSprite(sprite, 0, 2); // Purple gem (row 2, col 0)
 
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 600.0f;
@@ -102,6 +115,7 @@ Entity& ItemDrop::spawnShieldOrb(EntityManager& entities, Vec2 pos, int dimensio
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(100, 180, 255); // Blue shield
     sprite.renderLayer = 3;
+    applyPickupSprite(sprite, 0, 1); // Blue gem (row 1, col 0)
 
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 600.0f;
@@ -137,6 +151,7 @@ Entity& ItemDrop::spawnSpeedBoost(EntityManager& entities, Vec2 pos, int dimensi
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(255, 255, 80); // Yellow speed
     sprite.renderLayer = 3;
+    applyPickupSprite(sprite, 1, 3); // Yellow gem (row 3, col 1)
 
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 600.0f;
@@ -171,6 +186,7 @@ Entity& ItemDrop::spawnDamageBoost(EntityManager& entities, Vec2 pos, int dimens
     auto& sprite = e.addComponent<SpriteComponent>();
     sprite.setColor(255, 80, 80); // Red damage
     sprite.renderLayer = 3;
+    applyPickupSprite(sprite, 0, 0); // Red gem (row 0, col 0)
 
     auto& phys = e.addComponent<PhysicsBody>();
     phys.gravity = 600.0f;
@@ -237,10 +253,13 @@ Entity& ItemDrop::spawnWeaponDrop(EntityManager& entities, Vec2 pos, int dimensi
     auto& sprite = e.addComponent<SpriteComponent>();
     // Color by weapon type: melee=orange, ranged=cyan
     bool melee = WeaponSystem::isMelee(weapon);
-    if (melee)
+    if (melee) {
         sprite.setColor(255, 180, 60);
-    else
+        applyPickupSprite(sprite, 2, 3); // Orange gem (row 3, col 2)
+    } else {
         sprite.setColor(60, 200, 255);
+        applyPickupSprite(sprite, 2, 4); // Cyan gem (row 4, col 2)
+    }
     sprite.renderLayer = 3;
 
     auto& phys = e.addComponent<PhysicsBody>();
