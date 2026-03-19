@@ -342,6 +342,7 @@ private:
     void playtestLog(const char* fmt, ...);
     void playtestStartRun();
     void playtestOnDeath();
+    void playtestEndRun(bool success);
     void playtestWriteReport();
     // Per-run tracking (reset in playtestStartRun)
     int m_ptLastLoggedLevel = 0;

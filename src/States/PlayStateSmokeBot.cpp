@@ -160,7 +160,7 @@ static int smokeFindClosestTopologyRoomIndex(const LevelTopology& topology, cons
 }
 
 struct SmokeTargetDebugInfo {
-    std::string_view type = "exit";
+    const char* type = "exit";
     int index = -1;
     int roomIndex = -1;
     int tileX = -1;
@@ -1384,9 +1384,19 @@ void PlayState::playtestStartRun() {
 }
 
 void PlayState::playtestOnDeath() {
-    m_playtestDeaths++;
+    playtestEndRun(false);
+}
+
+void PlayState::playtestEndRun(bool success) {
+    if (!m_playtestRunActive) return; // Prevent double-calling
+    m_playtestRunActive = false;
+
+    if (!success) m_playtestDeaths++;
     if (m_currentDifficulty > m_playtestBestLevel)
         m_playtestBestLevel = m_currentDifficulty;
+
+    // Snapshot balance data at end of each run
+    writeBalanceSnapshot();
 
     playtestLog("  --- Run %d Ende: Level %d erreicht, %.0fs, %d Kills, %d Rifts ---",
             m_playtestRun, m_currentDifficulty, m_playtestRunTimer,
@@ -1450,6 +1460,7 @@ void PlayState::updatePlaytest(float dt) {
 
     // Log level completion (detected when level number increases)
     if (m_currentDifficulty != m_ptLastLoggedLevel && m_ptLastLoggedLevel > 0) {
+        writeBalanceSnapshot(); // Snapshot balance at each level transition
         playtestLog("  [%.0fs] LEVEL %d GESCHAFFT! (HP: %.0f/%.0f, Entropy: %.0f%%)",
                 m_playtestRunTimer, m_ptLastLoggedLevel,
                 hp.currentHP, hp.maxHP, entropyPct * 100.0f);
@@ -1865,13 +1876,9 @@ void PlayState::updatePlaytest(float dt) {
 
     // (Level completion is logged above when level number changes)
 
-    // Successful run completion (level 5+)
-    if (m_currentDifficulty > 5 && !m_levelComplete) {
+    // Successful run completion (level 5+) — treat as run end, start next run
+    if (m_currentDifficulty > 5 && m_playtestRunActive) {
         playtestLog("  [%.0fs] === RUN ERFOLGREICH! Level %d erreicht ===", m_playtestRunTimer, m_currentDifficulty);
-        m_playtestRunActive = false;
-        if (m_currentDifficulty > m_playtestBestLevel)
-            m_playtestBestLevel = m_currentDifficulty;
-        playtestWriteReport();
-        game->quit();
+        playtestEndRun(true);
     }
 }

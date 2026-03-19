@@ -2735,39 +2735,58 @@ void PlayState::writeBalanceSnapshot() {
 
     auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+    auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+    auto& upgrades = game->getUpgradeSystem();
+    auto achBonus = game->getAchievements().getUnlockedBonuses();
     float hpPct = hp.getPercent();
     int curDim = m_dimManager.getCurrentDimension();
 
-    // Raw damage (same calc as overlay)
-    float rawDmg = 1.0f;
-    for (auto& r : relics.relics) {
-        if (r.id == RelicID::BloodFrenzy && hpPct < 0.3f) rawDmg += 0.25f;
-        if (r.id == RelicID::BerserkerCore) rawDmg += 0.50f;
-        if (r.id == RelicID::VoidHunger) rawDmg += relics.voidHungerBonus;
-        if (r.id == RelicID::DualityGem && (curDim == 1 || RelicSynergy::isDualNatureActive(relics)))
-            rawDmg += 0.25f;
-        if (r.id == RelicID::StabilityMatrix) {
-            float rate = RelicSynergy::getStabilityDmgPerSec(relics);
-            float maxB = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
-            rawDmg += std::min(relics.stabilityTimer * rate, maxB);
-        }
-    }
-    rawDmg *= RelicSynergy::getPhaseHunterDamageMult(relics);
-    float clampedDmg = RelicSystem::getDamageMultiplier(relics, hpPct, curDim);
+    // --- Relic damage multiplier (clamped by RelicSystem) ---
+    float relicDmg = RelicSystem::getDamageMultiplier(relics, hpPct, curDim);
+    float relicAtkSpd = RelicSystem::getAttackSpeedMultiplier(relics);
 
-    // Raw attack speed
-    float rawSpd = 1.0f;
-    for (auto& r : relics.relics) {
-        if (r.id == RelicID::QuickHands) rawSpd += 0.15f;
-    }
-    if (relics.hasRelic(RelicID::RiftConduit) && relics.riftConduitTimer > 0)
-        rawSpd += relics.riftConduitStacks * 0.10f;
-    float clampedSpd = RelicSystem::getAttackSpeedMultiplier(relics);
+    // --- Upgrade multipliers ---
+    float upgMelee = upgrades.getMeleeDamageMultiplier();
+    float upgRanged = upgrades.getRangedDamageMultiplier();
+    float upgMoveSpd = upgrades.getMoveSpeedMultiplier();
 
+    // --- Achievement multipliers ---
+    float achMelee = achBonus.meleeDamageMult * achBonus.allDamageMult;
+    float achRanged = achBonus.rangedDamageMult * achBonus.allDamageMult;
+    float achCrit = achBonus.critChanceBonus;
+
+    // --- Class multipliers ---
+    float classDmg = m_player->getClassDamageMultiplier();
+    float classAtkSpd = m_player->getClassAttackSpeedMultiplier();
+
+    // --- Resonance ---
+    int resTier = m_dimManager.getResonanceTier();
+    float resDmg = m_dimManager.getResonanceDamageMult();
+
+    // --- Weapon mastery ---
+    int meleeIdx = static_cast<int>(combat.currentMelee);
+    int rangedIdx = static_cast<int>(combat.currentRanged);
+    int meleeKills = m_combatSystem.weaponKills[meleeIdx];
+    int rangedKills = m_combatSystem.weaponKills[rangedIdx];
+    auto meleeBonus = WeaponSystem::getMasteryBonus(meleeKills);
+    auto rangedBonus = WeaponSystem::getMasteryBonus(rangedKills);
+
+    // --- Smith NPC bonuses ---
+    float smithMelee = m_player->smithMeleeDmgMult;
+    float smithRanged = m_player->smithRangedDmgMult;
+    float smithAtkSpd = m_player->smithAtkSpdMult;
+
+    // --- Combined effective multipliers ---
+    float effectiveMelee = relicDmg * upgMelee * achMelee * classDmg * meleeBonus.damageMult * smithMelee * resDmg;
+    float effectiveRanged = relicDmg * upgRanged * achRanged * classDmg * rangedBonus.damageMult * smithRanged * resDmg;
+    float effectiveAtkSpd = relicAtkSpd * classAtkSpd * smithAtkSpd;
+
+    // --- Switch cooldown ---
     float baseCD = 0.5f;
     float cdMult = RelicSystem::getSwitchCooldownMult(relics);
     float finalCD = m_dimManager.switchCooldown;
 
+    // --- Relic-specific tracking ---
     int zoneCount = 0;
     m_entities.forEach([&](Entity& e) {
         if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
@@ -2777,6 +2796,10 @@ void PlayState::writeBalanceSnapshot() {
     float stabMax = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
     float stabPct = std::min(relics.stabilityTimer * stabRate, stabMax) * 100.0f;
     int synergyCount = RelicSynergy::getActiveSynergyCount(relics);
+
+    // --- Player state ---
+    int momentum = m_player->momentumStacks;
+    int kills = m_combatSystem.killCount;
 
     const char* className = "Unknown";
     switch (m_player->playerClass) {
@@ -2803,30 +2826,49 @@ void PlayState::writeBalanceSnapshot() {
     if (!f) return;
 
     if (needHeader) {
-        std::fprintf(f, "seed,difficulty,class,time,dim,synergies,"
-            "dmg_raw,dmg_clamped,atk_raw,atk_clamped,"
+        std::fprintf(f, "seed,difficulty,class,time,floor,dim,kills,hp_pct,"
+            "eff_melee,eff_ranged,eff_atkspd,"
+            "relic_dmg,relic_atkspd,"
+            "upg_melee,upg_ranged,upg_movespd,"
+            "ach_melee,ach_ranged,ach_crit,"
+            "class_dmg,class_atkspd,"
+            "res_tier,res_dmg,"
+            "mastery_melee_kills,mastery_melee_dmg,mastery_ranged_kills,mastery_ranged_dmg,"
+            "smith_melee,smith_ranged,smith_atkspd,"
+            "momentum_stacks,synergies,"
             "switch_base,switch_mult,switch_final,"
-            "voidhunger_pct,voidres_icd,"
-            "residue_zones,residue_spawn_icd,"
-            "stability_timer,stability_pct,"
-            "conduit_stacks,conduit_timer\n");
+            "voidhunger_pct,stability_pct,"
+            "conduit_stacks\n");
     }
 
     std::fprintf(f,
-        "%d,%d,%s,%.1f,%d,%d,"
-        "%.3f,%.3f,%.3f,%.3f,"
+        "%d,%d,%s,%.1f,%d,%d,%d,%.1f,"
+        "%.3f,%.3f,%.3f,"
+        "%.3f,%.3f,"
+        "%.3f,%.3f,%.3f,"
+        "%.3f,%.3f,%.3f,"
+        "%.3f,%.3f,"
+        "%d,%.3f,"
+        "%d,%.3f,%d,%.3f,"
+        "%.3f,%.3f,%.3f,"
+        "%d,%d,"
         "%.2f,%.2f,%.2f,"
-        "%.1f,%.2f,"
-        "%d,%.2f,"
         "%.1f,%.1f,"
-        "%d,%.1f\n",
-        m_runSeed, m_currentDifficulty, className, m_runTime, curDim, synergyCount,
-        rawDmg, clampedDmg, rawSpd, clampedSpd,
+        "%d\n",
+        m_runSeed, m_currentDifficulty, className, m_runTime,
+        m_currentDifficulty, curDim, kills, hpPct * 100.0f,
+        effectiveMelee, effectiveRanged, effectiveAtkSpd,
+        relicDmg, relicAtkSpd,
+        upgMelee, upgRanged, upgMoveSpd,
+        achMelee, achRanged, achCrit,
+        classDmg, classAtkSpd,
+        resTier, resDmg,
+        meleeKills, meleeBonus.damageMult, rangedKills, rangedBonus.damageMult,
+        smithMelee, smithRanged, smithAtkSpd,
+        momentum, synergyCount,
         baseCD, cdMult, finalCD,
-        relics.voidHungerBonus * 100.0f, std::max(0.0f, relics.voidResonanceProcCD),
-        zoneCount, std::max(0.0f, relics.dimResidueSpawnCD),
-        relics.stabilityTimer, stabPct,
-        relics.riftConduitStacks, std::max(0.0f, relics.riftConduitTimer));
+        relics.voidHungerBonus * 100.0f, stabPct,
+        relics.riftConduitStacks);
 
     std::fclose(f);
 }
