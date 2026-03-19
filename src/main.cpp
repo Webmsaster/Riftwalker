@@ -3,6 +3,11 @@
 #include "Game/Tile.h"
 #include "Game/WorldTheme.h"
 #include <SDL2/SDL.h>
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <unistd.h>
+#endif
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -493,6 +498,20 @@ bool runGeneratorValidationTests(const GeneratorTestConfig& config) {
 } // namespace
 
 int main(int argc, char* argv[]) {
+    // Set working directory to exe location so assets resolve correctly
+    // regardless of where the exe is launched from
+    if (SDL_Init(0) == 0) {
+        char* basePath = SDL_GetBasePath();
+        if (basePath) {
+#ifdef _WIN32
+            _chdir(basePath);
+#else
+            chdir(basePath);
+#endif
+            SDL_free(basePath);
+        }
+    }
+
     GeneratorTestConfig generatorTests;
     g_smokeCompletedFloor = 0;
     g_smokeFailureCode = 0;
