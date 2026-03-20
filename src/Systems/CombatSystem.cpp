@@ -16,7 +16,6 @@
 #include "Game/ClassSystem.h"
 #include "Game/Enemy.h"
 #include "Game/Bestiary.h"
-#include "Game/ClassSystem.h"
 #include "Game/DimensionManager.h"
 #include "Game/WeaponSystem.h"
 #include <cmath>

@@ -14,7 +14,6 @@
 #include "Systems/CombatSystem.h"
 #include "Components/RelicComponent.h"
 #include "Game/RelicSynergy.h"
-#include "Core/Game.h"
 #include <cstdio>
 #include <cmath>
 

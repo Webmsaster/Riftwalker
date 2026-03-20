@@ -40,7 +40,8 @@ extern int g_smokeCompletedFloor;
 extern int g_smokeFailureCode;
 extern char g_smokeFailureReason[256];
 
-// g_smokeFile, g_playtestFile, and smokeLog defined in PlayStateSmokeBot.cpp
+// g_smokeFile and smokeLog defined in PlayStateSmokeBot.cpp
+// g_playtestFile defined in PlayStatePlaytest.cpp
 extern FILE* g_smokeFile;
 extern FILE* g_playtestFile;
 extern void smokeLog(const char* fmt, ...);
