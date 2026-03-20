@@ -11,6 +11,9 @@ struct RoomTemplate {
                                      // 'S' = spawn, 'E' = exit, 'R' = rift, 'X' = enemy
 };
 
+// Room data shared between generate() and helper methods
+struct LGRoom { int x, y, w, h; };
+
 class LevelGenerator {
 public:
     LevelGenerator();
