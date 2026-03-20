@@ -914,6 +914,62 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
+    // Combo Finisher prompt (below combo counter)
+    if (player && player->isFinisherAvailable() && font) {
+        // Determine finisher name and color by class
+        const char* finisherName = "FINISHER";
+        SDL_Color fColor = {255, 215, 0, 255};
+        switch (player->playerClass) {
+            case PlayerClass::Voidwalker:
+                finisherName = "[E] RIFT PULSE";
+                fColor = {180, 80, 255, 255};
+                break;
+            case PlayerClass::Berserker:
+                finisherName = "[E] BLOOD CLEAVE";
+                fColor = {255, 80, 80, 255};
+                break;
+            case PlayerClass::Phantom:
+                finisherName = "[E] PHASE BURST";
+                fColor = {80, 220, 255, 255};
+                break;
+            default: break;
+        }
+
+        // Pulsing alpha
+        float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.01f);
+        fColor.a = static_cast<Uint8>(180 + 75 * pulse);
+
+        // Pulsing scale
+        float fScale = 1.0f + 0.1f * std::sin(SDL_GetTicks() * 0.012f);
+
+        int finisherY = 110; // below combo area
+        SDL_Surface* fSurf = TTF_RenderText_Blended(font, finisherName, fColor);
+        if (fSurf) {
+            SDL_Texture* fTex = SDL_CreateTextureFromSurface(renderer, fSurf);
+            if (fTex) {
+                int fw = static_cast<int>(fSurf->w * fScale);
+                int fh = static_cast<int>(fSurf->h * fScale);
+                SDL_Rect dst = {screenW / 2 - fw / 2, finisherY, fw, fh};
+                SDL_RenderCopy(renderer, fTex, nullptr, &dst);
+                SDL_DestroyTexture(fTex);
+            }
+            SDL_FreeSurface(fSurf);
+        }
+
+        // Finisher availability timer bar
+        float fTimerPct = player->finisherAvailableTimer / std::max(0.01f, player->finisherAvailableMaxTime);
+        int fBarW = 60;
+        int fBarX = screenW / 2 - fBarW / 2;
+        int fBarY = finisherY + static_cast<int>(18 * fScale) + 2;
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_Rect fBg = {fBarX, fBarY, fBarW, 3};
+        SDL_SetRenderDrawColor(renderer, 40, 40, 50, 150);
+        SDL_RenderFillRect(renderer, &fBg);
+        SDL_Rect fFill = {fBarX, fBarY, static_cast<int>(fBarW * fTimerPct), 3};
+        SDL_SetRenderDrawColor(renderer, fColor.r, fColor.g, fColor.b, 200);
+        SDL_RenderFillRect(renderer, &fFill);
+    }
+
     // Floor indicator + Rift Shards (top right)
     {
         int shardX = screenW - 170;

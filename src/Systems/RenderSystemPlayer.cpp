@@ -272,7 +272,7 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         }
 
         // Parry success aura: golden rim when next hit is guaranteed crit
-        if (cb.parrySuccessTimer > 0) {
+        if (cb.parrySuccessTimer > 0 && !cb.counterReady && !cb.isCounterAttacking) {
             float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.008f);
             Uint8 rimA = static_cast<Uint8>((80 + 80 * pulse) * alpha);
             SDL_Rect rim = {x - 3, y - 3, w + 6, h + 6};
@@ -281,6 +281,49 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
             SDL_Rect rim2 = {x - 2, y - 2, w + 4, h + 4};
             SDL_SetRenderDrawColor(renderer, 255, 255, 100, static_cast<Uint8>(rimA * 0.7f));
             SDL_RenderDrawRect(renderer, &rim2);
+        }
+
+        // Counter-ready aura: bright golden pulsing border (stronger than parry success)
+        if (cb.counterReady) {
+            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.015f); // faster pulse
+            Uint8 rimA = static_cast<Uint8>((140 + 115 * pulse) * alpha);
+            // Triple border for emphasis
+            SDL_Rect rim1 = {x - 5, y - 5, w + 10, h + 10};
+            SDL_SetRenderDrawColor(renderer, 255, 215, 0, rimA);
+            SDL_RenderDrawRect(renderer, &rim1);
+            SDL_Rect rim2 = {x - 4, y - 4, w + 8, h + 8};
+            SDL_SetRenderDrawColor(renderer, 255, 240, 80, static_cast<Uint8>(rimA * 0.9f));
+            SDL_RenderDrawRect(renderer, &rim2);
+            SDL_Rect rim3 = {x - 3, y - 3, w + 6, h + 6};
+            SDL_SetRenderDrawColor(renderer, 255, 255, 150, static_cast<Uint8>(rimA * 0.7f));
+            SDL_RenderDrawRect(renderer, &rim3);
+            // Golden fill glow
+            SDL_Rect glow = {x - 6, y - 6, w + 12, h + 12};
+            SDL_SetRenderDrawColor(renderer, 255, 215, 0, static_cast<Uint8>(30 * pulse * alpha));
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_RenderFillRect(renderer, &glow);
+        }
+
+        // Counter-attacking glow: weapon-colored overlay on entire sprite
+        if (cb.isCounterAttacking) {
+            Uint8 glowR = 255, glowG = 215, glowB = 0;
+            // Color by melee weapon
+            switch (cb.currentMelee) {
+                case WeaponID::RiftBlade:    glowR = 100; glowG = 200; glowB = 255; break;
+                case WeaponID::PhaseDaggers: glowR = 180; glowG = 100; glowB = 255; break;
+                case WeaponID::VoidHammer:   glowR = 160; glowG = 80;  glowB = 255; break;
+                default: break;
+            }
+            float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.02f);
+            Uint8 glowA = static_cast<Uint8>(120 * pulse * alpha);
+            SDL_Rect counterGlow = {x - 3, y - 3, w + 6, h + 6};
+            SDL_SetRenderDrawColor(renderer, glowR, glowG, glowB, glowA);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_RenderFillRect(renderer, &counterGlow);
+            // Bright border
+            SDL_Rect counterRim = {x - 4, y - 4, w + 8, h + 8};
+            SDL_SetRenderDrawColor(renderer, glowR, glowG, glowB, static_cast<Uint8>(180 * pulse * alpha));
+            SDL_RenderDrawRect(renderer, &counterRim);
         }
     }
 

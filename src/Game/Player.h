@@ -7,6 +7,8 @@
 #include "Components/RelicComponent.h"
 #include "Game/ClassSystem.h"
 
+struct CombatComponent;
+
 class Player {
 public:
     Player(EntityManager& entities);
@@ -121,6 +123,27 @@ public:
     bool pickupDamagePending = false;
     int weaponPickupPending = -1; // WeaponID cast to int, -1 = none
 
+    // Combo Finisher system
+    enum class FinisherTier { None = 0, Minor = 1, Major = 2, Ultimate = 3 };
+    FinisherTier finisherAvailable = FinisherTier::None;
+    float finisherAvailableTimer = 0;
+    float finisherAvailableMaxTime = 2.0f;
+    bool finisherExecuting = false;
+    float finisherExecuteTimer = 0;
+    float finisherCooldown = 0;
+    int finisherTargetIndex = 0;
+    float finisherStepTimer = 0;
+    struct FinisherTarget {
+        Entity* entity = nullptr;
+        Vec2 position{0, 0};
+    };
+    static constexpr int MAX_FINISHER_TARGETS = 4;
+    FinisherTarget finisherTargets[MAX_FINISHER_TARGETS] = {};
+    int finisherTargetCount = 0;
+    bool isFinisherAvailable() const { return finisherAvailable != FinisherTier::None && finisherAvailableTimer > 0; }
+    void executeComboFinisher();
+    void updateComboFinisher(float dt);
+
     // Ability state
     float slamFallStartY = 0;    // Y when slam initiated
     float phaseTintTimer = 0;    // visual tint after phase strike
@@ -175,6 +198,11 @@ private:
     void handleAttack(const InputManager& input);
     void handleAbilities(float dt, const InputManager& input);
     void updateAnimation();
+
+    // Parry counter-attack
+    void executeCounterAttack(CombatComponent& combat, Vec2 dir);
+    void emitCounterParticles(int weaponId, Vec2 pos, Vec2 dir);
+    float getDurationForCounter(int weaponId) const;
 
     Entity* m_entity;
 };

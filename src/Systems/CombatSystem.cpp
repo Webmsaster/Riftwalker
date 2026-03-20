@@ -40,6 +40,15 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
         processAttack(*e, entities, currentDimension);
     }
 
+    // Parry counter-attack: process weapon-specific counter once when it starts
+    if (m_player && m_player->getEntity() && m_player->getEntity()->hasComponent<CombatComponent>()) {
+        auto& playerCombat = m_player->getEntity()->getComponent<CombatComponent>();
+        if (playerCombat.isCounterAttacking && !playerCombat.counterProcessed) {
+            playerCombat.counterProcessed = true;
+            processCounterAttack(*m_player->getEntity(), entities, currentDimension);
+        }
+    }
+
     processGroundSlam(entities, currentDimension);
 
     // Rift Shield: absorb incoming damage to player

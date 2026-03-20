@@ -504,6 +504,9 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Damage flash overlay
     m_hud.renderFlash(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+    // Dynamic level event overlay (announcement + timer bar)
+    renderDynamicEventOverlay(renderer, game->getFont());
+
     // Wave/area clear celebration text
     if (m_waveClearTimer > 0 && game->getFont()) {
         float t = m_waveClearTimer / 2.0f; // 1.0 -> 0.0

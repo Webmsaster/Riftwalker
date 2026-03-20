@@ -43,6 +43,13 @@ struct CombatComponent : public Component {
     float parryCooldown = 0;
     float parrySuccessTimer = 0; // >0 means next hit is guaranteed crit
 
+    // Parry counter-attack system
+    float counterWindow = 0;        // 0.5s window after parry to trigger counter
+    bool counterReady = false;       // true while counter window is open
+    bool isCounterAttacking = false; // true during counter-attack execution
+    float counterAttackTimer = 0;    // duration of counter-attack animation
+    bool counterProcessed = false;   // true after CombatSystem has processed the counter
+
     // Weapon IDs
     WeaponID currentMelee = WeaponID::RiftBlade;
     WeaponID currentRanged = WeaponID::ShardPistol;
@@ -63,6 +70,17 @@ struct CombatComponent : public Component {
 
     void onParrySuccess() {
         parrySuccessTimer = 3.0f; // 3 seconds to land guaranteed crit
+        counterWindow = 0.5f;     // 0.5s to trigger weapon-specific counter
+        counterReady = true;
+    }
+
+    void startCounterAttack(float duration) {
+        isCounterAttacking = true;
+        counterAttackTimer = duration;
+        counterProcessed = false; // CombatSystem will process once
+        counterReady = false;
+        counterWindow = 0;
+        parrySuccessTimer = 0; // consume parry crit — counter replaces it
     }
 
     void startCharging() {
@@ -134,6 +152,15 @@ struct CombatComponent : public Component {
         }
         if (parryCooldown > 0) parryCooldown -= dt;
         if (parrySuccessTimer > 0) parrySuccessTimer -= dt;
+        // Counter-attack timers
+        if (counterWindow > 0) {
+            counterWindow -= dt;
+            if (counterWindow <= 0) counterReady = false;
+        }
+        if (counterAttackTimer > 0) {
+            counterAttackTimer -= dt;
+            if (counterAttackTimer <= 0) isCounterAttacking = false;
+        }
         // Charge timer
         if (isCharging) chargeTimer += dt;
     }

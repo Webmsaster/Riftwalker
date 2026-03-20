@@ -200,6 +200,13 @@ void PlayState::startNewRun() {
     m_deathSequenceTimer = 0;
     m_deathCause = 0;
 
+    // Reset dynamic level events
+    m_dynamicEvent = {};
+    m_dynamicEventCooldown = 40.0f;
+    m_dynamicEventsTriggered = 0;
+    m_dynamicEventsEnabled = true;
+    m_dynamicEventAnnouncementTimer = 0;
+
     generateLevel();
     m_combatSystem.setPlayer(m_player.get());
     m_combatSystem.setDimensionManager(&m_dimManager);
@@ -283,6 +290,12 @@ void PlayState::generateLevel() {
     m_collapseTimer = 0;
     m_teleportCooldown = 0;
     m_tookDamageThisLevel = false;
+
+    // Dynamic level events: disable on boss levels, reset cooldown
+    m_dynamicEventsEnabled = !m_isBossLevel;
+    m_dynamicEvent = {};
+    m_dynamicEventCooldown = 30.0f + static_cast<float>(std::rand() % 31);
+    m_dynamicEventAnnouncementTimer = 0;
 
     // Event chain: spawn chain-specific event this level
     m_chainEventSpawned = false;

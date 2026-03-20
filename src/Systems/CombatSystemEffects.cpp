@@ -17,7 +17,9 @@
 #include "Game/Enemy.h"
 #include "Game/Bestiary.h"
 #include "Game/WeaponSystem.h"
+#include "Game/DimensionManager.h"
 #include <cmath>
+#include <algorithm>
 
 void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities,
                                          CombatComponent& combat, bool isPlayer) {
@@ -447,6 +449,315 @@ void CombatSystem::emitElementDeathFX(Vec2 pos, int element) {
         case 3: // Electric: sparking bolts in random directions
             m_particles->burst(pos, 10, {255, 255, 80, 255}, 250.0f, 2.5f);
             m_particles->burst(pos, 6, {200, 220, 255, 200}, 300.0f, 2.0f);
+            break;
+    }
+}
+
+void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities, int currentDim) {
+    if (!player.hasComponent<CombatComponent>() || !player.hasComponent<TransformComponent>()) return;
+    auto& combat = player.getComponent<CombatComponent>();
+    auto& transform = player.getComponent<TransformComponent>();
+    Vec2 playerCenter = transform.getCenter();
+    Vec2 dir = combat.attackDirection;
+
+    // Determine which weapon drives the counter-attack
+    // Melee weapons use melee counter, ranged weapons use ranged counter
+    WeaponID weapon = combat.currentMelee;
+    bool isMelee = WeaponSystem::isMelee(weapon);
+
+    // Base damage values from weapon data
+    float meleeBaseDmg = WeaponSystem::getWeaponData(combat.currentMelee).damage;
+    float rangedBaseDmg = WeaponSystem::getWeaponData(combat.currentRanged).damage;
+
+    // Apply class + relic + resonance damage multipliers
+    float dmgMult = 1.0f;
+    if (m_player) dmgMult *= m_player->getClassDamageMultiplier();
+    if (m_player && m_player->damageBoostTimer > 0) dmgMult *= m_player->damageBoostMultiplier;
+    if (m_dimMgr) dmgMult *= m_dimMgr->getResonanceDamageMult();
+    if (player.hasComponent<RelicComponent>()) {
+        auto& relics = player.getComponent<RelicComponent>();
+        float hpPct = player.hasComponent<HealthComponent>() ? player.getComponent<HealthComponent>().getPercent() : 1.0f;
+        dmgMult *= RelicSystem::getDamageMultiplier(relics, hpPct, currentDim);
+    }
+
+    // Helper: find nearest alive enemy within radius
+    auto findNearest = [&](float radius) -> Entity* {
+        Entity* nearest = nullptr;
+        float bestDist = radius * radius;
+        entities.forEach([&](Entity& e) {
+            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.hasComponent<TransformComponent>() || !e.hasComponent<HealthComponent>()) return;
+            if (e.dimension != 0 && e.dimension != currentDim) return;
+            auto& et = e.getComponent<TransformComponent>();
+            float dx = et.getCenter().x - playerCenter.x;
+            float dy = et.getCenter().y - playerCenter.y;
+            float d2 = dx * dx + dy * dy;
+            if (d2 < bestDist) { bestDist = d2; nearest = &e; }
+        });
+        return nearest;
+    };
+
+    // Helper: apply damage + knockback + stun to a single target, respecting i-frames
+    auto hitTarget = [&](Entity& target, float damage, float knockback, float stunDur,
+                         Vec2 knockDir, bool isCrit) {
+        if (!target.hasComponent<HealthComponent>()) return;
+        auto& hp = target.getComponent<HealthComponent>();
+        if (hp.isInvincible()) return;
+
+        hp.takeDamage(damage);
+        Vec2 tc = target.getComponent<TransformComponent>().getCenter();
+        addDamageEvent(tc, damage, false, isCrit);
+
+        // Knockback
+        if (knockback > 0 && target.hasComponent<PhysicsBody>()) {
+            auto& phys = target.getComponent<PhysicsBody>();
+            float len = std::sqrt(std::max(0.01f, knockDir.x * knockDir.x + knockDir.y * knockDir.y));
+            phys.velocity += knockDir * (knockback / len);
+        }
+
+        // Stun
+        if (stunDur > 0 && target.hasComponent<AIComponent>()) {
+            target.getComponent<AIComponent>().stun(stunDur);
+            AudioManager::instance().play(SFX::EnemyStun);
+        }
+
+        // Check death — let zombie sweep handle it
+        if (hp.currentHP <= 0) {
+            handleEnemyDeath(player, target, entities, currentDim, true, false, false,
+                            combat, tc, damage);
+        }
+    };
+
+    switch (combat.currentMelee) {
+        case WeaponID::RiftBlade: {
+            // "Rift Slash": Wide 120px AoE arc, 3x melee damage, 800 knockback, hits all enemies
+            float counterDmg = meleeBaseDmg * 3.0f * dmgMult;
+            float counterKB = 800.0f;
+            float counterRange = 120.0f;
+
+            entities.forEach([&](Entity& target) {
+                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
+                if (target.dimension != 0 && target.dimension != currentDim) return;
+                auto& tt = target.getComponent<TransformComponent>();
+                Vec2 tc = tt.getCenter();
+                float dx = tc.x - playerCenter.x;
+                float dy = tc.y - playerCenter.y;
+                float dist = std::sqrt(dx * dx + dy * dy);
+                if (dist < counterRange) {
+                    Vec2 kd = {dx, dy - 80.0f};
+                    hitTarget(target, counterDmg, counterKB, 0.3f, kd, true);
+                }
+            });
+
+            if (m_camera) m_camera->shake(14.0f, 0.35f);
+            m_pendingHitFreeze += 0.15f;
+            if (m_particles) {
+                // Cyan rift arc sweep
+                float dirDeg = std::atan2(dir.y, dir.x) * 180.0f / 3.14159f;
+                m_particles->directionalBurst(playerCenter, 20, {100, 200, 255, 255},
+                    dirDeg, 90.0f, 300.0f, 4.0f);
+                m_particles->burst(playerCenter, 15, {180, 240, 255, 255}, 200.0f, 3.0f);
+            }
+            AudioManager::instance().play(SFX::MeleeHit);
+            break;
+        }
+
+        case WeaponID::PhaseDaggers: {
+            // "Shadow Flurry": 3 rapid hits on nearest enemy, 1.5x damage each, teleport behind
+            Entity* target = findNearest(150.0f);
+            if (target && target->hasComponent<TransformComponent>()) {
+                float counterDmg = meleeBaseDmg * 1.5f * dmgMult;
+                Vec2 tc = target->getComponent<TransformComponent>().getCenter();
+
+                // Teleport player behind target
+                float behindX = (playerCenter.x < tc.x) ? tc.x + 30.0f : tc.x - 30.0f;
+                transform.position.x = behindX - transform.width * 0.5f;
+
+                // 3 rapid hits
+                for (int i = 0; i < 3; i++) {
+                    Vec2 kd = {(playerCenter.x < tc.x) ? 1.0f : -1.0f, -0.5f};
+                    hitTarget(*target, counterDmg, 200.0f, (i == 2) ? 0.3f : 0, kd, true);
+                }
+
+                if (m_camera) m_camera->shake(10.0f, 0.25f);
+                m_pendingHitFreeze += 0.12f;
+                if (m_particles) {
+                    // Purple shadow trail from old position to new
+                    m_particles->burst(playerCenter, 12, {180, 100, 255, 200}, 150.0f, 3.0f);
+                    m_particles->burst(tc, 15, {200, 130, 255, 255}, 180.0f, 3.5f);
+                }
+            }
+            AudioManager::instance().play(SFX::PhaseStrikeHit);
+            break;
+        }
+
+        case WeaponID::VoidHammer: {
+            // "Void Crush": 160px AoE shockwave, 2x charged damage, 2s stun on all hit
+            float counterDmg = WeaponSystem::getWeaponData(WeaponID::VoidHammer).damage * 2.0f * dmgMult;
+            // Use charged attack base as reference (VoidHammer charged = 50*chargePercent normally)
+            counterDmg = std::max(counterDmg, 50.0f * dmgMult);
+            float counterRange = 160.0f;
+
+            entities.forEach([&](Entity& target) {
+                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
+                if (target.dimension != 0 && target.dimension != currentDim) return;
+                auto& tt = target.getComponent<TransformComponent>();
+                Vec2 tc = tt.getCenter();
+                float dx = tc.x - playerCenter.x;
+                float dy = tc.y - playerCenter.y;
+                float dist = std::sqrt(dx * dx + dy * dy);
+                if (dist < counterRange) {
+                    Vec2 kd = {dx, dy - 100.0f};
+                    hitTarget(target, counterDmg, 600.0f, 2.0f, kd, true);
+                }
+            });
+
+            if (m_camera) m_camera->shake(20.0f, 0.45f);
+            m_pendingHitFreeze += 0.2f;
+            if (m_particles) {
+                // Purple shockwave ring expanding outward
+                for (int i = 0; i < 8; i++) {
+                    float angle = i * 45.0f;
+                    m_particles->directionalBurst(playerCenter, 6,
+                        {160, 80, 255, 255}, angle, 25.0f, 280.0f, 5.0f);
+                }
+                m_particles->burst(playerCenter, 30, {200, 150, 255, 255}, 250.0f, 4.5f);
+                // Ground dust
+                m_particles->directionalBurst(playerCenter, 10,
+                    {160, 140, 120, 200}, 0.0f, 180.0f, 150.0f, 3.0f);
+            }
+            AudioManager::instance().play(SFX::GroundSlam);
+            break;
+        }
+
+        default:
+            // Ranged weapons: switch on ranged weapon type
+            break;
+    }
+
+    // Ranged weapon counters (if melee weapon wasn't one of the special ones above,
+    // OR if player has a ranged weapon equipped — we always use melee weapon for the switch.
+    // Ranged counters are handled separately when the equipped melee is RiftBlade/PhaseDaggers/VoidHammer
+    // but the currentRanged determines the ranged counter)
+    // Actually: the counter always uses the melee weapon. For ranged weapons, we need a different approach.
+    // Let's check: the spec says "unique counter-attacks per weapon". Since melee and ranged are separate,
+    // and the parry is melee-centric, we use currentMelee for melee weapons and currentRanged for ranged.
+    // The simplest approach: if the player's MELEE weapon matched above, we're done.
+    // If not (shouldn't happen since all 3 melee weapons are covered), fall through.
+    // For ranged weapon counters, we handle them based on currentRanged only if the melee
+    // weapon was already handled above — meaning ranged counters are ADDITIONAL.
+    // Actually re-reading the spec: it lists ALL 6 weapons. The counter depends on which weapon the player
+    // is using. Since there are 3 melee + 3 ranged, and we do melee counters above, let's also
+    // fire the ranged counter:
+
+    switch (combat.currentRanged) {
+        case WeaponID::ShardPistol: {
+            // "Shard Burst": 3 projectiles aimed at nearest enemies, 2.5x ranged damage
+            float projDmg = rangedBaseDmg * 2.5f * dmgMult;
+
+            // Find up to 3 nearest enemies
+            struct TargetInfo { Entity* e; float dist; };
+            std::vector<TargetInfo> targets;
+            entities.forEach([&](Entity& e) {
+                if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+                if (!e.hasComponent<TransformComponent>() || !e.hasComponent<HealthComponent>()) return;
+                if (e.dimension != 0 && e.dimension != currentDim) return;
+                auto& et = e.getComponent<TransformComponent>();
+                float dx = et.getCenter().x - playerCenter.x;
+                float dy = et.getCenter().y - playerCenter.y;
+                targets.push_back({&e, dx * dx + dy * dy});
+            });
+            // Sort by distance
+            std::sort(targets.begin(), targets.end(),
+                [](const TargetInfo& a, const TargetInfo& b) { return a.dist < b.dist; });
+
+            int shotsToFire = std::min(3, static_cast<int>(targets.size()));
+            for (int i = 0; i < shotsToFire; i++) {
+                auto& et = targets[i].e->getComponent<TransformComponent>();
+                Vec2 tc = et.getCenter();
+                Vec2 projDir = {tc.x - playerCenter.x, tc.y - playerCenter.y};
+                float len = std::sqrt(std::max(0.01f, projDir.x * projDir.x + projDir.y * projDir.y));
+                projDir = projDir * (1.0f / len);
+                createProjectile(entities, playerCenter, projDir, projDmg, 500.0f,
+                    player.dimension, false, true);
+            }
+            // If no enemies, fire 3 in attack direction
+            if (shotsToFire == 0) {
+                for (int i = 0; i < 3; i++) {
+                    float spread = (i - 1) * 0.15f;
+                    float baseAng = std::atan2(dir.y, dir.x) + spread;
+                    Vec2 projDir = {std::cos(baseAng), std::sin(baseAng)};
+                    createProjectile(entities, playerCenter, projDir, projDmg, 500.0f,
+                        player.dimension, false, true);
+                }
+            }
+            if (m_particles) {
+                m_particles->burst(playerCenter, 12, {255, 230, 100, 255}, 250.0f, 3.0f);
+            }
+            AudioManager::instance().play(SFX::RangedShot);
+            break;
+        }
+
+        case WeaponID::RiftShotgun: {
+            // "Point Blank": 80px close range, 5x ranged damage, 1200 knockback
+            float counterDmg = rangedBaseDmg * 5.0f * dmgMult;
+            float counterRange = 80.0f;
+            float counterKB = 1200.0f;
+
+            entities.forEach([&](Entity& target) {
+                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
+                if (target.dimension != 0 && target.dimension != currentDim) return;
+                auto& tt = target.getComponent<TransformComponent>();
+                Vec2 tc = tt.getCenter();
+                float dx = tc.x - playerCenter.x;
+                float dy = tc.y - playerCenter.y;
+                float dist = std::sqrt(dx * dx + dy * dy);
+                if (dist < counterRange) {
+                    Vec2 kd = {dx, dy - 60.0f};
+                    hitTarget(target, counterDmg, counterKB, 0.5f, kd, true);
+                }
+            });
+
+            if (m_camera) m_camera->shake(16.0f, 0.35f);
+            m_pendingHitFreeze += 0.15f;
+            if (m_particles) {
+                float dirDeg = std::atan2(dir.y, dir.x) * 180.0f / 3.14159f;
+                m_particles->directionalBurst(playerCenter, 25, {255, 160, 50, 255},
+                    dirDeg, 60.0f, 350.0f, 3.5f);
+                m_particles->burst(playerCenter, 15, {255, 200, 100, 255}, 200.0f, 3.0f);
+            }
+            AudioManager::instance().play(SFX::RangedShot);
+            break;
+        }
+
+        case WeaponID::VoidBeam: {
+            // "Overcharge": Thick piercing beam, 4x ranged damage
+            float projDmg = rangedBaseDmg * 4.0f * dmgMult;
+            // Create 3 parallel piercing projectiles for "thick beam" effect
+            for (int i = -1; i <= 1; i++) {
+                Vec2 offset = {dir.y * i * 6.0f, -dir.x * i * 6.0f};
+                Vec2 projPos = {playerCenter.x + offset.x, playerCenter.y + offset.y};
+                createProjectile(entities, projPos, dir, projDmg, 600.0f,
+                    player.dimension, true, true);
+            }
+
+            if (m_camera) m_camera->shake(12.0f, 0.3f);
+            m_pendingHitFreeze += 0.1f;
+            if (m_particles) {
+                float dirDeg = std::atan2(dir.y, dir.x) * 180.0f / 3.14159f;
+                m_particles->directionalBurst(playerCenter, 20, {200, 120, 255, 255},
+                    dirDeg, 15.0f, 500.0f, 4.0f);
+                m_particles->burst(playerCenter, 10, {160, 80, 255, 200}, 150.0f, 3.0f);
+            }
+            AudioManager::instance().play(SFX::RangedShot);
+            break;
+        }
+
+        default:
+            // GrapplingHook or unknown — no ranged counter
             break;
     }
 }

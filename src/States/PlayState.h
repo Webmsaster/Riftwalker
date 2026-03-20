@@ -44,6 +44,18 @@ struct FloatingDamageNumber {
     const char* buffText = nullptr; // label for buff pickups
 };
 
+// Dynamic level events (random mid-level occurrences)
+enum class DynamicEventType { DimensionStorm, EliteInvasion, TimeDilation, COUNT };
+struct DynamicLevelEvent {
+    DynamicEventType type = DynamicEventType::DimensionStorm;
+    float duration = 0;
+    float timer = 0;
+    float effectTimer = 0;
+    bool active = false;
+    const char* name = "";
+    SDL_Color color{255,255,255,255};
+};
+
 class PlayState : public GameState {
 public:
     void enter() override;
@@ -434,4 +446,15 @@ private:
     float m_runTime = 0.0f; // Total run time
     int m_bestCombo = 0;    // Peak combo count this run
     bool m_isDailyRun = false;
+
+    // Dynamic level events (dimension storm, elite invasion, time dilation)
+    DynamicLevelEvent m_dynamicEvent;
+    float m_dynamicEventCooldown = 40.0f;
+    int m_dynamicEventsTriggered = 0;
+    bool m_dynamicEventsEnabled = true;
+    float m_dynamicEventAnnouncementTimer = 0;
+    void updateDynamicEvent(float dt);
+    void triggerDynamicEvent();
+    void endDynamicEvent();
+    void renderDynamicEventOverlay(SDL_Renderer* renderer, TTF_Font* font);
 };

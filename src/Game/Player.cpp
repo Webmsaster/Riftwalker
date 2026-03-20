@@ -142,6 +142,19 @@ void Player::update(float dt, const InputManager& input) {
         detachHook();
     }
 
+    // Combo finisher timers
+    if (finisherAvailableTimer > 0) {
+        finisherAvailableTimer -= dt;
+        if (finisherAvailableTimer <= 0) {
+            finisherAvailable = FinisherTier::None;
+            finisherAvailableTimer = 0;
+        }
+    }
+    if (finisherCooldown > 0) finisherCooldown -= dt;
+    if (finisherExecuting) {
+        updateComboFinisher(dt);
+    }
+
     // Decay landing squash visual effect
     auto& spr = m_entity->getComponent<SpriteComponent>();
     if (spr.landingSquashTimer > 0) spr.landingSquashTimer -= dt;

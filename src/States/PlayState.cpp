@@ -496,7 +496,23 @@ void PlayState::update(float dt) {
                 m_player->particles->burst(pPos, 10, {255, 255, 180, 255}, 120.0f, 3.0f);
             }
         }
-        if (combo == 0) m_lastComboMilestone = 0;
+
+        // Combo Finisher availability: at 5+ combo, open a 2s window to trigger finisher
+        if (combo >= 5 && m_player->finisherCooldown <= 0
+            && m_player->finisherAvailable == Player::FinisherTier::None
+            && !m_player->finisherExecuting) {
+            m_player->finisherAvailable = Player::FinisherTier::Minor;
+            m_player->finisherAvailableTimer = m_player->finisherAvailableMaxTime;
+        }
+
+        // Combo break: clear finisher availability
+        if (combo == 0) {
+            m_lastComboMilestone = 0;
+            if (m_player->finisherAvailable != Player::FinisherTier::None) {
+                m_player->finisherAvailable = Player::FinisherTier::None;
+                m_player->finisherAvailableTimer = 0;
+            }
+        }
     }
     if (m_comboMilestoneFlash > 0) m_comboMilestoneFlash -= dt;
 

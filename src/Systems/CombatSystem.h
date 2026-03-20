@@ -102,6 +102,7 @@ private:
     void processFreezeDecay(EntityManager& entities, float dt);
     void processProjectileLifetime(EntityManager& entities, float dt);
     void processZombieSweep(EntityManager& entities, int currentDim);
+    void processCounterAttack(Entity& player, EntityManager& entities, int currentDim);
     void processRangedAttack(Entity& attacker, EntityManager& entities,
                              CombatComponent& combat, bool isPlayer);
     void handleEnemyDeath(Entity& attacker, Entity& target, EntityManager& entities,
