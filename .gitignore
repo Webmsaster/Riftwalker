@@ -11,6 +11,17 @@ riftwalker_lore.dat
 # Debug/test output
 *.log
 balance_snapshots.csv
+boss_test*.png
+clean_level*.png
+
+# User-specific settings
+riftwalker_settings.cfg
+
+# Compiled binaries
+*.exe
+*.obj
+*.pdb
+*.ilk
 
 # AI-generated assets (too large for git)
 assets/ai/
