@@ -15,6 +15,9 @@ public:
     static Entity& createCrawler(EntityManager& entities, Vec2 pos, int dimension);
     static Entity& createSummoner(EntityManager& entities, Vec2 pos, int dimension);
     static Entity& createSniper(EntityManager& entities, Vec2 pos, int dimension);
+    static Entity& createTeleporter(EntityManager& entities, Vec2 pos, int dimension);
+    static Entity& createReflector(EntityManager& entities, Vec2 pos, int dimension);
+    static Entity& createLeech(EntityManager& entities, Vec2 pos, int dimension);
     static Entity& createMinion(EntityManager& entities, Vec2 pos, int dimension);
     static Entity& createBoss(EntityManager& entities, Vec2 pos, int dimension, int difficulty);
     static Entity& createVoidWyrm(EntityManager& entities, Vec2 pos, int dimension, int difficulty);

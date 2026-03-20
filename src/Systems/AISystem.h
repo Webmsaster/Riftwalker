@@ -28,6 +28,9 @@ private:
     void updateCrawler(Entity& entity, float dt, Vec2 playerPos);
     void updateSummoner(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
+    void updateTeleporter(Entity& entity, float dt, Vec2 playerPos);
+    void updateReflector(Entity& entity, float dt, Vec2 playerPos);
+    void updateLeech(Entity& entity, float dt, Vec2 playerPos);
     void updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
     void updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);

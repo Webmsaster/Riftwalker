@@ -26,6 +26,9 @@ private:
     void renderCrawler(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderSummoner(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderSniper(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderTeleporter(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderReflector(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderLeech(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderBoss(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderVoidWyrm(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderDimensionalArchitect(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);

@@ -273,6 +273,52 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
         }
     }
 
+    // Summoner chain death: destroy all alive minions in same dimension
+    if (isPlayer && target.hasComponent<AIComponent>()) {
+        auto& targetAI2 = target.getComponent<AIComponent>();
+        if (targetAI2.enemyType == EnemyType::Summoner) {
+            int targetDim = target.dimension;
+            entities.forEach([&](Entity& minion) {
+                if (!minion.isAlive()) return;
+                if (minion.getTag() != "enemy_minion") return;
+                if (minion.dimension != 0 && minion.dimension != targetDim) return;
+                // Purple particles on each dying minion
+                if (m_particles && minion.hasComponent<TransformComponent>()) {
+                    Vec2 mPos = minion.getComponent<TransformComponent>().getCenter();
+                    m_particles->burst(mPos, 10, {180, 80, 220, 255}, 150.0f, 3.0f);
+                    m_particles->burst(mPos, 5, {220, 140, 255, 200}, 100.0f, 2.0f);
+                }
+                minion.destroy();
+            });
+        }
+    }
+
+    // Leech death effect: if player within 80px, apply poison
+    if (isPlayer && target.hasComponent<AIComponent>()) {
+        auto& targetAI3 = target.getComponent<AIComponent>();
+        // Use integer comparison for forward-compat (Leech = 12 in new enum)
+        if (static_cast<int>(targetAI3.enemyType) == 12) {
+            if (m_player && m_player->getEntity() && m_player->getEntity()->hasComponent<TransformComponent>()) {
+                Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                float pdx = playerPos.x - targetCenter.x;
+                float pdy = playerPos.y - targetCenter.y;
+                float playerDist = std::sqrt(pdx * pdx + pdy * pdy);
+                if (playerDist < 80.0f) {
+                    // Check i-frames before applying poison
+                    if (m_player->getEntity()->hasComponent<HealthComponent>() &&
+                        !m_player->getEntity()->getComponent<HealthComponent>().isInvincible()) {
+                        m_player->applyPoison(3.0f);
+                        // Green poison cloud particles
+                        if (m_particles) {
+                            m_particles->burst(targetCenter, 15, {60, 200, 40, 220}, 180.0f, 3.5f);
+                            m_particles->burst(playerPos, 8, {80, 220, 60, 200}, 80.0f, 2.0f);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Exploder death explosion is handled by AISystem
     SDL_Color deathColor = {255, 255, 255, 255};
     if (target.hasComponent<SpriteComponent>()) {
@@ -403,21 +449,32 @@ void CombatSystem::emitEnemyTypeDeathFX(Vec2 pos, int enemyType, SDL_Color color
             m_particles->directionalBurst(pos, 10, color, 90.0f, 60.0f, 200.0f, 3.0f);
             m_particles->burst(pos, 4, {200, 200, 200, 150}, 80.0f, 2.0f); // feather-like
             break;
-        case EnemyType::Charger: // Skid marks + dust cloud
-            m_particles->directionalBurst(pos, 8, {180, 160, 140, 200}, 0.0f, 30.0f, 150.0f, 2.5f);
-            m_particles->directionalBurst(pos, 8, {180, 160, 140, 200}, 180.0f, 30.0f, 150.0f, 2.5f);
+        case EnemyType::Charger: // Enhanced: more sparks + long dust trail
+            m_particles->directionalBurst(pos, 12, {180, 160, 140, 200}, 0.0f, 30.0f, 200.0f, 3.0f);
+            m_particles->directionalBurst(pos, 12, {180, 160, 140, 200}, 180.0f, 30.0f, 200.0f, 3.0f);
+            // Extra spark shower
+            m_particles->burst(pos, 15, {255, 220, 100, 255}, 250.0f, 2.5f);
+            // Long dust trail behind
+            m_particles->directionalBurst(pos, 8, {160, 140, 120, 150}, 0.0f, 15.0f, 120.0f, 4.0f);
+            m_particles->directionalBurst(pos, 8, {160, 140, 120, 150}, 180.0f, 15.0f, 120.0f, 4.0f);
             break;
-        case EnemyType::Exploder: // Chain explosion ring
-            m_particles->burst(pos, 20, {255, 160, 40, 255}, 300.0f, 2.5f);
-            m_particles->burst(pos, 10, {255, 80, 20, 200}, 200.0f, 3.5f);
+        case EnemyType::Exploder: // Enhanced: large white flash particles
+            m_particles->burst(pos, 25, {255, 160, 40, 255}, 350.0f, 3.0f);
+            m_particles->burst(pos, 15, {255, 80, 20, 200}, 250.0f, 4.0f);
+            // Bright white flash burst
+            m_particles->burst(pos, 20, {255, 255, 240, 255}, 300.0f, 2.0f);
+            m_particles->burst(pos, 10, {255, 255, 255, 255}, 180.0f, 1.5f);
             break;
         case EnemyType::Turret: // Sparks and metal debris
             m_particles->burst(pos, 12, {200, 200, 180, 220}, 180.0f, 3.0f);
             m_particles->burst(pos, 6, {255, 255, 100, 255}, 120.0f, 1.5f); // sparks
             break;
-        case EnemyType::Shielder: // Shield shatter
+        case EnemyType::Shielder: // Enhanced: blue falling shield fragments
             m_particles->burst(pos, 15, {80, 160, 255, 220}, 250.0f, 3.5f);
             m_particles->burst(pos, 5, {180, 220, 255, 180}, 180.0f, 4.0f);
+            // Shield fragments flying upward then falling
+            m_particles->directionalBurst(pos, 10, {120, 200, 255, 240}, 270.0f, 60.0f, 220.0f, 4.5f);
+            m_particles->directionalBurst(pos, 6, {200, 230, 255, 200}, 270.0f, 40.0f, 150.0f, 3.5f);
             break;
         case EnemyType::Crawler: // Goo splatter
             m_particles->burst(pos, 10, {120, 200, 80, 220}, 150.0f, 3.5f);
@@ -427,9 +484,12 @@ void CombatSystem::emitEnemyTypeDeathFX(Vec2 pos, int enemyType, SDL_Color color
             m_particles->burst(pos, 8, {180, 80, 220, 200}, 200.0f, 4.0f);
             m_particles->burst(pos, 12, {220, 140, 255, 150}, 120.0f, 3.0f);
             break;
-        case EnemyType::Sniper: // Lens flare + precision sparks
+        case EnemyType::Sniper: // Enhanced: fading red scope beam particles
             m_particles->burst(pos, 8, {255, 60, 60, 220}, 180.0f, 2.0f);
             m_particles->directionalBurst(pos, 4, {255, 255, 200, 255}, 0.0f, 180.0f, 300.0f, 1.5f);
+            // Fading red scope beam trail
+            m_particles->directionalBurst(pos, 8, {255, 40, 40, 180}, 0.0f, 10.0f, 200.0f, 3.0f);
+            m_particles->directionalBurst(pos, 8, {255, 40, 40, 180}, 180.0f, 10.0f, 200.0f, 3.0f);
             break;
         default: break;
     }

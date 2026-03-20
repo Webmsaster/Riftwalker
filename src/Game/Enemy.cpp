@@ -89,7 +89,10 @@ Entity& Enemy::createByType(EntityManager& entities, int type, Vec2 pos, int dim
         case EnemyType::Shielder: e = &createShielder(entities, pos, dimension); break;
         case EnemyType::Crawler:  e = &createCrawler(entities, pos, dimension); break;
         case EnemyType::Summoner: e = &createSummoner(entities, pos, dimension); break;
-        case EnemyType::Sniper:   e = &createSniper(entities, pos, dimension); break;
+        case EnemyType::Sniper:     e = &createSniper(entities, pos, dimension); break;
+        case EnemyType::Teleporter: e = &createTeleporter(entities, pos, dimension); break;
+        case EnemyType::Reflector:  e = &createReflector(entities, pos, dimension); break;
+        case EnemyType::Leech:      e = &createLeech(entities, pos, dimension); break;
         case EnemyType::Boss: e = &createBoss(entities, pos, dimension, 1); break;
         default: e = &createWalker(entities, pos, dimension); break;
     }
@@ -456,8 +459,8 @@ Entity& Enemy::createCrawler(EntityManager& entities, Vec2 pos, int dimension) {
     hp.currentHP = 20.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
-    // BALANCE: Crawler DMG 15 -> 12
-    combat.meleeAttack.damage = 12.0f;
+    // BALANCE: Crawler DMG 15 -> 14 (slightly more threatening)
+    combat.meleeAttack.damage = 14.0f;
     combat.meleeAttack.knockback = 250.0f;
     combat.meleeAttack.cooldown = 1.0f;
 
@@ -546,8 +549,9 @@ Entity& Enemy::createSniper(EntityManager& entities, Vec2 pos, int dimension) {
     col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
 
     auto& hp = e.addComponent<HealthComponent>();
-    hp.maxHP = 30.0f;
-    hp.currentHP = 30.0f;
+    // BALANCE: Sniper HP 30 -> 35 (slightly less fragile)
+    hp.maxHP = 35.0f;
+    hp.currentHP = 35.0f;
 
     auto& combat = e.addComponent<CombatComponent>();
     // BALANCE: Sniper DMG 20 -> 16 (still high but survivable)
@@ -571,6 +575,150 @@ Entity& Enemy::createSniper(EntityManager& entities, Vec2 pos, int dimension) {
 
     auto& anim = e.addComponent<AnimationComponent>();
     SpriteConfig::setupEnemy(anim, sprite, EnemyType::Sniper);
+
+    return e;
+}
+
+Entity& Enemy::createTeleporter(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_teleporter");
+    e.dimension = dimension;
+
+    e.addComponent<TransformComponent>(pos.x, pos.y, 26, 30);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(160, 60, 220); // Purple
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 800.0f;
+    phys.bounciness = 0.3f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 22;
+    col.height = 28;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 35.0f;
+    hp.currentHP = 35.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 14.0f;
+    combat.meleeAttack.knockback = 220.0f;
+    combat.meleeAttack.cooldown = 1.2f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Teleporter;
+    ai.detectRange = 220.0f;
+    ai.attackRange = 40.0f;
+    ai.chaseSpeed = 100.0f;
+    ai.patrolSpeed = 60.0f;
+    ai.teleportCooldown = 3.0f;
+    ai.teleportTimer = 0;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 120.0f, pos.y};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Teleporter);
+
+    return e;
+}
+
+Entity& Enemy::createReflector(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_reflector");
+    e.dimension = dimension;
+
+    e.addComponent<TransformComponent>(pos.x, pos.y, 30, 34);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(180, 190, 220); // Silver-blue
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 900.0f;
+    phys.bounciness = 0.2f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 26;
+    col.height = 32;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 55.0f;
+    hp.currentHP = 55.0f;
+    hp.armor = 0.2f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 12.0f;
+    combat.meleeAttack.knockback = 250.0f;
+    combat.meleeAttack.cooldown = 1.5f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Reflector;
+    ai.detectRange = 200.0f;
+    ai.attackRange = 45.0f;
+    ai.chaseSpeed = 70.0f;
+    ai.patrolSpeed = 35.0f;
+    ai.reflectorShieldUp = true;
+    ai.reflectorShieldTimer = 0;
+    ai.reflectorShieldCooldown = 4.0f;
+    ai.reflectorShieldDownTime = 1.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 100.0f, pos.y};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Reflector);
+
+    return e;
+}
+
+Entity& Enemy::createLeech(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_leech");
+    e.dimension = dimension;
+
+    e.addComponent<TransformComponent>(pos.x, pos.y, 28, 22);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(50, 140, 60); // Dark green
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 800.0f;
+    phys.bounciness = 0.2f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 24;
+    col.height = 20;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 80.0f;
+    hp.currentHP = 80.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 5.0f;
+    combat.meleeAttack.knockback = 100.0f;
+    combat.meleeAttack.cooldown = 2.0f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Leech;
+    ai.detectRange = 180.0f;
+    ai.attackRange = 30.0f;
+    ai.chaseSpeed = 55.0f;
+    ai.patrolSpeed = 30.0f;
+    ai.leechDrainRate = 2.0f;
+    ai.leechDrainTimer = 0;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 80.0f, pos.y};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Leech);
 
     return e;
 }

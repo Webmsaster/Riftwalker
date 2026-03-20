@@ -433,6 +433,17 @@ void PlayState::applyThemeVariant(Entity& e, int dimension) {
         }
     }
 
+    // Difficulty scaling: +8% HP, +5% DMG per level above 2
+    if (m_currentDifficulty > 2) {
+        float levelsAbove = static_cast<float>(m_currentDifficulty - 2);
+        float hpScale = 1.0f + levelsAbove * 0.08f;
+        float dmgScale = 1.0f + levelsAbove * 0.05f;
+        hp.maxHP *= hpScale;
+        hp.currentHP = hp.maxHP;
+        combat.meleeAttack.damage *= dmgScale;
+        combat.rangedAttack.damage *= dmgScale;
+    }
+
     // Tint enemy sprite toward theme accent color for visual cohesion
     auto& sprite = e.getComponent<SpriteComponent>();
     const auto& accent = theme.colors.accent;

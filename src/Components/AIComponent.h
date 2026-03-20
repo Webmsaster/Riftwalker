@@ -24,6 +24,9 @@ enum class EnemyType {
     Crawler,    // Wall/ceiling clinger, drops on player
     Summoner,   // Spawns minions from distance
     Sniper,     // Long-range telegraphed shots, keeps distance
+    Teleporter, // Blinks behind player for surprise attacks
+    Reflector,  // Frontal shield that reflects projectiles, cycles on/off
+    Leech,      // Slow drainer, steals HP from player to heal self
     Boss,       // Level boss with multiple phases
     COUNT
 };
@@ -230,6 +233,49 @@ struct AIComponent : public Component {
     float juggleTimer = 0;
     int juggleHitCount = 0;
     float juggleDamageBonus = 0.15f; // +15% per juggle hit
+
+    // Adaptive behavior
+    int timesHit = 0;
+    bool isEnraged = false;
+    int attackMissCount = 0;
+
+    // Dodge/React
+    float dodgeCooldown = 0;
+    float dodgeTimer = 0;
+    Vec2 dodgeDirection{0, 0};
+
+    // Synergy awareness (computed per-frame)
+    bool synergySummonerBuff = false;
+    float summonerBuffSpeedMult = 1.0f;
+    float summonerBuffDamageMult = 1.0f;
+    Entity* synergyProtectTarget = nullptr;
+
+    // Charger bounce
+    float chargeMissTimer = 0;
+    bool chargerBounced = false;
+
+    // Walker lunge
+    float walkerLungeTimer = 0;
+
+    // Shielder bash
+    float shielderBashCooldown = 0;
+
+    // Teleporter specific
+    float teleportCooldown = 3.0f;
+    float teleportTimer = 0;
+    float afterimageTimer = 0;
+    Vec2 afterimagePos{0, 0};
+    bool justTeleported = false;
+
+    // Reflector specific
+    bool reflectorShieldUp = true;
+    float reflectorShieldTimer = 0;
+    float reflectorShieldCooldown = 4.0f;
+    float reflectorShieldDownTime = 1.0f;
+
+    // Leech specific
+    float leechDrainRate = 2.0f;
+    float leechDrainTimer = 0;
 
     // Element weapon debuffs (applied by player's weapon buffs)
     float burnTimer = 0;       // fire weapon DoT remaining

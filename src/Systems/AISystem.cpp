@@ -96,6 +96,52 @@ float AISystem::distanceTo(Vec2 a, Vec2 b) const {
 void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int playerDimension) {
     auto ents = entities.getEntitiesWithComponent<AIComponent>();
 
+    // --- Synergy pre-pass: Summoner buffs allies, Shielder protects Snipers/Turrets ---
+    for (auto* e : ents) {
+        if (!e->hasComponent<TransformComponent>() || !e->hasComponent<AIComponent>()) continue;
+        if (!e->isAlive()) continue;
+        auto& ai = e->getComponent<AIComponent>();
+        auto& t = e->getComponent<TransformComponent>();
+        Vec2 pos = t.getCenter();
+
+        // Summoner in Chase: buff allies within 120px (+20% speed, +15% damage)
+        if (ai.enemyType == EnemyType::Summoner && ai.state == AIState::Chase) {
+            for (auto* other : ents) {
+                if (other == e || !other->isAlive()) continue;
+                if (!other->hasComponent<TransformComponent>() || !other->hasComponent<AIComponent>()) continue;
+                auto& ot = other->getComponent<TransformComponent>();
+                float dist = std::abs(ot.getCenter().x - pos.x) + std::abs(ot.getCenter().y - pos.y);
+                if (dist < 120.0f) {
+                    auto& oai = other->getComponent<AIComponent>();
+                    oai.synergySummonerBuff = true;
+                    oai.summonerBuffSpeedMult = 1.2f;
+                    oai.summonerBuffDamageMult = 1.15f;
+                }
+            }
+        }
+
+        // Shielder not patrolling: find nearest Sniper/Turret within 150px to protect
+        if (ai.enemyType == EnemyType::Shielder && ai.state != AIState::Patrol) {
+            float bestDist = 999999.0f;
+            Entity* bestTarget = nullptr;
+            for (auto* other : ents) {
+                if (other == e || !other->isAlive()) continue;
+                if (!other->hasComponent<TransformComponent>() || !other->hasComponent<AIComponent>()) continue;
+                auto& oai = other->getComponent<AIComponent>();
+                if (oai.enemyType != EnemyType::Sniper && oai.enemyType != EnemyType::Turret) continue;
+                auto& ot = other->getComponent<TransformComponent>();
+                float dist = std::abs(ot.getCenter().x - pos.x) + std::abs(ot.getCenter().y - pos.y);
+                if (dist < 150.0f && dist < bestDist) {
+                    bestDist = dist;
+                    bestTarget = other;
+                }
+            }
+            if (bestTarget) {
+                ai.synergyProtectTarget = bestTarget;
+            }
+        }
+    }
+
     for (auto* e : ents) {
         if (!e->hasComponent<TransformComponent>()) continue;
         // Skip player-owned constructs (Technomancer turrets) — handled by PlayState
@@ -238,6 +284,47 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             }
         }
 
+        // --- Synergy pre-pass: reset and compute per-frame synergy flags ---
+        ai.synergySummonerBuff = false;
+        ai.summonerBuffSpeedMult = 1.0f;
+        ai.summonerBuffDamageMult = 1.0f;
+        ai.synergyProtectTarget = nullptr;
+
+        // --- Enrage: after being hit 5 times, speed up attacks ---
+        if (ai.timesHit >= 5 && !ai.isEnraged) {
+            ai.isEnraged = true;
+        }
+
+        // --- Dodge timer decay ---
+        if (ai.dodgeCooldown > 0) ai.dodgeCooldown -= dt;
+        if (ai.dodgeTimer > 0) {
+            ai.dodgeTimer -= dt;
+            auto& phys2 = e->getComponent<PhysicsBody>();
+            phys2.velocity.x = ai.dodgeDirection.x * 200.0f;
+            if (ai.dodgeDirection.y < 0) phys2.velocity.y = ai.dodgeDirection.y * 200.0f;
+        }
+
+        // --- Dodge/React logic for certain enemy types ---
+        if (m_player && ai.dodgeCooldown <= 0 && ai.dodgeTimer <= 0) {
+            auto& t = e->getComponent<TransformComponent>();
+            float distToPlayer = distanceTo(t.getCenter(), playerPos);
+
+            // Walker/Shielder/Crawler: dodge sideways when player charges nearby
+            if ((ai.enemyType == EnemyType::Walker || ai.enemyType == EnemyType::Shielder ||
+                 ai.enemyType == EnemyType::Crawler) && m_player->isChargingAttack && distToPlayer < 100.0f) {
+                float dodgeX = (playerPos.x > t.getCenter().x) ? -1.0f : 1.0f;
+                ai.dodgeDirection = {dodgeX, 0};
+                ai.dodgeTimer = 0.2f;
+                ai.dodgeCooldown = 1.5f;
+            }
+            // Flyer: evade upward when player dashes nearby
+            else if (ai.enemyType == EnemyType::Flyer && m_player->isDashing && distToPlayer < 120.0f) {
+                ai.dodgeDirection = {0, -1.0f};
+                ai.dodgeTimer = 0.2f;
+                ai.dodgeCooldown = 1.5f;
+            }
+        }
+
         // Dimension behavior modifiers for dim-0 enemies
         if (e->dimension == 0) {
             if (playerDimension == 1) {
@@ -276,6 +363,11 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             ai.dimSpeedMod *= 0.5f;
         }
 
+        // Apply summoner buff speed multiplier
+        if (ai.synergySummonerBuff) {
+            ai.dimSpeedMod *= ai.summonerBuffSpeedMult;
+        }
+
         // Check if enemy is in the same dimension as player
         bool sameDim = (e->dimension == 0 || e->dimension == playerDimension);
 
@@ -289,7 +381,10 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             case EnemyType::Shielder: updateShielder(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
             case EnemyType::Crawler:  updateCrawler(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
             case EnemyType::Summoner: updateSummoner(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
-            case EnemyType::Sniper:   updateSniper(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
+            case EnemyType::Sniper:     updateSniper(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
+            case EnemyType::Teleporter: updateTeleporter(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
+            case EnemyType::Reflector:  updateReflector(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
+            case EnemyType::Leech:      updateLeech(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
             case EnemyType::Boss: {
                 int bt = e->getComponent<AIComponent>().bossType;
                 if (bt == 5)
@@ -338,6 +433,17 @@ void AISystem::updateWalker(Entity& entity, float dt, Vec2 playerPos) {
             phys.velocity.x = dirX * effectiveChase;
             ai.facingRight = dirX > 0;
 
+            // Walker Lunge: in Chase when dist 40-80px, lunge forward with small jump
+            if (ai.walkerLungeTimer > 0) ai.walkerLungeTimer -= dt;
+            if (dist >= 40.0f && dist <= 80.0f && ai.walkerLungeTimer <= 0 && phys.onGround) {
+                phys.velocity.x = dirX * 250.0f;
+                phys.velocity.y = -120.0f; // small hop
+                ai.walkerLungeTimer = 2.0f;
+                if (m_particles) {
+                    m_particles->burst(pos, 4, {200, 60, 60, 180}, 60.0f, 1.5f);
+                }
+            }
+
             if (dist < ai.attackRange) {
                 ai.state = AIState::Attack;
                 ai.attackTimer = ai.attackWindup; // wind-up before first attack
@@ -349,15 +455,17 @@ void AISystem::updateWalker(Entity& entity, float dt, Vec2 playerPos) {
             ai.attackTimer -= dt;
 
             // Visual wind-up telegraph: warning particles + color pulse before attack
-            if (ai.attackTimer > 0 && ai.attackTimer < ai.attackWindup) {
-                attackWindupEffect(entity, ai.attackTimer, ai.attackWindup);
+            float effectiveWindup = ai.attackWindup * (ai.isEnraged ? 0.75f : 1.0f);
+            if (ai.attackTimer > 0 && ai.attackTimer < effectiveWindup) {
+                attackWindupEffect(entity, ai.attackTimer, effectiveWindup);
             }
 
             if (ai.attackTimer <= 0) {
                 auto& combat = entity.getComponent<CombatComponent>();
                 Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
                 combat.startAttack(AttackType::Melee, dir);
-                ai.attackTimer = ai.attackCooldown / std::max(0.1f, ai.dimSpeedMod); // Faster attacks in dim B
+                float cooldownMult = ai.isEnraged ? 0.7f : 1.0f;
+                ai.attackTimer = ai.attackCooldown * cooldownMult / std::max(0.1f, ai.dimSpeedMod);
                 if (entity.hasComponent<SpriteComponent>())
                     entity.getComponent<SpriteComponent>().restoreColor();
             }
@@ -508,11 +616,32 @@ void AISystem::updateCharger(Entity& entity, float dt, Vec2 playerPos) {
                 combat.startAttack(AttackType::Melee, dir);
             }
 
-            if (ai.attackTimer <= 0 || phys.onWallLeft || phys.onWallRight) {
+            if (ai.attackTimer <= 0) {
                 ai.state = AIState::Stunned;
                 ai.stunTimer = 1.0f;
+                ai.chargerBounced = false;
                 phys.velocity.x = 0;
                 entity.getComponent<SpriteComponent>().setColor(220, 120, 40);
+            } else if (phys.onWallLeft || phys.onWallRight) {
+                // Charger Bounce: reverse at 50% speed for one bounce, then stun
+                if (!ai.chargerBounced) {
+                    ai.chargerBounced = true;
+                    ai.facingRight = !ai.facingRight;
+                    phys.velocity.x = (ai.facingRight ? 1.0f : -1.0f) * ai.chargeSpeed * 0.5f * ai.dimSpeedMod;
+                    if (m_particles) {
+                        auto& t2 = entity.getComponent<TransformComponent>();
+                        m_particles->burst(t2.getCenter(), 8, {220, 120, 40, 200}, 80.0f, 2.0f);
+                    }
+                    if (m_camera) m_camera->shake(5.0f, 0.15f);
+                    AudioManager::instance().play(SFX::GroundSlam);
+                } else {
+                    // Already bounced once — stun
+                    ai.state = AIState::Stunned;
+                    ai.stunTimer = 1.0f;
+                    ai.chargerBounced = false;
+                    phys.velocity.x = 0;
+                    entity.getComponent<SpriteComponent>().setColor(220, 120, 40);
+                }
             }
             break;
         }
@@ -735,6 +864,24 @@ void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
             ai.facingRight = dirX > 0;
             ai.shieldUp = true;
 
+            // Shielder Bash: when player is very close, push with shield
+            if (ai.shielderBashCooldown > 0) ai.shielderBashCooldown -= dt;
+            if (dist < 25.0f && ai.shielderBashCooldown <= 0 && m_player) {
+                auto* playerEntity = m_player->getEntity();
+                if (playerEntity && playerEntity->hasComponent<PhysicsBody>()) {
+                    auto& playerPhys = playerEntity->getComponent<PhysicsBody>();
+                    float pushDir = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+                    playerPhys.velocity.x += pushDir * 500.0f;
+                    playerPhys.velocity.y -= 100.0f;
+                    ai.shielderBashCooldown = 3.0f;
+                    if (m_particles) {
+                        m_particles->burst(pos, 6, {80, 180, 220, 200}, 80.0f, 2.0f);
+                    }
+                    if (m_camera) m_camera->shake(4.0f, 0.12f);
+                    AudioManager::instance().play(SFX::GroundSlam);
+                }
+            }
+
             if (dist < ai.attackRange) {
                 ai.state = AIState::Attack;
                 ai.attackTimer = ai.attackWindup; // wind-up before first attack
@@ -748,9 +895,10 @@ void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
         case AIState::Attack: {
             ai.attackTimer -= dt;
 
-            // Visual wind-up telegraph
-            if (ai.attackTimer > 0 && ai.attackTimer < ai.attackWindup) {
-                attackWindupEffect(entity, ai.attackTimer, ai.attackWindup);
+            // Visual wind-up telegraph (enrage shortens telegraph)
+            float effectiveWindup = ai.attackWindup * (ai.isEnraged ? 0.75f : 1.0f);
+            if (ai.attackTimer > 0 && ai.attackTimer < effectiveWindup) {
+                attackWindupEffect(entity, ai.attackTimer, effectiveWindup);
             }
 
             if (ai.attackTimer <= 0) {
@@ -760,7 +908,8 @@ void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
                 auto& combat = entity.getComponent<CombatComponent>();
                 Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
                 combat.startAttack(AttackType::Melee, dir);
-                ai.attackTimer = ai.attackCooldown;
+                float cooldownMult = ai.isEnraged ? 0.7f : 1.0f;
+                ai.attackTimer = ai.attackCooldown * cooldownMult;
                 if (entity.hasComponent<SpriteComponent>())
                     entity.getComponent<SpriteComponent>().restoreColor();
             }
@@ -1079,6 +1228,294 @@ void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityMana
         if (ai.isTelegraphing) {
             float flash = std::sin(ai.telegraphTimer * 15.0f) * 0.5f + 0.5f;
             sprite.setColor(200 + static_cast<int>(flash * 55), static_cast<int>(180 * (1.0f - flash)), 40);
+        }
+    }
+}
+
+void AISystem::updateTeleporter(Entity& entity, float dt, Vec2 playerPos) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& transform = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    Vec2 pos = transform.getCenter();
+    float dist = distanceTo(pos, playerPos);
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
+
+    // Teleport cooldown
+    ai.teleportTimer -= dt;
+    ai.afterimageTimer -= dt;
+    if (ai.justTeleported) ai.justTeleported = false;
+
+    switch (ai.state) {
+        case AIState::Patrol: {
+            Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
+            float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
+            ai.facingRight = dirX > 0;
+
+            if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
+            if (dist < effectiveDetect) ai.state = AIState::Chase;
+            break;
+        }
+        case AIState::Chase: {
+            float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * effectiveChase;
+            ai.facingRight = dirX > 0;
+
+            // Teleport behind player when cooldown ready
+            if (ai.teleportTimer <= 0 && dist < ai.detectRange * 1.5f) {
+                // Save afterimage position for rendering
+                ai.afterimagePos = pos;
+                ai.afterimageTimer = 0.3f;
+
+                // Teleport particles at origin
+                if (m_particles) {
+                    m_particles->burst(pos, 12, {160, 60, 220, 255}, 120.0f, 2.0f);
+                }
+
+                // Teleport behind player
+                float behindX = playerPos.x + (dirX > 0 ? -60.0f : 60.0f);
+                transform.position.x = behindX;
+                transform.position.y = playerPos.y - transform.height / 2;
+                transform.prevPosition = transform.position;
+
+                // Teleport particles at destination
+                if (m_particles) {
+                    m_particles->burst(transform.getCenter(), 12, {160, 60, 220, 255}, 120.0f, 2.0f);
+                }
+
+                ai.teleportTimer = ai.teleportCooldown;
+                ai.justTeleported = true;
+                ai.facingRight = playerPos.x > transform.getCenter().x;
+                AudioManager::instance().play(SFX::DimensionSwitch);
+
+                // Immediately attempt attack after teleport
+                ai.state = AIState::Attack;
+                float cooldownMult = ai.isEnraged ? 0.7f : 1.0f;
+                ai.attackTimer = 0.15f * cooldownMult; // very short wind-up after teleport (surprise attack)
+            }
+
+            if (dist < ai.attackRange) {
+                ai.state = AIState::Attack;
+                float windupMult = ai.isEnraged ? 0.75f : 1.0f;
+                ai.attackTimer = ai.attackWindup * windupMult;
+            }
+            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            break;
+        }
+        case AIState::Attack: {
+            ai.attackTimer -= dt;
+
+            if (ai.attackTimer > 0) {
+                float windupMult = ai.isEnraged ? 0.75f : 1.0f;
+                attackWindupEffect(entity, ai.attackTimer, ai.attackWindup * windupMult);
+            }
+
+            if (ai.attackTimer <= 0) {
+                auto& combat = entity.getComponent<CombatComponent>();
+                Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
+                combat.startAttack(AttackType::Melee, dir);
+                float cooldownMult = ai.isEnraged ? 0.7f : 1.0f;
+                ai.attackTimer = ai.attackCooldown * cooldownMult / std::max(0.1f, ai.dimSpeedMod);
+                if (entity.hasComponent<SpriteComponent>())
+                    entity.getComponent<SpriteComponent>().restoreColor();
+            }
+            if (dist > ai.attackRange * 1.5f) ai.state = AIState::Chase;
+            break;
+        }
+        default: break;
+    }
+
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        sprite.flipX = !ai.facingRight;
+        // Flicker effect when teleport is nearly ready
+        if (ai.teleportTimer < 0.5f && ai.teleportTimer > 0) {
+            Uint32 t = SDL_GetTicks();
+            sprite.color.a = ((t / 50) % 2 == 0) ? 255 : 128;
+        } else {
+            sprite.color.a = 255;
+        }
+    }
+}
+
+void AISystem::updateReflector(Entity& entity, float dt, Vec2 playerPos) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& transform = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    Vec2 pos = transform.getCenter();
+    float dist = distanceTo(pos, playerPos);
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
+
+    // Shield cycle: 4s up / 1s down
+    ai.reflectorShieldTimer += dt;
+    if (ai.reflectorShieldUp) {
+        if (ai.reflectorShieldTimer >= ai.reflectorShieldCooldown) {
+            ai.reflectorShieldUp = false;
+            ai.reflectorShieldTimer = 0;
+            // Shield drops — visual feedback
+            if (m_particles) {
+                m_particles->burst(pos, 6, {180, 190, 220, 200}, 60.0f, 1.5f);
+            }
+        }
+    } else {
+        if (ai.reflectorShieldTimer >= ai.reflectorShieldDownTime) {
+            ai.reflectorShieldUp = true;
+            ai.reflectorShieldTimer = 0;
+            // Shield raises — visual feedback
+            if (m_particles) {
+                m_particles->burst(pos, 8, {200, 210, 240, 230}, 80.0f, 2.0f);
+            }
+        }
+    }
+
+    switch (ai.state) {
+        case AIState::Patrol: {
+            Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
+            float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
+            ai.facingRight = dirX > 0;
+
+            if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
+            if (dist < effectiveDetect) ai.state = AIState::Chase;
+            break;
+        }
+        case AIState::Chase: {
+            // Slow advance, always face player
+            float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * effectiveChase;
+            ai.facingRight = dirX > 0;
+
+            if (dist < ai.attackRange) {
+                ai.state = AIState::Attack;
+                float windupMult = ai.isEnraged ? 0.75f : 1.0f;
+                ai.attackTimer = ai.attackWindup * windupMult;
+            }
+            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            break;
+        }
+        case AIState::Attack: {
+            ai.attackTimer -= dt;
+            // Always face player
+            ai.facingRight = playerPos.x > pos.x;
+
+            float windupMult = ai.isEnraged ? 0.75f : 1.0f;
+            if (ai.attackTimer > 0) {
+                attackWindupEffect(entity, ai.attackTimer, ai.attackWindup * windupMult);
+            }
+
+            if (ai.attackTimer <= 0) {
+                auto& combat = entity.getComponent<CombatComponent>();
+                Vec2 dir = {ai.facingRight ? 1.0f : -1.0f, 0.0f};
+                combat.startAttack(AttackType::Melee, dir);
+                float cooldownMult = ai.isEnraged ? 0.7f : 1.0f;
+                ai.attackTimer = ai.attackCooldown * cooldownMult / std::max(0.1f, ai.dimSpeedMod);
+                if (entity.hasComponent<SpriteComponent>())
+                    entity.getComponent<SpriteComponent>().restoreColor();
+            }
+            if (dist > ai.attackRange * 1.5f) ai.state = AIState::Chase;
+            break;
+        }
+        default: break;
+    }
+
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        sprite.flipX = !ai.facingRight;
+        // Shield visual: brighter when shield is up
+        if (ai.reflectorShieldUp) {
+            float pulse = std::sin(SDL_GetTicks() * 0.005f) * 0.15f + 0.85f;
+            sprite.color.r = static_cast<Uint8>(std::min(255.0f, 180.0f * pulse + 40.0f));
+            sprite.color.g = static_cast<Uint8>(std::min(255.0f, 190.0f * pulse + 40.0f));
+            sprite.color.b = static_cast<Uint8>(std::min(255.0f, 220.0f * pulse + 30.0f));
+        } else {
+            sprite.color = {140, 150, 170, 255}; // Dimmer when shield is down
+        }
+    }
+}
+
+void AISystem::updateLeech(Entity& entity, float dt, Vec2 playerPos) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& transform = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    Vec2 pos = transform.getCenter();
+    float dist = distanceTo(pos, playerPos);
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
+
+    // Leech gets faster when low HP (<50%)
+    float hpRatio = 1.0f;
+    if (entity.hasComponent<HealthComponent>()) {
+        auto& hp = entity.getComponent<HealthComponent>();
+        hpRatio = hp.currentHP / std::max(0.01f, hp.maxHP);
+    }
+    if (hpRatio < 0.5f) {
+        effectiveChase *= 1.4f; // Desperate speed boost
+    }
+
+    // Drain timer
+    ai.leechDrainTimer -= dt;
+
+    switch (ai.state) {
+        case AIState::Patrol: {
+            Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
+            float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
+            ai.facingRight = dirX > 0;
+
+            if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
+            if (dist < effectiveDetect) ai.state = AIState::Chase;
+            break;
+        }
+        case AIState::Chase: {
+            float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * effectiveChase;
+            ai.facingRight = dirX > 0;
+
+            // At drain range: drain HP from player, heal self
+            if (dist < ai.attackRange && ai.leechDrainTimer <= 0 && m_player) {
+                auto* playerEntity = m_player->getEntity();
+                if (playerEntity && playerEntity->hasComponent<HealthComponent>()) {
+                    auto& playerHP = playerEntity->getComponent<HealthComponent>();
+                    if (!playerHP.isInvincible()) {
+                        float drainAmount = ai.leechDrainRate;
+                        playerHP.takeDamage(drainAmount);
+                        // Heal self equal amount
+                        if (entity.hasComponent<HealthComponent>()) {
+                            entity.getComponent<HealthComponent>().heal(drainAmount);
+                        }
+                        ai.leechDrainTimer = 0.5f;
+
+                        // Green drain particles from player to leech
+                        if (m_particles) {
+                            m_particles->burst(playerPos, 3, {50, 200, 60, 200}, 40.0f, 1.5f);
+                            m_particles->burst(pos, 3, {80, 255, 80, 200}, 30.0f, 1.0f);
+                        }
+
+                        // Damage event for floating numbers (feedbackHandled to avoid extra shake)
+                        if (m_combatSystem) {
+                            m_combatSystem->addDamageEvent(playerPos, drainAmount, true, false, true);
+                        }
+                    }
+                }
+            }
+
+            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            break;
+        }
+        default: break;
+    }
+
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        sprite.flipX = !ai.facingRight;
+        // Pulsing green glow when draining
+        if (dist < ai.attackRange && ai.state == AIState::Chase) {
+            float pulse = std::sin(SDL_GetTicks() * 0.01f) * 0.3f + 0.7f;
+            sprite.color.g = static_cast<Uint8>(std::min(255.0f, 140.0f + 80.0f * pulse));
+        } else {
+            sprite.color = {50, 140, 60, 255};
         }
     }
 }

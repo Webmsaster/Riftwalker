@@ -652,14 +652,14 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
         if (m_rng() % 2 == 0) {
             type = themeConfig.preferredTypes[m_rng() % 3];
         } else {
-            type = m_rng() % 10; // 0-9: all enemy types
+            type = m_rng() % 13; // 0-12: all non-boss enemy types
         }
 
         // Difficulty caps still apply
         if (difficulty < 2) type = std::min(type, 2);       // Easy: Walker, Flyer, Turret
         else if (difficulty < 3) type = std::min(type, 4);  // Medium: +Charger, Phaser
-        else if (difficulty < 5) type = std::min(type, 7);  // Hard: +Exploder, Shielder, Crawler
-        // Very Hard (5+): all types including Summoner, Sniper
+        else if (difficulty < 5) type = std::min(type, 9);  // Hard: +Exploder, Shielder, Crawler, Summoner, Sniper
+        // Very Hard (5+): all types including Teleporter, Reflector, Leech
 
         // Crawler should spawn near ceiling for best effect
         if (type == 7) { // Crawler

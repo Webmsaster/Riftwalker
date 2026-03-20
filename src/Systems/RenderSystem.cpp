@@ -177,6 +177,12 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         renderSummoner(renderer, screenRect, entity, alpha);
     } else if (tag == "enemy_sniper") {
         renderSniper(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_teleporter") {
+        renderTeleporter(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_reflector") {
+        renderReflector(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_leech") {
+        renderLeech(renderer, screenRect, entity, alpha);
     } else if (tag == "enemy_minion") {
         // Minions use walker renderer but smaller
         renderWalker(renderer, screenRect, entity, alpha);
@@ -204,16 +210,35 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
                  sprite.color.r, sprite.color.g, sprite.color.b, a);
     }
 
-    // Hit flash: white overlay when enemy just took damage
+    // Hit flash: overlay when enemy just took damage (differentiated by weight class)
     if (tag.find("enemy") != std::string::npos && entity.hasComponent<HealthComponent>()) {
         auto& hp = entity.getComponent<HealthComponent>();
-        float flashDuration = 0.12f;
+
+        // Determine flash color + duration by enemy weight class
+        Uint8 flashR = 255, flashG = 255, flashB = 255;
+        float flashDuration = 0.12f; // default
+        if (entity.hasComponent<AIComponent>()) {
+            auto eType = entity.getComponent<AIComponent>().enemyType;
+            if (eType == EnemyType::Shielder || eType == EnemyType::Charger) {
+                // Heavy: yellow-orange flash, shorter
+                flashR = 255; flashG = 200; flashB = 60;
+                flashDuration = 0.08f;
+            } else if (eType == EnemyType::Flyer || eType == EnemyType::Crawler) {
+                // Light: white flash, longer
+                flashDuration = 0.16f;
+            } else if (eType == EnemyType::Exploder) {
+                // Exploder: red flash, danger
+                flashR = 255; flashG = 60; flashB = 40;
+                flashDuration = 0.15f;
+            }
+        }
+
         float flashStart = hp.invincibilityTime - flashDuration;
         if (hp.invincibilityTimer > flashStart && hp.invincibilityTimer > 0) {
             float flashT = (hp.invincibilityTimer - flashStart) / flashDuration;
             Uint8 fa = static_cast<Uint8>(180 * flashT * alpha);
             fillRect(renderer, screenRect.x, screenRect.y, screenRect.w, screenRect.h,
-                     255, 255, 255, fa);
+                     flashR, flashG, flashB, fa);
         }
     }
 

@@ -89,7 +89,7 @@ void Bestiary::init() {
         "of orientation. They are patient ambush predators, capable of clinging motionless "
         "to a ceiling for days while waiting for prey to pass beneath. The drop is so fast "
         "that victims rarely have time to look up before impact.",
-        20, 12, 50, EnemyElement::None,
+        20, 14, 50, EnemyElement::None,
         "Watch the ceiling, low HP",
         "Ceiling cling, drop ambush at 400px/s",
         "Ranged weapons work well. Fire clears ceilings."};
@@ -109,10 +109,40 @@ void Bestiary::init() {
         "The red laser dot they project before firing is not a simple sight but a "
         "concentrated beam of pre-collapsed dimensional energy that destabilizes the "
         "target's local space, ensuring the follow-up shot cannot miss.",
-        30, 16, 40, EnemyElement::None,
+        35, 16, 40, EnemyElement::None,
         "Long telegraph time, low HP",
         "400px range, 0.8s telegraph, retreats on approach",
         "Dash between shots. Close the gap quickly."};
+    e[static_cast<int>(EnemyType::Teleporter)] = {EnemyType::Teleporter, "Phase Blinker",
+        "Phase Blinkers are dimensional anomalies that learned to fold space around "
+        "themselves, blinking short distances through the rift fabric as naturally as "
+        "breathing. They favor ambush tactics, materializing behind unsuspecting prey "
+        "for a quick strike before vanishing again. The afterimage they leave behind "
+        "is not an illusion but a brief echo of their presence lingering in displaced space.",
+        35, 14, 100, EnemyElement::None,
+        "Predictable 3s teleport cycle, fragile",
+        "Teleports behind player every 3s, surprise melee attack",
+        "Time your attacks to catch after teleport. Ranged weapons."};
+    e[static_cast<int>(EnemyType::Reflector)] = {EnemyType::Reflector, "Mirror Sentinel",
+        "Mirror Sentinels are armored constructs whose frontal plating is composed of "
+        "crystallized dimensional mirrors. These mirrors do not merely deflect physical "
+        "attacks but redirect the kinetic energy back along its original vector. The "
+        "shield cycles through phases of coherence, becoming briefly vulnerable when "
+        "the mirror lattice needs to realign its dimensional frequency.",
+        55, 12, 70, EnemyElement::None,
+        "Shield cycles down for 1s every 4s, attack from behind",
+        "Frontal shield blocks attacks (4s up / 1s down cycle), 0.2 armor",
+        "Wait for shield down window. Attack from behind."};
+    e[static_cast<int>(EnemyType::Leech)] = {EnemyType::Leech, "Void Leech",
+        "Void Leeches are parasitic organisms that evolved in the nutrient-poor void "
+        "between dimensions. They developed the ability to siphon life energy directly "
+        "through dimensional barriers, converting stolen vitality into their own "
+        "biomass. When wounded, they become frantic, their drain rate increasing as "
+        "their survival instinct overrides all other behavior.",
+        80, 5, 55, EnemyElement::None,
+        "Slow, low direct damage, kill quickly before it heals",
+        "Drains 2HP/0.5s at close range, heals equal amount. Faster below 50% HP",
+        "Burst damage to kill fast. Keep distance."};
 
     s_bossEntries.resize(6);
     // Boss entries: {type, name, lore, HP, DMG, speed, element, weakness, abilities, effectiveWeapons}

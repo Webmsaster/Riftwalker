@@ -67,8 +67,11 @@ bool SpriteConfig::setupEnemy(AnimationComponent& anim, SpriteComponent& sprite,
         case EnemyType::Shielder: path = "assets/textures/enemies/shielder.png"; break;
         case EnemyType::Crawler:  path = "assets/textures/enemies/crawler.png";  break;
         case EnemyType::Summoner: path = "assets/textures/enemies/summoner.png"; break;
-        case EnemyType::Sniper:   path = "assets/textures/enemies/sniper.png";   break;
-        default:                  path = "assets/textures/enemies/walker.png";   break;
+        case EnemyType::Sniper:     path = "assets/textures/enemies/sniper.png";     break;
+        case EnemyType::Teleporter: path = "assets/textures/enemies/teleporter.png"; break;
+        case EnemyType::Reflector:  path = "assets/textures/enemies/reflector.png";  break;
+        case EnemyType::Leech:      path = "assets/textures/enemies/leech.png";      break;
+        default:                    path = "assets/textures/enemies/walker.png";     break;
     }
 
     auto* tex = ResourceManager::instance().getTexture(path);

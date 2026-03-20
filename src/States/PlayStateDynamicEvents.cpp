@@ -87,8 +87,10 @@ void PlayState::triggerDynamicEvent() {
             int attempts = 0;
 
             // Collect difficulty-appropriate enemy types (exclude Boss)
-            int maxType = std::min(static_cast<int>(EnemyType::Sniper),
+            int maxType = std::min(static_cast<int>(EnemyType::Leech),
                                    std::max(2, m_currentDifficulty + 1));
+            // New enemy types (Teleporter, Reflector, Leech) require difficulty 5+
+            if (m_currentDifficulty < 5) maxType = std::min(maxType, static_cast<int>(EnemyType::Sniper));
 
             while (spawned < spawnCount && attempts < 40) {
                 attempts++;

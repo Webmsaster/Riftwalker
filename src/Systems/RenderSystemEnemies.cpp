@@ -12,6 +12,16 @@ void RenderSystem::renderWalker(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     auto& sprite = entity.getComponent<SpriteComponent>();
     bool flipped = sprite.flipX;
 
+    // Idle animation: gentle 2px vertical bob in Patrol/Idle
+    if (entity.hasComponent<AIComponent>()) {
+        auto aiSt = entity.getComponent<AIComponent>().state;
+        if (aiSt == AIState::Patrol || aiSt == AIState::Idle) {
+            float bobTime = SDL_GetTicks() * 0.003f;
+            int bob = static_cast<int>(std::sin(bobTime) * 2.0f);
+            y += bob;
+        }
+    }
+
     // Animated legs
     float time = SDL_GetTicks() * 0.006f;
     int legOff = static_cast<int>(std::sin(time) * 2);
@@ -48,6 +58,19 @@ void RenderSystem::renderWalker(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 void RenderSystem::renderFlyer(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+
+    // Idle animation: figure-8 hover pattern in Patrol
+    if (entity.hasComponent<AIComponent>()) {
+        auto aiSt = entity.getComponent<AIComponent>().state;
+        if (aiSt == AIState::Patrol || aiSt == AIState::Idle) {
+            float fig8Time = SDL_GetTicks() * 0.003f;
+            int fig8X = static_cast<int>(std::sin(fig8Time) * 3.0f);
+            int fig8Y = static_cast<int>(std::sin(fig8Time * 2.0f) * 2.0f);
+            x += fig8X;
+            y += fig8Y;
+        }
+    }
+
     int cx = x + w / 2, cy = y + h / 2;
 
     float time = SDL_GetTicks() * 0.012f;
@@ -108,6 +131,20 @@ void RenderSystem::renderTurret(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 
     // Sensor eye
     fillRect(renderer, x + w / 2 - 3, y + 6, 6, 4, 255, 60, 60, a);
+
+    // Idle animation: rotating scanner line
+    if (entity.hasComponent<AIComponent>()) {
+        auto aiSt = entity.getComponent<AIComponent>().state;
+        if (aiSt == AIState::Idle || aiSt == AIState::Patrol) {
+            float scanTime = SDL_GetTicks() * 0.003f;
+            int scanLen = w / 2 + 6;
+            int scanCX = x + w / 2;
+            int scanCY = y + 6;
+            int scanEndX = scanCX + static_cast<int>(std::cos(scanTime) * scanLen);
+            int scanEndY = scanCY + static_cast<int>(std::sin(scanTime) * scanLen * 0.4f);
+            drawLine(renderer, scanCX, scanCY, scanEndX, scanEndY, 255, 80, 80, static_cast<Uint8>(120 * alpha));
+        }
+    }
 
     // HP bar
     if (entity.hasComponent<HealthComponent>()) {
@@ -221,6 +258,22 @@ void RenderSystem::renderExploder(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     if (entity.hasComponent<HealthComponent>()) {
         hpPct = entity.getComponent<HealthComponent>().getPercent();
     }
+
+    // Proximity grow: pulsing size increase when chasing, up to 15% bigger at low HP
+    if (entity.hasComponent<AIComponent>()) {
+        auto aiSt = entity.getComponent<AIComponent>().state;
+        if (aiSt == AIState::Chase || aiSt == AIState::Attack) {
+            float growFactor = (1.0f - hpPct) * 0.15f; // up to 15% bigger at 0 HP
+            float growPulse = 1.0f + growFactor * (0.5f + 0.5f * std::sin(time * 3.0f));
+            int growW = static_cast<int>(w * growPulse);
+            int growH = static_cast<int>(h * growPulse);
+            x -= (growW - w) / 2;
+            y -= (growH - h) / 2;
+            w = growW;
+            h = growH;
+        }
+    }
+
     float pulseSpeed = 1.0f + (1.0f - hpPct) * 4.0f;
     float pulse = 0.7f + 0.3f * std::sin(time * pulseSpeed);
 
@@ -280,10 +333,16 @@ void RenderSystem::renderShielder(SDL_Renderer* renderer, SDL_Rect rect, Entity&
         fillRect(renderer, x + w + 1, y + 4, shieldW - 2, shieldH - 4, 180, 230, 255, static_cast<Uint8>(shieldAlpha * 0.6f));
         // Shield edge glow
         drawLine(renderer, x + w + shieldW, y + 2, x + w + shieldW, y + 2 + shieldH, 200, 240, 255, static_cast<Uint8>(shieldAlpha * 0.4f));
+        // Shimmer highlight band moving across shield
+        int shimmerY = y + 2 + static_cast<int>(std::fmod(time * 8.0f, static_cast<float>(shieldH)));
+        fillRect(renderer, x + w, shimmerY, shieldW, 2, 240, 250, 255, static_cast<Uint8>(shieldAlpha * 0.8f));
     } else {
         fillRect(renderer, x - shieldW, y + 2, shieldW, shieldH, 120, 200, 255, shieldAlpha);
         fillRect(renderer, x - shieldW + 1, y + 4, shieldW - 2, shieldH - 4, 180, 230, 255, static_cast<Uint8>(shieldAlpha * 0.6f));
         drawLine(renderer, x - shieldW, y + 2, x - shieldW, y + 2 + shieldH, 200, 240, 255, static_cast<Uint8>(shieldAlpha * 0.4f));
+        // Shimmer highlight band
+        int shimmerY = y + 2 + static_cast<int>(std::fmod(time * 8.0f, static_cast<float>(shieldH)));
+        fillRect(renderer, x - shieldW, shimmerY, shieldW, 2, 240, 250, 255, static_cast<Uint8>(shieldAlpha * 0.8f));
     }
 
     // HP bar
@@ -426,11 +485,238 @@ void RenderSystem::renderSniper(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     fillRect(renderer, x + w / 4, legY, 3, h / 5, sprite.color.r, sprite.color.g, sprite.color.b, a);
     fillRect(renderer, x + w * 3 / 4 - 3, legY, 3, h / 5, sprite.color.r, sprite.color.g, sprite.color.b, a);
 
-    // Telegraph laser line
+    // Telegraph laser line: dotted red line that gets denser as shot approaches
     if (telegraphing) {
-        Uint8 laserA = static_cast<Uint8>(80 + 80 * std::sin(time * 15.0f));
-        int laserX = flipped ? x - 400 : x + w;
-        int laserW = 400;
-        fillRect(renderer, flipped ? laserX : laserX, rifleY, laserW, 1, 255, 50, 50, laserA);
+        float telegraphPct = 0.5f; // default mid-telegraph
+        if (entity.hasComponent<AIComponent>()) {
+            auto& aiTel = entity.getComponent<AIComponent>();
+            if (aiTel.telegraphDuration > 0.01f) {
+                telegraphPct = 1.0f - (aiTel.telegraphTimer / aiTel.telegraphDuration);
+            }
+        }
+        // Dot spacing gets denser as shot approaches (20px -> 4px)
+        int dotSpacing = std::max(4, static_cast<int>(20.0f * (1.0f - telegraphPct)));
+        // Brightness increases as shot approaches
+        Uint8 laserBase = static_cast<Uint8>(80 + 175 * telegraphPct);
+        Uint8 laserPulse = static_cast<Uint8>(laserBase * (0.7f + 0.3f * std::sin(time * 15.0f)));
+        int laserLen = 400;
+        int laserDir = flipped ? -1 : 1;
+        int laserStartX = flipped ? x : x + w;
+        // Draw dotted line
+        for (int d = 0; d < laserLen; d += dotSpacing) {
+            int dotX = laserStartX + laserDir * d;
+            int dotW = std::max(1, dotSpacing / 3);
+            fillRect(renderer, dotX, rifleY, dotW, 1, 255, 50, 50, laserPulse);
+        }
+        // Crosshair reticle at end of telegraph line
+        int reticleX = laserStartX + laserDir * laserLen;
+        int reticleSize = 6 + static_cast<int>(3.0f * telegraphPct);
+        Uint8 retA = static_cast<Uint8>(160 * telegraphPct * alpha);
+        drawLine(renderer, reticleX - reticleSize, rifleY, reticleX + reticleSize, rifleY, 255, 60, 60, retA);
+        drawLine(renderer, reticleX, rifleY - reticleSize, reticleX, rifleY + reticleSize, 255, 60, 60, retA);
+        // Outer ring approximation (4 corner lines)
+        int rs = reticleSize - 1;
+        drawLine(renderer, reticleX - rs, rifleY - rs, reticleX - rs + 2, rifleY - rs, 255, 60, 60, retA);
+        drawLine(renderer, reticleX + rs - 2, rifleY - rs, reticleX + rs, rifleY - rs, 255, 60, 60, retA);
+        drawLine(renderer, reticleX - rs, rifleY + rs, reticleX - rs + 2, rifleY + rs, 255, 60, 60, retA);
+        drawLine(renderer, reticleX + rs - 2, rifleY + rs, reticleX + rs, rifleY + rs, 255, 60, 60, retA);
+    }
+}
+
+void RenderSystem::renderTeleporter(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    int cx = x + w / 2;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    float time = SDL_GetTicks() * 0.004f;
+
+    // Hooded robe body (trapezoid: narrow top, wide bottom)
+    int robeTopW = w / 2;
+    int robeBotW = w + 4;
+    // Draw trapezoid body row by row
+    for (int row = 0; row < h * 2 / 3; row++) {
+        float t = static_cast<float>(row) / (h * 2.0f / 3.0f);
+        int rowW = static_cast<int>(robeTopW + (robeBotW - robeTopW) * t);
+        int rowX = cx - rowW / 2;
+        int rowY = y + h / 3 + row;
+        Uint8 robeR = static_cast<Uint8>(90 + 30 * t);
+        Uint8 robeG = static_cast<Uint8>(40 + 15 * t);
+        Uint8 robeB = static_cast<Uint8>(140 + 40 * t);
+        fillRect(renderer, rowX, rowY, rowW, 1, robeR, robeG, robeB, a);
+    }
+
+    // Hood (dark purple dome)
+    int hoodW = w * 2 / 3;
+    int hoodH = h / 3;
+    fillRect(renderer, cx - hoodW / 2, y, hoodW, hoodH, 60, 30, 100, a);
+    fillRect(renderer, cx - hoodW / 2 + 2, y + 2, hoodW - 4, hoodH / 2, 50, 25, 85, a);
+
+    // Cyan-purple pulsing eyes under hood
+    float eyePulse = 0.5f + 0.5f * std::sin(time * 3.0f);
+    Uint8 eyeR = static_cast<Uint8>(80 + 100 * eyePulse);
+    Uint8 eyeG = static_cast<Uint8>(180 * eyePulse);
+    Uint8 eyeB = static_cast<Uint8>(200 + 55 * eyePulse);
+    int eyeY = y + hoodH / 2 + 2;
+    fillRect(renderer, cx - 5, eyeY, 3, 3, eyeR, eyeG, eyeB, a);
+    fillRect(renderer, cx + 2, eyeY, 3, 3, eyeR, eyeG, eyeB, a);
+
+    // Dimensional crack lines around body (animated)
+    for (int i = 0; i < 4; i++) {
+        float angle = time * 1.5f + i * 1.5708f;
+        float crackLen = 8.0f + 4.0f * std::sin(time * 2.0f + i);
+        int cx1 = cx + static_cast<int>(std::cos(angle) * (w / 2 + 3));
+        int cy1 = y + h / 2 + static_cast<int>(std::sin(angle) * (h / 2 + 3));
+        int cx2 = cx1 + static_cast<int>(std::cos(angle + 0.5f) * crackLen);
+        int cy2 = cy1 + static_cast<int>(std::sin(angle + 0.5f) * crackLen);
+        Uint8 crackA = static_cast<Uint8>(120 * eyePulse * alpha);
+        drawLine(renderer, cx1, cy1, cx2, cy2, 160, 80, 220, crackA);
+    }
+
+    // Teleport afterimage: fading ghost at previous position when justTeleported
+    if (entity.hasComponent<AIComponent>()) {
+        auto& ai = entity.getComponent<AIComponent>();
+        // Use afterimage data if available (afterimageTimer > 0 means recent teleport)
+        // The other agent adds afterimageTimer/afterimagePos to AIComponent
+        // We render a fading ghost copy for visual feedback
+        if (ai.eliteTeleportTimer < 0.3f && ai.eliteTeleportTimer > 0) {
+            // Brief purple flash at current position to show arrival
+            Uint8 flashA = static_cast<Uint8>(120 * (ai.eliteTeleportTimer / 0.3f) * alpha);
+            fillRect(renderer, x - 2, y - 2, w + 4, h + 4, 140, 60, 200, flashA);
+        }
+    }
+}
+
+void RenderSystem::renderReflector(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    int cx = x + w / 2;
+    int cy = y + h / 2;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    bool flipped = sprite.flipX;
+    float time = SDL_GetTicks() * 0.004f;
+
+    // Broad silver-blue body
+    fillRect(renderer, x + 1, y + h / 5, w - 2, h * 3 / 5, 140, 160, 190, a);
+    // Darker core
+    fillRect(renderer, x + 3, y + h / 4, w - 6, h / 2, 100, 120, 150, a);
+
+    // Head with eye slit
+    int headW = w * 3 / 4;
+    int headH = h / 5;
+    fillRect(renderer, cx - headW / 2, y, headW, headH, 160, 170, 200, a);
+    // Eye slit (narrow horizontal line)
+    fillRect(renderer, cx - headW / 3, y + headH / 2, headW * 2 / 3, 2, 200, 220, 255, a);
+
+    // Legs
+    int legY = y + h * 4 / 5;
+    fillRect(renderer, x + w / 4, legY, 4, h / 5, 120, 140, 170, a);
+    fillRect(renderer, x + w * 3 / 4 - 4, legY, 4, h / 5, 120, 140, 170, a);
+
+    // Rotating rhombus mirror-shield on front (4-point diamond using drawLine)
+    bool shieldActive = true;
+    if (entity.hasComponent<AIComponent>()) {
+        shieldActive = entity.getComponent<AIComponent>().shieldUp;
+    }
+
+    float shieldRotAngle = time * 2.0f;
+    int shieldCX = flipped ? x - 8 : x + w + 8;
+    int shieldCY = cy;
+    int shieldSize = 10;
+
+    if (shieldActive) {
+        // Bright pulsing mirror-shield
+        float shieldPulse = 0.6f + 0.4f * std::sin(time * 4.0f);
+        Uint8 shieldA = static_cast<Uint8>(200 * shieldPulse * alpha);
+
+        // Diamond shape (4 points: top, right, bottom, left) with rotation
+        int dx1 = static_cast<int>(std::cos(shieldRotAngle) * shieldSize);
+        int dy1 = static_cast<int>(std::sin(shieldRotAngle) * shieldSize);
+        int dx2 = static_cast<int>(std::cos(shieldRotAngle + 1.5708f) * shieldSize);
+        int dy2 = static_cast<int>(std::sin(shieldRotAngle + 1.5708f) * shieldSize);
+
+        drawLine(renderer, shieldCX + dx1, shieldCY + dy1, shieldCX + dx2, shieldCY + dy2,
+                 200, 220, 255, shieldA);
+        drawLine(renderer, shieldCX + dx2, shieldCY + dy2, shieldCX - dx1, shieldCY - dy1,
+                 200, 220, 255, shieldA);
+        drawLine(renderer, shieldCX - dx1, shieldCY - dy1, shieldCX - dx2, shieldCY - dy2,
+                 200, 220, 255, shieldA);
+        drawLine(renderer, shieldCX - dx2, shieldCY - dy2, shieldCX + dx1, shieldCY + dy1,
+                 200, 220, 255, shieldA);
+
+        // Inner glow fill
+        fillRect(renderer, shieldCX - 4, shieldCY - 4, 8, 8, 180, 210, 255, static_cast<Uint8>(shieldA * 0.4f));
+    } else {
+        // Shield down: fragmented lines (broken diamond)
+        Uint8 fragA = static_cast<Uint8>(80 * alpha);
+        int dx1 = static_cast<int>(std::cos(shieldRotAngle * 0.3f) * shieldSize);
+        int dy1 = static_cast<int>(std::sin(shieldRotAngle * 0.3f) * shieldSize);
+        drawLine(renderer, shieldCX + dx1, shieldCY + dy1, shieldCX - 2, shieldCY + 3,
+                 130, 150, 180, fragA);
+        drawLine(renderer, shieldCX - dx1, shieldCY - dy1, shieldCX + 3, shieldCY - 2,
+                 130, 150, 180, fragA);
+    }
+}
+
+void RenderSystem::renderLeech(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    int cx = x + w / 2;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    bool flipped = sprite.flipX;
+    float time = SDL_GetTicks() * 0.005f;
+
+    // Low, wide blob body (no legs)
+    int bodyY = y + h / 4;
+    int bodyH = h * 3 / 4;
+    fillRect(renderer, x, bodyY + 2, w, bodyH - 4, 50, 100, 40, a);
+    // Rounded top (slightly lighter)
+    fillRect(renderer, x + 2, bodyY, w - 4, bodyH / 3, 60, 120, 50, a);
+
+    // Wavy underside using sin wave
+    for (int i = 0; i < w; i += 2) {
+        float wave = std::sin(time * 3.0f + i * 0.3f) * 3.0f;
+        int waveY = y + h - 2 + static_cast<int>(wave);
+        fillRect(renderer, x + i, waveY, 2, 2, 40, 80, 35, a);
+    }
+
+    // Pulsing green core (glows rhythmically)
+    float corePulse = 0.4f + 0.6f * std::sin(time * 2.5f);
+    Uint8 coreR = static_cast<Uint8>(30 + 80 * corePulse);
+    Uint8 coreG = static_cast<Uint8>(180 + 75 * corePulse);
+    Uint8 coreB = static_cast<Uint8>(40 + 40 * corePulse);
+    int coreSize = w / 4;
+    fillRect(renderer, cx - coreSize / 2, bodyY + bodyH / 3, coreSize, coreSize,
+             coreR, coreG, coreB, a);
+    // Core glow halo
+    fillRect(renderer, cx - coreSize, bodyY + bodyH / 4, coreSize * 2, coreSize + 4,
+             coreR, coreG, coreB, static_cast<Uint8>(40 * corePulse * alpha));
+
+    // Dripping green dots (animated particles falling from body)
+    for (int i = 0; i < 3; i++) {
+        float dripPhase = std::fmod(time * 1.5f + i * 1.3f, 2.0f);
+        int dripX = x + w / 4 + i * (w / 4);
+        int dripY = y + h + static_cast<int>(dripPhase * 8.0f);
+        Uint8 dripA = static_cast<Uint8>(a * (1.0f - dripPhase / 2.0f));
+        fillRect(renderer, dripX, dripY, 2, 2, 80, 200, 60, dripA);
+    }
+
+    // Red mouth opening when attacking
+    bool attacking = false;
+    if (entity.hasComponent<AIComponent>()) {
+        auto aiSt = entity.getComponent<AIComponent>().state;
+        attacking = (aiSt == AIState::Attack || aiSt == AIState::Chase);
+    }
+    int mouthX = flipped ? x + 1 : x + w - 7;
+    int mouthY = bodyY + bodyH / 2;
+    if (attacking) {
+        // Wide open mouth (red maw)
+        int mouthW = 6;
+        int mouthH = 5;
+        fillRect(renderer, mouthX, mouthY, mouthW, mouthH, 200, 40, 40, a);
+        // Inner darkness
+        fillRect(renderer, mouthX + 1, mouthY + 1, mouthW - 2, mouthH - 2, 80, 15, 15, a);
+    } else {
+        // Closed mouth (thin line)
+        fillRect(renderer, mouthX, mouthY + 1, 5, 2, 160, 40, 40, a);
     }
 }

@@ -251,7 +251,11 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
 
             // Dimension behavior damage modifier (enemy attacks only)
             if (!isPlayer && attacker.hasComponent<AIComponent>()) {
-                damage *= attacker.getComponent<AIComponent>().dimDamageMod;
+                auto& attackAI = attacker.getComponent<AIComponent>();
+                damage *= attackAI.dimDamageMod;
+                if (attackAI.synergySummonerBuff) {
+                    damage *= attackAI.summonerBuffDamageMult;
+                }
             }
 
             // Relic damage multiplier (player attacks only)
@@ -400,6 +404,42 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     bool attackFromRight = attackCenter.x > targetCenter.x;
                     if (attackFromRight == targetAI.facingRight) {
                         shieldBlocked = true;
+                    }
+                }
+                // Reflector mirror-shield block: blocks frontal attacks, reflects ranged back
+                if (targetAI.enemyType == EnemyType::Reflector && targetAI.reflectorShieldUp) {
+                    bool attackFromFront = (attackCenter.x > targetCenter.x) == targetAI.facingRight;
+                    if (attackFromFront) {
+                        if (combat.currentAttack == AttackType::Ranged) {
+                            Vec2 reflectDir = combat.attackDirection * -1.0f;
+                            float reflectDmg = damage * 0.75f;
+                            createProjectile(entities, targetCenter, reflectDir,
+                                           reflectDmg, 400.0f, target.dimension, false, false);
+                            AudioManager::instance().play(SFX::RiftShieldReflect);
+                            if (m_particles) {
+                                m_particles->burst(targetCenter, 10, {200, 220, 255, 255}, 150.0f, 2.5f);
+                            }
+                            if (m_camera) m_camera->shake(4.0f, 0.12f);
+                        } else {
+                            AudioManager::instance().play(SFX::RiftFail);
+                            if (m_particles) {
+                                m_particles->burst(targetCenter, 8, {180, 200, 255, 255}, 100.0f, 2.0f);
+                            }
+                            if (m_camera) m_camera->shake(3.0f, 0.1f);
+                        }
+                        shieldBlocked = true;
+                    }
+                }
+            }
+
+            // Track hits for enrage system
+            if (isPlayer && target.hasComponent<AIComponent>()) {
+                auto& targetAI = target.getComponent<AIComponent>();
+                targetAI.timesHit++;
+                if (targetAI.timesHit >= 3 && !targetAI.isEnraged) {
+                    targetAI.isEnraged = true;
+                    if (target.hasComponent<SpriteComponent>()) {
+                        target.getComponent<SpriteComponent>().setColor(255, 60, 40);
                     }
                 }
             }
