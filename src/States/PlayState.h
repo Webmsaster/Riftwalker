@@ -79,6 +79,19 @@ private:
     void applyUpgrades();
     void renderBackground(SDL_Renderer* renderer);
 
+    // Update helper methods (PlayStateUpdate.cpp)
+    void updateDimensionSwitch();
+    void updateDimensionEffects(float dt);
+    void updatePlayerPhysicsEffects(float dt);
+    void updateTechnomancerEntities(float dt);
+    void updateBossEffects(float dt);
+    void updateEnemyHazardDamage(float dt);
+    void updatePlayerHazardDamage(float dt);
+    void updateStatusEffects(float dt);
+    bool updatePlayerDeath();   // returns true if player survived, false if dying
+    void updateKillEffects();
+    void updatePostCombat(float dt);
+
     EntityManager m_entities;
     std::unique_ptr<Player> m_player;
     std::unique_ptr<Level> m_level;
