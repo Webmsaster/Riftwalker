@@ -1,0 +1,795 @@
+// PlayStateRenderOverlays.cpp -- Split from PlayStateRender.cpp (modal overlays, notifications, tutorial)
+#include "PlayState.h"
+#include "Core/Game.h"
+#include "Game/Enemy.h"
+#include "Components/TransformComponent.h"
+#include "Components/HealthComponent.h"
+#include "Components/CombatComponent.h"
+#include "Components/PhysicsBody.h"
+#include "Game/Tile.h"
+#include "Components/AIComponent.h"
+#include "Components/SpriteComponent.h"
+#include "Components/AbilityComponent.h"
+#include "Core/AudioManager.h"
+#include "Game/AchievementSystem.h"
+#include "Game/RelicSystem.h"
+#include "Game/RelicSynergy.h"
+#include "Game/ClassSystem.h"
+#include "Game/LoreSystem.h"
+#include "Game/DailyRun.h"
+#include "Game/Bestiary.h"
+#include "Game/DimensionShiftBalance.h"
+#include "Components/RelicComponent.h"
+#include <cstdlib>
+#include <cmath>
+#include <cstring>
+#include <cstdio>
+#include <algorithm>
+#include <string>
+
+void PlayState::renderDeathSequence(SDL_Renderer* renderer) {
+    if (!m_playerDying) return;
+
+    float progress = 1.0f - (m_deathSequenceTimer / m_deathSequenceDuration);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Full screen red-black fade (intensifies over time)
+    Uint8 overlayAlpha = static_cast<Uint8>(std::min(180.0f, progress * 220.0f));
+    SDL_SetRenderDrawColor(renderer, 40, 0, 0, overlayAlpha);
+    SDL_Rect fullScreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_RenderFillRect(renderer, &fullScreen);
+
+    // Vignette border (thick red edges)
+    int borderW = static_cast<int>(20 + progress * 60);
+    Uint8 borderAlpha = static_cast<Uint8>(std::min(200.0f, progress * 250.0f));
+    SDL_SetRenderDrawColor(renderer, 180, 20, 0, borderAlpha);
+    SDL_Rect top = {0, 0, SCREEN_WIDTH, borderW};
+    SDL_Rect bot = {0, SCREEN_HEIGHT - borderW, SCREEN_WIDTH, borderW};
+    SDL_Rect lft = {0, 0, borderW, SCREEN_HEIGHT};
+    SDL_Rect rgt = {SCREEN_WIDTH - borderW, 0, borderW, SCREEN_HEIGHT};
+    SDL_RenderFillRect(renderer, &top);
+    SDL_RenderFillRect(renderer, &bot);
+    SDL_RenderFillRect(renderer, &lft);
+    SDL_RenderFillRect(renderer, &rgt);
+
+    // "SUIT FAILURE" text (fades in)
+    TTF_Font* font = game->getFont();
+    if (font && progress > 0.2f) {
+        float textAlpha = std::min(1.0f, (progress - 0.2f) * 2.0f);
+        Uint8 ta = static_cast<Uint8>(textAlpha * 255);
+        float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.015f);
+        Uint8 tr = static_cast<Uint8>(200 * pulse + 55);
+        SDL_Color deathColor = {tr, 30, 20, ta};
+        SDL_Surface* ds = TTF_RenderText_Blended(font, "SUIT FAILURE", deathColor);
+        if (ds) {
+            SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
+            if (dt) {
+                SDL_SetTextureAlphaMod(dt, ta);
+                // Center of screen, slight upward drift
+                int yOff = static_cast<int>(progress * 15.0f);
+                SDL_Rect dr = {SCREEN_WIDTH / 2 - ds->w / 2,
+                               SCREEN_HEIGHT / 2 - ds->h / 2 - yOff,
+                               ds->w, ds->h};
+                SDL_RenderCopy(renderer, dt, nullptr, &dr);
+                SDL_DestroyTexture(dt);
+            }
+            SDL_FreeSurface(ds);
+        }
+    }
+}
+
+void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* font) {
+    auto* notif = game->getAchievements().getActiveNotification();
+    if (!notif || !font) return;
+
+    float t = notif->timer / notif->duration;
+    float slideIn = std::min(1.0f, (1.0f - t) * 5.0f); // fast slide in
+    float fadeOut = std::min(1.0f, t * 3.0f); // fade out at end
+    float alpha = slideIn * fadeOut;
+    Uint8 a = static_cast<Uint8>(alpha * 220);
+
+    bool hasReward = !notif->rewardText.empty();
+    int popW = 300, popH = hasReward ? 56 : 40;
+    int popX = 640 - popW / 2;
+    int popY = 660 - popH - static_cast<int>(slideIn * 20);
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 20, 40, 25, a);
+    SDL_Rect bg = {popX, popY, popW, popH};
+    SDL_RenderFillRect(renderer, &bg);
+    SDL_SetRenderDrawColor(renderer, 100, 220, 120, a);
+    SDL_RenderDrawRect(renderer, &bg);
+
+    // Trophy icon
+    SDL_SetRenderDrawColor(renderer, 255, 200, 50, a);
+    SDL_Rect trophy = {popX + 10, popY + 8, 16, 16};
+    SDL_RenderFillRect(renderer, &trophy);
+
+    // Achievement name
+    char achText[128];
+    snprintf(achText, sizeof(achText), "Achievement: %s", notif->name.c_str());
+    SDL_Color tc = {200, 255, 210, a};
+    SDL_Surface* ts = TTF_RenderText_Blended(font, achText, tc);
+    if (ts) {
+        SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
+        if (tt) {
+            SDL_SetTextureAlphaMod(tt, a);
+            SDL_Rect tr = {popX + 34, popY + 4, ts->w, ts->h};
+            SDL_RenderCopy(renderer, tt, nullptr, &tr);
+            SDL_DestroyTexture(tt);
+        }
+        SDL_FreeSurface(ts);
+    }
+
+    // Reward text line (golden)
+    if (hasReward) {
+        char rewardText[128];
+        snprintf(rewardText, sizeof(rewardText), "Reward: %s", notif->rewardText.c_str());
+        SDL_Color rc = {255, 220, 80, a};
+        SDL_Surface* rs = TTF_RenderText_Blended(font, rewardText, rc);
+        if (rs) {
+            SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
+            if (rt) {
+                SDL_SetTextureAlphaMod(rt, a);
+                SDL_Rect rr = {popX + 34, popY + 28, rs->w, rs->h};
+                SDL_RenderCopy(renderer, rt, nullptr, &rr);
+                SDL_DestroyTexture(rt);
+            }
+            SDL_FreeSurface(rs);
+        }
+    }
+}
+
+void PlayState::renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font) {
+    auto* lore = game->getLoreSystem();
+    if (!lore) return;
+    auto* loreNotif = lore->getActiveNotification();
+    if (!loreNotif || !font) return;
+
+    float t = loreNotif->timer / loreNotif->duration;
+    float slideIn = std::min(1.0f, (1.0f - t) * 4.0f);
+    float fadeOut = std::min(1.0f, t * 2.5f);
+    float alpha = slideIn * fadeOut;
+    Uint8 a = static_cast<Uint8>(alpha * 230);
+
+    int popW = 320, popH = 44;
+    int popX = SCREEN_WIDTH / 2 - popW / 2;
+    int popY = 20 + static_cast<int>((1.0f - slideIn) * 30);
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    // Dark purple background
+    SDL_SetRenderDrawColor(renderer, 25, 15, 40, a);
+    SDL_Rect bg = {popX, popY, popW, popH};
+    SDL_RenderFillRect(renderer, &bg);
+    // Purple border with glow
+    float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.006f);
+    Uint8 borderA = static_cast<Uint8>(a * pulse);
+    SDL_SetRenderDrawColor(renderer, 160, 100, 255, borderA);
+    SDL_RenderDrawRect(renderer, &bg);
+    SDL_Rect innerBorder = {popX + 1, popY + 1, popW - 2, popH - 2};
+    SDL_SetRenderDrawColor(renderer, 120, 70, 200, static_cast<Uint8>(borderA * 0.5f));
+    SDL_RenderDrawRect(renderer, &innerBorder);
+
+    // Scroll/book icon (small rectangle with lines)
+    SDL_SetRenderDrawColor(renderer, 180, 140, 255, a);
+    SDL_Rect scrollIcon = {popX + 12, popY + 10, 12, 16};
+    SDL_RenderFillRect(renderer, &scrollIcon);
+    SDL_SetRenderDrawColor(renderer, 100, 60, 180, a);
+    for (int line = 0; line < 3; line++) {
+        SDL_RenderDrawLine(renderer, popX + 14, popY + 14 + line * 4,
+                           popX + 22, popY + 14 + line * 4);
+    }
+
+    // "Lore Discovered" label
+    SDL_Color labelColor = {140, 110, 200, a};
+    SDL_Surface* labelSurf = TTF_RenderText_Blended(font, "LORE DISCOVERED", labelColor);
+    if (labelSurf) {
+        SDL_Texture* labelTex = SDL_CreateTextureFromSurface(renderer, labelSurf);
+        if (labelTex) {
+            SDL_SetTextureAlphaMod(labelTex, a);
+            SDL_Rect lr = {popX + 32, popY + 4, labelSurf->w, labelSurf->h};
+            SDL_RenderCopy(renderer, labelTex, nullptr, &lr);
+            SDL_DestroyTexture(labelTex);
+        }
+        SDL_FreeSurface(labelSurf);
+    }
+
+    // Lore title
+    SDL_Color titleColor = {220, 200, 255, a};
+    SDL_Surface* titleSurf = TTF_RenderText_Blended(font, loreNotif->title.c_str(), titleColor);
+    if (titleSurf) {
+        SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
+        if (titleTex) {
+            SDL_SetTextureAlphaMod(titleTex, a);
+            SDL_Rect tr = {popX + 32, popY + 22, titleSurf->w, titleSurf->h};
+            SDL_RenderCopy(renderer, titleTex, nullptr, &tr);
+            SDL_DestroyTexture(titleTex);
+        }
+        SDL_FreeSurface(titleSurf);
+    }
+}
+
+void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font || m_relicChoices.empty()) return;
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Dark overlay
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 160);
+    SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_RenderFillRect(renderer, &full);
+
+    // Title
+    {
+        SDL_Color tc = {255, 215, 100, 255};
+        SDL_Surface* s = TTF_RenderText_Blended(font, "Choose a Relic", tc);
+        if (s) {
+            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+            if (t) {
+                SDL_Rect r = {640 - s->w / 2, 180, s->w, s->h};
+                SDL_RenderCopy(renderer, t, nullptr, &r);
+                SDL_DestroyTexture(t);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+
+    // Relic cards
+    int cardW = 200;
+    int cardH = 260;
+    int gap = 30;
+    int totalW = static_cast<int>(m_relicChoices.size()) * cardW + (static_cast<int>(m_relicChoices.size()) - 1) * gap;
+    int startX = 640 - totalW / 2;
+    int cardY = 230;
+
+    for (int i = 0; i < static_cast<int>(m_relicChoices.size()); i++) {
+        int cx = startX + i * (cardW + gap);
+        bool selected = (i == m_relicChoiceSelected);
+        auto& data = RelicSystem::getRelicData(m_relicChoices[i]);
+
+        // Card background
+        SDL_SetRenderDrawColor(renderer, 15, 15, 25, 220);
+        SDL_Rect cardBg = {cx, cardY, cardW, cardH};
+        SDL_RenderFillRect(renderer, &cardBg);
+
+        // Border (glow when selected)
+        Uint8 borderA = selected ? 255 : 100;
+        SDL_SetRenderDrawColor(renderer, data.glowColor.r, data.glowColor.g, data.glowColor.b, borderA);
+        SDL_RenderDrawRect(renderer, &cardBg);
+        if (selected) {
+            SDL_Rect outer = {cx - 2, cardY - 2, cardW + 4, cardH + 4};
+            SDL_RenderDrawRect(renderer, &outer);
+        }
+
+        // Relic icon (colored orb)
+        int orbX = cx + cardW / 2;
+        int orbY = cardY + 50;
+        int orbR = 24;
+        for (int oy = -orbR; oy <= orbR; oy++) {
+            for (int ox = -orbR; ox <= orbR; ox++) {
+                if (ox * ox + oy * oy <= orbR * orbR) {
+                    float dist = std::sqrt(static_cast<float>(ox * ox + oy * oy)) / orbR;
+                    Uint8 a = static_cast<Uint8>((1.0f - dist * 0.5f) * 255);
+                    SDL_SetRenderDrawColor(renderer, data.glowColor.r, data.glowColor.g, data.glowColor.b, a);
+                    SDL_RenderDrawPoint(renderer, orbX + ox, orbY + oy);
+                }
+            }
+        }
+
+        // Tier text + CURSED label
+        bool isCursedRelic = RelicSystem::isCursed(m_relicChoices[i]);
+        const char* tierText = "COMMON";
+        SDL_Color tierColor = {180, 180, 180, 255};
+        if (data.tier == RelicTier::Rare)      { tierText = "RARE";      tierColor = {80, 180, 255, 255}; }
+        else if (data.tier == RelicTier::Legendary) { tierText = "LEGENDARY"; tierColor = {255, 200, 50, 255}; }
+        // CURSED override: override tier display with red "CURSED" label
+        if (isCursedRelic) { tierText = "CURSED"; tierColor = {255, 50, 50, 255}; }
+        {
+            SDL_Surface* s = TTF_RenderText_Blended(font, tierText, tierColor);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 90, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+        // Cursed relics: draw a red skull-mark (X lines) in the top-right corner of the card
+        if (isCursedRelic) {
+            SDL_SetRenderDrawColor(renderer, 200, 20, 20, 200);
+            int mx = cx + cardW - 14, my = cardY + 8;
+            SDL_RenderDrawLine(renderer, mx, my, mx + 10, my + 10);
+            SDL_RenderDrawLine(renderer, mx + 10, my, mx, my + 10);
+            SDL_RenderDrawLine(renderer, mx + 1, my, mx + 11, my + 10);
+            SDL_RenderDrawLine(renderer, mx + 11, my, mx + 1, my + 10);
+            // Dark red card tint overlay
+            SDL_SetRenderDrawColor(renderer, 80, 0, 0, 30);
+            SDL_RenderFillRect(renderer, &cardBg);
+        }
+
+        // Name
+        {
+            SDL_Color nc = {255, 255, 255, 255};
+            SDL_Surface* s = TTF_RenderText_Blended(font, data.name, nc);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 120, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+
+        // Description
+        {
+            SDL_Color dc = {180, 180, 200, 220};
+            SDL_Surface* s = TTF_RenderText_Blended(font, data.description, dc);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 160, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+
+        // Key hint
+        char keyBuf[8];
+        std::snprintf(keyBuf, sizeof(keyBuf), "[%d]", i + 1);
+        {
+            SDL_Color kc = selected ? SDL_Color{255, 255, 255, 255} : SDL_Color{100, 100, 120, 180};
+            SDL_Surface* s = TTF_RenderText_Blended(font, keyBuf, kc);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + cardH - 35, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+    }
+}
+
+void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
+    if (m_eventChain.stage <= 0 && m_chainRewardTimer <= 0) return;
+    if (!font) return;
+
+    SDL_Color cc = m_eventChain.getColor();
+
+    // Active chain: show progress tracker at top-left
+    if (m_eventChain.stage > 0 && !m_eventChain.completed) {
+        int panelX = 10;
+        int panelY = 90; // Below existing HUD elements
+        int panelW = 220;
+        int panelH = 50;
+
+        // Background
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_Rect bg = {panelX, panelY, panelW, panelH};
+        SDL_SetRenderDrawColor(renderer, 20, 20, 30, 180);
+        SDL_RenderFillRect(renderer, &bg);
+
+        // Border in chain color
+        SDL_SetRenderDrawColor(renderer, cc.r, cc.g, cc.b, 200);
+        SDL_RenderDrawRect(renderer, &bg);
+
+        // Chain icon: linked circles
+        for (int i = 0; i < m_eventChain.maxStages; i++) {
+            int cx = panelX + 15 + i * 18;
+            int cy = panelY + 14;
+            int r = 5;
+            if (i < m_eventChain.stage) {
+                // Filled circle for completed stages
+                SDL_Rect dot = {cx - r, cy - r, r * 2, r * 2};
+                SDL_SetRenderDrawColor(renderer, cc.r, cc.g, cc.b, 255);
+                SDL_RenderFillRect(renderer, &dot);
+            } else {
+                // Hollow for pending
+                SDL_Rect dot = {cx - r, cy - r, r * 2, r * 2};
+                SDL_SetRenderDrawColor(renderer, cc.r, cc.g, cc.b, 100);
+                SDL_RenderDrawRect(renderer, &dot);
+            }
+            // Link line
+            if (i < m_eventChain.maxStages - 1) {
+                SDL_SetRenderDrawColor(renderer, cc.r, cc.g, cc.b,
+                    static_cast<Uint8>(i < m_eventChain.stage - 1 ? 200 : 60));
+                SDL_RenderDrawLine(renderer, cx + r + 1, cy, cx + 13 - r, cy);
+            }
+        }
+
+        // Chain name
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Surface* nameSurf = TTF_RenderText_Blended(font, m_eventChain.getName(), white);
+        if (nameSurf) {
+            SDL_Texture* nameTex = SDL_CreateTextureFromSurface(renderer, nameSurf);
+            SDL_Rect nameR = {panelX + 70, panelY + 4, nameSurf->w, nameSurf->h};
+            SDL_RenderCopy(renderer, nameTex, nullptr, &nameR);
+            SDL_DestroyTexture(nameTex);
+            SDL_FreeSurface(nameSurf);
+        }
+
+        // Stage description
+        const char* desc = m_eventChain.getStageDesc();
+        if (desc && desc[0]) {
+            SDL_Color dimWhite = {200, 200, 200, 200};
+            SDL_Surface* descSurf = TTF_RenderText_Blended(font, desc, dimWhite);
+            if (descSurf) {
+                SDL_Texture* descTex = SDL_CreateTextureFromSurface(renderer, descSurf);
+                int maxW = panelW - 10;
+                int dw = std::min(descSurf->w, maxW);
+                int dh = descSurf->h * dw / std::max(descSurf->w, 1);
+                SDL_Rect descR = {panelX + 5, panelY + 26, dw, dh};
+                SDL_RenderCopy(renderer, descTex, nullptr, &descR);
+                SDL_DestroyTexture(descTex);
+                SDL_FreeSurface(descSurf);
+            }
+        }
+    }
+
+    // Stage advance notification (slide-in from top)
+    if (m_chainNotifyTimer > 0 && !m_eventChain.completed) {
+        float slideT = std::min(m_chainNotifyTimer / 3.5f, 1.0f);
+        float slideIn = (slideT > 0.85f) ? (1.0f - slideT) / 0.15f : (slideT < 0.15f ? slideT / 0.15f : 1.0f);
+        Uint8 alpha = static_cast<Uint8>(255 * slideIn);
+
+        char stageText[64];
+        snprintf(stageText, sizeof(stageText), "CHAIN: Stage %d/%d", m_eventChain.stage, m_eventChain.maxStages);
+
+        SDL_Color textCol = {cc.r, cc.g, cc.b, alpha};
+        SDL_Surface* surf = TTF_RenderText_Blended(font, stageText, textCol);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+            SDL_SetTextureAlphaMod(tex, alpha);
+            int tx = (SCREEN_WIDTH - surf->w) / 2;
+            int ty = 50 + static_cast<int>((1.0f - slideIn) * -20);
+            SDL_Rect r = {tx, ty, surf->w, surf->h};
+            SDL_RenderCopy(renderer, tex, nullptr, &r);
+            SDL_DestroyTexture(tex);
+            SDL_FreeSurface(surf);
+        }
+    }
+
+    // Completion reward popup (event chain)
+    if (m_chainRewardTimer > 0) {
+        float fadeT = std::min(m_chainRewardTimer / 4.0f, 1.0f);
+        float alpha01 = (fadeT > 0.8f) ? (1.0f - fadeT) / 0.2f : (fadeT < 0.2f ? fadeT / 0.2f : 1.0f);
+        Uint8 alpha = static_cast<Uint8>(255 * alpha01);
+
+        // "CHAIN COMPLETE" title
+        SDL_Color goldCol = {255, 215, 60, alpha};
+        SDL_Surface* titleSurf = TTF_RenderText_Blended(font, "CHAIN COMPLETE!", goldCol);
+        if (titleSurf) {
+            SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
+            SDL_SetTextureAlphaMod(titleTex, alpha);
+            int tx = (SCREEN_WIDTH - titleSurf->w) / 2;
+            int ty = 100;
+            SDL_Rect r = {tx, ty, titleSurf->w, titleSurf->h};
+            SDL_RenderCopy(renderer, titleTex, nullptr, &r);
+            SDL_DestroyTexture(titleTex);
+            SDL_FreeSurface(titleSurf);
+        }
+
+        // Chain name + reward
+        char rewardText[64];
+        snprintf(rewardText, sizeof(rewardText), "%s — +%d Shards", m_eventChain.getName(), m_chainRewardShards);
+        SDL_Color rewCol = {cc.r, cc.g, cc.b, alpha};
+        SDL_Surface* rewSurf = TTF_RenderText_Blended(font, rewardText, rewCol);
+        if (rewSurf) {
+            SDL_Texture* rewTex = SDL_CreateTextureFromSurface(renderer, rewSurf);
+            SDL_SetTextureAlphaMod(rewTex, alpha);
+            int rx = (SCREEN_WIDTH - rewSurf->w) / 2;
+            int ry = 125;
+            SDL_Rect r = {rx, ry, rewSurf->w, rewSurf->h};
+            SDL_RenderCopy(renderer, rewTex, nullptr, &r);
+            SDL_DestroyTexture(rewTex);
+            SDL_FreeSurface(rewSurf);
+        }
+    }
+}
+
+void PlayState::renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font) return;
+    // Stack popups in top-center
+    int y = 140;
+    for (int i = 0; i < MAX_UNLOCK_NOTIFS; i++) {
+        auto& notif = m_unlockNotifs[i];
+        if (notif.timer <= 0) continue;
+
+        // Slide in from top during first 0.2s, fade out during last 0.5s
+        float slideIn = std::min(1.0f, (notif.maxTimer - notif.timer) / 0.2f);
+        float fadeOut = std::min(1.0f, notif.timer / 0.5f);
+        Uint8 alpha = static_cast<Uint8>(255 * slideIn * fadeOut);
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+        // Golden pulsing background panel
+        float pulse = 0.7f + 0.3f * std::sin(notif.timer * 8.0f);
+        SDL_SetRenderDrawColor(renderer, 40, 30, 5,
+                               static_cast<Uint8>(180 * slideIn * fadeOut));
+        SDL_Rect bg = {640 - 220, y - 4, 440, 30};
+        SDL_RenderFillRect(renderer, &bg);
+        // Gold border
+        SDL_SetRenderDrawColor(renderer, 255, 200, 50,
+                               static_cast<Uint8>(220 * pulse * slideIn * fadeOut));
+        SDL_RenderDrawRect(renderer, &bg);
+
+        // Text
+        SDL_Color textColor = {255, 215, 0, alpha};
+        SDL_Surface* surf = TTF_RenderText_Blended(font, notif.text, textColor);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, alpha);
+                int tw = surf->w, th = surf->h;
+                SDL_Rect r = {640 - tw / 2, y, tw, th};
+                SDL_RenderCopy(renderer, tex, nullptr, &r);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(surf);
+        }
+        y += 36;
+    }
+}
+
+void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font) return;
+
+    // Only show tutorial hints on the first run (totalRuns == 0 means no completed run yet)
+    if (game->getUpgradeSystem().totalRuns > 0) return;
+
+    // Context-based hint system: show hints when conditions are met
+    const char* hint = nullptr;
+    const char* keyLabel = nullptr;
+    int hintSlot = -1; // which slot to mark done
+    bool conditionMet = false;
+
+    // === LEVEL 1: Basic controls (sequential) ===
+    if (m_currentDifficulty == 1) {
+        if (!m_tutorialHintDone[0]) {
+            if (m_tutorialTimer > 1.5f && !m_hasMovedThisRun) {
+                hint = "Move";
+                keyLabel = "WASD";
+            }
+            if (m_hasMovedThisRun) { conditionMet = true; hintSlot = 0; }
+        } else if (!m_tutorialHintDone[1]) {
+            hint = "Jump";
+            keyLabel = "SPACE";
+            if (m_hasJumpedThisRun) { conditionMet = true; hintSlot = 1; }
+        } else if (!m_tutorialHintDone[2]) {
+            hint = "Dash through danger (also in air!)";
+            keyLabel = "SHIFT";
+            if (m_hasDashedThisRun) { conditionMet = true; hintSlot = 2; }
+        } else if (!m_tutorialHintDone[3]) {
+            bool enemyNear = false;
+            if (m_player) {
+                Vec2 pp = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                m_entities.forEach([&](Entity& e) {
+                    if (e.getTag().find("enemy") != std::string::npos &&
+                        e.hasComponent<TransformComponent>()) {
+                        Vec2 ep = e.getComponent<TransformComponent>().getCenter();
+                        float d = std::sqrt((pp.x-ep.x)*(pp.x-ep.x) + (pp.y-ep.y)*(pp.y-ep.y));
+                        if (d < 250.0f) enemyNear = true;
+                    }
+                });
+            }
+            if (enemyNear) {
+                hint = "Melee Attack";
+                keyLabel = "J";
+            }
+            if (m_hasAttackedThisRun) { conditionMet = true; hintSlot = 3; }
+        } else if (!m_tutorialHintDone[4]) {
+            hint = "Ranged Attack (hold for charged shot!)";
+            keyLabel = "K";
+            if (m_hasRangedThisRun) { conditionMet = true; hintSlot = 4; }
+        } else if (!m_tutorialHintDone[5]) {
+            hint = "Switch Dimension - paths differ between worlds!";
+            keyLabel = "E";
+            if (m_dimManager.getSwitchCount() > 0) { conditionMet = true; hintSlot = 5; }
+        }
+    }
+
+    // === CONTEXT-BASED HINTS (any level, triggered by situation) ===
+    if (!hint) {
+        if (!m_tutorialHintDone[16] && m_nearRiftIndex >= 0 && m_level) {
+            int requiredDim = m_level->getRiftRequiredDimension(m_nearRiftIndex);
+            int currentDim = m_dimManager.getCurrentDimension();
+            if (requiredDim > 0 && requiredDim != currentDim) {
+                hint = (requiredDim == 2)
+                    ? "This Rift only stabilizes in DIM-B. Shift with [E], but entropy rises faster there."
+                    : "This Rift only stabilizes in DIM-A. Shift with [E] to secure it safely.";
+                keyLabel = "E";
+                hintSlot = 16;
+            }
+        }
+        // Near a rift: explain how to repair
+        if (!hint && !m_tutorialHintDone[6] && m_nearRiftIndex >= 0) {
+            hint = "Repair this Rift! Solve the puzzle to reduce Entropy.";
+            keyLabel = "F";
+            if (riftsRepaired > 0) { conditionMet = true; hintSlot = 6; }
+        }
+        // Entropy getting high
+        else if (!m_tutorialHintDone[7] && !m_shownEntropyWarning && m_entropy.getPercent() > 0.5f) {
+            hint = "Entropy rising! Repair Rifts to lower it. At 100% your suit fails!";
+            keyLabel = nullptr;
+            m_shownEntropyWarning = true;
+            m_tutorialHintShowTimer = 0;
+            hintSlot = 7;
+            // Auto-dismiss after 6s
+            if (m_tutorialHintShowTimer > 6.0f) conditionMet = true;
+        }
+        // On/near a conveyor
+        else if (!m_tutorialHintDone[8] && !m_shownConveyorHint && m_player) {
+            auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+            int ts = m_level ? m_level->getTileSize() : 32;
+            int fx = static_cast<int>(pt.getCenter().x) / ts;
+            int fy = static_cast<int>(pt.position.y + pt.height) / ts;
+            int dim = m_dimManager.getCurrentDimension();
+            int cdir = 0;
+            if (m_level && (m_level->isOnConveyor(fx, fy, dim, cdir) || m_level->isOnConveyor(fx, fy+1, dim, cdir))) {
+                hint = "Conveyor Belt - pushes you along. Use it for speed!";
+                m_shownConveyorHint = true;
+                hintSlot = 8;
+                m_tutorialHintShowTimer = 0;
+            }
+        }
+        // Near a dimension-exclusive platform
+        else if (!m_tutorialHintDone[9] && !m_shownDimPlatformHint && m_player && m_level) {
+            auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+            int ts = m_level->getTileSize();
+            int px = static_cast<int>(pt.getCenter().x) / ts;
+            int py = static_cast<int>(pt.getCenter().y) / ts;
+            int dim = m_dimManager.getCurrentDimension();
+            // Check nearby tiles for dim-exclusive platforms
+            for (int dy = -2; dy <= 2 && !hint; dy++) {
+                for (int dx = -3; dx <= 3 && !hint; dx++) {
+                    if (m_level->isDimensionExclusive(px+dx, py+dy, dim)) {
+                        hint = "Glowing platform - only exists in one dimension! Switch with [E]";
+                        m_shownDimPlatformHint = true;
+                        hintSlot = 9;
+                        m_tutorialHintShowTimer = 0;
+                    }
+                }
+            }
+        }
+        // Show wall slide hint if next to wall in air
+        else if (!m_tutorialHintDone[10] && !m_shownWallSlideHint && m_player) {
+            auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+            if ((phys.onWallLeft || phys.onWallRight) && !phys.onGround) {
+                hint = "Wall Slide! Jump off walls to reach higher areas.";
+                keyLabel = "SPACE";
+                m_shownWallSlideHint = true;
+                hintSlot = 10;
+                m_tutorialHintShowTimer = 0;
+            }
+        }
+        // Show abilities hint (level 1, after combat basics done)
+        else if (!m_tutorialHintDone[11] && m_hasAttackedThisRun && !m_hasUsedAbilityThisRun
+                 && m_tutorialTimer > 30.0f) {
+            hint = "Use special abilities: Slam / Shield / Phase Strike";
+            keyLabel = "1 2 3";
+            if (m_hasUsedAbilityThisRun) { conditionMet = true; hintSlot = 11; }
+        }
+        // Relic choice hint
+        else if (!m_tutorialHintDone[12] && !m_shownRelicHint && m_showRelicChoice) {
+            hint = "Choose a Relic! Each gives a unique passive bonus for this run.";
+            m_shownRelicHint = true;
+            hintSlot = 12;
+            m_tutorialHintShowTimer = 0;
+        }
+        // Combo hint when first combo reaches 3
+        else if (!m_tutorialHintDone[13] && m_player &&
+                 m_player->getEntity()->hasComponent<CombatComponent>()) {
+            auto& cb = m_player->getEntity()->getComponent<CombatComponent>();
+            if (cb.comboCount >= 3) {
+                hint = "Combo x3! Chain hits without pause for bonus damage!";
+                conditionMet = true;
+                hintSlot = 13;
+            }
+        }
+        // Exit hint when all rifts repaired
+        else if (!m_tutorialHintDone[14] && m_levelComplete && !m_collapsing) {
+            hint = "All Rifts repaired! Find the EXIT before the dimension collapses!";
+            conditionMet = false;
+            hintSlot = 14;
+            m_tutorialHintShowTimer = 0;
+        }
+        // Weapon switch hint after a few levels
+        else if (!m_tutorialHintDone[15] && m_currentDifficulty >= 2 && m_tutorialTimer > 10.0f
+                 && m_tutorialHintDone[3]) {
+            hint = "Switch weapons: [Q] Melee  [R] Ranged - try different styles!";
+            hintSlot = 15;
+            m_tutorialHintShowTimer = 0;
+        }
+    }
+
+    // Auto-dismiss timed hints after showing
+    if (hint && hintSlot >= 7 && !conditionMet) {
+        if (m_tutorialHintShowTimer > 5.0f) {
+            conditionMet = true;
+        }
+    }
+
+    // Mark completed hints
+    if (conditionMet && hintSlot >= 0 && hintSlot < 20) {
+        m_tutorialHintDone[hintSlot] = true;
+        m_tutorialHintShowTimer = 0;
+    }
+
+    if (!hint) return;
+
+    // Fade in over 0.3s
+    m_tutorialHintShowTimer += 1.0f / 60.0f;
+    float alpha = std::min(1.0f, m_tutorialHintShowTimer / 0.3f);
+    Uint8 a = static_cast<Uint8>(alpha * 200);
+
+    // Semi-transparent background
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(a * 0.4f));
+    SDL_Rect bg = {240, 140, 800, 36};
+    SDL_RenderFillRect(renderer, &bg);
+
+    if (keyLabel) {
+        SDL_Surface* hintSurf = TTF_RenderText_Blended(font, hint, {180, 220, 255, a});
+        SDL_Surface* keySurf = TTF_RenderText_Blended(font, keyLabel, {255, 255, 255, 255});
+        int totalW = (keySurf ? keySurf->w + 16 : 0) + (hintSurf ? hintSurf->w : 0);
+        int startX = 640 - totalW / 2;
+
+        if (keySurf) {
+            renderKeyBox(renderer, font, keyLabel, startX, 148, a);
+            startX += keySurf->w + 16;
+            SDL_FreeSurface(keySurf);
+        }
+        if (hintSurf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, hintSurf);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, a);
+                SDL_Rect dst = {startX, 148, hintSurf->w, hintSurf->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(hintSurf);
+        }
+    } else {
+        SDL_Color color = {180, 220, 255, a};
+        SDL_Surface* surface = TTF_RenderText_Blended(font, hint, color);
+        if (surface) {
+            SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+            if (texture) {
+                SDL_SetTextureAlphaMod(texture, a);
+                SDL_Rect dst = {640 - surface->w / 2, 148, surface->w, surface->h};
+                SDL_RenderCopy(renderer, texture, nullptr, &dst);
+                SDL_DestroyTexture(texture);
+            }
+            SDL_FreeSurface(surface);
+        }
+    }
+}
+
+void PlayState::renderKeyBox(SDL_Renderer* renderer, TTF_Font* font,
+                              const char* key, int x, int y, Uint8 alpha) {
+    // Render a key label as a bordered box
+    SDL_Surface* surface = TTF_RenderText_Blended(font, key, {255, 255, 255, alpha});
+    if (!surface) return;
+    int pad = 4;
+    SDL_Rect box = {x - pad, y - 2, surface->w + pad * 2, surface->h + 4};
+    SDL_SetRenderDrawColor(renderer, 40, 50, 80, static_cast<Uint8>(alpha * 0.8f));
+    SDL_RenderFillRect(renderer, &box);
+    SDL_SetRenderDrawColor(renderer, 120, 160, 220, alpha);
+    SDL_RenderDrawRect(renderer, &box);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture) {
+        SDL_SetTextureAlphaMod(texture, alpha);
+        SDL_Rect dst = {x, y, surface->w, surface->h};
+        SDL_RenderCopy(renderer, texture, nullptr, &dst);
+        SDL_DestroyTexture(texture);
+    }
+    SDL_FreeSurface(surface);
+}

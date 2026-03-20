@@ -79,6 +79,14 @@ private:
     void applyUpgrades();
     void renderBackground(SDL_Renderer* renderer);
 
+    // Render helper methods extracted from render()
+    void renderCollapseWarning(SDL_Renderer* renderer);
+    void renderRiftProgress(SDL_Renderer* renderer);
+    void renderDeathSequence(SDL_Renderer* renderer);
+    void renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* font);
+    void renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font);
+    void renderLevelCompleteTransition(SDL_Renderer* renderer);
+
     // Update helper methods (PlayStateUpdate.cpp)
     void updateDimensionSwitch();
     void updateDimensionEffects(float dt);
