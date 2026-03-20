@@ -6,6 +6,8 @@
 #include <vector>
 #include <cstring>
 
+struct CombatComponent;
+
 struct DamageEvent {
     Vec2 position;
     float damage;
@@ -93,6 +95,19 @@ private:
     void processAttack(Entity& attacker, EntityManager& entities, int currentDim);
     void emitElementDeathFX(Vec2 pos, int element); // element: 0=none, 1=fire, 2=ice, 3=electric
     void emitEnemyTypeDeathFX(Vec2 pos, int enemyType, SDL_Color color);
+
+    // Update/combat sub-steps (CombatSystemUpdate.cpp, CombatSystemEffects.cpp)
+    void processGroundSlam(EntityManager& entities, int currentDim);
+    void processBurnDoT(EntityManager& entities, float dt);
+    void processFreezeDecay(EntityManager& entities, float dt);
+    void processProjectileLifetime(EntityManager& entities, float dt);
+    void processZombieSweep(EntityManager& entities, int currentDim);
+    void processRangedAttack(Entity& attacker, EntityManager& entities,
+                             CombatComponent& combat, bool isPlayer);
+    void handleEnemyDeath(Entity& attacker, Entity& target, EntityManager& entities,
+                          int currentDim, bool isPlayer, bool isDashAttack,
+                          bool isChargedAttack, CombatComponent& combat,
+                          Vec2 targetCenter, float damage);
 
     ParticleSystem* m_particles = nullptr;
     Camera* m_camera = nullptr;
