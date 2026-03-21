@@ -1,4 +1,5 @@
 #include "PhysicsSystem.h"
+#include <tracy/Tracy.hpp>
 #include "Components/TransformComponent.h"
 #include "Components/PhysicsBody.h"
 #include "Components/ColliderComponent.h"
@@ -8,6 +9,7 @@
 #include <cmath>
 
 void PhysicsSystem::update(EntityManager& entities, float dt, Level* level, int currentDimension) {
+    ZoneScopedN("PhysicsUpdate");
     m_projectileImpacts.clear();
     auto ents = entities.getEntitiesWithComponent<PhysicsBody>();
     for (auto* e : ents) {

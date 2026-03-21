@@ -30,81 +30,103 @@ void AudioManager::init() {
     m_layerBoss = SoundGenerator::musicBoss();
 }
 
+// SFX enum name table for .wav file loading
+static const char* sfxNames[] = {
+    "PlayerJump", "PlayerDash", "PlayerLand",
+    "MeleeSwing", "MeleeHit", "RangedShot",
+    "EnemyHit", "EnemyDeath",
+    "PlayerHurt", "PlayerDeath",
+    "DimensionSwitch",
+    "RiftRepair", "RiftFail",
+    "Pickup",
+    "MenuSelect", "MenuConfirm",
+    "LevelComplete",
+    "CollapseWarning", "SuitEntropyCritical",
+    "SpikeDamage",
+    "BossMultiShot", "BossShieldBurst", "BossTeleport",
+    "CrawlerDrop", "SummonerSummon", "SniperTelegraph",
+    "FireBurn", "LaserHit",
+    "WyrmDive", "WyrmPoison", "WyrmBarrage",
+    "IceFreeze", "ElectricChain",
+    "Parry", "ParryCounter", "ChargedAttackRelease",
+    "CriticalHit", "ComboMilestone",
+    "AirJuggleLaunch", "EnemyStun",
+    "GroundSlam",
+    "RiftShieldActivate", "RiftShieldAbsorb", "RiftShieldReflect", "RiftShieldBurst",
+    "PhaseStrikeTeleport", "PhaseStrikeHit",
+    "BreakableWall", "SecretRoomDiscover",
+    "ShrineActivate", "ShrineBlessing", "ShrineCurse",
+    "MerchantGreet", "AnomalySpawn",
+    "ArchTileSwap", "ArchConstruct", "ArchRiftOpen", "ArchCollapse", "ArchBeam",
+    "VoidSovereignOrb", "VoidSovereignSlam", "VoidSovereignTeleport",
+    "VoidSovereignDimLock", "VoidSovereignStorm", "VoidSovereignLaser",
+    "EntropyPulse", "EntropyTendril", "EntropyMissile", "EntropyShatter",
+    "LoreDiscover",
+    "ChargeReady",
+    "Heartbeat",
+    "VolumePreview",
+    "ShockTrap",
+};
+
+// Procedural fallback generators (same order as SFX enum)
+static Mix_Chunk* (*sfxGenerators[])() = {
+    SoundGenerator::playerJump, SoundGenerator::playerDash, SoundGenerator::playerLand,
+    SoundGenerator::meleeSwing, SoundGenerator::meleeHit, SoundGenerator::rangedShot,
+    SoundGenerator::enemyHit, SoundGenerator::enemyDeath,
+    SoundGenerator::playerHurt, SoundGenerator::playerDeath,
+    SoundGenerator::dimensionSwitch,
+    SoundGenerator::riftRepair, SoundGenerator::riftFail,
+    SoundGenerator::pickup,
+    SoundGenerator::menuSelect, SoundGenerator::menuConfirm,
+    SoundGenerator::levelComplete,
+    SoundGenerator::collapseWarning, SoundGenerator::suitEntropyCritical,
+    SoundGenerator::spikeDamage,
+    SoundGenerator::bossMultiShot, SoundGenerator::bossShieldBurst, SoundGenerator::bossTeleport,
+    SoundGenerator::crawlerDrop, SoundGenerator::summonerSummon, SoundGenerator::sniperTelegraph,
+    SoundGenerator::fireBurn, SoundGenerator::laserHit,
+    SoundGenerator::wyrmDive, SoundGenerator::wyrmPoison, SoundGenerator::wyrmBarrage,
+    SoundGenerator::iceFreeze, SoundGenerator::electricChain,
+    SoundGenerator::parry, SoundGenerator::parryCounter, SoundGenerator::chargedAttackRelease,
+    SoundGenerator::criticalHit, SoundGenerator::comboMilestone,
+    SoundGenerator::airJuggleLaunch, SoundGenerator::enemyStun,
+    SoundGenerator::groundSlam,
+    SoundGenerator::riftShieldActivate, SoundGenerator::riftShieldAbsorb,
+    SoundGenerator::riftShieldReflect, SoundGenerator::riftShieldBurst,
+    SoundGenerator::phaseStrikeTeleport, SoundGenerator::phaseStrikeHit,
+    SoundGenerator::breakableWall, SoundGenerator::secretRoomDiscover,
+    SoundGenerator::shrineActivate, SoundGenerator::shrineBlessing, SoundGenerator::shrineCurse,
+    SoundGenerator::merchantGreet, SoundGenerator::anomalySpawn,
+    SoundGenerator::archTileSwap, SoundGenerator::archConstruct, SoundGenerator::archRiftOpen,
+    SoundGenerator::archCollapse, SoundGenerator::archBeam,
+    SoundGenerator::voidSovereignOrb, SoundGenerator::voidSovereignSlam,
+    SoundGenerator::voidSovereignTeleport, SoundGenerator::voidSovereignDimLock,
+    SoundGenerator::voidSovereignStorm, SoundGenerator::voidSovereignLaser,
+    SoundGenerator::entropyPulse, SoundGenerator::entropyTendril,
+    SoundGenerator::entropyMissile, SoundGenerator::entropyShatter,
+    SoundGenerator::loreDiscover,
+    SoundGenerator::chargeReady,
+    SoundGenerator::heartbeat,
+    SoundGenerator::volumePreview,
+    SoundGenerator::shockTrap,
+};
+
 void AudioManager::generateSounds() {
-    m_sfx[static_cast<int>(SFX::PlayerJump)]    = SoundGenerator::playerJump();
-    m_sfx[static_cast<int>(SFX::PlayerDash)]    = SoundGenerator::playerDash();
-    m_sfx[static_cast<int>(SFX::PlayerLand)]    = SoundGenerator::playerLand();
-    m_sfx[static_cast<int>(SFX::MeleeSwing)]    = SoundGenerator::meleeSwing();
-    m_sfx[static_cast<int>(SFX::MeleeHit)]      = SoundGenerator::meleeHit();
-    m_sfx[static_cast<int>(SFX::RangedShot)]    = SoundGenerator::rangedShot();
-    m_sfx[static_cast<int>(SFX::EnemyHit)]      = SoundGenerator::enemyHit();
-    m_sfx[static_cast<int>(SFX::EnemyDeath)]    = SoundGenerator::enemyDeath();
-    m_sfx[static_cast<int>(SFX::PlayerHurt)]    = SoundGenerator::playerHurt();
-    m_sfx[static_cast<int>(SFX::PlayerDeath)]   = SoundGenerator::playerDeath();
-    m_sfx[static_cast<int>(SFX::DimensionSwitch)] = SoundGenerator::dimensionSwitch();
-    m_sfx[static_cast<int>(SFX::RiftRepair)]    = SoundGenerator::riftRepair();
-    m_sfx[static_cast<int>(SFX::RiftFail)]      = SoundGenerator::riftFail();
-    m_sfx[static_cast<int>(SFX::Pickup)]        = SoundGenerator::pickup();
-    m_sfx[static_cast<int>(SFX::MenuSelect)]    = SoundGenerator::menuSelect();
-    m_sfx[static_cast<int>(SFX::MenuConfirm)]   = SoundGenerator::menuConfirm();
-    m_sfx[static_cast<int>(SFX::LevelComplete)] = SoundGenerator::levelComplete();
-    m_sfx[static_cast<int>(SFX::CollapseWarning)] = SoundGenerator::collapseWarning();
-    m_sfx[static_cast<int>(SFX::SuitEntropyCritical)] = SoundGenerator::suitEntropyCritical();
-    m_sfx[static_cast<int>(SFX::SpikeDamage)]   = SoundGenerator::spikeDamage();
-    m_sfx[static_cast<int>(SFX::BossMultiShot)]    = SoundGenerator::bossMultiShot();
-    m_sfx[static_cast<int>(SFX::BossShieldBurst)]   = SoundGenerator::bossShieldBurst();
-    m_sfx[static_cast<int>(SFX::BossTeleport)]      = SoundGenerator::bossTeleport();
-    m_sfx[static_cast<int>(SFX::CrawlerDrop)]        = SoundGenerator::crawlerDrop();
-    m_sfx[static_cast<int>(SFX::SummonerSummon)]     = SoundGenerator::summonerSummon();
-    m_sfx[static_cast<int>(SFX::SniperTelegraph)]    = SoundGenerator::sniperTelegraph();
-    m_sfx[static_cast<int>(SFX::FireBurn)]             = SoundGenerator::fireBurn();
-    m_sfx[static_cast<int>(SFX::LaserHit)]             = SoundGenerator::laserHit();
-    m_sfx[static_cast<int>(SFX::WyrmDive)]             = SoundGenerator::wyrmDive();
-    m_sfx[static_cast<int>(SFX::WyrmPoison)]           = SoundGenerator::wyrmPoison();
-    m_sfx[static_cast<int>(SFX::WyrmBarrage)]          = SoundGenerator::wyrmBarrage();
-    m_sfx[static_cast<int>(SFX::IceFreeze)]            = SoundGenerator::iceFreeze();
-    m_sfx[static_cast<int>(SFX::ElectricChain)]        = SoundGenerator::electricChain();
-    m_sfx[static_cast<int>(SFX::Parry)]                = SoundGenerator::parry();
-    m_sfx[static_cast<int>(SFX::ParryCounter)]         = SoundGenerator::parryCounter();
-    m_sfx[static_cast<int>(SFX::ChargedAttackRelease)] = SoundGenerator::chargedAttackRelease();
-    m_sfx[static_cast<int>(SFX::CriticalHit)]          = SoundGenerator::criticalHit();
-    m_sfx[static_cast<int>(SFX::ComboMilestone)]       = SoundGenerator::comboMilestone();
-    m_sfx[static_cast<int>(SFX::AirJuggleLaunch)]      = SoundGenerator::airJuggleLaunch();
-    m_sfx[static_cast<int>(SFX::EnemyStun)]            = SoundGenerator::enemyStun();
-    m_sfx[static_cast<int>(SFX::GroundSlam)]           = SoundGenerator::groundSlam();
-    m_sfx[static_cast<int>(SFX::RiftShieldActivate)]   = SoundGenerator::riftShieldActivate();
-    m_sfx[static_cast<int>(SFX::RiftShieldAbsorb)]     = SoundGenerator::riftShieldAbsorb();
-    m_sfx[static_cast<int>(SFX::RiftShieldReflect)]    = SoundGenerator::riftShieldReflect();
-    m_sfx[static_cast<int>(SFX::RiftShieldBurst)]      = SoundGenerator::riftShieldBurst();
-    m_sfx[static_cast<int>(SFX::PhaseStrikeTeleport)]  = SoundGenerator::phaseStrikeTeleport();
-    m_sfx[static_cast<int>(SFX::PhaseStrikeHit)]       = SoundGenerator::phaseStrikeHit();
-    m_sfx[static_cast<int>(SFX::BreakableWall)]        = SoundGenerator::breakableWall();
-    m_sfx[static_cast<int>(SFX::SecretRoomDiscover)]   = SoundGenerator::secretRoomDiscover();
-    m_sfx[static_cast<int>(SFX::ShrineActivate)]       = SoundGenerator::shrineActivate();
-    m_sfx[static_cast<int>(SFX::ShrineBlessing)]       = SoundGenerator::shrineBlessing();
-    m_sfx[static_cast<int>(SFX::ShrineCurse)]          = SoundGenerator::shrineCurse();
-    m_sfx[static_cast<int>(SFX::MerchantGreet)]        = SoundGenerator::merchantGreet();
-    m_sfx[static_cast<int>(SFX::AnomalySpawn)]         = SoundGenerator::anomalySpawn();
-    m_sfx[static_cast<int>(SFX::ArchTileSwap)]         = SoundGenerator::archTileSwap();
-    m_sfx[static_cast<int>(SFX::ArchConstruct)]        = SoundGenerator::archConstruct();
-    m_sfx[static_cast<int>(SFX::ArchRiftOpen)]         = SoundGenerator::archRiftOpen();
-    m_sfx[static_cast<int>(SFX::ArchCollapse)]         = SoundGenerator::archCollapse();
-    m_sfx[static_cast<int>(SFX::ArchBeam)]             = SoundGenerator::archBeam();
-    m_sfx[static_cast<int>(SFX::VoidSovereignOrb)]      = SoundGenerator::voidSovereignOrb();
-    m_sfx[static_cast<int>(SFX::VoidSovereignSlam)]      = SoundGenerator::voidSovereignSlam();
-    m_sfx[static_cast<int>(SFX::VoidSovereignTeleport)]  = SoundGenerator::voidSovereignTeleport();
-    m_sfx[static_cast<int>(SFX::VoidSovereignDimLock)]   = SoundGenerator::voidSovereignDimLock();
-    m_sfx[static_cast<int>(SFX::VoidSovereignStorm)]     = SoundGenerator::voidSovereignStorm();
-    m_sfx[static_cast<int>(SFX::VoidSovereignLaser)]     = SoundGenerator::voidSovereignLaser();
-    m_sfx[static_cast<int>(SFX::EntropyPulse)]           = SoundGenerator::entropyPulse();
-    m_sfx[static_cast<int>(SFX::EntropyTendril)]         = SoundGenerator::entropyTendril();
-    m_sfx[static_cast<int>(SFX::EntropyMissile)]         = SoundGenerator::entropyMissile();
-    m_sfx[static_cast<int>(SFX::EntropyShatter)]         = SoundGenerator::entropyShatter();
-    m_sfx[static_cast<int>(SFX::LoreDiscover)]           = SoundGenerator::loreDiscover();
-    m_sfx[static_cast<int>(SFX::ChargeReady)]            = SoundGenerator::chargeReady();
-    m_sfx[static_cast<int>(SFX::Heartbeat)]              = SoundGenerator::heartbeat();
-    m_sfx[static_cast<int>(SFX::VolumePreview)]          = SoundGenerator::volumePreview();
-    m_sfx[static_cast<int>(SFX::ShockTrap)]              = SoundGenerator::shockTrap();
+    int wavLoaded = 0;
+    for (int i = 0; i < static_cast<int>(SFX::COUNT); i++) {
+        // Try loading .wav file first
+        std::string path = "assets/sounds/" + std::string(sfxNames[i]) + ".wav";
+        Mix_Chunk* chunk = Mix_LoadWAV(path.c_str());
+        if (chunk) {
+            m_sfx[i] = chunk;
+            wavLoaded++;
+        } else {
+            // Fall back to procedural generation
+            m_sfx[i] = sfxGenerators[i]();
+        }
+    }
+    if (wavLoaded > 0) {
+        SDL_Log("Audio: Loaded %d/%d SFX from .wav files", wavLoaded, static_cast<int>(SFX::COUNT));
+    }
 }
 
 void AudioManager::shutdown() {

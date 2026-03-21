@@ -1,4 +1,5 @@
 // PlayStateRender.cpp -- Orchestrator render() + renderBackground + file-local helpers
+#include <tracy/Tracy.hpp>
 // Split from original monolithic PlayStateRender.cpp into:
 //   PlayStateRenderHUD.cpp      -- HUD panels, status displays, combat feedback
 //   PlayStateRenderOverlays.cpp -- Modal overlays, notifications, tutorial
@@ -383,6 +384,7 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
 }
 
 void PlayState::render(SDL_Renderer* renderer) {
+    ZoneScopedN("PlayStateRender");
     // Parallax background
     renderBackground(renderer);
 

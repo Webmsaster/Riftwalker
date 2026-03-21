@@ -1,4 +1,5 @@
 #include "RenderSystem.h"
+#include <tracy/Tracy.hpp>
 #include "Core/Game.h"
 #include "States/GameState.h"
 #include "Components/TransformComponent.h"
@@ -54,6 +55,7 @@ void RenderSystem::drawLine(SDL_Renderer* r, int x1, int y1, int x2, int y2,
 void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
                           const Camera& camera, int currentDimension, float dimBlendAlpha,
                           float interpolation) {
+    ZoneScopedN("RenderEntities");
     struct RenderEntry {
         Entity* entity;
         int layer;

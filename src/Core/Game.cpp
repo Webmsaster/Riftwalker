@@ -1,4 +1,5 @@
 #include "Game.h"
+#include <tracy/Tracy.hpp>
 #include "States/MenuState.h"
 #include "States/PlayState.h"
 #include "States/PauseState.h"
@@ -154,10 +155,12 @@ void Game::run() {
         }
 
         render();
+        FrameMark;
     }
 }
 
 void Game::handleEvents() {
+    ZoneScopedN("HandleEvents");
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
@@ -201,6 +204,7 @@ void Game::handleEvents() {
 }
 
 void Game::update() {
+    ZoneScopedN("GameUpdate");
     // Handle screen transition
     if (m_transition != TransitionState::None) {
         m_transitionTimer += Timer::FIXED_TIMESTEP;
@@ -249,6 +253,7 @@ void Game::update() {
 }
 
 void Game::render() {
+    ZoneScopedN("GameRender");
     SDL_Renderer* renderer = m_window->getSDLRenderer();
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);

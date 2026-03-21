@@ -1,4 +1,5 @@
 #include "AISystem.h"
+#include <tracy/Tracy.hpp>
 #include "Components/AIComponent.h"
 #include "Components/TransformComponent.h"
 #include "Components/PhysicsBody.h"
@@ -94,6 +95,7 @@ float AISystem::distanceTo(Vec2 a, Vec2 b) const {
 }
 
 void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int playerDimension) {
+    ZoneScopedN("AIUpdate");
     auto ents = entities.getEntitiesWithComponent<AIComponent>();
 
     // --- Synergy pre-pass: Summoner buffs allies, Shielder protects Snipers/Turrets ---

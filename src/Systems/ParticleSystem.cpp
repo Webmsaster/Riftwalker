@@ -1,4 +1,5 @@
 #include "ParticleSystem.h"
+#include <tracy/Tracy.hpp>
 #include "Core/Game.h"
 #include <cmath>
 #include <algorithm>
@@ -12,6 +13,7 @@ static Uint8 lerpByte(Uint8 a, Uint8 b, float t) {
 }
 
 void ParticleSystem::update(float dt) {
+    ZoneScopedN("ParticleUpdate");
     // Update emitters
     for (auto& emitter : m_emitters) {
         if (!emitter.active) continue;

@@ -1,4 +1,5 @@
 #include "PlayState.h"
+#include <tracy/Tracy.hpp>
 #include "Core/Game.h"
 #include "Game/Enemy.h"
 #include "Components/TransformComponent.h"
@@ -191,6 +192,7 @@ void PlayState::handleEvent(const SDL_Event& event) {
 }
 
 void PlayState::update(float dt) {
+    ZoneScopedN("PlayStateUpdate");
     if (!m_player || !m_level) return;
 
     // Generate level FIRST after returning from shop (before any gameplay logic)

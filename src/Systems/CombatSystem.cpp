@@ -1,4 +1,5 @@
 #include "CombatSystem.h"
+#include <tracy/Tracy.hpp>
 #include "Components/TransformComponent.h"
 #include "Components/CombatComponent.h"
 #include "Components/HealthComponent.h"
@@ -27,6 +28,7 @@ float CombatSystem::consumeHitFreeze() {
 }
 
 void CombatSystem::update(EntityManager& entities, float dt, int currentDimension) {
+    ZoneScopedN("CombatUpdate");
     auto combatEnts = entities.getEntitiesWithComponent<CombatComponent>();
 
     for (auto* e : combatEnts) {

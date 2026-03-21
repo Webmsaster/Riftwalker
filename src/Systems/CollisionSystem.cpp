@@ -1,9 +1,11 @@
 #include "CollisionSystem.h"
+#include <tracy/Tracy.hpp>
 #include "Components/ColliderComponent.h"
 #include "Components/TransformComponent.h"
 #include <cmath>
 
 void CollisionSystem::update(EntityManager& entities, int currentDimension) {
+    ZoneScopedN("CollisionUpdate");
     m_collisions.clear();
     m_active.clear();
     m_rects.clear();
