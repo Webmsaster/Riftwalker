@@ -413,6 +413,15 @@ private:
     float m_ptAbilityCD = 0;       // Ability usage cooldown
     float m_ptChargeTimer = 0;     // Charged attack hold timer
     bool m_ptCharging = false;     // Currently charging an attack
+    // Combo tracking for finisher
+    int m_ptLastComboCount = 0;    // Track combo for timed attacks
+    float m_ptComboAttackTimer = 0;// Timer to pace combo hits
+    // Wave preparation
+    float m_ptWavePrepTimer = 0;   // Time spent preparing for wave
+    // Run-to-run learning
+    bool m_ptDefensiveFloor = false; // Activated on floors where bot died before
+    // Shop upgrade tracking
+    void playtestBuyUpgrades();    // Buy best upgrades between levels
 
     // Event chains (multi-level quest lines)
     EventChain m_eventChain;

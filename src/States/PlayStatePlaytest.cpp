@@ -163,6 +163,10 @@ void PlayState::playtestStartRun() {
     m_ptFloorDmgTaken = 0;
     m_ptFloorTimeStart = 0;
     m_ptFloorKillsStart = 0;
+    m_ptLastComboCount = 0;
+    m_ptComboAttackTimer = 0;
+    m_ptWavePrepTimer = 0;
+    m_ptDefensiveFloor = false;
 
     playtestLog("  Class: %s | HP: %.0f | Speed: %.0f | Zone: %s",
         classNames[classIdx], hp.maxHP, m_player->moveSpeed, kZoneNames[0]);
@@ -256,6 +260,42 @@ void PlayState::playtestWriteReport() {
 }
 
 // ============================================================================
+// SHOP: Auto-buy best upgrades with available shards
+// ============================================================================
+
+void PlayState::playtestBuyUpgrades() {
+    auto& upgrades = game->getUpgradeSystem();
+    // Priority order: survivability first, then damage, then utility
+    static const UpgradeID priority[] = {
+        UpgradeID::MaxHP,           // Most important: survive longer
+        UpgradeID::MeleeDamage,     // Kill faster
+        UpgradeID::Armor,           // Take less damage
+        UpgradeID::RangedDamage,    // Ranged DPS
+        UpgradeID::DashCooldown,    // Mobility = survival
+        UpgradeID::CritChance,      // DPS spike
+        UpgradeID::AbilityCooldown, // More abilities
+        UpgradeID::EntropyResistance,// Entropy management
+        UpgradeID::MoveSpeed,       // Navigation speed
+        UpgradeID::SwitchCooldown,  // Dim-switch utility
+        UpgradeID::ComboMaster,     // Combo damage
+        UpgradeID::AbilityPower,    // Ability damage
+        UpgradeID::JumpHeight,      // Platforming
+        UpgradeID::ShieldCapacity,  // Shield hits
+    };
+    // Buy in priority order until out of shards
+    bool bought = true;
+    while (bought) {
+        bought = false;
+        for (auto id : priority) {
+            if (upgrades.purchaseUpgrade(id)) {
+                bought = true;
+                break; // Re-check priorities after each buy (cheaper ones first)
+            }
+        }
+    }
+}
+
+// ============================================================================
 // MAIN UPDATE
 // ============================================================================
 
@@ -313,6 +353,14 @@ void PlayState::updatePlaytest(float dt) {
         if (newZone != prevZone)
             playtestLog("  >>> ZONE %d: %s <<<", newZone + 1, kZoneNames[newZone]);
 
+        // Buy upgrades with accumulated shards between levels
+        int shardsBefore = game->getUpgradeSystem().getRiftShards();
+        playtestBuyUpgrades();
+        int shardsSpent = shardsBefore - game->getUpgradeSystem().getRiftShards();
+        if (shardsSpent > 0)
+            playtestLog("  [SHOP] Spent %d shards on upgrades (%d remaining)",
+                shardsSpent, game->getUpgradeSystem().getRiftShards());
+
         m_ptFloorDmgTaken = 0;
         m_ptFloorTimeStart = m_playtestRunTimer;
         m_ptFloorKillsStart = enemiesKilled;
@@ -333,8 +381,13 @@ void PlayState::updatePlaytest(float dt) {
             : isBreatherFloor(m_currentDifficulty) ? "breather" : "normal";
         int fi = std::clamp(m_currentDifficulty - 1, 0, kMaxTrackedFloors - 1);
         m_ptFloorStats[fi].hpAtStart = hp.currentHP;
-        playtestLog("  F%d (Z%d.%d) | %d rifts | ~%d enemies | %s",
-            m_currentDifficulty, zone + 1, fiz, (int)rifts.size(), enemyCount, floorType);
+        // Run-to-run learning: check if this floor killed us before
+        int fi2 = std::clamp(m_currentDifficulty - 1, 0, kMaxTrackedFloors - 1);
+        m_ptDefensiveFloor = (m_ptFloorDeathCount[fi2] >= 2);
+        const char* learnTag = m_ptDefensiveFloor ? " [DEFENSIVE - died here before]" : "";
+
+        playtestLog("  F%d (Z%d.%d) | %d rifts | ~%d enemies | %s%s",
+            m_currentDifficulty, zone + 1, fiz, (int)rifts.size(), enemyCount, floorType, learnTag);
         m_ptFloorDmgTaken = 0;
         m_ptFloorTimeStart = m_playtestRunTimer;
         m_ptFloorKillsStart = enemiesKilled;
@@ -349,6 +402,9 @@ void PlayState::updatePlaytest(float dt) {
         playtestOnDeath();
         return;
     }
+
+    // --- COMBO TIMER ---
+    m_ptComboAttackTimer -= dt;
 
     // --- RELIC CHOICE (scored, not random) ---
     if (m_showRelicChoice && !m_relicChoices.empty()) {
@@ -437,6 +493,16 @@ void PlayState::updatePlaytest(float dt) {
     static float ptRecoveryGraceTimer = 0;
     if (ptRecoveryGraceTimer > 0) ptRecoveryGraceTimer -= dt;
 
+    // --- WAVE PREPARATION: position defensively before wave spawns ---
+    if (m_waveTimer > 0 && m_waveTimer < 1.5f && m_currentWave < (int)m_spawnWaves.size()) {
+        if (phys.onGround || phys.canCoyoteJump())
+            inputMut.injectActionPress(Action::Jump);
+        float levelCenterX = m_level->getPixelWidth() * 0.5f;
+        if (playerPos.x < levelCenterX) inputMut.injectActionPress(Action::MoveRight);
+        else inputMut.injectActionPress(Action::MoveLeft);
+        m_ptWavePrepTimer += dt;
+    }
+
     // Auto-rescue: fell below map
     {
         Vec2 spawn = m_level->getSpawnPoint();
@@ -471,23 +537,39 @@ void PlayState::updatePlaytest(float dt) {
         }
     }
 
-    // Heal-pickup seeking: when low HP, find nearest health pickup and move toward it
+    // Pickup routing: prioritize health pickups when low HP, grab any nearby pickups on path
     Vec2 nearestPickupPos = {0, 0};
     float nearestPickupDist = 99999.0f;
     bool seekingPickup = false;
-    if (hpPct < 0.35f) {
+    {
+        float searchRadius = (hpPct < 0.35f) ? 500.0f : 150.0f; // Desperate = wider search
+        float bestScore = -1.0f;
         m_entities.forEach([&](Entity& e) {
             if (e.getTag().find("pickup") == std::string::npos || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>()) return;
             auto& et = e.getComponent<TransformComponent>();
             float dx2 = et.getCenter().x - playerPos.x, dy2 = et.getCenter().y - playerPos.y;
             float d = std::sqrt(dx2 * dx2 + dy2 * dy2);
-            if (d < nearestPickupDist && d < 400.0f) { // Only seek within 400px
+            if (d > searchRadius) return;
+
+            // Score pickups: health = very high when low HP, shards = moderate, buffs = low
+            float score = 0;
+            bool isHealth = (e.getTag().find("health") != std::string::npos);
+            bool isShard = (e.getTag().find("shard") != std::string::npos);
+            if (isHealth) score = (hpPct < 0.35f) ? 100.0f : 20.0f;
+            else if (isShard) score = 10.0f;
+            else score = 15.0f; // shield/speed/damage boost
+
+            // Closer = better (distance penalty)
+            score -= d * 0.1f;
+
+            if (score > bestScore) {
+                bestScore = score;
                 nearestPickupDist = d;
                 nearestPickupPos = et.getCenter();
             }
         });
-        if (nearestPickupDist < 400.0f) seekingPickup = true;
+        if (bestScore > 0 && nearestPickupDist < searchRadius) seekingPickup = true;
     }
 
     // Breakable wall detection: dash/attack nearby breakable walls for secret rooms
@@ -509,8 +591,39 @@ void PlayState::updatePlaytest(float dt) {
         }
     }
 
+    // Shrine-seeking: find beneficial shrines and evaluate risk
+    Vec2 nearestShrinePos = {0, 0};
+    float nearestShrineDist = 99999.0f;
+    bool seekingShrine = false;
+    if (!seekingPickup) {
+        auto& events = m_level->getRandomEvents();
+        for (auto& ev : events) {
+            if (ev.type != RandomEventType::Shrine || ev.used) continue;
+            float sdx = ev.position.x - playerPos.x, sdy = ev.position.y - playerPos.y;
+            float sd = std::sqrt(sdx * sdx + sdy * sdy);
+            if (sd > 500.0f) continue; // Only seek nearby shrines
+
+            // Evaluate: is this shrine safe to use?
+            bool shouldUse = false;
+            switch (ev.shrineType) {
+                case ShrineType::Vitality: shouldUse = true; break; // Free HP, always good
+                case ShrineType::Renewal:  shouldUse = (hpPct < 0.6f); break; // Heal when needed
+                case ShrineType::Power:    shouldUse = (hp.currentHP > 50.0f); break; // HP cost
+                case ShrineType::Speed:    shouldUse = (hp.currentHP > 40.0f); break;
+                case ShrineType::Entropy:  shouldUse = (entropyPct > 0.5f && hp.currentHP > 30.0f); break;
+                case ShrineType::Shards:   shouldUse = (entropyPct < 0.4f); break; // Entropy cost
+                default: break;
+            }
+            if (shouldUse && sd < nearestShrineDist) {
+                nearestShrineDist = sd;
+                nearestShrinePos = ev.position;
+                seekingShrine = true;
+            }
+        }
+    }
+
     // Find target: nearest unrepaired rift or exit
-    Vec2 target = seekingPickup ? nearestPickupPos : m_level->getExitPoint();
+    Vec2 target = seekingPickup ? nearestPickupPos : (seekingShrine ? nearestShrinePos : m_level->getExitPoint());
     auto rifts = m_level->getRiftPositions();
     float nearestRiftDist = 99999.0f;
     int targetRiftIdx = -1;
@@ -718,6 +831,11 @@ void PlayState::updatePlaytest(float dt) {
         m_level->isRiftActiveInDimension(m_nearRiftIndex, dim))
         inputMut.injectActionPress(Action::Interact);
 
+    // Interact with shrine/event/NPC when nearby (within 50px of target)
+    if ((seekingShrine && nearestShrineDist < 50.0f) || (m_nearNPCIndex >= 0 && !m_showNPCDialog)) {
+        inputMut.injectActionPress(Action::Interact);
+    }
+
     // Log rift repair
     if (m_levelRiftsRepaired > m_ptLastLoggedRifts) m_ptLastLoggedRifts = m_levelRiftsRepaired;
 
@@ -744,7 +862,10 @@ void PlayState::updatePlaytest(float dt) {
     });
 
     // RETREAT: kite backward when overwhelmed at low HP
-    if (hpPct < 0.30f && preScanMeleeThreats >= 2 && preScanNearestDist < 100.0f) {
+    // Defensive floors (died here before): trigger retreat at higher HP
+    float retreatThreshold = m_ptDefensiveFloor ? 0.45f : 0.30f;
+    int retreatEnemyCount = m_ptDefensiveFloor ? 1 : 2;
+    if (hpPct < retreatThreshold && preScanMeleeThreats >= retreatEnemyCount && preScanNearestDist < 100.0f) {
         // Move AWAY from threat center
         if (preScanMeleeThreats > 0) {
             preScanThreatCenter.x /= preScanMeleeThreats;
@@ -826,18 +947,22 @@ void PlayState::updatePlaytest(float dt) {
             goto ptPostCombat;
         }
 
-        // --- BOSS PHASE ADAPTATION ---
-        // Phase 2+: prefer range to avoid enraged melee
-        // Phase 3: spam abilities (shorter cooldown threshold)
+        // --- BOSS PHASE + DEFENSIVE FLOOR ADAPTATION ---
         float effectiveMeleeRange = prof.meleeRange;
         float effectiveAbilityCD = 3.0f;
+        // Boss phase adaptation
         if (nearestIsBoss && bossPhase >= 2) {
-            effectiveMeleeRange *= 0.7f; // Stay further back
-            effectiveAbilityCD = 2.0f;   // Use abilities more often
+            effectiveMeleeRange *= 0.7f;
+            effectiveAbilityCD = 2.0f;
         }
         if (nearestIsBoss && bossPhase >= 3) {
-            effectiveMeleeRange *= 0.6f; // Very cautious
-            effectiveAbilityCD = 1.0f;   // Spam abilities
+            effectiveMeleeRange *= 0.6f;
+            effectiveAbilityCD = 1.0f;
+        }
+        // Defensive floor: play cautiously (learned from previous deaths)
+        if (m_ptDefensiveFloor) {
+            effectiveMeleeRange *= 0.8f;  // Stay at range more
+            effectiveAbilityCD *= 0.7f;   // Use abilities more freely
         }
 
         // --- CHARGED ATTACK (hold and release) ---
@@ -928,10 +1053,19 @@ void PlayState::updatePlaytest(float dt) {
             goto ptPostCombat;
         }
 
-        // --- NORMAL MELEE ---
+        // --- MELEE WITH COMBO TRACKING ---
+        // Pace attacks to maintain combo: hit within 0.5s window for combo buildup
+        // After 3rd hit, CombatSystem auto-triggers finisher
         if (nearestEnemy < effectiveMeleeRange && combat.canAttack()) {
-            combat.startAttack(AttackType::Melee, enemyDir);
-            m_playtestReactionTimer = prof.reactionDelay;
+            // If in combo, time next hit to stay within window
+            if (combat.comboCount > 0 && combat.comboTimer > 0 && m_ptComboAttackTimer > 0) {
+                // Wait for combo timer to optimize spacing (don't mash too fast)
+                m_playtestReactionTimer = 0.05f;
+            } else {
+                combat.startAttack(AttackType::Melee, enemyDir);
+                m_ptComboAttackTimer = 0.15f; // Brief pause between combo hits (human-like)
+                m_playtestReactionTimer = prof.reactionDelay * 0.8f; // Faster in combo
+            }
         }
         // --- RANGED: prefer when multiple enemies or not melee-preferred ---
         else if (nearestEnemy < prof.rangedRange && combat.canAttack()
