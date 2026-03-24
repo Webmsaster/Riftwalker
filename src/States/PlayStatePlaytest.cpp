@@ -369,9 +369,15 @@ void PlayState::updatePlaytest(float dt) {
         return;
     }
 
-    // --- NPC ---
+    // --- NPC: pick first dialog option (usually best reward) then dismiss ---
     if (m_showNPCDialog) {
-        if (m_playtestThinkTimer <= 0) { m_showNPCDialog = false; m_playtestThinkTimer = 0.3f; }
+        if (m_playtestThinkTimer <= 0) {
+            if (m_nearNPCIndex >= 0) {
+                handleNPCDialogChoice(m_nearNPCIndex, 0); // Pick first option (heal/buff)
+            }
+            m_showNPCDialog = false;
+            m_playtestThinkTimer = 0.5f;
+        }
         return;
     }
 
@@ -446,21 +452,65 @@ void PlayState::updatePlaytest(float dt) {
         }
     }
 
-    // Hazard awareness: check nearby hazard tiles
+    // Preliminary move direction (toward exit, refined later with actual target)
+    int moveDir = (m_level->getExitPoint().x >= playerPos.x) ? 1 : -1;
+
+    // Hazard awareness: scan 3 tiles ahead in move direction + underfoot
     bool hazardNearby = false;
-    for (int dx = -1; dx <= 2; dx++) {
-        for (int dy = -1; dy <= 2; dy++) {
-            if (m_level->inBounds(ptx + dx, pty + dy)) {
-                auto& t = m_level->getTile(ptx + dx, pty + dy, dim);
-                if (t.type == TileType::Spike || t.type == TileType::Fire || t.type == TileType::LaserEmitter) {
+    bool hazardAhead = false;
+    for (int scanDist = -1; scanDist <= 4; scanDist++) {
+        for (int scanDy = -1; scanDy <= 2; scanDy++) {
+            int hx = ptx + moveDir * scanDist, hy = pty + scanDy;
+            if (m_level->inBounds(hx, hy)) {
+                auto& ht = m_level->getTile(hx, hy, dim);
+                if (ht.type == TileType::Spike || ht.type == TileType::Fire || ht.type == TileType::LaserEmitter) {
                     hazardNearby = true;
+                    if (scanDist >= 1 && scanDist <= 3) hazardAhead = true;
                 }
             }
         }
     }
 
+    // Heal-pickup seeking: when low HP, find nearest health pickup and move toward it
+    Vec2 nearestPickupPos = {0, 0};
+    float nearestPickupDist = 99999.0f;
+    bool seekingPickup = false;
+    if (hpPct < 0.35f) {
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag().find("pickup") == std::string::npos || !e.isAlive()) return;
+            if (!e.hasComponent<TransformComponent>()) return;
+            auto& et = e.getComponent<TransformComponent>();
+            float dx2 = et.getCenter().x - playerPos.x, dy2 = et.getCenter().y - playerPos.y;
+            float d = std::sqrt(dx2 * dx2 + dy2 * dy2);
+            if (d < nearestPickupDist && d < 400.0f) { // Only seek within 400px
+                nearestPickupDist = d;
+                nearestPickupPos = et.getCenter();
+            }
+        });
+        if (nearestPickupDist < 400.0f) seekingPickup = true;
+    }
+
+    // Breakable wall detection: dash/attack nearby breakable walls for secret rooms
+    bool breakableWallNearby = false;
+    for (int scanDx = -2; scanDx <= 3; scanDx++) {
+        for (int scanDy = -2; scanDy <= 2; scanDy++) {
+            if (m_level->inBounds(ptx + scanDx, pty + scanDy)) {
+                auto& bwt = m_level->getTile(ptx + scanDx, pty + scanDy, dim);
+                if (bwt.type == TileType::Breakable) breakableWallNearby = true;
+            }
+        }
+    }
+    // Attack breakable walls when near (dash or melee)
+    if (breakableWallNearby && m_playtestReactionTimer <= 0) {
+        if (m_player->dashCooldownTimer <= 0) {
+            inputMut.injectActionPress(Action::Dash);
+        } else if (combat.canAttack()) {
+            combat.startAttack(AttackType::Melee, {static_cast<float>(moveDir), 0});
+        }
+    }
+
     // Find target: nearest unrepaired rift or exit
-    Vec2 target = m_level->getExitPoint();
+    Vec2 target = seekingPickup ? nearestPickupPos : m_level->getExitPoint();
     auto rifts = m_level->getRiftPositions();
     float nearestRiftDist = 99999.0f;
     int targetRiftIdx = -1;
@@ -493,7 +543,7 @@ void PlayState::updatePlaytest(float dt) {
 
     float dirX = target.x - playerPos.x, dirY = target.y - playerPos.y;
     float distToTarget = std::sqrt(dirX * dirX + dirY * dirY);
-    int moveDir = (dirX >= 0) ? 1 : -1;
+    moveDir = (dirX >= 0) ? 1 : -1; // Refine with actual target
 
     // Dimension alignment for rift target
     if (!m_collapsing && targetRequiredDim > 0 && targetRequiredDim != dim && m_ptDimSwitchCD <= 0) {
@@ -613,14 +663,26 @@ void PlayState::updatePlaytest(float dt) {
         else inputMut.injectActionPress(Action::MoveLeft);
     }
 
-    // Jump logic
+    // Jump logic with variable height: hold jump for tall jumps, tap for short hops
     bool blocked = (phys.onWallLeft || phys.onWallRight) || (std::abs(phys.velocity.x) < 10.0f && std::abs(dirX) > 50.0f);
     bool targetAbove = dirY < -40.0f;
+    bool targetFarAbove = dirY < -120.0f;
 
-    if (phys.onGround) {
-        if ((blocked || targetAbove || !hasFloorAhead || hazardNearby) && std::rand() % 100 < 90)
+    // Coyote time: can still jump for 0.1s after leaving ground
+    bool canJump = phys.onGround || phys.canCoyoteJump();
+
+    if (canJump) {
+        bool shouldJump = blocked || targetAbove || !hasFloorAhead || hazardNearby || hazardAhead;
+        if (shouldJump && std::rand() % 100 < 90)
             inputMut.injectActionPress(Action::Jump);
         if (std::rand() % 40 == 0) inputMut.injectActionPress(Action::Jump);
+    }
+    // Variable jump height: keep holding jump for tall jumps (target far above),
+    // let go for short hops (target near or same height).
+    // injectActionPress lasts 1 frame; by NOT re-injecting, the jump becomes short.
+    if (!phys.onGround && phys.velocity.y < 0 && targetFarAbove) {
+        // Hold jump: re-inject to prevent early release velocity cut
+        inputMut.injectActionPress(Action::Jump);
     }
 
     // Wall-jump + chain: immediately double-jump after wall-jump if target is above
@@ -662,6 +724,48 @@ void PlayState::updatePlaytest(float dt) {
     // ========================================================================
     // COMBAT AI
     // ========================================================================
+
+    // Pre-scan: count threats for retreat decision
+    int preScanMeleeThreats = 0;
+    float preScanNearestDist = 99999.0f;
+    Vec2 preScanThreatCenter = {0, 0};
+    m_entities.forEach([&](Entity& e) {
+        if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+        if (!e.hasComponent<TransformComponent>()) return;
+        auto& et = e.getComponent<TransformComponent>();
+        float dx2 = et.getCenter().x - playerPos.x, dy2 = et.getCenter().y - playerPos.y;
+        float d = std::sqrt(dx2 * dx2 + dy2 * dy2);
+        if (d < 120.0f) {
+            preScanMeleeThreats++;
+            preScanThreatCenter.x += et.getCenter().x;
+            preScanThreatCenter.y += et.getCenter().y;
+        }
+        if (d < preScanNearestDist) preScanNearestDist = d;
+    });
+
+    // RETREAT: kite backward when overwhelmed at low HP
+    if (hpPct < 0.30f && preScanMeleeThreats >= 2 && preScanNearestDist < 100.0f) {
+        // Move AWAY from threat center
+        if (preScanMeleeThreats > 0) {
+            preScanThreatCenter.x /= preScanMeleeThreats;
+            preScanThreatCenter.y /= preScanMeleeThreats;
+        }
+        float retreatDirX = playerPos.x - preScanThreatCenter.x;
+        if (retreatDirX >= 0) inputMut.injectActionPress(Action::MoveRight);
+        else inputMut.injectActionPress(Action::MoveLeft);
+        // Jump to gain height advantage
+        if (canJump) inputMut.injectActionPress(Action::Jump);
+        // Dash away if possible
+        if (m_player->dashCooldownTimer <= 0) inputMut.injectActionPress(Action::Dash);
+        // Switch to ranged while kiting
+        if (m_playtestReactionTimer <= 0 && combat.canAttack() && preScanNearestDist < 300.0f) {
+            Vec2 rd = {retreatDirX > 0 ? -1.0f : 1.0f, 0};
+            combat.startAttack(AttackType::Ranged, rd);
+            m_playtestReactionTimer = prof.reactionDelay * 1.5f;
+        }
+        goto ptPostCombat; // Skip normal combat while retreating
+    }
+
     if (m_playtestReactionTimer > 0) goto ptPostCombat;
     {
         // Scan all enemies: find nearest, count nearby, detect boss
@@ -669,9 +773,11 @@ void PlayState::updatePlaytest(float dt) {
         Vec2 enemyDir = {1.0f, 0.0f};
         bool nearestIsBoss = false;
         float nearestEnemyHP = 0;
+        float nearestEnemyMaxHP = 0;
         int enemiesInMeleeRange = 0;
         int enemiesInRangedRange = 0;
         bool bossIsTelegraphing = false;
+        int bossPhase = 1;
 
         m_entities.forEach([&](Entity& e) {
             if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
@@ -688,8 +794,12 @@ void PlayState::updatePlaytest(float dt) {
                     auto& ai = e.getComponent<AIComponent>();
                     nearestIsBoss = (ai.enemyType == EnemyType::Boss);
                     bossIsTelegraphing = (ai.bossTelegraphTimer > 0);
+                    if (nearestIsBoss) bossPhase = ai.bossPhase;
                 }
-                if (e.hasComponent<HealthComponent>()) nearestEnemyHP = e.getComponent<HealthComponent>().currentHP;
+                if (e.hasComponent<HealthComponent>()) {
+                    nearestEnemyHP = e.getComponent<HealthComponent>().currentHP;
+                    nearestEnemyMaxHP = e.getComponent<HealthComponent>().maxHP;
+                }
             }
         });
 
@@ -714,6 +824,20 @@ void PlayState::updatePlaytest(float dt) {
             }
             m_playtestReactionTimer = 0.3f;
             goto ptPostCombat;
+        }
+
+        // --- BOSS PHASE ADAPTATION ---
+        // Phase 2+: prefer range to avoid enraged melee
+        // Phase 3: spam abilities (shorter cooldown threshold)
+        float effectiveMeleeRange = prof.meleeRange;
+        float effectiveAbilityCD = 3.0f;
+        if (nearestIsBoss && bossPhase >= 2) {
+            effectiveMeleeRange *= 0.7f; // Stay further back
+            effectiveAbilityCD = 2.0f;   // Use abilities more often
+        }
+        if (nearestIsBoss && bossPhase >= 3) {
+            effectiveMeleeRange *= 0.6f; // Very cautious
+            effectiveAbilityCD = 1.0f;   // Spam abilities
         }
 
         // --- CHARGED ATTACK (hold and release) ---
@@ -748,7 +872,7 @@ void PlayState::updatePlaytest(float dt) {
             auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
             if (abil.abilities[0].isReady()) { // Ground Slam
                 abil.activate(0);
-                m_ptAbilityCD = 4.0f;
+                m_ptAbilityCD = effectiveAbilityCD + 1.0f;
                 m_playtestReactionTimer = 0.5f;
                 goto ptPostCombat;
             }
@@ -760,7 +884,7 @@ void PlayState::updatePlaytest(float dt) {
             auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
             if (abil.abilities[2].isReady()) { // Phase Strike
                 abil.activate(2);
-                m_ptAbilityCD = 3.0f;
+                m_ptAbilityCD = effectiveAbilityCD;
                 m_playtestReactionTimer = 0.4f;
                 goto ptPostCombat;
             }
@@ -772,14 +896,14 @@ void PlayState::updatePlaytest(float dt) {
             auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
             if (abil.abilities[1].isReady()) { // Rift Shield
                 abil.activate(1);
-                m_ptAbilityCD = 3.0f;
+                m_ptAbilityCD = effectiveAbilityCD;
                 m_playtestReactionTimer = 0.3f;
                 goto ptPostCombat;
             }
         }
 
         // --- DASH-ATTACK toward mid-range enemy ---
-        if (nearestEnemy > prof.meleeRange && nearestEnemy < 200.0f && m_player->dashCooldownTimer <= 0
+        if (nearestEnemy > effectiveMeleeRange && nearestEnemy < 200.0f && m_player->dashCooldownTimer <= 0
             && std::rand() % prof.dashAttackChance == 0) {
             inputMut.injectActionPress(enemyDir.x > 0 ? Action::MoveRight : Action::MoveLeft);
             inputMut.injectActionPress(Action::Dash);
@@ -788,7 +912,7 @@ void PlayState::updatePlaytest(float dt) {
         }
 
         // --- CHARGED ATTACK: start charging on boss or heavy enemy ---
-        if (nearestEnemy < prof.meleeRange * 1.25f && (nearestIsBoss || nearestEnemyHP > 60.0f)
+        if (nearestEnemy < effectiveMeleeRange * 1.25f && (nearestIsBoss || nearestEnemyHP > 60.0f)
             && !m_ptCharging && combat.canAttack() && std::rand() % prof.chargeChance == 0) {
             combat.startCharging();
             m_ptCharging = true;
@@ -798,14 +922,14 @@ void PlayState::updatePlaytest(float dt) {
         }
 
         // --- AERIAL ATTACK: melee/ranged while airborne ---
-        if (!phys.onGround && nearestEnemy < prof.meleeRange * 1.5f && combat.canAttack()) {
+        if (!phys.onGround && nearestEnemy < effectiveMeleeRange * 1.5f && combat.canAttack()) {
             combat.startAttack(AttackType::Melee, enemyDir);
             m_playtestReactionTimer = prof.reactionDelay;
             goto ptPostCombat;
         }
 
         // --- NORMAL MELEE ---
-        if (nearestEnemy < prof.meleeRange && combat.canAttack()) {
+        if (nearestEnemy < effectiveMeleeRange && combat.canAttack()) {
             combat.startAttack(AttackType::Melee, enemyDir);
             m_playtestReactionTimer = prof.reactionDelay;
         }
