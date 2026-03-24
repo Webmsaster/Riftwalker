@@ -392,24 +392,52 @@ private:
     float m_ptBestDistToTarget = 99999.0f;
     int m_ptNoProgressSkips = 0;
     int m_ptSkipRiftMask = 0;
-    // Per-floor balance tracking
+    // Per-floor balance tracking (accumulated across runs)
     struct FloorStats {
+        // Survivability
         float damageTaken = 0;
-        float damageDealt = 0;    // Estimated from kills
+        float dmgFromMelee = 0;    // Enemy melee hits
+        float dmgFromRanged = 0;   // Enemy projectiles
+        float dmgFromHazard = 0;   // Spikes/fire/laser
+        float dmgFromBoss = 0;     // Boss-specific damage
+        float dmgFromDoT = 0;      // Burn/poison/etc
+        float healingReceived = 0; // From pickups/relics/shrines
+        // Combat performance
         int enemiesKilled = 0;
+        int meleeKills = 0;
+        int rangedKills = 0;
+        int abilityKills = 0;
+        int comboFinishers = 0;    // 3-hit combos completed
+        // Timing
         float timeSpent = 0;
+        float timeInCombat = 0;    // Time with enemies nearby
+        // State snapshots
         float hpAtStart = 0;
         float hpAtEnd = 0;
         float entropyAtEnd = 0;
-        int deathsOnFloor = 0;    // Across all runs
+        float playerDPS = 0;       // Approx player DPS this floor
+        int shardsEarned = 0;
+        int upgradesBought = 0;
         bool bossFloor = false;
+        int timesPlayed = 0;       // How many runs reached this floor
     };
     static constexpr int kMaxTrackedFloors = 30;
     FloorStats m_ptFloorStats[kMaxTrackedFloors] = {};
     int m_ptFloorDeathCount[kMaxTrackedFloors] = {};  // Global across runs
-    float m_ptFloorDmgTaken = 0;   // Damage taken on current floor (this run)
-    float m_ptFloorTimeStart = 0;  // Timer at floor start
-    int m_ptFloorKillsStart = 0;   // Kills at floor start
+    int m_ptDeathCause[5] = {};  // 0=enemy melee, 1=enemy ranged, 2=hazard, 3=boss, 4=entropy
+    // Per-floor live tracking (reset each floor)
+    float m_ptFloorDmgTaken = 0;
+    float m_ptFloorDmgMelee = 0;
+    float m_ptFloorDmgRanged = 0;
+    float m_ptFloorDmgHazard = 0;
+    float m_ptFloorDmgBoss = 0;
+    float m_ptFloorHealing = 0;
+    float m_ptFloorTimeStart = 0;
+    float m_ptFloorCombatTime = 0;  // Time with enemies in range
+    int m_ptFloorKillsStart = 0;
+    int m_ptFloorShardsStart = 0;
+    int m_ptFloorMeleeKills = 0;
+    int m_ptFloorRangedKills = 0;
     float m_ptAbilityCD = 0;       // Ability usage cooldown
     float m_ptChargeTimer = 0;     // Charged attack hold timer
     bool m_ptCharging = false;     // Currently charging an attack

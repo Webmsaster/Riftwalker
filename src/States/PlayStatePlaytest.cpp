@@ -169,8 +169,17 @@ void PlayState::playtestStartRun() {
     m_ptChargeTimer = 0;
     m_ptCharging = false;
     m_ptFloorDmgTaken = 0;
+    m_ptFloorDmgMelee = 0;
+    m_ptFloorDmgRanged = 0;
+    m_ptFloorDmgHazard = 0;
+    m_ptFloorDmgBoss = 0;
+    m_ptFloorHealing = 0;
     m_ptFloorTimeStart = 0;
+    m_ptFloorCombatTime = 0;
     m_ptFloorKillsStart = 0;
+    m_ptFloorShardsStart = 0;
+    m_ptFloorMeleeKills = 0;
+    m_ptFloorRangedKills = 0;
     m_ptLastComboCount = 0;
     m_ptComboAttackTimer = 0;
     m_ptWavePrepTimer = 0;
@@ -192,6 +201,22 @@ void PlayState::playtestStartRun() {
 void PlayState::playtestOnDeath() {
     int deathFloor = std::clamp(m_currentDifficulty - 1, 0, kMaxTrackedFloors - 1);
     m_ptFloorDeathCount[deathFloor]++;
+
+    // Classify death cause based on what dealt the most damage this floor
+    float maxSrc = m_ptFloorDmgMelee;
+    int cause = 0; // melee
+    if (m_ptFloorDmgRanged > maxSrc) { maxSrc = m_ptFloorDmgRanged; cause = 1; }
+    if (m_ptFloorDmgHazard > maxSrc) { maxSrc = m_ptFloorDmgHazard; cause = 2; }
+    if (m_ptFloorDmgBoss > maxSrc) { maxSrc = m_ptFloorDmgBoss; cause = 3; }
+    if (m_entropy.getPercent() > 0.95f) cause = 4; // entropy death
+    m_ptDeathCause[cause]++;
+
+    const char* causeNames[] = {"ENEMY_MELEE", "ENEMY_RANGED", "HAZARD", "BOSS", "ENTROPY"};
+    playtestLog("  DEATH on F%d: cause=%s (melee:%.0f ranged:%.0f hazard:%.0f boss:%.0f entropy:%.0f%%)",
+        m_currentDifficulty, causeNames[cause],
+        m_ptFloorDmgMelee, m_ptFloorDmgRanged, m_ptFloorDmgHazard, m_ptFloorDmgBoss,
+        m_entropy.getPercent() * 100.0f);
+
     playtestEndRun(false);
 }
 
@@ -219,59 +244,236 @@ void PlayState::playtestEndRun(bool success) {
 void PlayState::playtestWriteReport() {
     playtestLog("");
     playtestLog("================================================================");
+    playtestLog("================================================================");
     const char* classLabel = "all";
     if (g_playtestClassLock == 0) classLabel = "Voidwalker";
     else if (g_playtestClassLock == 1) classLabel = "Berserker";
     else if (g_playtestClassLock == 2) classLabel = "Phantom";
-    playtestLog("  PLAYTEST BALANCE REPORT (%s / %s)", classLabel, kProfileNames[g_playtestProfile]);
+    playtestLog("  RIFTWALKER BALANCE REPORT");
+    playtestLog("  Class: %s | Profile: %s | Runs: %d", classLabel, kProfileNames[g_playtestProfile], m_playtestRun);
     playtestLog("================================================================");
-    playtestLog("  Runs: %d | Deaths: %d | Best Floor: %d", m_playtestRun, m_playtestDeaths, m_playtestBestLevel);
     playtestLog("");
 
-    // Per-zone summary
-    playtestLog("  --- ZONE SURVIVAL ---");
-    for (int z = 0; z < 5; z++) {
-        int startFloor = z * 6, endFloor = startFloor + 5;
-        int zoneDeaths = 0; float zoneDmg = 0, zoneTime = 0; int zoneKills = 0, floorsReached = 0;
-        for (int f = startFloor; f <= endFloor && f < kMaxTrackedFloors; f++) {
-            zoneDeaths += m_ptFloorDeathCount[f];
-            zoneDmg += m_ptFloorStats[f].damageTaken;
-            zoneTime += m_ptFloorStats[f].timeSpent;
-            zoneKills += m_ptFloorStats[f].enemiesKilled;
-            if (m_ptFloorStats[f].timeSpent > 0) floorsReached++;
+    // === OVERVIEW ===
+    playtestLog("  OVERVIEW");
+    playtestLog("  --------");
+    playtestLog("  Runs: %d | Deaths: %d | Survival Rate: %.0f%% | Best Floor: %d",
+        m_playtestRun, m_playtestDeaths,
+        m_playtestRun > 0 ? (1.0f - (float)m_playtestDeaths / m_playtestRun) * 100.0f : 0,
+        m_playtestBestLevel);
+    playtestLog("");
+
+    // === DEATH CAUSE BREAKDOWN ===
+    int totalDeaths = m_ptDeathCause[0] + m_ptDeathCause[1] + m_ptDeathCause[2] + m_ptDeathCause[3] + m_ptDeathCause[4];
+    if (totalDeaths > 0) {
+        playtestLog("  DEATH CAUSES");
+        playtestLog("  ------------");
+        const char* causeNames[] = {"Enemy Melee", "Enemy Ranged", "Hazards", "Bosses", "Entropy"};
+        for (int i = 0; i < 5; i++) {
+            if (m_ptDeathCause[i] > 0) {
+                int pct = m_ptDeathCause[i] * 100 / totalDeaths;
+                char bar[31] = {};
+                int blen = std::min(m_ptDeathCause[i] * 30 / std::max(totalDeaths, 1), 30);
+                for (int b = 0; b < blen; b++) bar[b] = '#';
+                playtestLog("  %-14s %2d (%2d%%) %s", causeNames[i], m_ptDeathCause[i], pct, bar);
+            }
         }
-        if (floorsReached == 0) continue;
-        playtestLog("  Zone %d (%s): %d deaths | %.0f dmg | %d kills | %.0fs | %d floors",
-            z + 1, kZoneNames[z], zoneDeaths, zoneDmg, zoneKills, zoneTime, floorsReached);
+        playtestLog("");
     }
 
-    // Death heatmap
+    // === ZONE SURVIVAL ===
+    playtestLog("  ZONE SURVIVAL");
+    playtestLog("  -------------");
+    for (int z = 0; z < 5; z++) {
+        int sf = z * 6, ef = sf + 5;
+        int zDeaths = 0, zKills = 0, zPlayed = 0;
+        float zDmg = 0, zTime = 0, zHeal = 0, zDmgMelee = 0, zDmgRanged = 0, zDmgHaz = 0, zDmgBoss = 0;
+        for (int f = sf; f <= ef && f < kMaxTrackedFloors; f++) {
+            zDeaths += m_ptFloorDeathCount[f];
+            zDmg += m_ptFloorStats[f].damageTaken;
+            zDmgMelee += m_ptFloorStats[f].dmgFromMelee;
+            zDmgRanged += m_ptFloorStats[f].dmgFromRanged;
+            zDmgHaz += m_ptFloorStats[f].dmgFromHazard;
+            zDmgBoss += m_ptFloorStats[f].dmgFromBoss;
+            zHeal += m_ptFloorStats[f].healingReceived;
+            zTime += m_ptFloorStats[f].timeSpent;
+            zKills += m_ptFloorStats[f].enemiesKilled;
+            if (m_ptFloorStats[f].timesPlayed > 0) zPlayed++;
+        }
+        if (zPlayed == 0) continue;
+        playtestLog("  Zone %d (%s):", z + 1, kZoneNames[z]);
+        playtestLog("    Deaths: %d | Kills: %d | Time: %.0fs | Floors reached: %d",
+            zDeaths, zKills, zTime, zPlayed);
+        playtestLog("    Dmg taken: %.0f (melee:%.0f ranged:%.0f hazard:%.0f boss:%.0f) | Healed: %.0f",
+            zDmg, zDmgMelee, zDmgRanged, zDmgHaz, zDmgBoss, zHeal);
+        if (zDmg > 0) {
+            playtestLog("    Dmg split: melee %.0f%% | ranged %.0f%% | hazard %.0f%% | boss %.0f%%",
+                zDmgMelee / zDmg * 100, zDmgRanged / zDmg * 100,
+                zDmgHaz / zDmg * 100, zDmgBoss / zDmg * 100);
+        }
+    }
     playtestLog("");
-    playtestLog("  --- DEATH HEATMAP ---");
+
+    // === DEATH HEATMAP ===
+    playtestLog("  DEATH HEATMAP");
+    playtestLog("  -------------");
+    int maxDeaths = 1;
+    for (int f = 0; f < kMaxTrackedFloors; f++) maxDeaths = std::max(maxDeaths, m_ptFloorDeathCount[f]);
     for (int f = 0; f < kMaxTrackedFloors; f++) {
         if (m_ptFloorDeathCount[f] > 0) {
-            char bar[41] = {};
-            int len = std::min(m_ptFloorDeathCount[f], 40);
-            for (int i = 0; i < len; i++) bar[i] = '#';
-            playtestLog("  F%-2d (Z%d): %2d %s", f + 1, getZone(f + 1) + 1, m_ptFloorDeathCount[f], bar);
+            char bar[31] = {};
+            int blen = m_ptFloorDeathCount[f] * 30 / maxDeaths;
+            for (int b = 0; b < blen; b++) bar[b] = '#';
+            const char* tag = (isBossFloor(f + 1) || isMidBossFloor(f + 1)) ? " [BOSS]" : "";
+            playtestLog("  F%-2d (Z%d) %2d %s%s", f + 1, getZone(f + 1) + 1, m_ptFloorDeathCount[f], bar, tag);
+        }
+    }
+    playtestLog("");
+
+    // === DAMAGE SOURCE CURVE (per floor) ===
+    playtestLog("  DAMAGE CURVE (avg per play)");
+    playtestLog("  --------------------------");
+    playtestLog("  %-5s %-4s %-7s %-7s %-7s %-7s %-7s %-7s %-6s %-5s",
+        "Floor", "Zone", "Total", "Melee", "Ranged", "Hazard", "Boss", "Healed", "Kills", "Plays");
+    for (int f = 0; f < kMaxTrackedFloors; f++) {
+        auto& fs = m_ptFloorStats[f];
+        if (fs.timesPlayed <= 0) continue;
+        float n = (float)fs.timesPlayed;
+        playtestLog("  %-5d %-4d %-7.0f %-7.0f %-7.0f %-7.0f %-7.0f %-7.0f %-6.0f %-5d",
+            f + 1, getZone(f + 1) + 1,
+            fs.damageTaken / n, fs.dmgFromMelee / n, fs.dmgFromRanged / n,
+            fs.dmgFromHazard / n, fs.dmgFromBoss / n, fs.healingReceived / n,
+            fs.enemiesKilled / n, fs.timesPlayed);
+    }
+    playtestLog("");
+
+    // === DIFFICULTY CURVE (visual) ===
+    playtestLog("  DIFFICULTY CURVE (avg damage taken per floor)");
+    playtestLog("  ---------------------------------------------");
+    float maxAvgDmg = 1.0f;
+    for (int f = 0; f < kMaxTrackedFloors; f++) {
+        if (m_ptFloorStats[f].timesPlayed > 0) {
+            float avg = m_ptFloorStats[f].damageTaken / m_ptFloorStats[f].timesPlayed;
+            if (avg > maxAvgDmg) maxAvgDmg = avg;
+        }
+    }
+    for (int f = 0; f < kMaxTrackedFloors; f++) {
+        auto& fs = m_ptFloorStats[f];
+        if (fs.timesPlayed <= 0) continue;
+        float avg = fs.damageTaken / fs.timesPlayed;
+        int barLen = (int)(avg / maxAvgDmg * 40.0f);
+        char bar[41] = {};
+        for (int b = 0; b < std::min(barLen, 40); b++) bar[b] = '=';
+        const char* spike = "";
+        // Detect difficulty spikes: >50% more damage than previous floor
+        if (f > 0 && m_ptFloorStats[f - 1].timesPlayed > 0) {
+            float prevAvg = m_ptFloorStats[f - 1].damageTaken / m_ptFloorStats[f - 1].timesPlayed;
+            if (prevAvg > 0 && avg > prevAvg * 1.5f) spike = " << SPIKE";
+        }
+        playtestLog("  F%-2d %s%s", f + 1, bar, spike);
+    }
+    playtestLog("");
+
+    // === BALANCE RECOMMENDATIONS ===
+    playtestLog("  BALANCE RECOMMENDATIONS");
+    playtestLog("  -----------------------");
+    int recommendations = 0;
+
+    // Check for difficulty spikes
+    for (int f = 1; f < kMaxTrackedFloors; f++) {
+        auto& fs = m_ptFloorStats[f];
+        auto& prev = m_ptFloorStats[f - 1];
+        if (fs.timesPlayed > 0 && prev.timesPlayed > 0) {
+            float avgDmg = fs.damageTaken / fs.timesPlayed;
+            float prevAvg = prev.damageTaken / prev.timesPlayed;
+            if (prevAvg > 0 && avgDmg > prevAvg * 2.0f) {
+                playtestLog("  ! F%d: Difficulty spike (%.0f avg dmg vs %.0f on F%d) — reduce enemy density or HP",
+                    f + 1, avgDmg, prevAvg, f);
+                recommendations++;
+            }
         }
     }
 
-    // Per-floor table
-    playtestLog("");
-    playtestLog("  --- PER-FLOOR STATS ---");
-    playtestLog("  %-5s %-4s %-7s %-6s %-7s %-7s %-5s %-5s",
-        "Floor", "Zone", "Dmg", "Kills", "Time", "HP", "Entr", "Boss");
+    // Check for deadly floors
     for (int f = 0; f < kMaxTrackedFloors; f++) {
-        auto& fs = m_ptFloorStats[f];
-        if (fs.timeSpent <= 0) continue;
-        playtestLog("  %-5d %-4d %-7.0f %-6d %-7.0f %-7.0f %-5.0f %-5s",
-            f + 1, getZone(f + 1) + 1, fs.damageTaken, fs.enemiesKilled,
-            fs.timeSpent, fs.hpAtEnd, fs.entropyAtEnd * 100.0f,
-            fs.bossFloor ? "YES" : "");
+        if (m_ptFloorDeathCount[f] >= 3) {
+            auto& fs = m_ptFloorStats[f];
+            const char* topSrc = "unknown";
+            float topDmg = 0;
+            if (fs.dmgFromMelee > topDmg) { topDmg = fs.dmgFromMelee; topSrc = "enemy melee"; }
+            if (fs.dmgFromRanged > topDmg) { topDmg = fs.dmgFromRanged; topSrc = "enemy ranged"; }
+            if (fs.dmgFromHazard > topDmg) { topDmg = fs.dmgFromHazard; topSrc = "hazards"; }
+            if (fs.dmgFromBoss > topDmg) { topDmg = fs.dmgFromBoss; topSrc = "boss"; }
+            playtestLog("  ! F%d: %d deaths — top damage source: %s (%.0f total)",
+                f + 1, m_ptFloorDeathCount[f], topSrc, topDmg);
+            recommendations++;
+        }
+    }
+
+    // Check zone difficulty ratios
+    for (int z = 1; z < 5; z++) {
+        float prevZoneDmg = 0, curZoneDmg = 0;
+        int prevPlayed = 0, curPlayed = 0;
+        for (int f = (z - 1) * 6; f < z * 6 && f < kMaxTrackedFloors; f++) {
+            if (m_ptFloorStats[f].timesPlayed > 0) { prevZoneDmg += m_ptFloorStats[f].damageTaken; prevPlayed += m_ptFloorStats[f].timesPlayed; }
+        }
+        for (int f = z * 6; f < (z + 1) * 6 && f < kMaxTrackedFloors; f++) {
+            if (m_ptFloorStats[f].timesPlayed > 0) { curZoneDmg += m_ptFloorStats[f].damageTaken; curPlayed += m_ptFloorStats[f].timesPlayed; }
+        }
+        if (prevPlayed > 0 && curPlayed > 0) {
+            float prevAvg = prevZoneDmg / prevPlayed, curAvg = curZoneDmg / curPlayed;
+            if (curAvg > prevAvg * 2.5f) {
+                playtestLog("  ! Zone %d->%d: Too steep (%.0f->%.0f avg dmg/play) — smooth the transition",
+                    z, z + 1, prevAvg, curAvg);
+                recommendations++;
+            }
+        }
+    }
+
+    // Hazard damage check
+    float totalHazDmg = 0, totalAllDmg = 0;
+    for (int f = 0; f < kMaxTrackedFloors; f++) {
+        totalHazDmg += m_ptFloorStats[f].dmgFromHazard;
+        totalAllDmg += m_ptFloorStats[f].damageTaken;
+    }
+    if (totalAllDmg > 0 && totalHazDmg / totalAllDmg > 0.3f) {
+        playtestLog("  ! Hazards deal %.0f%% of all damage — consider reducing hazard density or damage",
+            totalHazDmg / totalAllDmg * 100.0f);
+        recommendations++;
+    }
+
+    // Boss damage check
+    float totalBossDmg = 0;
+    for (int f = 0; f < kMaxTrackedFloors; f++) totalBossDmg += m_ptFloorStats[f].dmgFromBoss;
+    if (totalAllDmg > 0 && totalBossDmg / totalAllDmg > 0.5f) {
+        playtestLog("  ! Bosses deal %.0f%% of all damage — consider telegraph timing or damage reduction",
+            totalBossDmg / totalAllDmg * 100.0f);
+        recommendations++;
+    }
+
+    // No deaths = too easy
+    if (totalDeaths == 0 && m_playtestBestLevel >= 10) {
+        playtestLog("  ! Zero deaths reaching F%d — game may be too easy, increase enemy scaling", m_playtestBestLevel);
+        recommendations++;
+    }
+
+    // Death rate too high
+    if (m_playtestRun > 3 && m_playtestDeaths > 0) {
+        float avgFloor = 0;
+        for (int f = 0; f < kMaxTrackedFloors; f++) avgFloor += m_ptFloorDeathCount[f] * (f + 1);
+        if (totalDeaths > 0) avgFloor /= totalDeaths;
+        if (avgFloor < 4.0f) {
+            playtestLog("  ! Avg death floor: %.1f — Zone 1 may be too hard for new players", avgFloor);
+            recommendations++;
+        }
+    }
+
+    if (recommendations == 0) {
+        playtestLog("  (No major balance issues detected)");
     }
 
     playtestLog("");
+    playtestLog("================================================================");
     playtestLog("================================================================");
     if (g_playtestFile) { fclose(g_playtestFile); g_playtestFile = nullptr; }
 }
@@ -331,15 +533,56 @@ void PlayState::updatePlaytest(float dt) {
     auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
     float hpPct = hp.currentHP / std::max(hp.maxHP, 1.0f);
 
-    // --- HP TRACKING ---
+    // --- HP TRACKING with damage source classification ---
     float hpDiff = hp.currentHP - m_playtestLastHP;
     if (hpDiff < -1.0f) {
-        m_ptFloorDmgTaken += (-hpDiff);
-        if (-hpDiff > hp.maxHP * 0.15f) {
-            playtestLog("  [%.0fs] F%d: HIT %.0f dmg (HP: %.0f/%.0f = %.0f%%)",
-                m_playtestRunTimer, m_currentDifficulty, -hpDiff,
+        float dmg = -hpDiff;
+        m_ptFloorDmgTaken += dmg;
+
+        // Classify damage source by scanning what's nearby
+        int ptxNow = (int)(m_player->getEntity()->getComponent<TransformComponent>().getCenter().x) / 32;
+        int ptyNow = (int)(m_player->getEntity()->getComponent<TransformComponent>().getCenter().y) / 32;
+        bool nearHazard = false;
+        for (int hdx = -1; hdx <= 1; hdx++) for (int hdy = -1; hdy <= 1; hdy++) {
+            if (m_level->inBounds(ptxNow + hdx, ptyNow + hdy)) {
+                auto& ht = m_level->getTile(ptxNow + hdx, ptyNow + hdy, m_dimManager.getCurrentDimension());
+                if (ht.type == TileType::Spike || ht.type == TileType::Fire || ht.type == TileType::LaserEmitter)
+                    nearHazard = true;
+            }
+        }
+        bool nearBoss = false;
+        float nearestEnemyDist = 99999.0f;
+        bool nearEnemyIsRanged = false;
+        Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.hasComponent<TransformComponent>() || !e.hasComponent<AIComponent>()) return;
+            auto& et = e.getComponent<TransformComponent>();
+            float d = std::sqrt((et.getCenter().x - pPos.x) * (et.getCenter().x - pPos.x)
+                              + (et.getCenter().y - pPos.y) * (et.getCenter().y - pPos.y));
+            if (d < nearestEnemyDist) {
+                nearestEnemyDist = d;
+                auto& ai = e.getComponent<AIComponent>();
+                nearBoss = (ai.enemyType == EnemyType::Boss);
+                nearEnemyIsRanged = (ai.enemyType == EnemyType::Turret || ai.enemyType == EnemyType::Sniper);
+            }
+        });
+
+        // Classify
+        if (nearHazard && nearestEnemyDist > 100.0f) m_ptFloorDmgHazard += dmg;
+        else if (nearBoss) m_ptFloorDmgBoss += dmg;
+        else if (nearEnemyIsRanged || nearestEnemyDist > 80.0f) m_ptFloorDmgRanged += dmg;
+        else if (nearestEnemyDist < 80.0f) m_ptFloorDmgMelee += dmg;
+        else m_ptFloorDmgHazard += dmg; // Unknown = hazard
+
+        if (dmg > hp.maxHP * 0.15f) {
+            const char* src = nearHazard ? "HAZARD" : nearBoss ? "BOSS" : nearEnemyIsRanged ? "RANGED" : "MELEE";
+            playtestLog("  [%.0fs] F%d: %s %.0f dmg (HP: %.0f/%.0f = %.0f%%)",
+                m_playtestRunTimer, m_currentDifficulty, src, dmg,
                 hp.currentHP, hp.maxHP, hpPct * 100.0f);
         }
+    } else if (hpDiff > 1.0f) {
+        m_ptFloorHealing += hpDiff;
     }
     m_playtestLastHP = hp.currentHP;
 
@@ -355,12 +598,26 @@ void PlayState::updatePlaytest(float dt) {
         writeBalanceSnapshot();
         int prevFloor = std::clamp(m_ptLastLoggedLevel - 1, 0, kMaxTrackedFloors - 1);
         auto& fs = m_ptFloorStats[prevFloor];
+        float floorTime = m_playtestRunTimer - m_ptFloorTimeStart;
+        int floorKills = enemiesKilled - m_ptFloorKillsStart;
         fs.damageTaken += m_ptFloorDmgTaken;
-        fs.enemiesKilled += (enemiesKilled - m_ptFloorKillsStart);
-        fs.timeSpent += (m_playtestRunTimer - m_ptFloorTimeStart);
+        fs.dmgFromMelee += m_ptFloorDmgMelee;
+        fs.dmgFromRanged += m_ptFloorDmgRanged;
+        fs.dmgFromHazard += m_ptFloorDmgHazard;
+        fs.dmgFromBoss += m_ptFloorDmgBoss;
+        fs.healingReceived += m_ptFloorHealing;
+        fs.enemiesKilled += floorKills;
+        fs.meleeKills += m_ptFloorMeleeKills;
+        fs.rangedKills += m_ptFloorRangedKills;
+        fs.timeSpent += floorTime;
+        fs.timeInCombat += m_ptFloorCombatTime;
         fs.hpAtEnd = hp.currentHP;
         fs.entropyAtEnd = entropyPct;
+        fs.playerDPS = (floorTime > 0 && floorKills > 0) ? (m_ptFloorDmgTaken / floorTime) : 0; // Rough
         fs.bossFloor = isBossFloor(m_ptLastLoggedLevel) || isMidBossFloor(m_ptLastLoggedLevel);
+        fs.timesPlayed++;
+        int shardNow = game->getUpgradeSystem().getRiftShards();
+        fs.shardsEarned += std::max(0, shardNow - m_ptFloorShardsStart);
 
         int prevZone = getZone(m_ptLastLoggedLevel);
         int newZone = getZone(m_currentDifficulty);
@@ -379,8 +636,17 @@ void PlayState::updatePlaytest(float dt) {
                 shardsSpent, game->getUpgradeSystem().getRiftShards());
 
         m_ptFloorDmgTaken = 0;
+        m_ptFloorDmgMelee = 0;
+        m_ptFloorDmgRanged = 0;
+        m_ptFloorDmgHazard = 0;
+        m_ptFloorDmgBoss = 0;
+        m_ptFloorHealing = 0;
         m_ptFloorTimeStart = m_playtestRunTimer;
+        m_ptFloorCombatTime = 0;
         m_ptFloorKillsStart = enemiesKilled;
+        m_ptFloorShardsStart = game->getUpgradeSystem().getRiftShards();
+        m_ptFloorMeleeKills = 0;
+        m_ptFloorRangedKills = 0;
     }
 
     if (m_currentDifficulty != m_ptLastLoggedLevel) {
@@ -406,8 +672,17 @@ void PlayState::updatePlaytest(float dt) {
         playtestLog("  F%d (Z%d.%d) | %d rifts | ~%d enemies | %s%s",
             m_currentDifficulty, zone + 1, fiz, (int)rifts.size(), enemyCount, floorType, learnTag);
         m_ptFloorDmgTaken = 0;
+        m_ptFloorDmgMelee = 0;
+        m_ptFloorDmgRanged = 0;
+        m_ptFloorDmgHazard = 0;
+        m_ptFloorDmgBoss = 0;
+        m_ptFloorHealing = 0;
         m_ptFloorTimeStart = m_playtestRunTimer;
+        m_ptFloorCombatTime = 0;
         m_ptFloorKillsStart = enemiesKilled;
+        m_ptFloorShardsStart = game->getUpgradeSystem().getRiftShards();
+        m_ptFloorMeleeKills = 0;
+        m_ptFloorRangedKills = 0;
     }
 
     if (m_levelComplete) return;
@@ -935,6 +1210,20 @@ void PlayState::updatePlaytest(float dt) {
     // ========================================================================
     // COMBAT AI
     // ========================================================================
+
+    // Track combat time (enemies within 300px)
+    {
+        bool inCombat = false;
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.hasComponent<TransformComponent>()) return;
+            auto& et = e.getComponent<TransformComponent>();
+            float d = std::sqrt((et.getCenter().x - playerPos.x) * (et.getCenter().x - playerPos.x)
+                              + (et.getCenter().y - playerPos.y) * (et.getCenter().y - playerPos.y));
+            if (d < 300.0f) inCombat = true;
+        });
+        if (inCombat) m_ptFloorCombatTime += dt;
+    }
 
     // Pre-scan: count threats for retreat decision
     int preScanMeleeThreats = 0;
