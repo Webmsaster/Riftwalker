@@ -60,16 +60,20 @@ void PlayState::enter() {
         }
     }
     if (g_autoPlaytest) {
+        extern int g_playtestRuns;
+        extern int g_playtestProfile;
+        extern char g_playtestOutputFile[];
         m_playtest = true;
+        m_playtestMaxRuns = g_playtestRuns;
         if (g_playtestFile) fclose(g_playtestFile);
-        g_playtestFile = fopen("playtest_report.log", "w");
+        g_playtestFile = fopen(g_playtestOutputFile, "w");
         m_playtestRun = 0;
         m_playtestDeaths = 0;
         m_playtestBestLevel = 0;
+        static const char* profileNames[] = {"balanced", "aggressive", "defensive", "speedrun"};
         playtestLog("========================================");
         playtestLog("  RIFTWALKER BALANCE PLAYTEST");
-        playtestLog("  Modus: Menschliche Simulation");
-        playtestLog("  Max Versuche: %d", m_playtestMaxRuns);
+        playtestLog("  Profile: %s | Runs: %d", profileNames[g_playtestProfile], m_playtestMaxRuns);
         playtestLog("========================================");
     }
     startNewRun();

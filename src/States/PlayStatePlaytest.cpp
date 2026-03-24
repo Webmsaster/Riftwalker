@@ -30,6 +30,9 @@
 
 FILE* g_playtestFile = nullptr;
 
+extern int g_playtestClassLock;
+extern int g_playtestProfile;
+
 namespace {
 const char* kZoneNames[] = {
     "Fractured Threshold",
@@ -37,6 +40,31 @@ const char* kZoneNames[] = {
     "Resonant Core",
     "Entropy Cascade",
     "Sovereign's Domain"
+};
+const char* kProfileNames[] = {"balanced", "aggressive", "defensive", "speedrun"};
+
+// Profile tuning constants
+struct PlaytestProfile {
+    float meleeRange;        // Max distance for melee engagement
+    float rangedRange;       // Max distance for ranged engagement
+    int dashAttackChance;    // 1/N chance to dash-attack per frame
+    int chargeChance;        // 1/N chance to charge on boss/elite
+    float dodgeDimHPThresh;  // HP% threshold for defensive dim-switch
+    float reactionDelay;     // Base reaction time for combat
+    int dashFrequency;       // 1/N chance to dash while moving
+    float exploreFrequency;  // Base dim-explore interval
+    bool prefersMelee;       // Biases toward melee range
+};
+
+constexpr PlaytestProfile kProfiles[] = {
+    // Balanced: moderate everything
+    {80.0f, 300.0f, 4, 6, 0.25f, 0.25f, 20, 5.0f, false},
+    // Aggressive: closes distance fast, melees a lot, dashes through enemies
+    {100.0f, 200.0f, 2, 3, 0.15f, 0.18f, 10, 3.0f, true},
+    // Defensive: stays at range, dodges often, switches dim at higher HP
+    {60.0f, 400.0f, 8, 8, 0.40f, 0.35f, 25, 6.0f, false},
+    // Speedrun: dashes constantly, skips fights when possible, low reaction
+    {70.0f, 250.0f, 3, 5, 0.20f, 0.15f, 5, 2.5f, false},
 };
 }
 
@@ -66,13 +94,18 @@ void PlayState::playtestStartRun() {
     m_playtestReactionTimer = 0;
     m_playtestThinkTimer = 0;
 
-    // Rotate classes: Run 1-3 = Voidwalker, 4-6 = Berserker, 7-9 = Phantom, 10+ = cycle
-    int classIdx = ((m_playtestRun - 1) / 3) % 3;
+    // Class selection: locked to one, or rotate
+    int classIdx;
+    if (g_playtestClassLock >= 0 && g_playtestClassLock <= 2) {
+        classIdx = g_playtestClassLock;
+    } else {
+        classIdx = ((m_playtestRun - 1) / 3) % 3; // Rotate: 3 runs each
+    }
     g_selectedClass = static_cast<PlayerClass>(classIdx);
     const char* classNames[] = {"Voidwalker", "Berserker", "Phantom"};
 
     playtestLog("");
-    playtestLog("=== Run %d / %s ===", m_playtestRun, classNames[classIdx]);
+    playtestLog("=== Run %d / %s / %s ===", m_playtestRun, classNames[classIdx], kProfileNames[g_playtestProfile]);
 
     startNewRun();
 
@@ -625,9 +658,10 @@ void PlayState::updatePlaytest(float dt) {
         }
     }
 
-    // Dash — more aggressive: also dash in combat and toward enemies
+    // Profile-based dash frequency
+    const auto& prof = kProfiles[g_playtestProfile];
     if (m_player->dashCooldownTimer <= 0) {
-        if (phys.onGround && hasFloorAhead && (distToTarget > 300.0f || std::rand() % 20 == 0)) {
+        if (phys.onGround && hasFloorAhead && (distToTarget > 300.0f || std::rand() % prof.dashFrequency == 0)) {
             inputMut.injectActionPress(Action::Dash);
         }
     }
@@ -666,54 +700,56 @@ void PlayState::updatePlaytest(float dt) {
         auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
         float hpPct = hp.currentHP / hp.maxHP;
 
-        // Dash-attack: dash through enemies when far enough (dash deals damage)
-        if (nearestEnemy > 80.0f && nearestEnemy < 200.0f && m_player->dashCooldownTimer <= 0
-            && std::rand() % 4 == 0) {
-            // Face enemy then dash
+        // Dash-attack: dash through enemies (profile controls frequency)
+        if (nearestEnemy > prof.meleeRange && nearestEnemy < 200.0f && m_player->dashCooldownTimer <= 0
+            && std::rand() % static_cast<int>(prof.dashAttackChance) == 0) {
             if (enemyDir.x > 0) inputMut.injectActionPress(Action::MoveRight);
             else inputMut.injectActionPress(Action::MoveLeft);
             inputMut.injectActionPress(Action::Dash);
-            m_playtestReactionTimer = 0.4f;
+            m_playtestReactionTimer = prof.reactionDelay * 1.5f;
         }
-        // Charged attack: hold for bosses or high-HP enemies
-        else if (nearestEnemy < 100.0f && (nearestIsBoss || nearestEnemyHP > 80.0f)
-                 && !m_ptCharging && std::rand() % 6 == 0) {
+        // Charged attack on bosses/elites (profile controls frequency)
+        else if (nearestEnemy < prof.meleeRange * 1.25f && (nearestIsBoss || nearestEnemyHP > 80.0f)
+                 && !m_ptCharging && std::rand() % static_cast<int>(prof.chargeChance) == 0) {
             combat.startAttack(AttackType::Charged, enemyDir);
             m_ptCharging = true;
             m_ptChargeTimer = 0.4f;
-            m_playtestReactionTimer = 0.5f;
+            m_playtestReactionTimer = prof.reactionDelay * 2.0f;
         }
         // Normal melee
-        else if (nearestEnemy < 80.0f) {
+        else if (nearestEnemy < prof.meleeRange) {
             combat.startAttack(AttackType::Melee, enemyDir);
-            m_playtestReactionTimer = 0.25f;
+            m_playtestReactionTimer = prof.reactionDelay;
         }
-        // Ranged attack
-        else if (nearestEnemy < 300.0f) {
+        // Ranged attack (aggressive profile closes distance instead)
+        else if (nearestEnemy < prof.rangedRange && (!prof.prefersMelee || nearestEnemy > 150.0f)) {
             combat.startAttack(AttackType::Ranged, enemyDir);
-            m_playtestReactionTimer = 0.4f;
+            m_playtestReactionTimer = prof.reactionDelay * 1.6f;
         }
-        // No enemy nearby
+        // Speedrun: ignore distant enemies, keep moving
+        else if (g_playtestProfile == 3 && nearestEnemy > 200.0f) {
+            m_playtestReactionTimer = 0.05f; // Skip combat, keep running
+        }
         else {
             m_playtestReactionTimer = 0.1f;
         }
 
-        // Use ability when available and enemies nearby (Zone 1+ has abilities)
+        // Use ability when available and enemies nearby
         if (nearestEnemy < 200.0f && m_ptAbilityCD <= 0 &&
             m_player->getEntity()->hasComponent<AbilityComponent>()) {
             auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
-            // Use first available ability
             for (int a = 0; a < 3; a++) {
                 if (abil.abilities[a].isReady()) {
                     abil.activate(a);
-                    m_ptAbilityCD = 3.0f; // Don't spam abilities
+                    m_ptAbilityCD = 3.0f;
                     break;
                 }
             }
         }
 
-        // Defensive: dimension switch when low HP and enemy close
-        if (hpPct < 0.25f && nearestEnemy < 100.0f && m_ptDimSwitchCD <= 0 && std::rand() % 3 == 0) {
+        // Defensive: dimension switch when low HP (profile controls threshold)
+        if (hpPct < prof.dodgeDimHPThresh && nearestEnemy < 120.0f && m_ptDimSwitchCD <= 0
+            && std::rand() % 3 == 0) {
             inputMut.injectActionPress(Action::DimensionSwitch);
             m_ptDimSwitchCD = 2.0f;
         }
@@ -725,8 +761,8 @@ void PlayState::updatePlaytest(float dt) {
         if (m_ptChargeTimer <= 0) m_ptCharging = false;
     }
 
-    // Periodic dimension exploration (less frequent in late zones)
-    float exploreInterval = 4.0f + getZone(m_currentDifficulty) * 1.0f;
+    // Periodic dimension exploration (profile + zone based)
+    float exploreInterval = prof.exploreFrequency + getZone(m_currentDifficulty) * 0.5f;
     if (m_ptDimExploreTimer <= 0 && std::rand() % 5 == 0) {
         inputMut.injectActionPress(Action::DimensionSwitch);
         m_ptDimExploreTimer = exploreInterval + static_cast<float>(std::rand() % 30) * 0.1f;

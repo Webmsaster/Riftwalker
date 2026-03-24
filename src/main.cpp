@@ -22,6 +22,12 @@
 bool g_autoSmokeTest = false;
 bool g_autoPlaytest = false;
 int g_forcedRunSeed = -1;
+
+// Playtest configuration (set via CLI args)
+int g_playtestRuns = 10;              // --playtest-runs N
+int g_playtestClassLock = -1;         // --playtest-class 0/1/2 (-1=rotate)
+int g_playtestProfile = 0;           // --playtest-profile 0=balanced,1=aggressive,2=defensive,3=speedrun
+char g_playtestOutputFile[256] = "playtest_report.log"; // --playtest-output FILE
 bool g_smokeRegression = false;
 int g_smokeTargetFloor = 5;
 float g_smokeMaxRuntime = 600.0f;
@@ -529,6 +535,31 @@ int main(int argc, char* argv[]) {
         }
         if (std::strcmp(argv[i], "--playtest") == 0) {
             g_autoPlaytest = true;
+            continue;
+        }
+        if (std::strncmp(argv[i], "--playtest-runs=", 16) == 0) {
+            g_playtestRuns = std::max(1, std::atoi(argv[i] + 16));
+            continue;
+        }
+        if (std::strncmp(argv[i], "--playtest-class=", 17) == 0) {
+            const char* cls = argv[i] + 17;
+            if (std::strcmp(cls, "voidwalker") == 0 || std::strcmp(cls, "0") == 0) g_playtestClassLock = 0;
+            else if (std::strcmp(cls, "berserker") == 0 || std::strcmp(cls, "1") == 0) g_playtestClassLock = 1;
+            else if (std::strcmp(cls, "phantom") == 0 || std::strcmp(cls, "2") == 0) g_playtestClassLock = 2;
+            else g_playtestClassLock = -1; // "all" or invalid = rotate
+            continue;
+        }
+        if (std::strncmp(argv[i], "--playtest-profile=", 19) == 0) {
+            const char* prof = argv[i] + 19;
+            if (std::strcmp(prof, "aggressive") == 0 || std::strcmp(prof, "1") == 0) g_playtestProfile = 1;
+            else if (std::strcmp(prof, "defensive") == 0 || std::strcmp(prof, "2") == 0) g_playtestProfile = 2;
+            else if (std::strcmp(prof, "speedrun") == 0 || std::strcmp(prof, "3") == 0) g_playtestProfile = 3;
+            else g_playtestProfile = 0; // "balanced" or default
+            continue;
+        }
+        if (std::strncmp(argv[i], "--playtest-output=", 18) == 0) {
+            std::strncpy(g_playtestOutputFile, argv[i] + 18, sizeof(g_playtestOutputFile) - 1);
+            g_playtestOutputFile[sizeof(g_playtestOutputFile) - 1] = '\0';
             continue;
         }
         if (std::strcmp(argv[i], "--validate-generator") == 0) {
