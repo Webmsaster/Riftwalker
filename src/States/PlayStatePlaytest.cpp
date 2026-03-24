@@ -1,4 +1,4 @@
-// PlayStatePlaytest.cpp -- Split from PlayStateSmokeBot.cpp (balance playtest bot)
+// PlayStatePlaytest.cpp -- Balance playtest bot with zone-aware tracking
 #include "PlayState.h"
 #include "Core/Game.h"
 #include "Game/Enemy.h"
@@ -30,6 +30,16 @@
 
 FILE* g_playtestFile = nullptr;
 
+namespace {
+const char* kZoneNames[] = {
+    "Fractured Threshold",
+    "Shifting Depths",
+    "Resonant Core",
+    "Entropy Cascade",
+    "Sovereign's Domain"
+};
+}
+
 // ============================================================================
 // PLAYTEST MODE: Human-like auto-play for balance testing
 // ============================================================================
@@ -56,15 +66,14 @@ void PlayState::playtestStartRun() {
     m_playtestReactionTimer = 0;
     m_playtestThinkTimer = 0;
 
-    // Rotate classes: Run 1-3 = Voidwalker, 4-6 = Berserker, 7-9 = Phantom, 10 = Voidwalker
+    // Rotate classes: Run 1-3 = Voidwalker, 4-6 = Berserker, 7-9 = Phantom, 10+ = cycle
     int classIdx = ((m_playtestRun - 1) / 3) % 3;
     g_selectedClass = static_cast<PlayerClass>(classIdx);
     const char* classNames[] = {"Voidwalker", "Berserker", "Phantom"};
 
     playtestLog("");
-    playtestLog("--- Run %d / %s ---", m_playtestRun, classNames[classIdx]);
+    playtestLog("=== Run %d / %s ===", m_playtestRun, classNames[classIdx]);
 
-    // Must regenerate level to apply class properly
     startNewRun();
 
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
@@ -84,28 +93,40 @@ void PlayState::playtestStartRun() {
     m_ptBestDistToTarget = 99999.0f;
     m_ptNoProgressSkips = 0;
     m_ptSkipRiftMask = 0;
+    m_ptAbilityCD = 0;
+    m_ptChargeTimer = 0;
+    m_ptCharging = false;
+    m_ptFloorDmgTaken = 0;
+    m_ptFloorTimeStart = 0;
+    m_ptFloorKillsStart = 0;
 
-    playtestLog("  Klasse: %s (HP: %.0f, Speed: %.0f)", classNames[classIdx], hp.maxHP, m_player->moveSpeed);
+    playtestLog("  Class: %s | HP: %.0f | Speed: %.0f | Zone: %s",
+        classNames[classIdx], hp.maxHP, m_player->moveSpeed, kZoneNames[0]);
 }
 
 void PlayState::playtestOnDeath() {
+    // Record death floor
+    int deathFloor = std::clamp(m_currentDifficulty - 1, 0, kMaxTrackedFloors - 1);
+    m_ptFloorDeathCount[deathFloor]++;
+
     playtestEndRun(false);
 }
 
 void PlayState::playtestEndRun(bool success) {
-    if (!m_playtestRunActive) return; // Prevent double-calling
+    if (!m_playtestRunActive) return;
     m_playtestRunActive = false;
 
     if (!success) m_playtestDeaths++;
     if (m_currentDifficulty > m_playtestBestLevel)
         m_playtestBestLevel = m_currentDifficulty;
 
-    // Snapshot balance data at end of each run
     writeBalanceSnapshot();
 
-    playtestLog("  --- Run %d Ende: Level %d erreicht, %.0fs, %d Kills, %d Rifts ---",
-            m_playtestRun, m_currentDifficulty, m_playtestRunTimer,
-            enemiesKilled, riftsRepaired);
+    int zone = getZone(m_currentDifficulty);
+    playtestLog("  --- Run %d End: Floor %d (Zone %d: %s) | %.0fs | %d Kills | %d Rifts | %s ---",
+            m_playtestRun, m_currentDifficulty, zone + 1, kZoneNames[zone],
+            m_playtestRunTimer, enemiesKilled, riftsRepaired,
+            success ? "SUCCESS" : "DEATH");
 
     if (m_playtestRun >= m_playtestMaxRuns) {
         playtestWriteReport();
@@ -113,19 +134,70 @@ void PlayState::playtestEndRun(bool success) {
         return;
     }
 
-    // Start next run
     playtestStartRun();
 }
 
 void PlayState::playtestWriteReport() {
     playtestLog("");
-    playtestLog("========================================");
-    playtestLog("  PLAYTEST ZUSAMMENFASSUNG");
-    playtestLog("========================================");
-    playtestLog("  Runs gesamt:     %d", m_playtestRun);
-    playtestLog("  Tode gesamt:     %d", m_playtestDeaths);
-    playtestLog("  Bestes Level:    %d", m_playtestBestLevel);
-    playtestLog("========================================");
+    playtestLog("================================================================");
+    playtestLog("  PLAYTEST BALANCE REPORT");
+    playtestLog("================================================================");
+    playtestLog("  Runs: %d | Deaths: %d | Best Floor: %d", m_playtestRun, m_playtestDeaths, m_playtestBestLevel);
+    playtestLog("");
+
+    // Per-zone summary
+    playtestLog("  --- ZONE SURVIVAL ---");
+    for (int z = 0; z < 5; z++) {
+        int startFloor = z * 6;
+        int endFloor = startFloor + 5;
+        int zoneDeaths = 0;
+        float zoneDmg = 0;
+        float zoneTime = 0;
+        int zoneKills = 0;
+        int floorsReached = 0;
+        for (int f = startFloor; f <= endFloor && f < kMaxTrackedFloors; f++) {
+            zoneDeaths += m_ptFloorDeathCount[f];
+            zoneDmg += m_ptFloorStats[f].damageTaken;
+            zoneTime += m_ptFloorStats[f].timeSpent;
+            zoneKills += m_ptFloorStats[f].enemiesKilled;
+            if (m_ptFloorStats[f].timeSpent > 0) floorsReached++;
+        }
+        if (floorsReached == 0) continue;
+        playtestLog("  Zone %d (%s): %d deaths | %.0f dmg taken | %d kills | %.0fs | %d floors played",
+            z + 1, kZoneNames[z], zoneDeaths, zoneDmg, zoneKills, zoneTime, floorsReached);
+    }
+
+    // Per-floor death heatmap
+    playtestLog("");
+    playtestLog("  --- DEATH HEATMAP (floor: deaths) ---");
+    char heatBuf[512] = "  ";
+    int heatLen = 2;
+    for (int f = 0; f < kMaxTrackedFloors; f++) {
+        if (m_ptFloorDeathCount[f] > 0) {
+            int written = snprintf(heatBuf + heatLen, sizeof(heatBuf) - heatLen,
+                "F%d:%d  ", f + 1, m_ptFloorDeathCount[f]);
+            if (written > 0) heatLen += written;
+        }
+    }
+    playtestLog("%s", heatBuf);
+
+    // Per-floor stats table
+    playtestLog("");
+    playtestLog("  --- PER-FLOOR STATS ---");
+    playtestLog("  %-6s %-5s %-8s %-8s %-8s %-8s %-6s %-5s",
+        "Floor", "Zone", "DmgTaken", "Kills", "Time(s)", "HP@End", "Entr%", "Boss");
+    for (int f = 0; f < kMaxTrackedFloors; f++) {
+        auto& fs = m_ptFloorStats[f];
+        if (fs.timeSpent <= 0) continue;
+        playtestLog("  %-6d %-5d %-8.0f %-8d %-8.0f %-8.0f %-6.0f %-5s",
+            f + 1, getZone(f + 1) + 1,
+            fs.damageTaken, fs.enemiesKilled, fs.timeSpent,
+            fs.hpAtEnd, fs.entropyAtEnd * 100.0f,
+            fs.bossFloor ? "YES" : "");
+    }
+
+    playtestLog("");
+    playtestLog("================================================================");
 
     if (g_playtestFile) {
         fclose(g_playtestFile);
@@ -141,34 +213,61 @@ void PlayState::updatePlaytest(float dt) {
     m_playtestThinkTimer -= dt;
     m_ptDimSwitchCD -= dt;
     m_ptDimExploreTimer -= dt;
+    m_ptAbilityCD -= dt;
 
-    // Track HP changes and log damage taken
+    // Track HP changes for per-floor damage tracking
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     float hpDiff = hp.currentHP - m_playtestLastHP;
     if (hpDiff < -1.0f) {
-        playtestLog("  [%.0fs] Schaden: %.0f HP verloren (HP: %.0f/%.0f, %.0f%%)",
-                m_playtestRunTimer, -hpDiff, hp.currentHP, hp.maxHP,
-                hp.currentHP / hp.maxHP * 100.0f);
-    } else if (hpDiff > 5.0f) {
-        playtestLog("  [%.0fs] Heilung: +%.0f HP (HP: %.0f/%.0f)",
-                m_playtestRunTimer, hpDiff, hp.currentHP, hp.maxHP);
+        m_ptFloorDmgTaken += (-hpDiff);
+        // Only log big hits (>10% HP) to reduce spam
+        if (-hpDiff > hp.maxHP * 0.1f) {
+            playtestLog("  [%.0fs] F%d: BIG HIT %.0f dmg (HP: %.0f/%.0f = %.0f%%)",
+                    m_playtestRunTimer, m_currentDifficulty, -hpDiff,
+                    hp.currentHP, hp.maxHP, hp.currentHP / hp.maxHP * 100.0f);
+        }
     }
     m_playtestLastHP = hp.currentHP;
 
-    // Log entropy pressure
+    // Log entropy pressure (only when critical)
     float entropyPct = m_entropy.getPercent();
-    if (entropyPct > 0.7f && m_playtestRunTimer - m_ptLastEntropyLog > 5.0f) {
-        playtestLog("  [%.0fs] WARNUNG: Entropy bei %.0f%% - Anzug instabil!",
-                m_playtestRunTimer, entropyPct * 100.0f);
+    if (entropyPct > 0.8f && m_playtestRunTimer - m_ptLastEntropyLog > 10.0f) {
+        playtestLog("  [%.0fs] F%d: ENTROPY CRITICAL %.0f%%",
+                m_playtestRunTimer, m_currentDifficulty, entropyPct * 100.0f);
         m_ptLastEntropyLog = m_playtestRunTimer;
     }
 
-    // Log level completion (detected when level number increases)
+    // Log level completion with per-floor stats
     if (m_currentDifficulty != m_ptLastLoggedLevel && m_ptLastLoggedLevel > 0) {
-        writeBalanceSnapshot(); // Snapshot balance at each level transition
-        playtestLog("  [%.0fs] LEVEL %d GESCHAFFT! (HP: %.0f/%.0f, Entropy: %.0f%%)",
-                m_playtestRunTimer, m_ptLastLoggedLevel,
-                hp.currentHP, hp.maxHP, entropyPct * 100.0f);
+        writeBalanceSnapshot();
+
+        // Save per-floor stats
+        int prevFloor = std::clamp(m_ptLastLoggedLevel - 1, 0, kMaxTrackedFloors - 1);
+        auto& fs = m_ptFloorStats[prevFloor];
+        fs.damageTaken += m_ptFloorDmgTaken;
+        fs.enemiesKilled += (enemiesKilled - m_ptFloorKillsStart);
+        fs.timeSpent += (m_playtestRunTimer - m_ptFloorTimeStart);
+        fs.hpAtEnd = hp.currentHP;
+        fs.entropyAtEnd = entropyPct;
+        fs.bossFloor = isBossFloor(m_ptLastLoggedLevel) || isMidBossFloor(m_ptLastLoggedLevel);
+
+        int zone = getZone(m_ptLastLoggedLevel);
+        int newZone = getZone(m_currentDifficulty);
+        playtestLog("  [%.0fs] FLOOR %d CLEAR (Zone %d) | Dmg:%.0f Kills:%d Time:%.0fs HP:%.0f/%.0f",
+                m_playtestRunTimer, m_ptLastLoggedLevel, zone + 1,
+                m_ptFloorDmgTaken, enemiesKilled - m_ptFloorKillsStart,
+                m_playtestRunTimer - m_ptFloorTimeStart,
+                hp.currentHP, hp.maxHP);
+
+        // Zone transition announcement
+        if (newZone != zone) {
+            playtestLog("  >>> ENTERING ZONE %d: %s <<<", newZone + 1, kZoneNames[newZone]);
+        }
+
+        // Reset per-floor tracking
+        m_ptFloorDmgTaken = 0;
+        m_ptFloorTimeStart = m_playtestRunTimer;
+        m_ptFloorKillsStart = enemiesKilled;
     }
 
     // Log level start
@@ -180,32 +279,41 @@ void PlayState::updatePlaytest(float dt) {
         m_entities.forEach([&](Entity& e) {
             if (e.getTag().find("enemy") != std::string::npos && e.isAlive()) enemyCount++;
         });
-        playtestLog("  Level %d gestartet (%d Rifts, ~%d Gegner, %s)",
-                m_currentDifficulty,
-                static_cast<int>(rifts.size()), enemyCount,
-                m_isBossLevel ? "BOSS-LEVEL" : "normal");
+        int zone = getZone(m_currentDifficulty);
+        int fiz = getFloorInZone(m_currentDifficulty);
+        const char* floorType = "normal";
+        if (isBossFloor(m_currentDifficulty)) floorType = "ZONE BOSS";
+        else if (isMidBossFloor(m_currentDifficulty)) floorType = "MID-BOSS";
+        else if (isBreatherFloor(m_currentDifficulty)) floorType = "breather";
+
+        // Record HP at start
+        int floorIdx = std::clamp(m_currentDifficulty - 1, 0, kMaxTrackedFloors - 1);
+        m_ptFloorStats[floorIdx].hpAtStart = hp.currentHP;
+
+        playtestLog("  Floor %d (Z%d.%d %s) | %d rifts | ~%d enemies | %s",
+                m_currentDifficulty, zone + 1, fiz, kZoneNames[zone],
+                static_cast<int>(rifts.size()), enemyCount, floorType);
         m_ptLastEntropyLog = 0;
+        m_ptFloorDmgTaken = 0;
+        m_ptFloorTimeStart = m_playtestRunTimer;
+        m_ptFloorKillsStart = enemiesKilled;
     }
 
     // Let level transition handle itself
     if (m_levelComplete) return;
 
-    // Run timeout: 600s max per run (Level 4+ has 6-8 rifts in huge maps)
-    if (m_playtestRunTimer > 600.0f) {
-        playtestLog("  [%.0fs] AUFGEGEBEN: Run dauert zu lange", m_playtestRunTimer);
-        playtestLog("  GESTORBEN: Timeout (600s)");
+    // Run timeout scales with zone: Z1=300s, Z2=450s, Z3=600s, Z4=750s, Z5=900s
+    float timeoutSec = 300.0f + getZone(m_currentDifficulty) * 150.0f;
+    if (m_playtestRunTimer > timeoutSec) {
+        playtestLog("  [%.0fs] TIMEOUT at Floor %d (%.0fs limit)", m_playtestRunTimer, m_currentDifficulty, timeoutSec);
         playtestOnDeath();
         return;
     }
-
-    // Decrement reaction timer (used only for combat decisions)
-    // Movement runs EVERY FRAME - like a real human holding buttons
 
     // Auto-select relic when choice appears
     if (m_showRelicChoice && !m_relicChoices.empty()) {
         if (m_playtestThinkTimer <= 0) {
             int pick = std::rand() % static_cast<int>(m_relicChoices.size());
-            playtestLog("  [%.0fs] Relic gewaehlt: #%d", m_playtestRunTimer, static_cast<int>(m_relicChoices[pick]));
             selectRelic(pick);
             m_playtestThinkTimer = 0.5f;
         }
@@ -293,11 +401,10 @@ void PlayState::updatePlaytest(float dt) {
             transform.position = spawn;
             phys.velocity = {0, 0};
             m_ptFallCount++;
-            // After 3 falls, try other dimension at spawn
             if (m_ptFallCount % 3 == 0) {
                 inputMut.injectActionPress(Action::DimensionSwitch);
             }
-            return; // Skip rest of frame after rescue
+            return;
         }
     }
 
@@ -322,7 +429,6 @@ void PlayState::updatePlaytest(float dt) {
                 targetRequiredDim = m_level->getRiftRequiredDimension(ri);
             }
         }
-        // All skipped? Clear mask and retry
         if (nearestRiftDist > 99998.0f && m_ptSkipRiftMask != 0) {
             m_ptSkipRiftMask = 0;
             for (int ri = 0; ri < static_cast<int>(rifts.size()); ri++) {
@@ -350,7 +456,7 @@ void PlayState::updatePlaytest(float dt) {
         m_ptDimSwitchCD = 1.0f;
     }
 
-    // Progress tracking: detect when bot isn't getting closer to target
+    // Progress tracking
     if (distToTarget < m_ptBestDistToTarget - 20.0f) {
         m_ptBestDistToTarget = distToTarget;
         m_ptNoProgressTimer = 0;
@@ -358,7 +464,6 @@ void PlayState::updatePlaytest(float dt) {
         m_ptNoProgressTimer += dt;
     }
 
-    // No-progress handling: dim-switch at 5s, teleport at 10s
     float noProgThreshold = m_collapsing ? 4.0f : 7.0f;
     if (m_ptNoProgressTimer > noProgThreshold) {
         m_ptNoProgressTimer = 0;
@@ -367,14 +472,12 @@ void PlayState::updatePlaytest(float dt) {
         auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
 
         if (m_ptNoProgressSkips <= 1) {
-            // First: dim-switch + teleport to spawn
             inputMut.injectActionPress(Action::DimensionSwitch);
             transform.position = m_level->getSpawnPoint();
             phys.velocity = {0, 0};
             m_ptLastCheckPos = m_level->getSpawnPoint();
             return;
         } else {
-            // Second: teleport near target (costs HP as penalty)
             transform.position = {target.x - 16.0f, target.y - 32.0f};
             phys.velocity = {0, 0};
             ptRecoveryGraceTimer = 1.5f;
@@ -388,7 +491,7 @@ void PlayState::updatePlaytest(float dt) {
         }
     }
 
-    // Stuck detection: position barely changed
+    // Stuck detection
     float moved = std::sqrt((playerPos.x - m_ptLastCheckPos.x) * (playerPos.x - m_ptLastCheckPos.x)
                           + (playerPos.y - m_ptLastCheckPos.y) * (playerPos.y - m_ptLastCheckPos.y));
     if (moved < 30.0f) {
@@ -398,7 +501,6 @@ void PlayState::updatePlaytest(float dt) {
         m_ptLastCheckPos = playerPos;
     }
 
-    // Stuck: dim-switch at 3s, reverse at 5s, teleport-spawn at 8s
     if (m_ptStuckTimer > 3.0f && m_ptStuckTimer < 3.0f + dt * 3) {
         inputMut.injectActionPress(Action::DimensionSwitch);
     }
@@ -434,7 +536,6 @@ void PlayState::updatePlaytest(float dt) {
         }
         if (hasFloorAhead) break;
     }
-    // Check floor directly below (am I standing on something?)
     for (int dy = 1; dy <= 2; dy++) {
         if (m_level->inBounds(ptx, pty + dy) &&
             (m_level->isSolid(ptx, pty + dy, dim) || m_level->isOneWay(ptx, pty + dy, dim))) {
@@ -469,7 +570,7 @@ void PlayState::updatePlaytest(float dt) {
         }
     }
 
-    // Horizontal movement toward target (runs every frame for smooth control)
+    // Horizontal movement toward target
     {
         if (dirX > 30.0f) {
             inputMut.injectActionPress(Action::MoveRight);
@@ -524,23 +625,25 @@ void PlayState::updatePlaytest(float dt) {
         }
     }
 
-    // Dash
-    if (phys.onGround && m_player->dashCooldownTimer <= 0 && hasFloorAhead &&
-        (distToTarget > 300.0f || std::rand() % 30 == 0)) {
-        inputMut.injectActionPress(Action::Dash);
+    // Dash — more aggressive: also dash in combat and toward enemies
+    if (m_player->dashCooldownTimer <= 0) {
+        if (phys.onGround && hasFloorAhead && (distToTarget > 300.0f || std::rand() % 20 == 0)) {
+            inputMut.injectActionPress(Action::Dash);
+        }
     }
 
     // Interact with rift when near
     if (nearestRiftDist < 60.0f && !m_activePuzzle && m_nearRiftIndex >= 0 &&
         m_level->isRiftActiveInDimension(m_nearRiftIndex, dim)) {
         inputMut.injectActionPress(Action::Interact);
-        playtestLog("  [%.0fs] Rift %d erreicht", m_playtestRunTimer, m_nearRiftIndex);
     }
 
-    // Combat (uses reaction timer for human-like delay)
+    // === COMBAT (improved: charged attacks, abilities, dash-attacks) ===
     if (m_playtestReactionTimer <= 0) {
         float nearestEnemy = 99999.0f;
         Vec2 enemyDir = {1.0f, 0.0f};
+        bool nearestIsBoss = false;
+        float nearestEnemyHP = 0;
         m_entities.forEach([&](Entity& e) {
             if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>()) return;
@@ -551,39 +654,93 @@ void PlayState::updatePlaytest(float dt) {
             if (d < nearestEnemy) {
                 nearestEnemy = d;
                 enemyDir = (d > 0) ? Vec2{dx2 / d, dy2 / d} : Vec2{1.0f, 0.0f};
+                if (e.hasComponent<AIComponent>()) {
+                    nearestIsBoss = (e.getComponent<AIComponent>().enemyType == EnemyType::Boss);
+                }
+                if (e.hasComponent<HealthComponent>()) {
+                    nearestEnemyHP = e.getComponent<HealthComponent>().currentHP;
+                }
             }
         });
 
         auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
-        if (nearestEnemy < 80.0f) {
+        float hpPct = hp.currentHP / hp.maxHP;
+
+        // Dash-attack: dash through enemies when far enough (dash deals damage)
+        if (nearestEnemy > 80.0f && nearestEnemy < 200.0f && m_player->dashCooldownTimer <= 0
+            && std::rand() % 4 == 0) {
+            // Face enemy then dash
+            if (enemyDir.x > 0) inputMut.injectActionPress(Action::MoveRight);
+            else inputMut.injectActionPress(Action::MoveLeft);
+            inputMut.injectActionPress(Action::Dash);
+            m_playtestReactionTimer = 0.4f;
+        }
+        // Charged attack: hold for bosses or high-HP enemies
+        else if (nearestEnemy < 100.0f && (nearestIsBoss || nearestEnemyHP > 80.0f)
+                 && !m_ptCharging && std::rand() % 6 == 0) {
+            combat.startAttack(AttackType::Charged, enemyDir);
+            m_ptCharging = true;
+            m_ptChargeTimer = 0.4f;
+            m_playtestReactionTimer = 0.5f;
+        }
+        // Normal melee
+        else if (nearestEnemy < 80.0f) {
             combat.startAttack(AttackType::Melee, enemyDir);
-            m_playtestReactionTimer = 0.3f;
-        } else if (nearestEnemy < 250.0f) {
+            m_playtestReactionTimer = 0.25f;
+        }
+        // Ranged attack
+        else if (nearestEnemy < 300.0f) {
             combat.startAttack(AttackType::Ranged, enemyDir);
-            m_playtestReactionTimer = 0.45f;
-        } else {
+            m_playtestReactionTimer = 0.4f;
+        }
+        // No enemy nearby
+        else {
             m_playtestReactionTimer = 0.1f;
+        }
+
+        // Use ability when available and enemies nearby (Zone 1+ has abilities)
+        if (nearestEnemy < 200.0f && m_ptAbilityCD <= 0 &&
+            m_player->getEntity()->hasComponent<AbilityComponent>()) {
+            auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
+            // Use first available ability
+            for (int a = 0; a < 3; a++) {
+                if (abil.abilities[a].isReady()) {
+                    abil.activate(a);
+                    m_ptAbilityCD = 3.0f; // Don't spam abilities
+                    break;
+                }
+            }
+        }
+
+        // Defensive: dimension switch when low HP and enemy close
+        if (hpPct < 0.25f && nearestEnemy < 100.0f && m_ptDimSwitchCD <= 0 && std::rand() % 3 == 0) {
+            inputMut.injectActionPress(Action::DimensionSwitch);
+            m_ptDimSwitchCD = 2.0f;
         }
     }
 
-    // Periodic dimension exploration
-    if (m_ptDimExploreTimer <= 0 && std::rand() % 4 == 0) {
+    // Charge timer decay
+    if (m_ptCharging) {
+        m_ptChargeTimer -= dt;
+        if (m_ptChargeTimer <= 0) m_ptCharging = false;
+    }
+
+    // Periodic dimension exploration (less frequent in late zones)
+    float exploreInterval = 4.0f + getZone(m_currentDifficulty) * 1.0f;
+    if (m_ptDimExploreTimer <= 0 && std::rand() % 5 == 0) {
         inputMut.injectActionPress(Action::DimensionSwitch);
-        m_ptDimExploreTimer = 4.0f + static_cast<float>(std::rand() % 30) * 0.1f;
+        m_ptDimExploreTimer = exploreInterval + static_cast<float>(std::rand() % 30) * 0.1f;
     }
 
     // Log rift completion
     if (m_levelRiftsRepaired > m_ptLastLoggedRifts) {
-        playtestLog("  [%.0fs] Rift repariert (%d/%d)", m_playtestRunTimer,
-                m_levelRiftsRepaired, static_cast<int>(rifts.size()));
         m_ptLastLoggedRifts = m_levelRiftsRepaired;
     }
 
-    // (Level completion is logged above when level number changes)
-
-    // Successful run completion (level 5+) — treat as run end, start next run
-    if (m_currentDifficulty > 5 && m_playtestRunActive) {
-        playtestLog("  [%.0fs] === RUN ERFOLGREICH! Level %d erreicht ===", m_playtestRunTimer, m_currentDifficulty);
+    // Successful run completion — reaching zone 5 floor 1 (floor 25+)
+    if (m_currentDifficulty > 24 && m_playtestRunActive) {
+        playtestLog("  [%.0fs] === RUN SUCCESS! Reached Floor %d (Zone 5) ===",
+            m_playtestRunTimer, m_currentDifficulty);
         playtestEndRun(true);
     }
 }

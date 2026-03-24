@@ -392,6 +392,27 @@ private:
     float m_ptBestDistToTarget = 99999.0f;
     int m_ptNoProgressSkips = 0;
     int m_ptSkipRiftMask = 0;
+    // Per-floor balance tracking
+    struct FloorStats {
+        float damageTaken = 0;
+        float damageDealt = 0;    // Estimated from kills
+        int enemiesKilled = 0;
+        float timeSpent = 0;
+        float hpAtStart = 0;
+        float hpAtEnd = 0;
+        float entropyAtEnd = 0;
+        int deathsOnFloor = 0;    // Across all runs
+        bool bossFloor = false;
+    };
+    static constexpr int kMaxTrackedFloors = 30;
+    FloorStats m_ptFloorStats[kMaxTrackedFloors] = {};
+    int m_ptFloorDeathCount[kMaxTrackedFloors] = {};  // Global across runs
+    float m_ptFloorDmgTaken = 0;   // Damage taken on current floor (this run)
+    float m_ptFloorTimeStart = 0;  // Timer at floor start
+    int m_ptFloorKillsStart = 0;   // Kills at floor start
+    float m_ptAbilityCD = 0;       // Ability usage cooldown
+    float m_ptChargeTimer = 0;     // Charged attack hold timer
+    bool m_ptCharging = false;     // Currently charging an attack
 
     // Event chains (multi-level quest lines)
     EventChain m_eventChain;
