@@ -104,6 +104,14 @@ int scoreRelic(RelicID id, PlayerClass cls, const std::vector<ActiveRelic>& owne
     return score;
 }
 
+// Human reaction time: base + variance + fatigue, never frame-perfect
+inline float humanReaction(float base, float multiplier, float fatigue) {
+    // Gaussian-like variance: ±30% of base
+    float variance = base * 0.3f * (static_cast<float>(std::rand() % 100 - 50) * 0.01f);
+    float reaction = (base + variance + fatigue) * multiplier;
+    return std::max(0.05f, reaction); // Never below 50ms
+}
+
 } // namespace
 
 // ============================================================================
@@ -167,6 +175,15 @@ void PlayState::playtestStartRun() {
     m_ptComboAttackTimer = 0;
     m_ptWavePrepTimer = 0;
     m_ptDefensiveFloor = false;
+    // Human input variance: each run has slightly different base reaction time
+    m_ptHumanReactionBase = 0.18f + static_cast<float>(std::rand() % 10) * 0.01f; // 0.18-0.27s
+    m_ptHumanHesitation = 0;
+    m_ptHumanDimDisorient = 0;
+    m_ptHumanIdleTimer = 3.0f + static_cast<float>(std::rand() % 50) * 0.1f; // First idle in 3-8s
+    m_ptHumanAimJitter = 0;
+    m_ptHumanLastMoveDir = 0;
+    m_ptHumanDirChangeDelay = 0;
+    m_ptHumanFatigue = 0;
 
     playtestLog("  Class: %s | HP: %.0f | Speed: %.0f | Zone: %s",
         classNames[classIdx], hp.maxHP, m_player->moveSpeed, kZoneNames[0]);
@@ -493,6 +510,49 @@ void PlayState::updatePlaytest(float dt) {
     static float ptRecoveryGraceTimer = 0;
     if (ptRecoveryGraceTimer > 0) ptRecoveryGraceTimer -= dt;
 
+    // ========================================================================
+    // HUMAN INPUT SIMULATION
+    // ========================================================================
+
+    // Fatigue: reactions slow down over time (0.5% per minute)
+    m_ptHumanFatigue = std::min(m_playtestRunTimer * 0.00008f, 0.12f); // Max +120ms at 25 min
+
+    // Hesitation: brief freeze after taking a big hit (simulates "oh shit" moment)
+    if (m_ptHumanHesitation > 0) {
+        m_ptHumanHesitation -= dt;
+        // During hesitation: no inputs at all (human freezes briefly)
+        if (m_ptHumanHesitation > 0) return; // Skip entire frame — frozen in shock
+    }
+    if (hpDiff < -hp.maxHP * 0.2f) {
+        // Big hit! Human hesitates 0.15-0.35s
+        m_ptHumanHesitation = 0.15f + static_cast<float>(std::rand() % 20) * 0.01f;
+    }
+
+    // Disorientation after dimension switch (0.1-0.2s of impaired movement)
+    if (m_ptHumanDimDisorient > 0) {
+        m_ptHumanDimDisorient -= dt;
+        // During disorientation: movement is sluggish (50% chance to not press move)
+        if (m_ptHumanDimDisorient > 0 && std::rand() % 2 == 0) {
+            // Skip movement input this frame (disoriented)
+        }
+    }
+
+    // Occasional idle: human takes a breath, assesses situation (0.3-0.6s every 8-15s)
+    m_ptHumanIdleTimer -= dt;
+    if (m_ptHumanIdleTimer <= 0) {
+        m_ptHumanIdleTimer = 8.0f + static_cast<float>(std::rand() % 70) * 0.1f;
+        // Brief pause — no combat or movement for a moment
+        m_playtestReactionTimer = 0.3f + static_cast<float>(std::rand() % 30) * 0.01f;
+    }
+
+    // Direction change smoothing: don't instantly reverse
+    m_ptHumanDirChangeDelay -= dt;
+
+    // Aim jitter: recalculate every 0.3s
+    if (std::rand() % 18 == 0) {
+        m_ptHumanAimJitter = (static_cast<float>(std::rand() % 20) - 10.0f) * 0.02f; // ±0.2 radians
+    }
+
     // --- WAVE PREPARATION: position defensively before wave spawns ---
     if (m_waveTimer > 0 && m_waveTimer < 1.5f && m_currentWave < (int)m_spawnWaves.size()) {
         if (phys.onGround || phys.canCoyoteJump())
@@ -517,6 +577,13 @@ void PlayState::updatePlaytest(float dt) {
             return;
         }
     }
+
+    // Detect actual dimension switch (for disorientation)
+    static int ptLastDim = 0;
+    if (dim != ptLastDim && ptLastDim != 0) {
+        m_ptHumanDimDisorient = 0.1f + static_cast<float>(std::rand() % 10) * 0.01f; // 0.1-0.2s
+    }
+    ptLastDim = dim;
 
     // Preliminary move direction (toward exit, refined later with actual target)
     int moveDir = (m_level->getExitPoint().x >= playerPos.x) ? 1 : -1;
@@ -768,12 +835,38 @@ void PlayState::updatePlaytest(float dt) {
         if (otherBetter) { inputMut.injectActionPress(Action::DimensionSwitch); m_ptDimSwitchCD = 1.0f; }
     }
 
-    // Horizontal movement
-    if (dirX > 30.0f) inputMut.injectActionPress(Action::MoveRight);
-    else if (dirX < -30.0f) inputMut.injectActionPress(Action::MoveLeft);
-    else if (std::abs(dirY) > 200.0f) {
-        if ((int)(m_playtestRunTimer * 2) % 8 < 4) inputMut.injectActionPress(Action::MoveRight);
-        else inputMut.injectActionPress(Action::MoveLeft);
+    // Horizontal movement with human-like direction change delay
+    {
+        int wantDir = 0;
+        if (dirX > 30.0f) wantDir = 1;
+        else if (dirX < -30.0f) wantDir = -1;
+        else if (std::abs(dirY) > 200.0f)
+            wantDir = ((int)(m_playtestRunTimer * 2) % 8 < 4) ? 1 : -1;
+
+        // Direction change smoothing: 80ms delay when reversing (human momentum)
+        if (wantDir != 0 && wantDir != m_ptHumanLastMoveDir && m_ptHumanDirChangeDelay > 0) {
+            // Still moving in old direction briefly (human can't instantly reverse)
+            if (m_ptHumanLastMoveDir > 0) inputMut.injectActionPress(Action::MoveRight);
+            else if (m_ptHumanLastMoveDir < 0) inputMut.injectActionPress(Action::MoveLeft);
+        } else {
+            if (wantDir > 0) inputMut.injectActionPress(Action::MoveRight);
+            else if (wantDir < 0) inputMut.injectActionPress(Action::MoveLeft);
+            if (wantDir != m_ptHumanLastMoveDir) {
+                m_ptHumanDirChangeDelay = 0.06f + static_cast<float>(std::rand() % 4) * 0.01f;
+                m_ptHumanLastMoveDir = wantDir;
+            }
+        }
+    }
+
+    // Human input error: occasional wrong button press (2% chance, 5% at low HP = panic)
+    float errorChance = (hpPct < 0.2f) ? 0.05f : 0.02f;
+    if (static_cast<float>(std::rand() % 1000) * 0.001f < errorChance) {
+        // Panic press: random action
+        int randomAction = std::rand() % 4;
+        if (randomAction == 0) inputMut.injectActionPress(Action::Jump);
+        else if (randomAction == 1) inputMut.injectActionPress(Action::Dash);
+        else if (randomAction == 2) inputMut.injectActionPress(Action::MoveLeft);
+        else inputMut.injectActionPress(Action::MoveRight);
     }
 
     // Jump logic with variable height: hold jump for tall jumps, tap for short hops
@@ -882,7 +975,7 @@ void PlayState::updatePlaytest(float dt) {
         if (m_playtestReactionTimer <= 0 && combat.canAttack() && preScanNearestDist < 300.0f) {
             Vec2 rd = {retreatDirX > 0 ? -1.0f : 1.0f, 0};
             combat.startAttack(AttackType::Ranged, rd);
-            m_playtestReactionTimer = prof.reactionDelay * 1.5f;
+            m_playtestReactionTimer = humanReaction(m_ptHumanReactionBase, 1.5f, m_ptHumanFatigue);
         }
         goto ptPostCombat; // Skip normal combat while retreating
     }
@@ -910,7 +1003,14 @@ void PlayState::updatePlaytest(float dt) {
             if (d < 350.0f) enemiesInRangedRange++;
             if (d < nearestEnemy) {
                 nearestEnemy = d;
-                enemyDir = (d > 0) ? Vec2{dx2 / d, dy2 / d} : Vec2{1.0f, 0.0f};
+                // Human aim: slightly off-target (jitter)
+                float jx = dx2, jy = dy2;
+                if (d > 0) {
+                    float angle = std::atan2(jy, jx) + m_ptHumanAimJitter;
+                    jx = std::cos(angle) * d;
+                    jy = std::sin(angle) * d;
+                }
+                enemyDir = (d > 0) ? Vec2{jx / d, jy / d} : Vec2{1.0f, 0.0f};
                 if (e.hasComponent<AIComponent>()) {
                     auto& ai = e.getComponent<AIComponent>();
                     nearestIsBoss = (ai.enemyType == EnemyType::Boss);
@@ -1032,7 +1132,7 @@ void PlayState::updatePlaytest(float dt) {
             && std::rand() % prof.dashAttackChance == 0) {
             inputMut.injectActionPress(enemyDir.x > 0 ? Action::MoveRight : Action::MoveLeft);
             inputMut.injectActionPress(Action::Dash);
-            m_playtestReactionTimer = prof.reactionDelay * 1.5f;
+            m_playtestReactionTimer = humanReaction(m_ptHumanReactionBase, 1.5f, m_ptHumanFatigue);
             goto ptPostCombat;
         }
 
@@ -1049,7 +1149,7 @@ void PlayState::updatePlaytest(float dt) {
         // --- AERIAL ATTACK: melee/ranged while airborne ---
         if (!phys.onGround && nearestEnemy < effectiveMeleeRange * 1.5f && combat.canAttack()) {
             combat.startAttack(AttackType::Melee, enemyDir);
-            m_playtestReactionTimer = prof.reactionDelay;
+            m_playtestReactionTimer = humanReaction(m_ptHumanReactionBase, 1.0f, m_ptHumanFatigue);
             goto ptPostCombat;
         }
 
@@ -1064,14 +1164,14 @@ void PlayState::updatePlaytest(float dt) {
             } else {
                 combat.startAttack(AttackType::Melee, enemyDir);
                 m_ptComboAttackTimer = 0.15f; // Brief pause between combo hits (human-like)
-                m_playtestReactionTimer = prof.reactionDelay * 0.8f; // Faster in combo
+                m_playtestReactionTimer = humanReaction(m_ptHumanReactionBase, 0.8f, m_ptHumanFatigue);
             }
         }
         // --- RANGED: prefer when multiple enemies or not melee-preferred ---
         else if (nearestEnemy < prof.rangedRange && combat.canAttack()
                  && (!prof.prefersMelee || enemiesInMeleeRange == 0 || enemiesInRangedRange >= 3)) {
             combat.startAttack(AttackType::Ranged, enemyDir);
-            m_playtestReactionTimer = prof.reactionDelay * 1.5f;
+            m_playtestReactionTimer = humanReaction(m_ptHumanReactionBase, 1.5f, m_ptHumanFatigue);
         }
         // --- SPEEDRUN: skip distant enemies ---
         else if (g_playtestProfile == 3 && nearestEnemy > 200.0f) {
@@ -1093,7 +1193,7 @@ void PlayState::updatePlaytest(float dt) {
             && nearestEnemy < 150.0f && combat.canAttack()) {
             // Rift Charge gives +30% DMG — go aggressive
             combat.startAttack(AttackType::Melee, enemyDir);
-            m_playtestReactionTimer = prof.reactionDelay * 0.7f; // Faster attacks
+            m_playtestReactionTimer = humanReaction(m_ptHumanReactionBase, 0.7f, m_ptHumanFatigue);
         }
 
         // --- BERSERKER: maintain kill momentum (dash to next enemy) ---

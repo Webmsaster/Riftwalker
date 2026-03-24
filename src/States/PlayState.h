@@ -422,6 +422,15 @@ private:
     bool m_ptDefensiveFloor = false; // Activated on floors where bot died before
     // Shop upgrade tracking
     void playtestBuyUpgrades();    // Buy best upgrades between levels
+    // Human input simulation
+    float m_ptHumanReactionBase = 0.22f;  // Base reaction time (varies per "session")
+    float m_ptHumanHesitation = 0;        // Brief freeze after taking damage
+    float m_ptHumanDimDisorient = 0;      // Disorientation after dim-switch
+    float m_ptHumanIdleTimer = 0;         // Occasional "thinking" pause
+    float m_ptHumanAimJitter = 0;         // Aim offset for current attack
+    int m_ptHumanLastMoveDir = 0;         // Smoothing: don't instantly reverse
+    float m_ptHumanDirChangeDelay = 0;    // Delay before allowing direction change
+    float m_ptHumanFatigue = 0;           // Builds over time, slows reactions
 
     // Event chains (multi-level quest lines)
     EventChain m_eventChain;
