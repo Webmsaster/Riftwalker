@@ -563,7 +563,9 @@ void PlayState::update(float dt) {
             bossShardMult *= m_achievementShardMult;
             if (m_player->getEntity()->hasComponent<RelicComponent>())
                 bossShardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
-            int bossShards = static_cast<int>((50 + m_currentDifficulty * 20) * bossShardMult);
+            // Boss shards scale with zone: zone bosses give more than mid-bosses
+            int baseShards = isBossFloor(m_currentDifficulty) ? 80 : 50;
+            int bossShards = static_cast<int>((baseShards + getZone(m_currentDifficulty) * 30) * bossShardMult);
             shardsCollected += bossShards;
             game->getUpgradeSystem().addRiftShards(bossShards);
             AudioManager::instance().play(SFX::LevelComplete);
@@ -581,15 +583,15 @@ void PlayState::update(float dt) {
                 auto* lore = game->getLoreSystem();
                 if (lore) {
                     int bossTypeForLore = bossIdx % 4;
-                    if (m_currentDifficulty >= 11 && bossIdx >= 5) {
-                        // Entropy Incarnate killed
-                        Bestiary::onBossKill(5);
-                        Bestiary::save("bestiary_save.dat");
-                        AudioManager::instance().play(SFX::LoreDiscover);
-                    } else if (m_currentDifficulty >= 10 && bossIdx >= 4) {
-                        // Void Sovereign killed
+                    if (m_currentDifficulty >= 30) {
+                        // Void Sovereign killed (final boss at floor 30)
                         lore->discover(LoreID::SovereignTruth);
                         Bestiary::onBossKill(4);
+                        Bestiary::save("bestiary_save.dat");
+                        AudioManager::instance().play(SFX::LoreDiscover);
+                    } else if (getZone(m_currentDifficulty) >= 3 && isBossFloor(m_currentDifficulty)) {
+                        // Entropy Incarnate killed (zone 4 boss at floor 24)
+                        Bestiary::onBossKill(5);
                         Bestiary::save("bestiary_save.dat");
                         AudioManager::instance().play(SFX::LoreDiscover);
                     } else {
@@ -603,7 +605,7 @@ void PlayState::update(float dt) {
                 }
             }
 
-            bool finalBossDefeated = (m_currentDifficulty >= 10 && bossIdx >= 4);
+            bool finalBossDefeated = (m_currentDifficulty >= 30);
 
             // Track Void Sovereign defeat for ending sequence
             if (finalBossDefeated) {
@@ -732,9 +734,11 @@ void PlayState::update(float dt) {
             m_currentDifficulty++;
             m_runSeed += 100;
 
-            // Pick new theme pair every 3 levels
-            if (m_currentDifficulty % 3 == 0) {
-                auto themes = WorldTheme::getRandomPair(m_runSeed);
+            // Pick new theme pair when entering a new zone or every 3 floors within a zone
+            int prevZone = getZone(m_currentDifficulty - 1);
+            int newZone = getZone(m_currentDifficulty);
+            if (newZone != prevZone || getFloorInZone(m_currentDifficulty) % 3 == 1) {
+                auto themes = WorldTheme::getZonePair(newZone, m_runSeed);
                 m_themeA = themes.first;
                 m_themeB = themes.second;
                 m_dimManager.setDimColors(m_themeA.colors.background, m_themeB.colors.background);

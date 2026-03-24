@@ -92,9 +92,10 @@ void PlayState::checkRiftInteraction() {
 
         // Puzzle type progression: early = Timing (easiest), mid = Sequence, late = Alignment/Pattern
         int puzzleType;
-        if (m_currentDifficulty <= 1) {
-            puzzleType = 0; // Always Timing for first levels
-        } else if (m_currentDifficulty <= 3) {
+        int pzZone = getZone(m_currentDifficulty);
+        if (pzZone == 0 && getFloorInZone(m_currentDifficulty) <= 2) {
+            puzzleType = 0; // Always Timing for earliest levels
+        } else if (pzZone == 0) {
             puzzleType = (riftsRepaired % 2 == 0) ? 0 : 1; // Mix Timing and Sequence
         } else {
             int roll = std::rand() % 100;
@@ -473,21 +474,24 @@ void PlayState::updateSpawnWaves(float dt) {
     m_waveTimer -= dt;
     if (aliveEnemies <= 1 || m_waveTimer <= 0) {
         // Spawn next wave
-        int waveEliteChance = (m_ngPlusTier >= 2) ? 30 : 15; // NG+2: doubled elite rate
+        // Zone-based elite chance in wave spawns
+        auto waveZoneScale = getZoneScaling(m_currentDifficulty);
+        int waveEliteChance = static_cast<int>(waveZoneScale.eliteChance);
+        if (m_ngPlusTier >= 2) waveEliteChance = std::min(waveEliteChance + 15, 60);
         for (auto& sp : m_spawnWaves[m_currentWave]) {
             auto& e = Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
             // Theme-specific variant
             applyThemeVariant(e, sp.dimension);
             // NG+ scaling on wave enemies
             applyNGPlusModifiers(e);
-            if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+            if (getZone(m_currentDifficulty) >= 1 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
                 && e.getComponent<AIComponent>().element == EnemyElement::None
                 && std::rand() % 4 == 0) {
                 EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
                 Enemy::applyElement(e, el);
             }
-            // Elite modifier in wave spawns (NG+2 doubles rate)
-            if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+            // Zone-based elite modifier in wave spawns
+            if (getZone(m_currentDifficulty) >= 1 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
                 && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < waveEliteChance) {
                 EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 9);
                 Enemy::makeElite(e, mod);

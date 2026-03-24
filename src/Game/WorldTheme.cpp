@@ -121,3 +121,29 @@ std::pair<WorldTheme, WorldTheme> WorldTheme::getRandomPair(int seed) {
     do { b = dist(rng); } while (b == a);
     return {themes[a], themes[b]};
 }
+
+std::pair<WorldTheme, WorldTheme> WorldTheme::getZonePair(int zone, int seed) {
+    // Each zone draws from a themed subset of the 12 themes.
+    // Zone 0: gentle/atmospheric themes
+    // Zone 1: elemental themes
+    // Zone 2: alien/mechanical themes
+    // Zone 3: hostile/extreme themes
+    // Zone 4: void/endgame themes
+    static const ThemeID zoneThemes[5][4] = {
+        {ThemeID::AncientRuins,     ThemeID::FloatingIslands, ThemeID::VictorianClockwork, ThemeID::CrystalCavern},
+        {ThemeID::FrozenWasteland,  ThemeID::VolcanicCore,    ThemeID::DeepOcean,          ThemeID::SpaceWestern},
+        {ThemeID::NeonCity,         ThemeID::BioMechanical,   ThemeID::CrystalCavern,      ThemeID::Biopunk},
+        {ThemeID::VolcanicCore,     ThemeID::VoidRealm,       ThemeID::BioMechanical,      ThemeID::DeepOcean},
+        {ThemeID::VoidRealm,        ThemeID::Biopunk,         ThemeID::NeonCity,            ThemeID::VoidRealm},
+    };
+
+    int z = std::clamp(zone, 0, 4);
+    std::mt19937 rng(seed);
+    std::uniform_int_distribution<int> dist(0, 3);
+
+    int a = dist(rng);
+    int b;
+    do { b = dist(rng); } while (b == a);
+
+    return {getTheme(zoneThemes[z][a]), getTheme(zoneThemes[z][b])};
+}

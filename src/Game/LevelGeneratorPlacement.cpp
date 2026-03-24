@@ -453,8 +453,9 @@ void LevelGenerator::placeDimPuzzles(Level& level, const std::vector<LGRoom>& ro
                                      std::vector<LevelGraphSwitch>* outSwitches) {
     if (rooms.size() < 3) return;
 
-    // Place 1-3 switch-gate pairs depending on difficulty
-    int puzzleCount = std::min(1 + difficulty / 2, 3);
+    // Zone-based puzzle count: Zone 0=1-2, Zone 1-2=2-3, Zone 3-4=3-4
+    int pZone = std::clamp((difficulty - 1) / 6, 0, 4);
+    int puzzleCount = std::min(1 + pZone + (((difficulty - 1) % 6) >= 3 ? 1 : 0), 4);
     int pairId = 0;
 
     for (int p = 0; p < puzzleCount && p < static_cast<int>(rooms.size()) - 1; p++) {
@@ -548,8 +549,9 @@ void LevelGenerator::placeDimPuzzles(Level& level, const std::vector<LGRoom>& ro
 void LevelGenerator::placeRandomEvents(Level& level, const std::vector<LGRoom>& rooms, int difficulty) {
     if (rooms.size() < 3) return;
 
-    // Place 2-4 events per level
-    int eventCount = 2 + (difficulty >= 3 ? 1 : 0) + (difficulty >= 5 ? 1 : 0);
+    // Zone-based event count: 2-5 per level
+    int eZone = std::clamp((difficulty - 1) / 6, 0, 4);
+    int eventCount = 2 + (eZone >= 1 ? 1 : 0) + (eZone >= 3 ? 1 : 0) + (eZone >= 4 ? 1 : 0);
 
     RandomEventType eventTypes[] = {
         RandomEventType::Merchant,
@@ -632,9 +634,11 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
                                       int w, int h, int dim, int difficulty,
                                       const WorldTheme& theme) {
     float density = theme.enemyDensity;
-    // Scale by room area so early floors do not round down to zero enemies.
-    int count = static_cast<int>((density * static_cast<float>(w * h)) / 32.0f) + difficulty / 3;
-    if (difficulty <= 2 && w >= 10 && h >= 6) {
+    // Zone-based density scaling: more enemies in later zones
+    int zone = std::clamp((difficulty - 1) / 6, 0, 4);
+    float zoneDensityMult = 1.0f + zone * 0.15f; // +15% per zone
+    int count = static_cast<int>((density * zoneDensityMult * static_cast<float>(w * h)) / 32.0f) + zone;
+    if (zone == 0 && w >= 10 && h >= 6) {
         count = std::max(count, 1);
     }
 
@@ -655,11 +659,14 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
             type = m_rng() % 13; // 0-12: all non-boss enemy types
         }
 
-        // Difficulty caps still apply
-        if (difficulty < 2) type = std::min(type, 2);       // Easy: Walker, Flyer, Turret
-        else if (difficulty < 3) type = std::min(type, 4);  // Medium: +Charger, Phaser
-        else if (difficulty < 5) type = std::min(type, 9);  // Hard: +Exploder, Shielder, Crawler, Summoner, Sniper
-        // Very Hard (5+): all types including Teleporter, Reflector, Leech
+        // Zone-based enemy type gating (gradual unlock over 30 floors)
+        int zone = std::clamp((difficulty - 1) / 6, 0, 4);
+        int fiz = ((difficulty - 1) % 6) + 1;
+        if (zone == 0 && fiz <= 2) type = std::min(type, 2);       // Zone1 F1-2: Walker, Flyer, Turret
+        else if (zone == 0 && fiz <= 4) type = std::min(type, 4);  // Zone1 F3-4: +Charger, Phaser
+        else if (zone == 0) type = std::min(type, 6);              // Zone1 F5-6: +Exploder, Shielder
+        else if (zone == 1 && fiz <= 3) type = std::min(type, 9);  // Zone2 F1-3: +Crawler, Summoner, Sniper
+        // Zone2 F4+ and Zone3+: all types including Teleporter, Reflector, Leech
 
         // Crawler should spawn near ceiling for best effect
         if (type == 7) { // Crawler
@@ -669,10 +676,10 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
         // Ground-based enemies need solid tile below (skip for Flyer=1 and Crawler=7)
         if (type != 1 && type != 7 && !level.isSolid(ex, ey + 1, dim)) continue;
 
-        // At difficulty 3+, 30% of enemies are dimension-exclusive (only in one dim),
-        // forcing tactical dimension switching. Others use dim 0 (both dimensions).
+        // Zone-based dimension-exclusive chance: ramps from 0% to 50%
         int spawnDim = 0; // default: visible in both
-        if (difficulty >= 3 && (m_rng() % 100) < 30) {
+        int dimExclusiveChance = zone * 12 + (((difficulty - 1) % 6) * 2);
+        if (zone >= 1 && static_cast<int>(m_rng() % 100) < dimExclusiveChance) {
             spawnDim = (m_rng() % 2 == 0) ? 1 : 2;
         }
 
@@ -686,8 +693,9 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
 void LevelGenerator::placeNPCs(Level& level, const std::vector<LGRoom>& rooms, int difficulty) {
     if (rooms.size() < 4) return;
 
-    // 1-2 NPCs per level
-    int npcCount = 1 + (difficulty >= 3 ? 1 : 0);
+    // Zone-based NPC count: 1-3 per level
+    int nZone = std::clamp((difficulty - 1) / 6, 0, 4);
+    int npcCount = 1 + (nZone >= 1 ? 1 : 0) + (nZone >= 3 ? 1 : 0);
 
     NPCType npcTypes[] = {
         NPCType::RiftScholar,

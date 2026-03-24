@@ -59,4 +59,5 @@ struct WorldTheme {
     static const std::vector<WorldTheme>& getAllThemesRef();
     static WorldTheme getTheme(ThemeID id);
     static std::pair<WorldTheme, WorldTheme> getRandomPair(int seed);
+    static std::pair<WorldTheme, WorldTheme> getZonePair(int zone, int seed);
 };

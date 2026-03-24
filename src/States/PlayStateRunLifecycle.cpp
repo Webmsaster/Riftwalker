@@ -149,8 +149,8 @@ void PlayState::startNewRun() {
     // Reset run buffs
     game->getRunBuffSystem().reset();
 
-    // Random theme pair
-    auto themes = WorldTheme::getRandomPair(m_runSeed);
+    // Zone-based theme pair: Zone 0 themes for first run
+    auto themes = WorldTheme::getZonePair(0, m_runSeed);
     m_themeA = themes.first;
     m_themeB = themes.second;
     m_dimATestBackground = nullptr;
@@ -269,8 +269,8 @@ void PlayState::generateLevel() {
 
     spawnEnemies();
 
-    // Boss every 3 levels
-    m_isBossLevel = (m_currentDifficulty % 3 == 0);
+    // Boss every 6 floors (zone boss) or every 3rd floor in zone (mid-boss)
+    m_isBossLevel = isBossFloor(m_currentDifficulty) || isMidBossFloor(m_currentDifficulty);
     m_bossDefeated = false;
     if (m_isBossLevel) {
         spawnBoss();
@@ -339,7 +339,11 @@ void PlayState::spawnEnemies() {
     m_waveClearTriggered = false;
     m_waveClearTimer = 0;
 
-    int waveSize = 3 + (m_currentDifficulty > 3 ? 2 : m_currentDifficulty > 1 ? 1 : 0);
+    // Zone-based wave sizing: Zone 0=3-4, Zone 1=4-5, Zone 2=5-6, Zone 3=6-7, Zone 4=7-8
+    int waveZone = getZone(m_currentDifficulty);
+    int waveFloorInZone = getFloorInZone(m_currentDifficulty);
+    int waveSize = 3 + waveZone + (waveFloorInZone > 3 ? 1 : 0);
+    if (isBreatherFloor(m_currentDifficulty)) waveSize = std::max(waveSize - 1, 3);
     std::vector<Level::SpawnPoint> wave;
     for (auto& sp : spawns) {
         wave.push_back(sp);
@@ -351,13 +355,15 @@ void PlayState::spawnEnemies() {
     if (!wave.empty()) m_spawnWaves.push_back(wave);
 
     // Spawn first wave immediately
-    // Mini-boss: one per level at difficulty 2+, 15% chance (not on boss levels)
+    // Mini-boss: zone-scaled chance (not on boss levels)
     bool miniBossSpawned = false;
 
-    // NG+2: double elite spawn rate (base 15% -> 30%)
-    int eliteChance = (m_ngPlusTier >= 2) ? 30 : 15;
-    // NG+4: mini-bosses in every level (100% chance, not just 15%)
-    int miniBossChance = (m_ngPlusTier >= 4) ? 100 : 15;
+    // Zone-based elite and mini-boss chances, boosted by NG+ tier
+    auto zoneScale = getZoneScaling(m_currentDifficulty);
+    int eliteChance = static_cast<int>(zoneScale.eliteChance);
+    int miniBossChance = static_cast<int>(zoneScale.miniBossChance);
+    if (m_ngPlusTier >= 2) eliteChance = std::min(eliteChance + 15, 60);
+    if (m_ngPlusTier >= 4) miniBossChance = 100;
 
     if (!m_spawnWaves.empty()) {
         for (auto& sp : m_spawnWaves[0]) {
@@ -368,21 +374,21 @@ void PlayState::spawnEnemies() {
             applyThemeVariant(e, sp.dimension);
             // NG+ HP/DMG scaling applied after theme variant
             applyNGPlusModifiers(e);
-            // Elemental variant chance: 25% at difficulty 3+, only if theme didn't set element
-            if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+            // Elemental variant chance: 25% from Zone 1+, only if theme didn't set element
+            if (getZone(m_currentDifficulty) >= 1 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
                 && e.getComponent<AIComponent>().element == EnemyElement::None
                 && std::rand() % 4 == 0) {
                 EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
                 Enemy::applyElement(e, el);
             }
-            // Elite modifier: chance increases in NG+2
-            if (m_currentDifficulty >= 3 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
+            // Zone-based elite modifier
+            if (getZone(m_currentDifficulty) >= 1 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
                 && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < eliteChance) {
                 EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 9);
                 Enemy::makeElite(e, mod);
             }
-            // Mini-boss: NG+4 spawns one in every level
-            if (!miniBossSpawned && !m_isBossLevel && m_currentDifficulty >= 2
+            // Zone-based mini-boss chance (not on boss floors)
+            if (!miniBossSpawned && !m_isBossLevel
                 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
                 && std::rand() % 100 < miniBossChance) {
                 Enemy::makeMiniBoss(e);
@@ -433,15 +439,15 @@ void PlayState::applyThemeVariant(Entity& e, int dimension) {
         }
     }
 
-    // Difficulty scaling: +8% HP, +5% DMG per level above 2
-    if (m_currentDifficulty > 2) {
-        float levelsAbove = static_cast<float>(m_currentDifficulty - 2);
-        float hpScale = 1.0f + levelsAbove * 0.08f;
-        float dmgScale = 1.0f + levelsAbove * 0.05f;
-        hp.maxHP *= hpScale;
+    // Zone-based difficulty scaling (logarithmic growth)
+    {
+        auto scaling = getZoneScaling(m_currentDifficulty);
+        hp.maxHP *= scaling.hpMult;
         hp.currentHP = hp.maxHP;
-        combat.meleeAttack.damage *= dmgScale;
-        combat.rangedAttack.damage *= dmgScale;
+        combat.meleeAttack.damage *= scaling.dmgMult;
+        combat.rangedAttack.damage *= scaling.dmgMult;
+        ai.chaseSpeed *= scaling.speedMult;
+        ai.patrolSpeed *= scaling.speedMult;
     }
 
     // Tint enemy sprite toward theme accent color for visual cohesion
@@ -564,31 +570,53 @@ void PlayState::spawnBoss() {
     int bossDiff = m_currentDifficulty;
     if (g_selectedDifficulty == GameDifficulty::Hard) bossDiff += 1;
 
-    // Boss selection based on difficulty
-    int bossIndex = m_currentDifficulty / 3; // 0-based boss encounter index
-    if (m_currentDifficulty >= 11 && bossIndex >= 5) {
-        // Entropy Incarnate at difficulty 11+ (after Void Sovereign rotation)
-        Enemy::createEntropyIncarnate(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-        m_screenEffects.triggerBossIntro("ENTROPY INCARNATE");
-    } else if (m_currentDifficulty >= 10 && bossIndex >= 4) {
-        // Spawn Void Sovereign as final boss at difficulty 10+
+    // Zone-based boss selection:
+    // Mid-boss floors (3, 9, 15, 21, 27): lighter boss from rotation
+    // Zone boss floors (6, 12, 18, 24, 30): full boss
+    int zone = getZone(m_currentDifficulty);
+    bool isMidBoss = isMidBossFloor(m_currentDifficulty);
+
+    if (m_currentDifficulty >= 30) {
+        // Floor 30: final confrontation — Void Sovereign
         Enemy::createVoidSovereign(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
         m_screenEffects.triggerBossIntro("VOID SOVEREIGN");
-    } else {
-        // Rotate 4 boss types: Guardian -> Wyrm -> Architect -> Temporal Weaver
-        int bossType = (bossIndex - 1) % 4;
-        if (bossType == 3) {
-            Enemy::createTemporalWeaver(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-            m_screenEffects.triggerBossIntro("TEMPORAL WEAVER");
-        } else if (bossType == 2) {
-            Enemy::createDimensionalArchitect(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-            m_screenEffects.triggerBossIntro("DIMENSIONAL ARCHITECT");
-        } else if (bossType == 1) {
+    } else if (zone == 4 && isMidBoss) {
+        // Floor 27 mid-boss: Entropy Incarnate as penultimate challenge
+        Enemy::createEntropyIncarnate(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+        m_screenEffects.triggerBossIntro("ENTROPY INCARNATE");
+    } else if (isMidBoss) {
+        // Mid-boss floors: rotate lighter bosses (Guardian, Wyrm) scaled to zone
+        int midBossType = zone % 2;
+        if (midBossType == 1) {
             Enemy::createVoidWyrm(m_entities, {spawnPos.x, spawnPos.y - 40.0f}, dim, bossDiff);
             m_screenEffects.triggerBossIntro("VOID WYRM");
         } else {
             Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
             m_screenEffects.triggerBossIntro("RIFT GUARDIAN");
+        }
+    } else {
+        // Zone boss floors (6, 12, 18, 24): each zone has a signature boss
+        switch (zone) {
+            case 0: // Zone 1 boss (Floor 6): Rift Guardian
+                Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
+                m_screenEffects.triggerBossIntro("RIFT GUARDIAN");
+                break;
+            case 1: // Zone 2 boss (Floor 12): Dimensional Architect
+                Enemy::createDimensionalArchitect(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+                m_screenEffects.triggerBossIntro("DIMENSIONAL ARCHITECT");
+                break;
+            case 2: // Zone 3 boss (Floor 18): Temporal Weaver
+                Enemy::createTemporalWeaver(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+                m_screenEffects.triggerBossIntro("TEMPORAL WEAVER");
+                break;
+            case 3: // Zone 4 boss (Floor 24): Entropy Incarnate
+                Enemy::createEntropyIncarnate(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+                m_screenEffects.triggerBossIntro("ENTROPY INCARNATE");
+                break;
+            default: // Zone 5 boss (Floor 30): handled above
+                Enemy::createVoidSovereign(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
+                m_screenEffects.triggerBossIntro("VOID SOVEREIGN");
+                break;
         }
     }
 }

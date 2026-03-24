@@ -67,11 +67,16 @@ void LevelGenerator::setThemes(const WorldTheme& themeA, const WorldTheme& theme
 Level LevelGenerator::generateCandidate(int difficulty, int seed, LevelTopology& topology) {
     m_rng.seed(seed);
 
-    int roomCount = 8 + difficulty * 2;
-    if (roomCount > 16) roomCount = 16;
+    // Room count scales with zone (logarithmic growth, not linear)
+    // Zone 0: 8-12, Zone 1: 10-14, Zone 2: 12-16, Zone 3: 14-18, Zone 4: 16-20
+    int zone = std::clamp((difficulty - 1) / 6, 0, 4);
+    int floorInZone = ((difficulty - 1) % 6) + 1;
+    int roomCount = 8 + zone * 2 + floorInZone / 2;
+    if (roomCount > 20) roomCount = 20;
 
-    int levelW = 120 + difficulty * 20;
-    int levelH = 60 + difficulty * 10;
+    // Level size grows with zone (bigger zones = more exploration)
+    int levelW = 120 + zone * 30 + floorInZone * 5;
+    int levelH = 60 + zone * 10 + floorInZone * 3;
 
     Level level(levelW, levelH, 32);
     std::vector<LGRoom> rooms;
@@ -123,7 +128,7 @@ Level LevelGenerator::generateCandidate(int difficulty, int seed, LevelTopology&
             }
             applyTemplate(level, curX, curY, templates[tmplB], 2, m_themeB);
         } else {
-            bool isChallenge = (m_rng() % 8 == 0) && (difficulty >= 2) && (i > 0);
+            bool isChallenge = (m_rng() % 8 == 0) && (zone >= 1 || floorInZone >= 3) && (i > 0);
             generateRoom(level, curX, curY, rw, rh, 1, m_themeA);
             generateRoom(level, curX, curY, rw, rh, 2, m_themeB);
 
