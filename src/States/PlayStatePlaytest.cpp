@@ -687,8 +687,8 @@ void PlayState::updatePlaytest(float dt) {
 
     if (m_levelComplete) return;
 
-    // --- TIMEOUT ---
-    float timeoutSec = 300.0f + getZone(m_currentDifficulty) * 150.0f;
+    // --- TIMEOUT --- (increased: bots need ~60-80s per floor, not 40s)
+    float timeoutSec = 600.0f + getZone(m_currentDifficulty) * 200.0f;
     if (m_playtestRunTimer > timeoutSec) {
         playtestLog("  [%.0fs] TIMEOUT at F%d", m_playtestRunTimer, m_currentDifficulty);
         playtestOnDeath();
@@ -1018,7 +1018,7 @@ void PlayState::updatePlaytest(float dt) {
     } else {
         m_ptNoProgressTimer += dt;
     }
-    float noProgThreshold = m_collapsing ? 4.0f : 7.0f;
+    float noProgThreshold = m_collapsing ? 3.0f : 5.0f; // Faster recovery from stuck states
     if (m_ptNoProgressTimer > noProgThreshold) {
         m_ptNoProgressTimer = 0; m_ptBestDistToTarget = 99999.0f; m_ptNoProgressSkips++;
         auto& transform = m_player->getEntity()->getComponent<TransformComponent>();

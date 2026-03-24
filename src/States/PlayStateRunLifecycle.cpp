@@ -521,8 +521,8 @@ void PlayState::applyUpgrades() {
     m_player->wallSlideSpeed = 60.0f * upgrades.getWallSlideSpeedMultiplier();
 
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
-    // BALANCE: Base HP 100 -> 120 (matches Player.cpp change)
-    hp.maxHP = 120.0f + upgrades.getMaxHPBonus() + achBonus.maxHPBonus;
+    // BALANCE R2: Base HP 120 -> 150 (playtest: 100% death rate at F5-6, need more survivability)
+    hp.maxHP = 150.0f + upgrades.getMaxHPBonus() + achBonus.maxHPBonus;
     hp.currentHP = hp.maxHP;
     hp.armor = upgrades.getArmorBonus() + achBonus.armorBonus;
 

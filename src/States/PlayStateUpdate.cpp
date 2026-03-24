@@ -616,14 +616,14 @@ void PlayState::updatePlayerHazardDamage(float dt) {
             const auto& tile = m_level->getTile(footX, footY, dim);
             auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
             if (tile.type == TileType::Spike && !playerHP.isInvincible()) {
-                // BALANCE: Spike DMG 15 -> 10, entropy 5 -> 3 (playtest: main death cause in L1)
-                float spikeDmg = hazardDmg(10.0f);
+                // BALANCE R2: Spike DMG 5 -> 3, cooldown 0.8 -> 1.0 (still 36-43% of all damage)
+                float spikeDmg = hazardDmg(3.0f);
                 playerHP.takeDamage(spikeDmg);
                 m_combatSystem.addDamageEvent(playerT.getCenter(), spikeDmg, true, false, true);
                 m_tookDamageThisLevel = true;
                 m_tookDamageThisWave = true;
-                m_entropy.addEntropy(3.0f);
-                m_spikeDmgCooldown = 0.5f;
+                m_entropy.addEntropy(2.0f);
+                m_spikeDmgCooldown = 1.0f;
                 m_camera.shake(6.0f, 0.2f);
                 AudioManager::instance().play(SFX::SpikeDamage);
                 if (m_player->getEntity()->hasComponent<PhysicsBody>()) {
@@ -633,13 +633,14 @@ void PlayState::updatePlayerHazardDamage(float dt) {
                 m_particles.burst(playerT.getCenter(), 15, {255, 80, 40, 255}, 150.0f, 3.0f);
                 m_hud.triggerDamageFlash();
             } else if (tile.type == TileType::Fire && !playerHP.isInvincible()) {
-                float fireDmg = hazardDmg(10.0f);
+                // BALANCE R2: Fire DMG 5 -> 3, cooldown 0.7 -> 1.0
+                float fireDmg = hazardDmg(3.0f);
                 playerHP.takeDamage(fireDmg);
                 m_combatSystem.addDamageEvent(playerT.getCenter(), fireDmg, true, false, true);
                 m_tookDamageThisLevel = true;
                 m_tookDamageThisWave = true;
-                m_entropy.addEntropy(3.0f);
-                m_spikeDmgCooldown = 0.4f;
+                m_entropy.addEntropy(2.0f);
+                m_spikeDmgCooldown = 1.0f;
                 m_camera.shake(4.0f, 0.15f);
                 AudioManager::instance().play(SFX::FireBurn);
                 m_player->applyBurn(1.5f); // Fire tiles also apply burn
@@ -657,13 +658,14 @@ void PlayState::updatePlayerHazardDamage(float dt) {
             auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
             if (!playerHP.isInvincible() &&
                 m_level->isInLaserBeam(playerT.getCenter().x, playerT.getCenter().y, dim)) {
-                float laserDmg = hazardDmg(20.0f);
+                // BALANCE R2: Laser DMG 10 -> 6, cooldown 0.6 -> 1.0
+                float laserDmg = hazardDmg(6.0f);
                 playerHP.takeDamage(laserDmg);
                 m_combatSystem.addDamageEvent(playerT.getCenter(), laserDmg, true, false, true);
                 m_tookDamageThisLevel = true;
                 m_tookDamageThisWave = true;
-                m_entropy.addEntropy(8.0f);
-                m_spikeDmgCooldown = 0.3f;
+                m_entropy.addEntropy(4.0f);
+                m_spikeDmgCooldown = 1.0f;
                 m_camera.shake(8.0f, 0.25f);
                 AudioManager::instance().play(SFX::LaserHit);
                 m_particles.burst(playerT.getCenter(), 20, {255, 50, 50, 255}, 200.0f, 3.0f);

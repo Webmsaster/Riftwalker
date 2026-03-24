@@ -41,10 +41,11 @@ def find_exe():
 def run_single_playtest(exe, cls, profile, runs, seed, output_dir):
     """Run a single playtest configuration. Returns (config_name, output_file, duration, returncode)."""
     config_name = f"{cls}_{profile}"
-    output_file = os.path.join(output_dir, f"playtest_{config_name}.log")
+    # Use absolute path so it works regardless of working directory
+    output_file = os.path.abspath(os.path.join(output_dir, f"playtest_{config_name}.log"))
 
     cmd = [
-        exe,
+        os.path.abspath(exe),
         "--playtest",
         f"--playtest-runs={runs}",
         f"--playtest-class={cls}",
@@ -55,8 +56,10 @@ def run_single_playtest(exe, cls, profile, runs, seed, output_dir):
         cmd.append(f"--seed={seed}")
 
     start = time.time()
+    # Each run can take up to 10 minutes (bots need ~60-80s per floor, 30 floors max)
+    timeout_sec = runs * 600 + 180
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=runs * 120 + 60)
+        result = subprocess.run(cmd, capture_output=True, timeout=timeout_sec)
         duration = time.time() - start
         return config_name, output_file, duration, result.returncode
     except subprocess.TimeoutExpired:
