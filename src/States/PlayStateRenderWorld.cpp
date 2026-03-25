@@ -433,7 +433,8 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
     }
 
     // Dialog options (stage-based) -- positioned below story text
-    auto options = NPCSystem::getDialogOptions(npc.type, stage);
+    bool hasQuest = m_activeQuest.active || m_activeQuest.completed;
+    auto options = NPCSystem::getDialogOptions(npc.type, stage, hasQuest);
     int optY = std::max(lineY + 8, boxY + 110);
     for (int i = 0; i < static_cast<int>(options.size()); i++) {
         bool selected = (i == m_npcDialogChoice);

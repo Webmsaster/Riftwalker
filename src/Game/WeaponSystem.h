@@ -6,11 +6,14 @@ enum class WeaponID {
     RiftBlade = 0,   // Default melee: 15 DMG, normal speed, standard combo
     VoidHammer,       // 25 DMG, slow, charged: 3x3 AoE shockwave
     PhaseDaggers,     // 8 DMG, very fast, every 5th hit = crit, +20% movespeed
+    EntropyScythe,    // 18 DMG, medium speed, reduces entropy by 2 per hit, wide arc
+    ChainWhip,        // 6 DMG, very fast, piercing line attack, 50% extra range
     // Ranged
     ShardPistol,      // Default ranged: 10 DMG, normal
     RiftShotgun,      // 5x4 DMG, slow, 5 projectiles in fan, short range
     VoidBeam,         // 3 DMG/tick, continuous, pierces enemies, high entropy gain
     GrapplingHook,    // 20 DMG, hooks to walls (swing) or enemies (pull), 300px range
+    DimLauncher,      // 30 DMG, slow, hits both dimensions simultaneously
     COUNT
 };
 

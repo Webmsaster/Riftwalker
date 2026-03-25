@@ -157,7 +157,8 @@ void PlayState::handleEvent(const SDL_Event& event) {
             auto& npcs = m_level->getNPCs();
             if (m_nearNPCIndex >= static_cast<int>(npcs.size())) { m_showNPCDialog = false; return; }
             int stage = getNPCStoryStage(npcs[m_nearNPCIndex].type);
-            auto options = NPCSystem::getDialogOptions(npcs[m_nearNPCIndex].type, stage);
+            bool hasQuest = m_activeQuest.active || m_activeQuest.completed;
+            auto options = NPCSystem::getDialogOptions(npcs[m_nearNPCIndex].type, stage, hasQuest);
             int optCount = static_cast<int>(options.size());
             if (optCount == 0) { m_showNPCDialog = false; return; }
             switch (event.key.keysym.scancode) {
@@ -908,5 +909,6 @@ void PlayState::update(float dt) {
     }
 
     updateKillEffects();
+    updateQuestProgress();
     updatePostCombat(dt);
 }

@@ -1215,3 +1215,57 @@ void PlayState::updatePostCombat(float dt) {
     checkUnlockConditions();
     updateUnlockNotifications(dt);
 }
+
+// --- NPC Quest progress tracking ---
+
+void PlayState::updateQuestProgress() {
+    // Tick completion notification timer (runs even after quest is done)
+    if (m_questCompleteTimer > 0) {
+        m_questCompleteTimer -= 1.0f / 60.0f; // Approximate dt (called from fixed update)
+    }
+
+    if (!m_activeQuest.active || m_activeQuest.completed) return;
+
+    // Track kills since quest was accepted
+    if (m_activeQuest.targetKills > 0) {
+        m_activeQuest.currentKills = enemiesKilled - m_questKillSnapshot;
+        if (m_activeQuest.currentKills >= m_activeQuest.targetKills) {
+            completeQuest();
+        }
+    }
+
+    // Track rifts since quest was accepted
+    if (m_activeQuest.targetRifts > 0) {
+        m_activeQuest.currentRifts = riftsRepaired - m_questRiftSnapshot;
+        if (m_activeQuest.currentRifts >= m_activeQuest.targetRifts) {
+            completeQuest();
+        }
+    }
+}
+
+void PlayState::completeQuest() {
+    if (!m_activeQuest.active) return;
+    m_activeQuest.active = false;
+    m_activeQuest.completed = true;
+
+    // Grant shard reward
+    if (m_activeQuest.shardReward > 0) {
+        game->getUpgradeSystem().addRiftShards(m_activeQuest.shardReward);
+        shardsCollected += m_activeQuest.shardReward;
+    }
+
+    // Grant entropy reduction (Lost Engineer quest)
+    if (m_activeQuest.entropyReduction > 0) {
+        m_entropy.reduceEntropy(m_activeQuest.entropyReduction);
+    }
+
+    // Visual/audio feedback
+    AudioManager::instance().play(SFX::ShrineBlessing);
+    if (m_player && m_player->getEntity()->hasComponent<TransformComponent>()) {
+        Vec2 pos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        m_particles.burst(pos, 30, {255, 215, 80, 255}, 200.0f, 4.0f);
+        m_particles.burst(pos, 15, {100, 255, 180, 255}, 150.0f, 3.0f);
+    }
+    m_camera.shake(6.0f, 0.25f);
+    m_questCompleteTimer = 3.0f; // Show completion popup for 3 seconds
+}

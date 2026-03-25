@@ -336,6 +336,15 @@ private:
     void renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font);
     void handleNPCDialogChoice(int npcIndex, int choice);
 
+    // NPC quest system (kill/collect quests)
+    NPCQuest m_activeQuest;
+    float m_questCompleteTimer = 0;   // Notification popup duration
+    int m_questKillSnapshot = 0;      // enemiesKilled at quest start (track delta)
+    int m_questRiftSnapshot = 0;      // riftsRepaired at quest start (track delta)
+    void updateQuestProgress();
+    void completeQuest();
+    void renderQuestHUD(SDL_Renderer* renderer, TTF_Font* font);
+
     // Ascension system
     bool m_ascensionModifiersApplied = false;
     void applyAscensionModifiers();

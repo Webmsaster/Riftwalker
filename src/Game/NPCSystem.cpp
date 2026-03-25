@@ -109,13 +109,17 @@ const char* NPCSystem::getStoryLine(NPCType type, int storyStage) {
     }
 }
 
-std::vector<const char*> NPCSystem::getDialogOptions(NPCType type, int storyStage) {
+std::vector<const char*> NPCSystem::getDialogOptions(NPCType type, int storyStage, bool hasActiveQuest) {
     switch (type) {
         case NPCType::RiftScholar:
             if (storyStage >= 2)
                 return {"[Learn the truth (+40 Shards, heal)]", "[Leave]"};
             if (storyStage >= 1)
                 return {"[Listen (+25 Shards, -entropy)]", "[Ask about the Sovereign]", "[Leave]"};
+            // Stage 0: offer quest option alongside normal options
+            if (!hasActiveQuest)
+                return {"[Listen to tip (+15 Shards)]", "[Ask about enemies]",
+                        "[Accept quest: Hunt 10 creatures]", "[Leave]"};
             return {"[Listen to tip (+15 Shards)]", "[Ask about enemies]", "[Leave]"};
         case NPCType::DimRefugee:
             if (storyStage >= 2)
@@ -128,6 +132,10 @@ std::vector<const char*> NPCSystem::getDialogOptions(NPCType type, int storyStag
                 return {"[Permanent upgrade (+25% DMG)]", "[Leave]"};
             if (storyStage >= 1)
                 return {"[Upgrade weapon (+40% DMG, 60s)]", "[Tune attacks (+20% speed, 45s)]", "[Leave]"};
+            // Stage 0: offer quest option alongside normal options
+            if (!hasActiveQuest)
+                return {"[Upgrade weapon (+30% DMG, 45s)]",
+                        "[Accept quest: Repair 3 rifts]", "[Leave]"};
             return {"[Upgrade weapon (+30% DMG, 45s)]", "[Leave]"};
         case NPCType::EchoOfSelf:
             return {"[Fight!]", "[Not yet...]"};
@@ -140,5 +148,35 @@ std::vector<const char*> NPCSystem::getDialogOptions(NPCType type, int storyStag
             return {"[Sharpen melee +20% DMG (40 shards)]", "[Reinforce ranged +20% DMG (40 shards)]", "[Leave]"};
         default:
             return {"[Leave]"};
+    }
+}
+
+const char* NPCSystem::getQuestOffer(NPCType type) {
+    switch (type) {
+        case NPCType::RiftScholar:
+            return "I need data on the rift creatures. Defeat 10 enemies\nand I'll reward you with rift shards.";
+        case NPCType::LostEngineer:
+            return "Help me calibrate the rift sensors. Repair 3 rifts\non this floor and I'll pay you — plus stabilize your suit.";
+        default: return "";
+    }
+}
+
+const char* NPCSystem::getQuestProgress(NPCType type) {
+    switch (type) {
+        case NPCType::RiftScholar:
+            return "Keep hunting those creatures. I can sense more data flowing in...";
+        case NPCType::LostEngineer:
+            return "The sensors are picking up your repairs. Keep going!";
+        default: return "";
+    }
+}
+
+const char* NPCSystem::getQuestComplete(NPCType type) {
+    switch (type) {
+        case NPCType::RiftScholar:
+            return "Excellent work! The data you gathered is invaluable.\nHere are your shards, as promised.";
+        case NPCType::LostEngineer:
+            return "Sensors fully calibrated! Your suit readings look better too.\nTake this payment — you've earned it.";
+        default: return "";
     }
 }

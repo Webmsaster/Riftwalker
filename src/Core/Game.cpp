@@ -20,6 +20,7 @@
 #include "States/RunHistoryState.h"
 #include "States/DailyLeaderboardState.h"
 #include "States/CreditsState.h"
+#include "States/SplashState.h"
 #include <SDL2/SDL_image.h>
 #include <fstream>
 #include <sstream>
@@ -89,6 +90,7 @@ bool Game::init() {
     }
 
     // Create states
+    m_states[StateID::Splash] = std::make_unique<SplashState>();
     m_states[StateID::Menu] = std::make_unique<MenuState>();
     m_states[StateID::Play] = std::make_unique<PlayState>();
     m_states[StateID::Pause] = std::make_unique<PauseState>();
@@ -128,10 +130,13 @@ bool Game::init() {
     // Load custom keybindings (falls back to defaults if file missing)
     m_input.loadBindings("riftwalker_bindings.cfg");
 
-    // Start at menu (or directly at play for automated test modes)
+    // Start at splash (or directly at play for automated test modes)
     extern bool g_autoSmokeTest;
     extern bool g_autoPlaytest;
-    changeState((g_autoSmokeTest || g_autoPlaytest) ? StateID::Play : StateID::Menu);
+    if (g_autoSmokeTest || g_autoPlaytest)
+        changeState(StateID::Play);
+    else
+        changeState(StateID::Splash);
 
     m_running = true;
     return true;

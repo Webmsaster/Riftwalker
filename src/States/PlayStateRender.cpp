@@ -582,6 +582,9 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Event chain tracker (left side)
     renderEventChain(renderer, game->getFont());
 
+    // NPC quest progress (bottom right, above kill feed)
+    renderQuestHUD(renderer, game->getFont());
+
     // Minimap (top right corner, M key to toggle)
     m_hud.renderMinimap(renderer, m_level.get(), m_player.get(), &m_dimManager,
                         SCREEN_WIDTH, SCREEN_HEIGHT, &m_entities, &m_repairedRiftIndices);

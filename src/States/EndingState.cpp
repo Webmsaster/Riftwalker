@@ -11,6 +11,16 @@ void EndingState::enter() {
     m_phaseTimer = 0.0f;
     m_time = 0.0f;
     m_storyScroll = 0.0f;
+
+    // Determine ending type based on run stats
+    // Priority: speedrunner > destroyer > healer (default)
+    if (totalTime > 0.0f && totalTime < 600.0f) {
+        m_endingType = 2; // Speedrunner: completed in under 10 minutes
+    } else if (totalKills >= 200) {
+        m_endingType = 1; // Destroyer: 200+ kills
+    } else {
+        m_endingType = 0; // Healer: default ending
+    }
 }
 
 void EndingState::exit() {
@@ -27,11 +37,17 @@ void EndingState::update(float dt) {
         case 0: // White flash
             if (m_phaseTimer > 2.0f) { m_phase = 1; m_phaseTimer = 0.0f; }
             break;
-        case 1: // Story scroll
+        case 1: { // Story scroll
             m_storyScroll += dt * 30.0f;
-            // 19 lines * 30px spacing, baseY = 600 - scroll + buffer
-            if (m_storyScroll > 1220.0f) { m_phase = 2; m_phaseTimer = 0.0f; }
+            // Scroll threshold depends on ending text length
+            // healer=19 lines, destroyer=18 lines, speedrunner=14 lines
+            // Formula: numLines * 30 + 650 (baseY=600 + buffer)
+            float scrollMax = 1220.0f; // default: healer
+            if (m_endingType == 1) scrollMax = 1190.0f;      // destroyer
+            else if (m_endingType == 2) scrollMax = 1070.0f;  // speedrunner
+            if (m_storyScroll > scrollMax) { m_phase = 2; m_phaseTimer = 0.0f; }
             break;
+        }
         case 2: // Stats
             break;
         case 3: // Thank you
@@ -55,7 +71,10 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(180 * textAlpha),
                     static_cast<Uint8>(255 * textAlpha), 255
                 };
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, "The Rift is sealed.", col);
+                const char* flashText = "The Rift is sealed.";
+                if (m_endingType == 1) flashText = "The Rift is shattered.";
+                else if (m_endingType == 2) flashText = "The Rift barely noticed.";
+                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, flashText, col);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -74,7 +93,8 @@ void EndingState::render(SDL_Renderer* renderer) {
             SDL_SetRenderDrawColor(renderer, 5, 2, 10, 255);
             SDL_RenderClear(renderer);
 
-            const char* lines[] = {
+            // Ending A: "The Healer" (default)
+            const char* linesHealer[] = {
                 "You stepped into the Rift seeking answers.",
                 "Instead, you found only more questions.",
                 "",
@@ -95,7 +115,59 @@ void EndingState::render(SDL_Renderer* renderer) {
                 "",
                 "Only understood."
             };
-            int numLines = sizeof(lines) / sizeof(lines[0]);
+
+            // Ending B: "The Destroyer" (200+ kills)
+            const char* linesDestroyer[] = {
+                "You came to the Rift with purpose.",
+                "Not to understand. Not to heal.",
+                "But to destroy.",
+                "",
+                "Every enemy fell before you,",
+                "every dimension trembled at your approach.",
+                "",
+                "The Void Sovereign didn't stand a chance.",
+                "You didn't just seal the Rift --",
+                "you shattered it.",
+                "",
+                "The dimensions merge violently now.",
+                "Not healing. Collapsing.",
+                "",
+                "Perhaps destruction was always the answer.",
+                "Or perhaps the Rift needed a gentler hand.",
+                "",
+                "You'll never know."
+            };
+
+            // Ending C: "The Speedrunner" (under 600 seconds)
+            const char* linesSpeedrunner[] = {
+                "Time bends around those who move through the Rift.",
+                "You crossed thirty floors in mere minutes.",
+                "",
+                "The dimensions barely had time to notice you.",
+                "The Void Sovereign barely had time to fight.",
+                "",
+                "You were a ghost.",
+                "A ripple in the fabric of reality.",
+                "",
+                "The Rift sealed behind you",
+                "before it even knew you were there.",
+                "",
+                "Speed is its own kind of mastery.",
+                "But what did you miss along the way?"
+            };
+
+            const char** lines;
+            int numLines;
+            if (m_endingType == 1) {
+                lines = linesDestroyer;
+                numLines = sizeof(linesDestroyer) / sizeof(linesDestroyer[0]);
+            } else if (m_endingType == 2) {
+                lines = linesSpeedrunner;
+                numLines = sizeof(linesSpeedrunner) / sizeof(linesSpeedrunner[0]);
+            } else {
+                lines = linesHealer;
+                numLines = sizeof(linesHealer) / sizeof(linesHealer[0]);
+            }
 
             if (m_fontBody) {
                 float baseY = 600 - m_storyScroll;
@@ -158,7 +230,10 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(190 * fadeIn),
                     static_cast<Uint8>(80 * fadeIn), 255
                 };
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, "Run Complete", gold);
+                const char* runTitle = "Run Complete";
+                if (m_endingType == 1) runTitle = "Run Complete - The Destroyer";
+                else if (m_endingType == 2) runTitle = "Run Complete - The Speedrunner";
+                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, runTitle, gold);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 80, surf->w, surf->h};

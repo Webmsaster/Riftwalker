@@ -74,6 +74,10 @@ void PlayState::startNewRun() {
     riftsRepaired = 0;
     roomsCleared = 0;
     shardsCollected = 0;
+    m_activeQuest = NPCQuest{};
+    m_questCompleteTimer = 0;
+    m_questKillSnapshot = 0;
+    m_questRiftSnapshot = 0;
     m_collapsing = false;
     m_riftDimensionHintTimer = 0;
     m_riftDimensionHintRequiredDim = 0;

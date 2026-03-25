@@ -497,7 +497,8 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
     if (npcIndex >= static_cast<int>(npcs.size())) return;
     auto& npc = npcs[npcIndex];
     int npcStage = getNPCStoryStage(npc.type);
-    auto options = NPCSystem::getDialogOptions(npc.type, npcStage);
+    bool hasQuest = m_activeQuest.active || m_activeQuest.completed;
+    auto options = NPCSystem::getDialogOptions(npc.type, npcStage, hasQuest);
 
     // Last option is always [Leave]
     if (choice == static_cast<int>(options.size()) - 1) {
@@ -571,6 +572,18 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
                     game->getUpgradeSystem().addRiftShards(10);
                     shardsCollected += 10;
                     m_particles.burst(npc.position, 15, {180, 220, 255, 255}, 120.0f, 2.5f);
+                } else if (choice == 2 && !m_activeQuest.active && !m_activeQuest.completed) {
+                    // Accept kill quest from Rift Scholar
+                    m_activeQuest = NPCQuest{};
+                    m_activeQuest.description = "Defeat 10 rift creatures";
+                    m_activeQuest.targetKills = 10;
+                    m_activeQuest.shardReward = 50;
+                    m_activeQuest.questGiver = NPCType::RiftScholar;
+                    m_activeQuest.active = true;
+                    m_questKillSnapshot = enemiesKilled;
+                    m_questRiftSnapshot = riftsRepaired;
+                    AudioManager::instance().play(SFX::LoreDiscover);
+                    m_particles.burst(npc.position, 18, {100, 200, 255, 255}, 150.0f, 3.0f);
                 }
             }
             npc.interacted = true;
@@ -667,11 +680,26 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
                     m_particles.burst(npc.position, 18, {120, 255, 200, 255}, 140.0f, 2.5f);
                 }
             } else {
-                // Stage 0: +30% damage for 45s
-                m_player->damageBoostTimer = 45.0f;
-                m_player->damageBoostMultiplier = 1.3f;
-                AudioManager::instance().play(SFX::Pickup);
-                m_particles.burst(npc.position, 20, {180, 255, 120, 255}, 150.0f, 3.0f);
+                if (choice == 0) {
+                    // Stage 0: +30% damage for 45s
+                    m_player->damageBoostTimer = 45.0f;
+                    m_player->damageBoostMultiplier = 1.3f;
+                    AudioManager::instance().play(SFX::Pickup);
+                    m_particles.burst(npc.position, 20, {180, 255, 120, 255}, 150.0f, 3.0f);
+                } else if (choice == 1 && !m_activeQuest.active && !m_activeQuest.completed) {
+                    // Accept rift repair quest from Lost Engineer
+                    m_activeQuest = NPCQuest{};
+                    m_activeQuest.description = "Repair 3 rifts";
+                    m_activeQuest.targetRifts = 3;
+                    m_activeQuest.shardReward = 30;
+                    m_activeQuest.entropyReduction = 20.0f;
+                    m_activeQuest.questGiver = NPCType::LostEngineer;
+                    m_activeQuest.active = true;
+                    m_questKillSnapshot = enemiesKilled;
+                    m_questRiftSnapshot = riftsRepaired;
+                    AudioManager::instance().play(SFX::LoreDiscover);
+                    m_particles.burst(npc.position, 18, {120, 255, 200, 255}, 150.0f, 3.0f);
+                }
             }
             npc.interacted = true;
             m_showNPCDialog = false;
@@ -704,7 +732,7 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
             break;
 
         case NPCType::Blacksmith: {
-            auto options = NPCSystem::getDialogOptions(npc.type, stage);
+            auto options = NPCSystem::getDialogOptions(npc.type, stage, hasQuest);
             bool isLeave = (choice == static_cast<int>(options.size()) - 1);
             if (!isLeave && m_player) {
                 if (stage >= 2) {

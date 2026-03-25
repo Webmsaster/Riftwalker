@@ -908,3 +908,83 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
         }
     }
 }
+
+// --- NPC Quest HUD (bottom-right corner, above kill feed) ---
+
+void PlayState::renderQuestHUD(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font) return;
+
+    // Show active quest progress
+    if (m_activeQuest.active) {
+        char buf[128];
+        if (m_activeQuest.targetKills > 0) {
+            int cur = std::min(m_activeQuest.currentKills, m_activeQuest.targetKills);
+            std::snprintf(buf, sizeof(buf), "Quest: %s (%d/%d)",
+                          m_activeQuest.description.c_str(), cur, m_activeQuest.targetKills);
+        } else if (m_activeQuest.targetRifts > 0) {
+            int cur = std::min(m_activeQuest.currentRifts, m_activeQuest.targetRifts);
+            std::snprintf(buf, sizeof(buf), "Quest: %s (%d/%d)",
+                          m_activeQuest.description.c_str(), cur, m_activeQuest.targetRifts);
+        } else {
+            return;
+        }
+
+        // Background panel
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        int textW = static_cast<int>(std::strlen(buf) * 7.5f); // Approximate text width
+        int panelX = SCREEN_WIDTH - textW - 30;
+        int panelY = SCREEN_HEIGHT - 85;
+        SDL_Rect bg = {panelX - 8, panelY - 4, textW + 16, 24};
+        SDL_SetRenderDrawColor(renderer, 15, 12, 30, 180);
+        SDL_RenderFillRect(renderer, &bg);
+        SDL_SetRenderDrawColor(renderer, 100, 180, 255, 150);
+        SDL_RenderDrawRect(renderer, &bg);
+
+        // Text
+        SDL_Color questColor = {140, 200, 255, 255};
+        SDL_Surface* s = TTF_RenderText_Blended(font, buf, questColor);
+        if (s) {
+            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+            if (t) {
+                SDL_Rect r = {panelX, panelY, s->w, s->h};
+                SDL_RenderCopy(renderer, t, nullptr, &r);
+                SDL_DestroyTexture(t);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+
+    // Show quest completion notification
+    if (m_questCompleteTimer > 0 && m_activeQuest.completed) {
+        float alpha = std::min(m_questCompleteTimer / 0.5f, 1.0f); // Fade out in last 0.5s
+        Uint8 a = static_cast<Uint8>(alpha * 255);
+
+        char buf[128];
+        std::snprintf(buf, sizeof(buf), "Quest Complete! +%d Shards", m_activeQuest.shardReward);
+
+        int textW = static_cast<int>(std::strlen(buf) * 7.5f);
+        int panelX = SCREEN_WIDTH / 2 - textW / 2;
+        int panelY = SCREEN_HEIGHT / 3;
+
+        // Golden background
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_Rect bg = {panelX - 12, panelY - 6, textW + 24, 30};
+        SDL_SetRenderDrawColor(renderer, 30, 25, 10, static_cast<Uint8>(alpha * 200));
+        SDL_RenderFillRect(renderer, &bg);
+        SDL_SetRenderDrawColor(renderer, 255, 215, 80, static_cast<Uint8>(alpha * 200));
+        SDL_RenderDrawRect(renderer, &bg);
+
+        SDL_Color gold = {255, 215, 80, a};
+        SDL_Surface* s = TTF_RenderText_Blended(font, buf, gold);
+        if (s) {
+            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+            if (t) {
+                SDL_SetTextureAlphaMod(t, a);
+                SDL_Rect r = {panelX, panelY, s->w, s->h};
+                SDL_RenderCopy(renderer, t, nullptr, &r);
+                SDL_DestroyTexture(t);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+}

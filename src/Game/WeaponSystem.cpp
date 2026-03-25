@@ -22,6 +22,14 @@ void WeaponSystem::init() {
         WeaponID::PhaseDaggers, "Phase Daggers", "Fast + crit every 5th hit",
         8.0f, 0.18f, 36.0f, 120.0f, 0.12f, 0.2f, true, false
     };
+    s_weapons[static_cast<int>(WeaponID::EntropyScythe)] = {
+        WeaponID::EntropyScythe, "Entropy Scythe", "Wide arc, reduces entropy per hit",
+        18.0f, 0.45f, 56.0f, 250.0f, 0.3f, 0, true, false
+    };
+    s_weapons[static_cast<int>(WeaponID::ChainWhip)] = {
+        WeaponID::ChainWhip, "Chain Whip", "Piercing line attack, rapid strikes",
+        6.0f, 0.25f, 72.0f, 100.0f, 0.15f, 0, true, false
+    };
 
     // Ranged weapons
     s_weapons[static_cast<int>(WeaponID::ShardPistol)] = {
@@ -39,6 +47,10 @@ void WeaponSystem::init() {
     s_weapons[static_cast<int>(WeaponID::GrapplingHook)] = {
         WeaponID::GrapplingHook, "Grappling Hook", "Hook to walls or pull enemies",
         20.0f, 1.5f, 300.0f, 150.0f, 0.1f, 0, false, false
+    };
+    s_weapons[static_cast<int>(WeaponID::DimLauncher)] = {
+        WeaponID::DimLauncher, "Dimensional Launcher", "Slow projectile hits both dimensions",
+        30.0f, 1.2f, 350.0f, 120.0f, 0.25f, 0, false, false
     };
 }
 
@@ -112,6 +124,9 @@ const char* WeaponSystem::getUnlockRequirement(WeaponID id) {
         case WeaponID::VoidHammer:    return "Defeat any boss";
         case WeaponID::VoidBeam:      return "Reach floor 5";
         case WeaponID::GrapplingHook: return "Dash-kill 5 enemies in one run";
+        case WeaponID::EntropyScythe: return "Survive 3 minutes with entropy above 60%";
+        case WeaponID::ChainWhip:     return "Get a 15-hit combo";
+        case WeaponID::DimLauncher:   return "Repair 50 rifts total";
         default: return "Unknown";
     }
 }

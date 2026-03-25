@@ -19,6 +19,7 @@ public:
 };
 
 enum class StateID {
+    Splash,
     Menu,
     Play,
     Pause,
