@@ -166,16 +166,16 @@ inline ZoneScaling getZoneScaling(int floor) {
     int zone = getZone(floor);
     int fiz = getFloorInZone(floor);
 
-    // Base multipliers per zone (logarithmic growth: big early jumps, smaller later)
-    constexpr float zoneHP[]    = {1.0f, 1.4f, 1.9f, 2.5f, 3.2f};
-    constexpr float zoneDMG[]   = {1.0f, 1.25f, 1.55f, 1.9f, 2.3f};
-    constexpr float zoneSpeed[] = {1.0f, 1.05f, 1.10f, 1.15f, 1.20f};
-    constexpr float zoneElite[] = {5.0f, 15.0f, 25.0f, 35.0f, 45.0f};
-    constexpr float zoneMini[]  = {0.0f, 10.0f, 20.0f, 35.0f, 50.0f};
+    // Base multipliers per zone (steeper scaling for late-game challenge)
+    constexpr float zoneHP[]    = {1.0f, 1.5f, 2.2f, 3.2f, 4.5f};
+    constexpr float zoneDMG[]   = {1.0f, 1.4f, 1.9f, 2.6f, 3.5f};
+    constexpr float zoneSpeed[] = {1.0f, 1.05f, 1.12f, 1.18f, 1.25f};
+    constexpr float zoneElite[] = {5.0f, 18.0f, 30.0f, 42.0f, 55.0f};
+    constexpr float zoneMini[]  = {0.0f, 12.0f, 25.0f, 40.0f, 55.0f};
 
-    // Within-zone scaling: gradual ramp within the zone (+5% HP, +3% DMG per floor-in-zone)
-    float inZoneHP  = 1.0f + (fiz - 1) * 0.05f;
-    float inZoneDMG = 1.0f + (fiz - 1) * 0.03f;
+    // Within-zone scaling: gradual ramp within the zone (+6% HP, +5% DMG per floor-in-zone)
+    float inZoneHP  = 1.0f + (fiz - 1) * 0.06f;
+    float inZoneDMG = 1.0f + (fiz - 1) * 0.05f;
     float inZoneSpd = 1.0f + (fiz - 1) * 0.01f;
 
     // Breather floors are slightly easier (0.85x of zone baseline)

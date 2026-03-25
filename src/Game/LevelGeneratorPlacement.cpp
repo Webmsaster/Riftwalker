@@ -634,12 +634,14 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
                                       int w, int h, int dim, int difficulty,
                                       const WorldTheme& theme) {
     float density = theme.enemyDensity;
-    // Zone-based density scaling: more enemies in later zones
+    // Zone-based density scaling: significantly more enemies in later zones
     int zone = std::clamp((difficulty - 1) / 6, 0, 4);
-    float zoneDensityMult = 1.0f + zone * 0.15f; // +15% per zone
+    float zoneDensityMult = 1.0f + zone * 0.3f; // +30% per zone (was +15%)
     int count = static_cast<int>((density * zoneDensityMult * static_cast<float>(w * h)) / 32.0f) + zone;
-    if (zone == 0 && w >= 10 && h >= 6) {
-        count = std::max(count, 1);
+    // Minimum enemy count scales with zone to ensure combat encounters
+    int minEnemies = (zone == 0) ? 1 : (1 + zone);
+    if (w >= 10 && h >= 6) {
+        count = std::max(count, minEnemies);
     }
 
     auto themeConfig = ThemeEnemyConfig::getConfig(theme.id);
