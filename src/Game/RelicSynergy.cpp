@@ -76,7 +76,19 @@ static const SynergyData s_synergyData[] = {
 
     {SynergyID::EntropyBeam, "Entropy Beam",
      "VoidBeam reduces entropy instead of gaining",
-     RelicID::EntropyAnchor, RelicID::None, WeaponID::VoidBeam}
+     RelicID::EntropyAnchor, RelicID::None, WeaponID::VoidBeam},
+
+    {SynergyID::EntropyDrain, "Entropy Drain",
+     "EntropyScythe reduces entropy by 5 per hit instead of 2",
+     RelicID::EntropySponge, RelicID::None, WeaponID::EntropyScythe},
+
+    {SynergyID::ChainReaction, "Chain Reaction",
+     "ChainWhip hits spawn chain lightning bolts",
+     RelicID::ChainLightning, RelicID::None, WeaponID::ChainWhip},
+
+    {SynergyID::DimensionalBarrage, "Dimensional Barrage",
+     "DimLauncher projectiles deal 50% more damage",
+     RelicID::DimensionalEcho, RelicID::None, WeaponID::DimLauncher}
 };
 
 const SynergyData& RelicSynergy::getData(SynergyID id) {
@@ -275,4 +287,25 @@ bool RelicSynergy::isStormScatterActive(const RelicComponent& relics, WeaponID r
 
 bool RelicSynergy::isEntropyBeamActive(const RelicComponent& relics, WeaponID ranged) {
     return ranged == WeaponID::VoidBeam && isActive(relics, SynergyID::EntropyBeam);
+}
+
+float RelicSynergy::getEntropyDrainReduction(const RelicComponent& relics, WeaponID melee) {
+    // EntropyDrain: EntropyScythe + EntropySponge — 5 entropy reduction per hit instead of 2
+    if (melee == WeaponID::EntropyScythe && isActive(relics, SynergyID::EntropyDrain)) {
+        return 5.0f;
+    }
+    return 2.0f; // Default EntropyScythe reduction
+}
+
+bool RelicSynergy::isChainReactionActive(const RelicComponent& relics, WeaponID melee) {
+    // ChainReaction: ChainWhip + ChainLightning — every hit spawns chain lightning bolt
+    return melee == WeaponID::ChainWhip && isActive(relics, SynergyID::ChainReaction);
+}
+
+float RelicSynergy::getDimensionalBarrageDamageMult(const RelicComponent& relics, WeaponID ranged) {
+    // DimensionalBarrage: DimLauncher + DimensionalEcho — +50% projectile damage
+    if (ranged == WeaponID::DimLauncher && isActive(relics, SynergyID::DimensionalBarrage)) {
+        return 1.5f;
+    }
+    return 1.0f;
 }

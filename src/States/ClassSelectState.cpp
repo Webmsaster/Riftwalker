@@ -132,12 +132,12 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
 
     // Navigation hint
     {
-        SDL_Color nc = {60, 55, 85, 140};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, "A/D Navigate  |  ENTER Select  |  ESC Back", nc);
+        SDL_Color nc = {120, 120, 140, 180};
+        SDL_Surface* ns = TTF_RenderText_Blended(font, "A/D Switch  |  ENTER Select  |  ESC Back", nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, 680, ns->w, ns->h};
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, SCREEN_HEIGHT - 30, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }

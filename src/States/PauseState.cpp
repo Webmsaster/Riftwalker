@@ -254,12 +254,12 @@ void PauseState::render(SDL_Renderer* renderer) {
 
     // Controls hint
     if (font) {
-        SDL_Color hintC = {100, 100, 130, 120};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, "ESC to resume", hintC);
+        SDL_Color hintC = {120, 120, 140, 180};
+        SDL_Surface* hs = TTF_RenderText_Blended(font, "ESC Resume  |  W/S Navigate  |  ENTER Select", hintC);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
-                SDL_Rect hr = {640 - hs->w / 2, 650, hs->w, hs->h};
+                SDL_Rect hr = {640 - hs->w / 2, SCREEN_HEIGHT - 30, hs->w, hs->h};
                 SDL_RenderCopy(renderer, ht, nullptr, &hr);
                 SDL_DestroyTexture(ht);
             }

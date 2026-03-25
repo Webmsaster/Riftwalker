@@ -405,6 +405,21 @@ void MenuState::render(SDL_Renderer* renderer) {
         btn.render(renderer, font);
     }
 
+    // Keyboard shortcut hint
+    if (font) {
+        SDL_Color hintC = {120, 120, 140, 180};
+        SDL_Surface* hs = TTF_RenderText_Blended(font, "W/S Navigate  |  ENTER Select  |  ESC Quit", hintC);
+        if (hs) {
+            SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
+            if (ht) {
+                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, SCREEN_HEIGHT - 30, hs->w, hs->h};
+                SDL_RenderCopy(renderer, ht, nullptr, &hr);
+                SDL_DestroyTexture(ht);
+            }
+            SDL_FreeSurface(hs);
+        }
+    }
+
     // Version at bottom
     if (font) {
         SDL_Color c = {55, 50, 75, 100};
@@ -412,7 +427,7 @@ void MenuState::render(SDL_Renderer* renderer) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 695, s->w, s->h};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, SCREEN_HEIGHT - 14, s->w, s->h};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }

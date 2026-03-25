@@ -23,6 +23,9 @@ enum class SynergyID {
     RapidShards,         // ShardPistol + QuickHands
     StormScatter,        // RiftShotgun + ChainLightning
     EntropyBeam,         // VoidBeam + EntropyAnchor
+    EntropyDrain,        // EntropyScythe + EntropySponge
+    ChainReaction,       // ChainWhip + ChainLightning
+    DimensionalBarrage,  // DimLauncher + DimensionalEcho
     COUNT
 };
 
@@ -81,4 +84,10 @@ public:
     static bool isStormScatterActive(const RelicComponent& relics, WeaponID ranged);
     // EntropyBeam: VoidBeam + EntropyAnchor — beam reduces entropy instead of gaining
     static bool isEntropyBeamActive(const RelicComponent& relics, WeaponID ranged);
+    // EntropyDrain: EntropyScythe + EntropySponge — entropy reduction 5 per hit instead of 2
+    static float getEntropyDrainReduction(const RelicComponent& relics, WeaponID melee);
+    // ChainReaction: ChainWhip + ChainLightning — whip hits spawn chain lightning bolts
+    static bool isChainReactionActive(const RelicComponent& relics, WeaponID melee);
+    // DimensionalBarrage: DimLauncher + DimensionalEcho — +50% projectile damage
+    static float getDimensionalBarrageDamageMult(const RelicComponent& relics, WeaponID ranged);
 };
