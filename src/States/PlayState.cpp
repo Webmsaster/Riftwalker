@@ -301,6 +301,27 @@ void PlayState::update(float dt) {
         return;
     }
 
+    // Boss intro title card: freeze gameplay while the card is showing
+    if (m_bossIntroActive) {
+        m_screenEffects.update(dt);  // Animate the title card
+        m_particles.update(dt);      // Ambient particles keep going
+        if (!m_screenEffects.isBossIntroActive()) {
+            m_bossIntroActive = false;
+        }
+        return;
+    }
+
+    // Run intro overlay: freeze gameplay while atmospheric text plays
+    if (m_runIntroActive) {
+        m_runIntroTimer += dt;
+        m_particles.update(dt);      // Ambient particles keep going
+        m_screenEffects.update(dt);
+        if (m_runIntroTimer >= kRunIntroDuration) {
+            m_runIntroActive = false;
+        }
+        return;
+    }
+
     // Track balance stats every frame
     updateBalanceTracking(dt);
 
@@ -478,6 +499,14 @@ void PlayState::update(float dt) {
         }
     }
     if (m_waveClearTimer > 0) m_waveClearTimer -= dt;
+
+    // Zone transition banner timer
+    if (m_zoneTransitionActive) {
+        m_zoneTransitionTimer += dt;
+        if (m_zoneTransitionTimer >= 3.0f) {
+            m_zoneTransitionActive = false;
+        }
+    }
 
     updateDamageNumbers(dt);
 
@@ -748,6 +777,29 @@ void PlayState::update(float dt) {
                 m_themeB = themes.second;
                 m_dimManager.setDimColors(m_themeA.colors.background, m_themeB.colors.background);
                 AudioManager::instance().playThemeAmbient(static_cast<int>(m_themeA.id));
+            }
+
+            // Trigger zone transition banner when entering a new zone
+            if (newZone != prevZone) {
+                static const char* zoneNames[] = {
+                    "FRACTURED THRESHOLD", "SHIFTING DEPTHS", "RESONANT CORE",
+                    "ENTROPY CASCADE", "THE SOVEREIGN'S DOMAIN"
+                };
+                static const char* zoneTaglines[] = {
+                    "Where reality first began to crack",
+                    "The dimensions bleed into each other",
+                    "Every step echoes across realities",
+                    "Order dissolves. Chaos reigns.",
+                    "The heart of the Rift awaits"
+                };
+                int zi = std::clamp(newZone, 0, 4);
+                m_zoneTransitionName = zoneNames[zi];
+                m_zoneTransitionTagline = zoneTaglines[zi];
+                m_zoneTransitionNumber = zi + 1;
+                m_zoneTransitionTimer = 0;
+                m_zoneTransitionActive = true;
+                // Skip banner for automated bots
+                if (m_playtest || m_smokeTest) m_zoneTransitionActive = false;
             }
 
             // Open shop between levels (every level except first)

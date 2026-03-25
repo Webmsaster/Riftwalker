@@ -17,7 +17,7 @@ void MenuState::enter() {
     int btnW = 260;
     int btnH = 30;
     int gap = 2;
-    int totalMenuH = 11 * (btnH + gap) - gap;
+    int totalMenuH = 12 * (btnH + gap) - gap;
     int startY = SCREEN_HEIGHT - totalMenuH - 16;
 
     m_buttons.clear();
@@ -30,8 +30,9 @@ void MenuState::enter() {
     m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 6, btnW, btnH, "Achievements");
     m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 7, btnW, btnH, "Lore");
     m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 8, btnW, btnH, "Run History");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 9, btnW, btnH, "Options");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 10, btnW, btnH, "Quit");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 9, btnW, btnH, "Credits");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 10, btnW, btnH, "Options");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 11, btnW, btnH, "Quit");
 
     m_buttons[0].onClick = [this]() { game->changeState(StateID::ClassSelect); };
     m_buttons[1].onClick = [this]() { g_dailyRunActive = true; game->changeState(StateID::ClassSelect); };
@@ -42,8 +43,9 @@ void MenuState::enter() {
     m_buttons[6].onClick = [this]() { game->pushState(StateID::Achievements); };
     m_buttons[7].onClick = [this]() { game->changeState(StateID::Lore); };
     m_buttons[8].onClick = [this]() { game->pushState(StateID::RunHistory); };
-    m_buttons[9].onClick = [this]() { game->changeState(StateID::Options); };
-    m_buttons[10].onClick = [this]() { game->quit(); };
+    m_buttons[9].onClick = [this]() { game->changeState(StateID::Credits); };
+    m_buttons[10].onClick = [this]() { game->changeState(StateID::Options); };
+    m_buttons[11].onClick = [this]() { game->quit(); };
 
     m_selectedButton = 0;
     m_buttons[0].setSelected(true);

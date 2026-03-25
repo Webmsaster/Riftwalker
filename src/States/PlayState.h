@@ -179,6 +179,12 @@ private:
     float m_waveClearTimer = 0;       // text overlay duration (2s)
     bool m_waveClearTriggered = false; // prevent re-trigger until new enemies spawn
 
+    // Run intro overlay (atmospheric story text at run start)
+    bool m_runIntroActive = false;
+    float m_runIntroTimer = 0;
+    static constexpr float kRunIntroDuration = 3.5f;
+    void renderRunIntro(SDL_Renderer* renderer, TTF_Font* font);
+
     // Death sequence: brief dramatic pause before endRun
     bool m_playerDying = false;
     float m_deathSequenceTimer = 0;
@@ -257,6 +263,7 @@ private:
     bool m_isBossLevel = false;
     bool m_bossDefeated = false;
     bool m_voidSovereignDefeated = false;
+    bool m_bossIntroActive = false; // Freeze gameplay during boss title card
     void spawnBoss();
     void renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font);
     void endRun();
@@ -504,6 +511,14 @@ private:
     void addKillFeedEntry(const KillEvent& ke);
     void updateKillFeed(float dt);
     void renderKillFeed(SDL_Renderer* renderer, TTF_Font* font);
+
+    // Zone transition banner (non-blocking overlay on zone change)
+    bool m_zoneTransitionActive = false;
+    float m_zoneTransitionTimer = 0;
+    std::string m_zoneTransitionName;
+    std::string m_zoneTransitionTagline;
+    int m_zoneTransitionNumber = 0;
+    void renderZoneTransition(SDL_Renderer* renderer, TTF_Font* font);
 
     // Visual polish (Stufe 4)
     TrailSystem m_trails;

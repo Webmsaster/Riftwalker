@@ -793,3 +793,217 @@ void PlayState::renderKeyBox(SDL_Renderer* renderer, TTF_Font* font,
     }
     SDL_FreeSurface(surface);
 }
+
+void PlayState::renderZoneTransition(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!m_zoneTransitionActive || !font) return;
+
+    float t = m_zoneTransitionTimer;
+    // Timing: fade in 0–0.5s, hold 0.5–2.5s, fade out 2.5–3.0s
+    float alpha;
+    if (t < 0.5f) alpha = t / 0.5f;               // fade in
+    else if (t < 2.5f) alpha = 1.0f;               // hold
+    else alpha = 1.0f - (t - 2.5f) / 0.5f;         // fade out
+    alpha = std::clamp(alpha, 0.0f, 1.0f);
+    if (alpha <= 0.0f) return;
+
+    Uint8 a = static_cast<Uint8>(alpha * 255);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Semi-transparent dark bar across upper third of screen
+    int barH = SCREEN_HEIGHT / 3;
+    int barY = SCREEN_HEIGHT / 6; // Centered in upper half
+    SDL_SetRenderDrawColor(renderer, 5, 3, 15, static_cast<Uint8>(alpha * 180));
+    SDL_Rect bar = {0, barY, SCREEN_WIDTH, barH};
+    SDL_RenderFillRect(renderer, &bar);
+
+    // Subtle purple border lines (top and bottom of bar)
+    SDL_SetRenderDrawColor(renderer, 120, 60, 200, static_cast<Uint8>(alpha * 120));
+    SDL_RenderDrawLine(renderer, SCREEN_WIDTH / 4, barY, SCREEN_WIDTH * 3 / 4, barY);
+    SDL_RenderDrawLine(renderer, SCREEN_WIDTH / 4, barY + barH, SCREEN_WIDTH * 3 / 4, barY + barH);
+
+    int centerX = SCREEN_WIDTH / 2;
+    int centerY = barY + barH / 2;
+
+    // "ZONE X" label (small, gold)
+    {
+        char zoneLbl[16];
+        snprintf(zoneLbl, sizeof(zoneLbl), "ZONE %d", m_zoneTransitionNumber);
+        SDL_Color gold = {255, 200, 50, a};
+        SDL_Surface* s = TTF_RenderText_Blended(font, zoneLbl, gold);
+        if (s) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, a);
+                SDL_Rect r = {centerX - s->w / 2, centerY - 38, s->w, s->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &r);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+
+    // Zone name (large, white, with subtle scale-up via wider dest rect)
+    {
+        SDL_Color white = {255, 255, 255, a};
+        SDL_Surface* s = TTF_RenderText_Blended(font, m_zoneTransitionName.c_str(), white);
+        if (s) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, a);
+                // Scale up 2x for large title appearance
+                float scale = 2.0f;
+                int w = static_cast<int>(s->w * scale);
+                int h = static_cast<int>(s->h * scale);
+                SDL_Rect r = {centerX - w / 2, centerY - h / 2 - 4, w, h};
+                SDL_RenderCopy(renderer, tex, nullptr, &r);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+
+    // Tagline (smaller, dim purple)
+    {
+        SDL_Color purple = {160, 120, 220, static_cast<Uint8>(a * 0.8f)};
+        SDL_Surface* s = TTF_RenderText_Blended(font, m_zoneTransitionTagline.c_str(), purple);
+        if (s) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, static_cast<Uint8>(a * 0.8f));
+                SDL_Rect r = {centerX - s->w / 2, centerY + 22, s->w, s->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &r);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+
+    // Decorative horizontal line below tagline
+    {
+        float lineAlpha = alpha * 0.6f;
+        int lineW = static_cast<int>(180 * alpha);
+        SDL_SetRenderDrawColor(renderer, 160, 120, 220, static_cast<Uint8>(lineAlpha * 255));
+        SDL_Rect line = {centerX - lineW / 2, centerY + 44, lineW, 1};
+        SDL_RenderFillRect(renderer, &line);
+    }
+}
+
+void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
+    if (!font) return;
+
+    float t = m_runIntroTimer;
+    float duration = kRunIntroDuration;
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Full dark overlay with subtle red/purple tint — fades out in the last 0.5s
+    float overlayFade = (t > duration - 0.5f) ? (duration - t) / 0.5f : 1.0f;
+    Uint8 bgAlpha = static_cast<Uint8>(overlayFade * 230);
+    SDL_SetRenderDrawColor(renderer, 12, 5, 18, bgAlpha); // Dark purple-black
+    SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_RenderFillRect(renderer, &full);
+
+    // Subtle vignette border (deep crimson/purple)
+    {
+        Uint8 vigA = static_cast<Uint8>(overlayFade * 80);
+        SDL_SetRenderDrawColor(renderer, 60, 10, 30, vigA);
+        int bw = 40;
+        SDL_Rect top = {0, 0, SCREEN_WIDTH, bw};
+        SDL_Rect bot = {0, SCREEN_HEIGHT - bw, SCREEN_WIDTH, bw};
+        SDL_Rect lft = {0, 0, bw, SCREEN_HEIGHT};
+        SDL_Rect rgt = {SCREEN_WIDTH - bw, 0, bw, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &top);
+        SDL_RenderFillRect(renderer, &bot);
+        SDL_RenderFillRect(renderer, &lft);
+        SDL_RenderFillRect(renderer, &rgt);
+    }
+
+    int centerX = SCREEN_WIDTH / 2;
+    int centerY = SCREEN_HEIGHT / 2;
+
+    bool isNGPlus = (m_ngPlusTier > 0);
+
+    // Line 1: 0.0 - 3.5s (fade in 0-1.0s, hold, fade out in last 0.5s)
+    const char* line1 = isNGPlus ? "The Rift remembers you..." : "The Rift opens...";
+    if (t > 0.0f) {
+        float fadeIn = std::min(1.0f, t / 1.0f);
+        float fadeOut = (t > duration - 0.5f) ? (duration - t) / 0.5f : 1.0f;
+        float alpha = fadeIn * fadeOut;
+        Uint8 a = static_cast<Uint8>(alpha * 255);
+        // Dim white with slight purple tint
+        SDL_Color color = {180, 170, 200, a};
+        SDL_Surface* surf = TTF_RenderText_Blended(font, line1, color);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, a);
+                SDL_Rect dst = {centerX - surf->w / 2, centerY - 40, surf->w, surf->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(surf);
+        }
+    }
+
+    // Line 2: 1.0 - 3.0s (fade in 1.0-1.5s, hold, fade out 2.5-3.0s)
+    if (t > 1.0f) {
+        char line2[128];
+        if (isNGPlus) {
+            snprintf(line2, sizeof(line2), "Ascension Tier %d. The void grows stronger.", m_ngPlusTier);
+        } else {
+            snprintf(line2, sizeof(line2), "Your suit flickers. Entropy rising.");
+        }
+        float fadeIn = std::min(1.0f, (t - 1.0f) / 0.5f);
+        float fadeOut = (t > 2.5f) ? std::max(0.0f, (3.0f - t) / 0.5f) : 1.0f;
+        float alpha = fadeIn * fadeOut;
+        Uint8 a = static_cast<Uint8>(alpha * 220);
+        SDL_Color color = {140, 130, 160, a};
+        SDL_Surface* surf = TTF_RenderText_Blended(font, line2, color);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, a);
+                SDL_Rect dst = {centerX - surf->w / 2, centerY - 5, surf->w, surf->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(surf);
+        }
+    }
+
+    // Line 3: 2.5 - 3.5s (fade in 2.5-2.8s, hold, then fade to gameplay)
+    if (t > 2.5f) {
+        const char* line3 = isNGPlus ? "Begin." : "Survive.";
+        float fadeIn = std::min(1.0f, (t - 2.5f) / 0.3f);
+        float fadeOut = (t > duration - 0.3f) ? (duration - t) / 0.3f : 1.0f;
+        float alpha = fadeIn * fadeOut;
+        Uint8 a = static_cast<Uint8>(alpha * 255);
+        // Brighter, bolder — slight red warmth
+        SDL_Color color = {220, 200, 210, a};
+        SDL_Surface* surf = TTF_RenderText_Blended(font, line3, color);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, a);
+                // Slightly larger via scaled rect
+                float scale = 1.5f;
+                int w = static_cast<int>(surf->w * scale);
+                int h = static_cast<int>(surf->h * scale);
+                SDL_Rect dst = {centerX - w / 2, centerY + 35, w, h};
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(surf);
+        }
+    }
+
+    // Atmospheric decorative line (thin, fading purple)
+    if (t > 0.8f && t < duration - 0.3f) {
+        float lineAlpha = std::min(1.0f, (t - 0.8f) / 0.5f);
+        if (t > duration - 0.8f) lineAlpha *= (duration - 0.3f - t) / 0.5f;
+        int lineW = static_cast<int>(200 * lineAlpha);
+        Uint8 la = static_cast<Uint8>(lineAlpha * 120);
+        SDL_SetRenderDrawColor(renderer, 120, 60, 160, la);
+        SDL_Rect line = {centerX - lineW / 2, centerY + 70, lineW, 1};
+        SDL_RenderFillRect(renderer, &line);
+    }
+}

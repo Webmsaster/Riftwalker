@@ -37,7 +37,8 @@ enum class StateID {
     Lore,
     Ending,
     RunHistory,
-    DailyLeaderboard
+    DailyLeaderboard,
+    Credits
 };
 
 // Global difficulty setting (shared between states)

@@ -1,16 +1,21 @@
 #pragma once
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <string>
 
 class ScreenEffects {
 public:
     void update(float dt);
-    void render(SDL_Renderer* renderer, int screenW, int screenH);
+    void render(SDL_Renderer* renderer, int screenW, int screenH, TTF_Font* font = nullptr);
 
     // Triggers
     void triggerKillFlash();
-    void triggerBossIntro(const char* bossName);
+    void triggerBossIntro(const char* bossName, const char* subtitle = nullptr);
     void triggerDimensionRipple();
+    void cancelBossIntro() { m_bossIntroTimer = 0; m_bossName.clear(); m_bossSubtitle.clear(); }
+
+    // Query
+    bool isBossIntroActive() const { return m_bossIntroTimer > 0; }
 
     // Continuous states
     void setHP(float hpPercent) { m_hpPercent = hpPercent; }
@@ -26,9 +31,11 @@ private:
     // Kill flash
     float m_killFlashTimer = 0.0f;
 
-    // Boss intro
+    // Boss intro title card
+    static constexpr float kBossIntroDuration = 2.5f;
     float m_bossIntroTimer = 0.0f;
     std::string m_bossName;
+    std::string m_bossSubtitle;
 
     // Dimension ripple
     float m_rippleTimer = 0.0f;

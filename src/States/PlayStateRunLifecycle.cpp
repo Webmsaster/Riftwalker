@@ -214,6 +214,11 @@ void PlayState::startNewRun() {
     m_hud.setNGPlusTier(m_ngPlusTier);
     m_aiSystem.setLevel(m_level.get());
     m_aiSystem.setPlayer(m_player.get());
+
+    // Activate run intro overlay (skip for bots and subsequent NG+ runs)
+    m_runIntroActive = true;
+    m_runIntroTimer = 0;
+    if (m_playtest || m_smokeTest) m_runIntroActive = false;
 }
 
 void PlayState::generateLevel() {
@@ -581,45 +586,52 @@ void PlayState::spawnBoss() {
     if (m_currentDifficulty >= 30) {
         // Floor 30: final confrontation — Void Sovereign
         Enemy::createVoidSovereign(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-        m_screenEffects.triggerBossIntro("VOID SOVEREIGN");
+        m_screenEffects.triggerBossIntro("VOID SOVEREIGN", "The last chain binding the Rift");
     } else if (zone == 4 && isMidBoss) {
         // Floor 27 mid-boss: Entropy Incarnate as penultimate challenge
         Enemy::createEntropyIncarnate(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-        m_screenEffects.triggerBossIntro("ENTROPY INCARNATE");
+        m_screenEffects.triggerBossIntro("ENTROPY INCARNATE", "A shadow of greater power");
     } else if (isMidBoss) {
         // Mid-boss floors: rotate lighter bosses (Guardian, Wyrm) scaled to zone
         int midBossType = zone % 2;
         if (midBossType == 1) {
             Enemy::createVoidWyrm(m_entities, {spawnPos.x, spawnPos.y - 40.0f}, dim, bossDiff);
-            m_screenEffects.triggerBossIntro("VOID WYRM");
+            m_screenEffects.triggerBossIntro("VOID WYRM", "A shadow of greater power");
         } else {
             Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
-            m_screenEffects.triggerBossIntro("RIFT GUARDIAN");
+            m_screenEffects.triggerBossIntro("RIFT GUARDIAN", "A shadow of greater power");
         }
     } else {
         // Zone boss floors (6, 12, 18, 24): each zone has a signature boss
         switch (zone) {
             case 0: // Zone 1 boss (Floor 6): Rift Guardian
                 Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
-                m_screenEffects.triggerBossIntro("RIFT GUARDIAN");
+                m_screenEffects.triggerBossIntro("RIFT GUARDIAN", "The dimension's immune response");
                 break;
             case 1: // Zone 2 boss (Floor 12): Dimensional Architect
                 Enemy::createDimensionalArchitect(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-                m_screenEffects.triggerBossIntro("DIMENSIONAL ARCHITECT");
+                m_screenEffects.triggerBossIntro("DIMENSIONAL ARCHITECT", "It rewrites reality itself");
                 break;
             case 2: // Zone 3 boss (Floor 18): Temporal Weaver
                 Enemy::createTemporalWeaver(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-                m_screenEffects.triggerBossIntro("TEMPORAL WEAVER");
+                m_screenEffects.triggerBossIntro("TEMPORAL WEAVER", "Past and future converge");
                 break;
             case 3: // Zone 4 boss (Floor 24): Entropy Incarnate
                 Enemy::createEntropyIncarnate(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-                m_screenEffects.triggerBossIntro("ENTROPY INCARNATE");
+                m_screenEffects.triggerBossIntro("ENTROPY INCARNATE", "Chaos given form and purpose");
                 break;
             default: // Zone 5 boss (Floor 30): handled above
                 Enemy::createVoidSovereign(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-                m_screenEffects.triggerBossIntro("VOID SOVEREIGN");
+                m_screenEffects.triggerBossIntro("VOID SOVEREIGN", "The last chain binding the Rift");
                 break;
         }
+    }
+
+    // Activate boss intro freeze (skip for automated bots)
+    m_bossIntroActive = true;
+    if (m_smokeTest || m_playtest) {
+        m_bossIntroActive = false;
+        m_screenEffects.cancelBossIntro();
     }
 }
 

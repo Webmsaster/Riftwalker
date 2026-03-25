@@ -12,7 +12,7 @@ void ScreenEffects::update(float dt) {
     else m_glitchTimer = 0;
 }
 
-void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH) {
+void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF_Font* font) {
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     // 1. Vignette (always, stronger at low HP)
@@ -78,41 +78,124 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH) {
         SDL_RenderFillRect(renderer, &full);
     }
 
-    // 4. Boss intro cinematic bars + name
+    // 4. Boss intro cinematic title card
     if (m_bossIntroTimer > 0) {
-        float t = m_bossIntroTimer;
-        float barH = 0;
-        float nameAlpha = 0;
-        if (t > 1.0f) {
-            // Bars growing (1.5s to 1.0s)
-            barH = (1.5f - t) / 0.5f * 60.0f;
-            barH = std::max(0.0f, std::min(60.0f, barH));
-        } else if (t > 0.3f) {
-            // Full bars + name
-            barH = 60.0f;
-            nameAlpha = 1.0f;
+        // Timeline: fade in 0.5s -> hold 1.5s -> fade out 0.5s (total 2.5s)
+        float elapsed = kBossIntroDuration - m_bossIntroTimer;
+        float contentAlpha = 0.0f;
+        if (elapsed < 0.5f) {
+            contentAlpha = elapsed / 0.5f;       // Fade in
+        } else if (elapsed < 2.0f) {
+            contentAlpha = 1.0f;                  // Hold
         } else {
-            // Fading out
-            barH = (t / 0.3f) * 60.0f;
-            nameAlpha = t / 0.3f;
+            contentAlpha = (kBossIntroDuration - elapsed) / 0.5f; // Fade out
         }
+        contentAlpha = std::max(0.0f, std::min(1.0f, contentAlpha));
+
+        // Dark overlay (full screen)
+        Uint8 overlayAlpha = static_cast<Uint8>(contentAlpha * 180);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, overlayAlpha);
+        SDL_Rect fullScreen = {0, 0, screenW, screenH};
+        SDL_RenderFillRect(renderer, &fullScreen);
+
+        // Cinematic bars (top and bottom)
+        float barH = contentAlpha * 60.0f;
         int bH = static_cast<int>(barH);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 220);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 240);
         SDL_Rect topBar = {0, 0, screenW, bH};
         SDL_Rect botBar = {0, screenH - bH, screenW, bH};
         SDL_RenderFillRect(renderer, &topBar);
         SDL_RenderFillRect(renderer, &botBar);
 
-        // Boss name in center (using basic SDL drawing, no font for simplicity)
-        if (nameAlpha > 0 && !m_bossName.empty()) {
-            Uint8 na = static_cast<Uint8>(nameAlpha * 200);
-            // Simple indicator line under boss area
-            SDL_SetRenderDrawColor(renderer, 180, 80, 255, na);
-            int lineW = static_cast<int>(m_bossName.size() * 14);
-            SDL_Rect nameLine = {screenW / 2 - lineW / 2, screenH / 2 + 20, lineW, 2};
-            SDL_RenderFillRect(renderer, &nameLine);
-            SDL_Rect nameLinetop = {screenW / 2 - lineW / 2, screenH / 2 - 22, lineW, 2};
-            SDL_RenderFillRect(renderer, &nameLinetop);
+        // Horizontal separator lines (red-purple glow)
+        if (contentAlpha > 0.1f) {
+            Uint8 lineA = static_cast<Uint8>(contentAlpha * 200);
+            int lineW = static_cast<int>(contentAlpha * screenW * 0.5f);
+            int lineX = screenW / 2 - lineW / 2;
+
+            // Top line (above boss name)
+            SDL_SetRenderDrawColor(renderer, 200, 50, 80, lineA);
+            SDL_Rect lineTop = {lineX, screenH / 2 - 28, lineW, 2};
+            SDL_RenderFillRect(renderer, &lineTop);
+            // Glow around top line
+            SDL_SetRenderDrawColor(renderer, 200, 50, 80, static_cast<Uint8>(lineA / 3));
+            SDL_Rect lineTopGlow = {lineX, screenH / 2 - 30, lineW, 6};
+            SDL_RenderFillRect(renderer, &lineTopGlow);
+
+            // Bottom line (below subtitle)
+            SDL_SetRenderDrawColor(renderer, 200, 50, 80, lineA);
+            SDL_Rect lineBot = {lineX, screenH / 2 + 30, lineW, 2};
+            SDL_RenderFillRect(renderer, &lineBot);
+            SDL_SetRenderDrawColor(renderer, 200, 50, 80, static_cast<Uint8>(lineA / 3));
+            SDL_Rect lineBotGlow = {lineX, screenH / 2 + 28, lineW, 6};
+            SDL_RenderFillRect(renderer, &lineBotGlow);
+        }
+
+        // Boss name text (large, white with red glow)
+        if (font && contentAlpha > 0.05f && !m_bossName.empty()) {
+            Uint8 textA = static_cast<Uint8>(contentAlpha * 255);
+
+            // Red glow behind text (rendered first, slightly larger/offset)
+            float pulse = 0.8f + 0.2f * std::sin(m_time * 4.0f);
+            Uint8 glowA = static_cast<Uint8>(contentAlpha * pulse * 120);
+            SDL_Color glowColor = {220, 40, 60, glowA};
+            SDL_Surface* glowSurf = TTF_RenderText_Blended(font, m_bossName.c_str(), glowColor);
+            if (glowSurf) {
+                SDL_Texture* glowTex = SDL_CreateTextureFromSurface(renderer, glowSurf);
+                if (glowTex) {
+                    SDL_SetTextureAlphaMod(glowTex, glowA);
+                    // Render glow slightly offset in multiple directions
+                    for (int dx = -2; dx <= 2; dx += 2) {
+                        for (int dy = -2; dy <= 2; dy += 2) {
+                            if (dx == 0 && dy == 0) continue;
+                            SDL_Rect gr = {screenW / 2 - glowSurf->w / 2 + dx,
+                                           screenH / 2 - glowSurf->h / 2 - 8 + dy,
+                                           glowSurf->w, glowSurf->h};
+                            SDL_RenderCopy(renderer, glowTex, nullptr, &gr);
+                        }
+                    }
+                    SDL_DestroyTexture(glowTex);
+                }
+                SDL_FreeSurface(glowSurf);
+            }
+
+            // Main boss name (white)
+            SDL_Color nameColor = {255, 255, 255, textA};
+            SDL_Surface* nameSurf = TTF_RenderText_Blended(font, m_bossName.c_str(), nameColor);
+            if (nameSurf) {
+                SDL_Texture* nameTex = SDL_CreateTextureFromSurface(renderer, nameSurf);
+                if (nameTex) {
+                    SDL_SetTextureAlphaMod(nameTex, textA);
+                    SDL_Rect nr = {screenW / 2 - nameSurf->w / 2,
+                                   screenH / 2 - nameSurf->h / 2 - 8,
+                                   nameSurf->w, nameSurf->h};
+                    SDL_RenderCopy(renderer, nameTex, nullptr, &nr);
+                    SDL_DestroyTexture(nameTex);
+                }
+                SDL_FreeSurface(nameSurf);
+            }
+
+            // Subtitle text (gray-purple, smaller — rendered at smaller scale)
+            if (!m_bossSubtitle.empty()) {
+                Uint8 subA = static_cast<Uint8>(contentAlpha * 180);
+                SDL_Color subColor = {180, 140, 200, subA};
+                SDL_Surface* subSurf = TTF_RenderText_Blended(font, m_bossSubtitle.c_str(), subColor);
+                if (subSurf) {
+                    SDL_Texture* subTex = SDL_CreateTextureFromSurface(renderer, subSurf);
+                    if (subTex) {
+                        SDL_SetTextureAlphaMod(subTex, subA);
+                        // Render subtitle slightly smaller (75% scale)
+                        int subW = subSurf->w * 3 / 4;
+                        int subH = subSurf->h * 3 / 4;
+                        SDL_Rect sr = {screenW / 2 - subW / 2,
+                                       screenH / 2 + 10,
+                                       subW, subH};
+                        SDL_RenderCopy(renderer, subTex, nullptr, &sr);
+                        SDL_DestroyTexture(subTex);
+                    }
+                    SDL_FreeSurface(subSurf);
+                }
+            }
         }
     }
 
@@ -198,9 +281,10 @@ void ScreenEffects::triggerKillFlash() {
     m_killFlashTimer = 0.05f;
 }
 
-void ScreenEffects::triggerBossIntro(const char* bossName) {
-    m_bossIntroTimer = 1.5f;
+void ScreenEffects::triggerBossIntro(const char* bossName, const char* subtitle) {
+    m_bossIntroTimer = kBossIntroDuration;
     m_bossName = bossName;
+    m_bossSubtitle = subtitle ? subtitle : "";
 }
 
 void ScreenEffects::triggerDimensionRipple() {

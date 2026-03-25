@@ -19,6 +19,7 @@
 #include "States/EndingState.h"
 #include "States/RunHistoryState.h"
 #include "States/DailyLeaderboardState.h"
+#include "States/CreditsState.h"
 #include <SDL2/SDL_image.h>
 #include <fstream>
 #include <sstream>
@@ -107,6 +108,7 @@ bool Game::init() {
     m_states[StateID::Ending] = std::make_unique<EndingState>();
     m_states[StateID::RunHistory] = std::make_unique<RunHistoryState>();
     m_states[StateID::DailyLeaderboard] = std::make_unique<DailyLeaderboardState>();
+    m_states[StateID::Credits] = std::make_unique<CreditsState>();
 
     for (auto& [id, state] : m_states) {
         state->game = this;

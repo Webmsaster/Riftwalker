@@ -500,14 +500,17 @@ void PlayState::render(SDL_Renderer* renderer) {
         SDL_RenderFillRect(renderer, &fullScreen);
     }
 
-    // Screen effects (vignette, low-HP pulse, kill flash, boss intro, ripple, glitch)
-    m_screenEffects.render(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+    // Screen effects (vignette, low-HP pulse, kill flash, boss intro title card, ripple, glitch)
+    m_screenEffects.render(renderer, SCREEN_WIDTH, SCREEN_HEIGHT, game->getFont());
 
     // Damage flash overlay
     m_hud.renderFlash(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // Dynamic level event overlay (announcement + timer bar)
     renderDynamicEventOverlay(renderer, game->getFont());
+
+    // Zone transition banner (non-blocking, on zone change)
+    renderZoneTransition(renderer, game->getFont());
 
     // Wave/area clear celebration text
     if (m_waveClearTimer > 0 && game->getFont()) {
@@ -581,6 +584,11 @@ void PlayState::render(SDL_Renderer* renderer) {
 
     // Death sequence overlay: red vignette + desaturation effect
     renderDeathSequence(renderer);
+
+    // Run intro overlay (atmospheric story text)
+    if (m_runIntroActive) {
+        renderRunIntro(renderer, game->getFont());
+    }
 
     // Debug overlay (F3)
     if (m_showDebugOverlay) {
