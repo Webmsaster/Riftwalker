@@ -11,6 +11,7 @@
 #include "Game/RelicSystem.h"
 #include "Core/AudioManager.h"
 #include "Core/ResourceManager.h"
+#include "Systems/ParticleSystem.h"
 #include <cstdlib>
 
 // Pickup spritesheet: assets/textures/pickups/pickups.png
@@ -53,7 +54,11 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
                 auto& rc = other->getComponent<RelicComponent>();
                 if (RelicSystem::hasVampiricEdge(rc)) {
                     // Destroy orb without healing (still consumed, just wasted)
-                    AudioManager::instance().play(SFX::Pickup);
+                    AudioManager::instance().play(SFX::RiftFail);
+                    if (player->particles && self->hasComponent<TransformComponent>()) {
+                        auto& st = self->getComponent<TransformComponent>();
+                        player->particles->burst(st.getCenter(), 6, {100, 30, 30, 255}, 60.0f);
+                    }
                     self->destroy();
                     return;
                 }
@@ -62,6 +67,11 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
             // BALANCE: Health orb heal 20 -> 30 (25% of base HP, meaningful recovery)
             hp.heal(30.0f);
             AudioManager::instance().play(SFX::Pickup);
+            // Collection particle burst (green)
+            if (player && player->particles) {
+                auto& st = self->getComponent<TransformComponent>();
+                player->particles->burst(st.getCenter(), 8, {80, 230, 80, 255}, 120.0f);
+            }
             self->destroy();
         }
     };
@@ -97,6 +107,12 @@ Entity& ItemDrop::spawnRiftShard(EntityManager& entities, Vec2 pos, int dimensio
             // Add shards to player's pending counter (consumed by PlayState each frame)
             if (player) {
                 player->riftShardsCollected += value;
+                // Collection particle burst (purple/gold)
+                if (player->particles && self->hasComponent<TransformComponent>()) {
+                    auto& st = self->getComponent<TransformComponent>();
+                    player->particles->burst(st.getCenter(), 6, {180, 130, 255, 255}, 100.0f);
+                    player->particles->burst(st.getCenter(), 4, {255, 220, 80, 255}, 80.0f);
+                }
             }
             AudioManager::instance().play(SFX::Pickup);
             self->destroy();
@@ -135,6 +151,10 @@ Entity& ItemDrop::spawnShieldOrb(EntityManager& entities, Vec2 pos, int dimensio
             player->shieldTimer = 8.0f;
             player->pickupShieldPending = true;
             AudioManager::instance().play(SFX::Pickup);
+            if (player->particles && self->hasComponent<TransformComponent>()) {
+                auto& st = self->getComponent<TransformComponent>();
+                player->particles->burst(st.getCenter(), 10, {100, 180, 255, 255}, 130.0f);
+            }
             self->destroy();
         }
     };
@@ -170,6 +190,10 @@ Entity& ItemDrop::spawnSpeedBoost(EntityManager& entities, Vec2 pos, int dimensi
             player->speedBoostTimer = 6.0f;
             player->pickupSpeedPending = true;
             AudioManager::instance().play(SFX::Pickup);
+            if (player->particles && self->hasComponent<TransformComponent>()) {
+                auto& st = self->getComponent<TransformComponent>();
+                player->particles->burst(st.getCenter(), 8, {255, 255, 80, 255}, 110.0f);
+            }
             self->destroy();
         }
     };
@@ -205,6 +229,10 @@ Entity& ItemDrop::spawnDamageBoost(EntityManager& entities, Vec2 pos, int dimens
             player->damageBoostTimer = 8.0f;
             player->pickupDamagePending = true;
             AudioManager::instance().play(SFX::Pickup);
+            if (player->particles && self->hasComponent<TransformComponent>()) {
+                auto& st = self->getComponent<TransformComponent>();
+                player->particles->burst(st.getCenter(), 8, {255, 80, 80, 255}, 110.0f);
+            }
             self->destroy();
         }
     };
