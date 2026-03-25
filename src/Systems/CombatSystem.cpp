@@ -797,13 +797,19 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
-            // Entropy Scythe: reduce entropy by 2 on successful melee hit
+            // Entropy Scythe: reduce entropy on successful melee hit
+            // EntropyDrain synergy (EntropyScythe + EntropySponge): 5.0 instead of 2.0
             if (isPlayer && !shieldBlocked && m_suitEntropy &&
                 combat.currentMelee == WeaponID::EntropyScythe &&
                 (combat.currentAttack == AttackType::Melee ||
                  combat.currentAttack == AttackType::Charged ||
                  combat.currentAttack == AttackType::Dash)) {
-                m_suitEntropy->reduceEntropy(2.0f);
+                float entropyReduction = 2.0f;
+                if (attacker.hasComponent<RelicComponent>()) {
+                    entropyReduction = RelicSynergy::getEntropyDrainReduction(
+                        attacker.getComponent<RelicComponent>(), combat.currentMelee);
+                }
+                m_suitEntropy->reduceEntropy(entropyReduction);
                 if (m_particles) {
                     // Green entropy-drain particles flowing toward player
                     Vec2 playerPos = transform.getCenter();
@@ -823,6 +829,40 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     Vec2 sparkPos = {targetCenter.x + hitDir.x * 20.0f * t,
                                      targetCenter.y + hitDir.y * 20.0f * t};
                     m_particles->burst(sparkPos, 3, {255, 180, 60, 220}, 60.0f, 1.5f);
+                }
+
+                // ChainReaction synergy (ChainWhip + ChainLightning): spawn chain lightning bolt at hit position
+                if (attacker.hasComponent<RelicComponent>()) {
+                    auto& relics = attacker.getComponent<RelicComponent>();
+                    if (RelicSynergy::isChainReactionActive(relics, combat.currentMelee)) {
+                        float chainDmg = RelicSystem::getChainLightningDamage(relics);
+                        if (chainDmg <= 0) chainDmg = 15.0f; // Fallback if relic not owned standalone
+                        float nearestDist = 150.0f;
+                        Entity* nearestTarget = nullptr;
+                        entities.forEach([&](Entity& nearby) {
+                            if (&nearby == &target || !nearby.isAlive()) return;
+                            if (nearby.getTag().find("enemy") == std::string::npos) return;
+                            if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
+                            if (nearby.dimension != 0 && nearby.dimension != currentDim) return;
+                            auto& nt = nearby.getComponent<TransformComponent>();
+                            float dx2 = nt.getCenter().x - targetCenter.x;
+                            float dy2 = nt.getCenter().y - targetCenter.y;
+                            float dist2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
+                            if (dist2 < nearestDist) {
+                                nearestDist = dist2;
+                                nearestTarget = &nearby;
+                            }
+                        });
+                        if (nearestTarget) {
+                            nearestTarget->getComponent<HealthComponent>().takeDamage(chainDmg);
+                            auto& nt = nearestTarget->getComponent<TransformComponent>();
+                            m_damageEvents.push_back({nt.getCenter(), chainDmg, false, false});
+                            if (m_particles) {
+                                m_particles->burst(nt.getCenter(), 8, {255, 255, 80, 255}, 150.0f, 2.0f);
+                                m_particles->burst(targetCenter, 4, {255, 255, 120, 255}, 100.0f, 1.5f);
+                            }
+                        }
+                    }
                 }
             }
 

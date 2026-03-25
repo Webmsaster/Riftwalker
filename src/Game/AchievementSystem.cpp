@@ -44,6 +44,12 @@ void AchievementSystem::init() {
         {"combo_legend",    "Combo Legend",       "Reach a 15-hit combo",                        "+5% Combo DMG"},
         {"dash_slayer",     "Dash Slayer",        "Kill 10 enemies with dash in one run",        "-5% Dash CD"},
         {"charged_fury",    "Charged Fury",       "Kill 3 enemies with charged attacks in one run","+5% Melee DMG"},
+        // New content achievements
+        {"entropy_master",  "Entropy Master",     "Complete a floor using only Entropy Scythe",     "+3% Entropy Decay"},
+        {"quest_helper",    "Helpful Traveler",   "Complete 5 NPC quests",                          "+5% Shard Drop"},
+        {"speed_demon",     "Speed Demon",        "Complete the game in under 10 minutes",          "+5% Move Speed"},
+        {"weapon_collector","Arsenal Master",     "Unlock all 10 weapons",                          "+3% All DMG"},
+        {"dimension_dancer","Dimension Dancer",   "Switch dimensions 50 times in one run",          "-5% Switch CD"},
     };
 }
 
@@ -142,6 +148,12 @@ AchievementBonuses AchievementSystem::getUnlockedBonuses() const {
         else if (a.id == "combo_legend")     b.comboDamageBonus += 0.05f;
         else if (a.id == "dash_slayer")      b.dashCooldownMult *= 0.95f;
         else if (a.id == "charged_fury")     b.meleeDamageMult *= 1.05f;
+        // New content achievements
+        else if (a.id == "entropy_master")   b.entropyDecayMult *= 1.03f;
+        else if (a.id == "quest_helper")     b.shardDropMult *= 1.05f;
+        else if (a.id == "speed_demon")      b.moveSpeedMult *= 1.05f;
+        else if (a.id == "weapon_collector") b.allDamageMult *= 1.03f;
+        else if (a.id == "dimension_dancer") b.switchCooldownMult *= 0.95f;
     }
     return b;
 }

@@ -25,6 +25,7 @@ struct AchievementBonuses {
     float armorBonus = 0;
     float dotDurationMult = 1.0f;   // < 1.0 = shorter DOTs
     float allDamageMult = 1.0f;
+    float entropyDecayMult = 1.0f;  // > 1.0 = faster entropy decay (reduction)
 };
 
 // Notification popup data

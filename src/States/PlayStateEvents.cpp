@@ -1034,5 +1034,16 @@ void PlayState::checkUnlockConditions() {
         m_aoeKillCountThisRun = 0;
         pushUnlockNotification("Rift Shotgun", true);
     }
+
+    // Arsenal Master: all 10 weapons unlocked
+    if (!game->getAchievements().isUnlocked("weapon_collector")) {
+        int unlockedCount = 0;
+        for (int w = 0; w < static_cast<int>(WeaponID::COUNT); w++) {
+            if (WeaponSystem::isUnlocked(static_cast<WeaponID>(w))) unlockedCount++;
+        }
+        if (unlockedCount >= static_cast<int>(WeaponID::COUNT)) {
+            game->getAchievements().unlock("weapon_collector");
+        }
+    }
 }
 

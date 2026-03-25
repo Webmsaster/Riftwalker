@@ -101,6 +101,8 @@ void PlayState::startNewRun() {
     m_dashKillsThisRun = 0;
     m_chargedKillsThisRun = 0;
     m_tookDamageThisLevel = false;
+    m_usedNonScytheMelee = false;
+    m_questsCompletedTotal = 0;
     m_dimensionSwitches = 0;
     m_totalDamageTaken = 0;
     m_pendingLevelGen = false;
@@ -302,6 +304,7 @@ void PlayState::generateLevel() {
     m_collapseTimer = 0;
     m_teleportCooldown = 0;
     m_tookDamageThisLevel = false;
+    m_usedNonScytheMelee = false; // Reset per-floor for entropy_master achievement
 
     // Dynamic level events: disable on boss levels, reset cooldown
     m_dynamicEventsEnabled = !m_isBossLevel;
@@ -544,7 +547,7 @@ void PlayState::applyUpgrades() {
     combat.rangedAttack.damage = 15.0f * upgrades.getRangedDamageMultiplier() * achBonus.rangedDamageMult * achBonus.allDamageMult;
 
     m_dimManager.switchCooldown = 0.5f * upgrades.getSwitchCooldownMultiplier() * achBonus.switchCooldownMult;
-    m_entropy.passiveDecay = upgrades.getEntropyDecay();
+    m_entropy.passiveDecay = upgrades.getEntropyDecay() * achBonus.entropyDecayMult;
     // FIX: EntropyResistance upgrade was purchased but never applied (same pattern as WallSlide)
     // Cap at 0.8 so entropy never becomes completely trivial
     m_entropy.upgradeResistance = 1.0f - std::min(upgrades.getEntropyResistance(), 0.8f);

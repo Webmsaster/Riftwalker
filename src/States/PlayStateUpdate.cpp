@@ -59,6 +59,10 @@ void PlayState::updateDimensionSwitch() {
             m_camera.shake(3.0f, 0.1f); // Feedback: can't switch
         } else if (m_dimManager.switchDimension()) {
             m_dimensionSwitches++; // Track total dimension switches for run summary
+            // Dimension Dancer: 50 dimension switches in one run
+            if (m_dimensionSwitches >= 50) {
+                game->getAchievements().unlock("dimension_dancer");
+            }
             if (m_smokeTest) {
                 smokeLog("[SMOKE] DIM_STARTED floor=%d seed=%d current=%d switching=%d cooldown=%.2f",
                          m_currentDifficulty,
@@ -793,7 +797,16 @@ void PlayState::updateStatusEffects(float dt) {
     if (m_player && m_player->isDashing) m_hasDashedThisRun = true;
     if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
         auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
-        if (combat.isAttacking) m_hasAttackedThisRun = true;
+        if (combat.isAttacking) {
+            m_hasAttackedThisRun = true;
+            // Track non-Scythe melee for entropy_master achievement
+            if (combat.currentAttack == AttackType::Melee ||
+                combat.currentAttack == AttackType::Charged) {
+                if (combat.currentMelee != WeaponID::EntropyScythe) {
+                    m_usedNonScytheMelee = true;
+                }
+            }
+        }
     }
     if (game->getInput().isActionPressed(Action::RangedAttack)) m_hasRangedThisRun = true;
     if (m_player && m_player->getEntity()->hasComponent<AbilityComponent>()) {
@@ -1268,4 +1281,10 @@ void PlayState::completeQuest() {
     }
     m_camera.shake(6.0f, 0.25f);
     m_questCompleteTimer = 3.0f; // Show completion popup for 3 seconds
+
+    // Helpful Traveler: complete 5 NPC quests total across one run
+    m_questsCompletedTotal++;
+    if (m_questsCompletedTotal >= 5) {
+        game->getAchievements().unlock("quest_helper");
+    }
 }

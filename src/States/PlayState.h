@@ -233,6 +233,10 @@ private:
     int m_chargedKillsThisRun = 0;
     bool m_tookDamageThisLevel = false;
 
+    // Achievement tracking: entropy_master (only Entropy Scythe used on floor)
+    bool m_usedNonScytheMelee = false;  // Set true if any non-Scythe melee attack fires
+    int m_questsCompletedTotal = 0;     // Persistent count for quest_helper achievement
+
     // Extended run stats (for RunSummaryState)
     int m_dimensionSwitches = 0;
     int m_totalDamageTaken = 0;

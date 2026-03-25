@@ -202,6 +202,10 @@ void PlayState::checkExitReached() {
         if (!m_tookDamageThisLevel) {
             game->getAchievements().unlock("flawless_floor");
         }
+        // Entropy Master: completed floor using only Entropy Scythe (no other melee)
+        if (m_hasAttackedThisRun && !m_usedNonScytheMelee) {
+            game->getAchievements().unlock("entropy_master");
+        }
         if (m_smokeTest) {
             smokeLog("[SMOKE] LEVEL %d COMPLETE! (%.1fs)", m_currentDifficulty, m_smokeRunTime);
             if (g_smokeRegression) {

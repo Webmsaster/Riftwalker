@@ -16,6 +16,8 @@ void EndingState::enter() {
     // Priority: speedrunner > destroyer > healer (default)
     if (totalTime > 0.0f && totalTime < 600.0f) {
         m_endingType = 2; // Speedrunner: completed in under 10 minutes
+        // Speed Demon: complete the game in under 10 minutes
+        if (game) game->getAchievements().unlock("speed_demon");
     } else if (totalKills >= 200) {
         m_endingType = 1; // Destroyer: 200+ kills
     } else {
