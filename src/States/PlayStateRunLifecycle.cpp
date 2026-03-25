@@ -219,6 +219,8 @@ void PlayState::startNewRun() {
 void PlayState::generateLevel() {
     m_entities.clear();
     m_particles.clear();
+    m_damageNumbers.clear();
+    m_trails.clear();
 
     m_levelGen.setThemes(m_themeA, m_themeB);
     m_level = std::make_unique<Level>(m_levelGen.generate(m_currentDifficulty, m_runSeed + m_currentDifficulty));
