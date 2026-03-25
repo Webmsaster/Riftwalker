@@ -54,6 +54,19 @@ void Camera::follow(Vec2 target, float dt, Vec2 velocity, bool grounded) {
     // Inside dead zone + airborne: camera stays still vertically
 }
 
+void Camera::flash(float duration, Uint8 r, Uint8 g, Uint8 b) {
+    m_flashDuration = duration;
+    m_flashTimer = 0;
+    m_flashColor = {r, g, b, 255};
+}
+
+float Camera::getFlashAlpha() const {
+    if (m_flashDuration <= 0 || m_flashTimer >= m_flashDuration) return 0;
+    float progress = m_flashTimer / m_flashDuration;
+    // Quick fade-out: starts bright, decays fast
+    return (1.0f - progress) * (1.0f - progress);
+}
+
 void Camera::shake(float intensity, float duration) {
     float scaled = intensity * shakeMultiplier;
     // Keep the stronger shake — don't let weaker calls overwrite a big hit
@@ -66,6 +79,11 @@ void Camera::shake(float intensity, float duration) {
 }
 
 void Camera::update(float dt) {
+    // Update screen flash timer
+    if (m_flashDuration > 0 && m_flashTimer < m_flashDuration) {
+        m_flashTimer += dt;
+    }
+
     m_shakeOffset = {0, 0};
     if (m_shakeDuration > 0 && m_shakeTimer < m_shakeDuration) {
         m_shakeTimer += dt;

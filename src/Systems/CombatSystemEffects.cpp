@@ -327,37 +327,72 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
     // Read AI data before destroy
     bool wasMB = false;
     bool wasElite = false;
+    bool wasBoss = false;
     int targetElem = 0;
     int targetType = -1;
     if (target.hasComponent<AIComponent>()) {
         auto& tAI = target.getComponent<AIComponent>();
         wasMB = tAI.isMiniBoss;
         wasElite = tAI.isElite;
+        wasBoss = (tAI.enemyType == EnemyType::Boss);
         targetElem = static_cast<int>(tAI.element);
         targetType = static_cast<int>(tAI.enemyType);
     }
     target.destroy();
-    if (m_particles) {
-        m_particles->burst(targetCenter, 25, deathColor, 200.0f, 4.0f);
-        // Death launch: directional burst in kill direction
-        if (isPlayer) {
+
+    if (wasBoss && isPlayer) {
+        // === Epic boss death effects ===
+        // Massive particle burst (50 particles)
+        if (m_particles) {
+            m_particles->burst(targetCenter, 50, deathColor, 350.0f, 6.0f);
+            // Bright white core explosion
+            m_particles->burst(targetCenter, 30, {255, 255, 255, 255}, 280.0f, 5.0f);
+            // Expanding ring of particles (8 directions)
+            for (int i = 0; i < 8; i++) {
+                float angle = i * 45.0f;
+                m_particles->directionalBurst(targetCenter, 8, {255, 240, 200, 255},
+                                               angle, 20.0f, 320.0f, 5.0f);
+            }
+            // Kill-direction launch burst
             float launchDir = combat.attackDirection.x >= 0 ? 0.0f : 180.0f;
-            // Bias upward for charged/dash kills
             if (isChargedAttack) launchDir += (combat.attackDirection.x >= 0 ? -30.0f : 30.0f);
-            else if (isDashAttack) launchDir += (combat.attackDirection.x >= 0 ? -15.0f : 15.0f);
-            int launchCount = wasMB ? 20 : (wasElite ? 15 : 10);
-            float launchSpeed = wasMB ? 350.0f : (wasElite ? 300.0f : 250.0f);
-            m_particles->directionalBurst(targetCenter, launchCount, deathColor,
-                                           launchDir, 45.0f, launchSpeed, 3.5f);
+            m_particles->directionalBurst(targetCenter, 25, deathColor,
+                                           launchDir, 50.0f, 400.0f, 5.0f);
+        }
+        // Big screen shake (20px, 0.5s)
+        if (m_camera) {
+            m_camera->shake(20.0f, 0.5f);
+            // White screen flash
+            m_camera->flash(0.4f, 255, 255, 255);
+        }
+        // Long hitstop (0.25s)
+        m_pendingHitFreeze += 0.25f;
+        AudioManager::instance().play(SFX::BossShieldBurst); // Biggest boom SFX available
+    } else {
+        // === Normal / elite / mini-boss death effects ===
+        if (m_particles) {
+            m_particles->burst(targetCenter, 25, deathColor, 200.0f, 4.0f);
+            // Death launch: directional burst in kill direction
+            if (isPlayer) {
+                float launchDir = combat.attackDirection.x >= 0 ? 0.0f : 180.0f;
+                // Bias upward for charged/dash kills
+                if (isChargedAttack) launchDir += (combat.attackDirection.x >= 0 ? -30.0f : 30.0f);
+                else if (isDashAttack) launchDir += (combat.attackDirection.x >= 0 ? -15.0f : 15.0f);
+                int launchCount = wasMB ? 20 : (wasElite ? 15 : 10);
+                float launchSpeed = wasMB ? 350.0f : (wasElite ? 300.0f : 250.0f);
+                m_particles->directionalBurst(targetCenter, launchCount, deathColor,
+                                               launchDir, 45.0f, launchSpeed, 3.5f);
+            }
+        }
+        // Bigger shake on kill (extra for mini-bosses and elites)
+        if (m_camera && isPlayer) {
+            m_camera->shake(wasMB ? 12.0f : (wasElite ? 10.0f : 8.0f),
+                            wasMB ? 0.35f : (wasElite ? 0.3f : 0.2f));
         }
     }
+
     emitElementDeathFX(targetCenter, targetElem);
     if (targetType >= 0) emitEnemyTypeDeathFX(targetCenter, targetType, deathColor);
-    // Bigger shake on kill (extra for mini-bosses and elites)
-    if (m_camera && isPlayer) {
-        m_camera->shake(wasMB ? 12.0f : (wasElite ? 10.0f : 8.0f),
-                        wasMB ? 0.35f : (wasElite ? 0.3f : 0.2f));
-    }
 }
 
 void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,

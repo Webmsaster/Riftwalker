@@ -506,6 +506,19 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Damage flash overlay
     m_hud.renderFlash(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+    // Camera screen flash (boss death white flash, etc.)
+    {
+        float flashAlpha = m_camera.getFlashAlpha();
+        if (flashAlpha > 0) {
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_Color fc = m_camera.getFlashColor();
+            Uint8 a = static_cast<Uint8>(std::min(255.0f, flashAlpha * 200.0f));
+            SDL_SetRenderDrawColor(renderer, fc.r, fc.g, fc.b, a);
+            SDL_Rect fullScreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+            SDL_RenderFillRect(renderer, &fullScreen);
+        }
+    }
+
     // Dynamic level event overlay (announcement + timer bar)
     renderDynamicEventOverlay(renderer, game->getFont());
 

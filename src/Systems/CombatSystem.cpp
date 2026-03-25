@@ -627,7 +627,9 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 if (isDashAttack) {
                     m_pendingHitFreeze += 0.1f;
                 } else if (isPlayer) {
-                    float freezeBase = isCrit ? 0.1f : 0.05f;
+                    // Subtle hitstop on every melee hit (0.03s base),
+                    // crits get more punch (0.1s), scales up with combo stage
+                    float freezeBase = isCrit ? 0.1f : 0.03f;
                     m_pendingHitFreeze += freezeBase + comboStage * 0.03f;
                 } else {
                     m_pendingHitFreeze += 0.06f;

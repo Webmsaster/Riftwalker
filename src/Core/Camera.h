@@ -20,6 +20,7 @@ public:
 
     void follow(Vec2 target, float dt, Vec2 velocity = {0, 0}, bool grounded = false);
     void shake(float intensity, float duration);
+    void flash(float duration, Uint8 r = 255, Uint8 g = 255, Uint8 b = 255);
     void update(float dt);
 
     float lookAheadStrength = 60.0f;
@@ -39,6 +40,10 @@ public:
     // Screen shake intensity multiplier (0.0 = off, 1.0 = full)
     float shakeMultiplier = 1.0f;
 
+    // Screen flash (white flash on boss death, etc.)
+    float getFlashAlpha() const;
+    SDL_Color getFlashColor() const { return m_flashColor; }
+
 private:
     Vec2 m_position;
     Vec2 m_target;
@@ -54,6 +59,11 @@ private:
     // Look-ahead
     Vec2 m_lookAhead;
     Vec2 m_lookAheadSmooth;
+
+    // Screen flash
+    float m_flashTimer = 0;
+    float m_flashDuration = 0;
+    SDL_Color m_flashColor = {255, 255, 255, 255};
 
     // Bounds
     bool m_hasBounds = false;
