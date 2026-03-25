@@ -27,6 +27,16 @@ No test framework. Manual testing via debug keys in PlayState:
 - **F3** — Debug overlay (entity counts, balance stats, performance)
 - **F4** — Balance snapshot (writes stats to file for tuning)
 
+Automated playtest system via CLI:
+```bash
+# Single playtest run
+build/Release/Riftwalker.exe --playtest --playtest-runs=3 --playtest-class=voidwalker --playtest-profile=balanced
+
+# Parallel playtests (all classes × all profiles)
+python tools/run_playtests.py --quick
+```
+Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victory) in ~1300s.
+
 ## Architecture (Riftwalker)
 
 **ECS Pattern** — Components hold data, Systems hold logic, Entities combine them:
@@ -40,7 +50,7 @@ No test framework. Manual testing via debug keys in PlayState:
 - `Game` (persistent across runs) owns: UpgradeSystem, AchievementSystem, RunBuffSystem, LoreSystem, state machine, font, window
 - `PlayState` (per-run) owns: all ECS systems, EntityManager, Player, Level, Camera, DimensionManager, RelicSystem, and all per-run mechanics
 
-**State Machine** — `Game` owns a `map<StateID, unique_ptr<GameState>>` plus a state stack. `changeState()` replaces the current state; `pushState()`/`popState()` for overlay states (e.g. Pause over Play). Screen transitions use fade in/out. 16 states defined in `StateID` enum (`src/States/GameState.h`).
+**State Machine** — `Game` owns a `map<StateID, unique_ptr<GameState>>` plus a state stack. `changeState()` replaces the current state; `pushState()`/`popState()` for overlay states (e.g. Pause over Play). Screen transitions use fade in/out. 19 states defined in `StateID` enum (`src/States/GameState.h`).
 
 **Game Loop** — Fixed timestep physics in `Game::run()`. Timer controls step rate; InputManager buffers press/release events, cleared via `clearPressedBuffers()` after each fixed step.
 
@@ -53,11 +63,22 @@ No test framework. Manual testing via debug keys in PlayState:
 **Input System** — `InputManager` maps `Action` enums to `SDL_Scancode` via rebindable key bindings. Supports gamepad. `SuitEntropy` can inject input distortion.
 
 **Key Game Systems** (all in `src/Game/`):
-- `LevelGenerator` — Procedural level generation with spawn waves
+- `LevelGenerator` — Procedural level generation with spawn waves, 30-floor zone system
 - `SuitEntropy` — Core mechanic (suit degradation affecting gameplay)
 - `UpgradeSystem` — Persistent upgrades, serialized to `riftwalker_save.dat`
-- `RelicSystem` / `RelicSynergy` — Run-specific relic pickups with synergy combos
-- `WeaponSystem`, `ClassSystem`, `AscensionSystem`, `ChallengeMode`, `NPCSystem`, `Bestiary`, `LoreSystem`, `DailyRun`
+- `RelicSystem` / `RelicSynergy` — 38 relics with 19 synergy combos
+- `WeaponSystem` — 3 melee + 4 ranged weapons with mastery tiers
+- `ClassSystem` — 4 classes: Voidwalker, Berserker, Phantom, Technomancer
+- `AscensionSystem` — NG+ tiers 1-5 with progressive difficulty
+- `LoreSystem` — 12 discoverable lore fragments with in-game triggers
+- `DimensionShiftBalance.h` — Per-floor rift counts, enemy scaling, zone multipliers
+- `ChallengeMode`, `NPCSystem`, `Bestiary`, `DailyRun`
+
+**Narrative Presentation** (added in `PlayState`):
+- Boss intro title cards (2.5s cinematic freeze with name + subtitle)
+- Zone transition banners (3s non-blocking overlay)
+- Run start narrative (3.5s, different text for NG+)
+- Credits screen (`CreditsState`)
 
 **Save Files** (text-based, in working directory):
 - `riftwalker_save.dat` — Persistent upgrades
