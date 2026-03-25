@@ -227,8 +227,8 @@ void Player::update(float dt, const InputManager& input) {
 
     // Weapon switch: Q = melee, R = ranged
     if (weaponSwitchCooldown > 0) weaponSwitchCooldown -= dt;
-    if (input.isKeyPressed(SDL_SCANCODE_Q) || input.isKeyDown(SDL_SCANCODE_Q) && weaponSwitchCooldown <= 0) switchMelee();
-    if (input.isKeyPressed(SDL_SCANCODE_R) || input.isKeyDown(SDL_SCANCODE_R) && weaponSwitchCooldown <= 0) switchRanged();
+    if ((input.isKeyPressed(SDL_SCANCODE_Q) || input.isKeyDown(SDL_SCANCODE_Q)) && weaponSwitchCooldown <= 0) switchMelee();
+    if ((input.isKeyPressed(SDL_SCANCODE_R) || input.isKeyDown(SDL_SCANCODE_R)) && weaponSwitchCooldown <= 0) switchRanged();
 
     // Advance animation timer
     auto& sprite = m_entity->getComponent<SpriteComponent>();
