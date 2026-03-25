@@ -56,8 +56,8 @@ def run_single_playtest(exe, cls, profile, runs, seed, output_dir):
         cmd.append(f"--seed={seed}")
 
     start = time.time()
-    # Each run can take up to 10 minutes (bots need ~60-80s per floor, 30 floors max)
-    timeout_sec = runs * 600 + 180
+    # Each run can take up to 45 minutes (bots need ~40-60s per floor, 30 floors max)
+    timeout_sec = runs * 2700 + 300
     try:
         result = subprocess.run(cmd, capture_output=True, timeout=timeout_sec)
         duration = time.time() - start

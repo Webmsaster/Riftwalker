@@ -727,7 +727,8 @@ void PlayState::update(float dt) {
     // Level complete transition
     if (m_levelComplete) {
         m_levelCompleteTimer += dt;
-        if (m_levelCompleteTimer >= 2.0f) {
+        float transitionTime = m_playtest ? 0.1f : 2.0f; // Skip transition delay for playtest bots
+        if (m_levelCompleteTimer >= transitionTime) {
             roomsCleared++;
 
             if (m_voidSovereignDefeated) {

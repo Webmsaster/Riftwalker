@@ -14,74 +14,75 @@ struct DimensionShiftFloorBalance {
 
 inline constexpr std::array<DimensionShiftFloorBalance, 30> kDimensionShiftFloorBalance = {{
     // === ZONE 1: Fractured Threshold (Floors 1-6) — Tutorial & onboarding ===
+    // Rift counts reduced for pacing: fewer rifts = faster floors, more combat focus
     // Floor 1: tutorial floor, mostly DIM-A and low punishment.
-    {3, 2, 0.20f, 0.08f, 1.05f, 2.0f},
+    {2, 1, 0.20f, 0.08f, 1.05f, 2.0f},
     // Floor 2: still onboarding, introduce one meaningful DIM-B pull.
-    {3, 2, 0.25f, 0.12f, 1.08f, 2.5f},
+    {2, 1, 0.25f, 0.12f, 1.08f, 2.5f},
     // Floor 3: first mid-boss test, gentle DIM-B introduction.
-    {4, 1, 0.30f, 0.15f, 1.10f, 3.0f},
+    {3, 1, 0.30f, 0.15f, 1.10f, 3.0f},
     // Floor 4: deliberate shifts start, player learns risk/reward.
-    {4, 1, 0.35f, 0.20f, 1.15f, 3.5f},
+    {3, 1, 0.35f, 0.20f, 1.15f, 3.5f},
     // Floor 5: near-even split, reward starts to matter.
-    {5, 1, 0.40f, 0.25f, 1.18f, 4.0f},
+    {3, 1, 0.40f, 0.25f, 1.18f, 4.0f},
     // Floor 6: zone boss — meaningful DIM-B test.
-    {5, 0, 0.45f, 0.30f, 1.22f, 5.0f},
+    {4, 0, 0.45f, 0.30f, 1.22f, 5.0f},
 
     // === ZONE 2: Shifting Depths (Floors 7-12) — Escalation ===
     // Floor 7: breather after zone boss, but stakes rising.
-    {5, 0, 0.45f, 0.35f, 1.25f, 5.5f},
+    {3, 0, 0.45f, 0.35f, 1.25f, 5.5f},
     // Floor 8: hazards intensify, DIM-B becomes rewarding.
-    {5, 0, 0.50f, 0.40f, 1.30f, 6.0f},
+    {4, 0, 0.50f, 0.40f, 1.30f, 6.0f},
     // Floor 9: mid-boss with real DIM-B pressure.
-    {6, 0, 0.50f, 0.48f, 1.35f, 6.5f},
+    {4, 0, 0.50f, 0.48f, 1.35f, 6.5f},
     // Floor 10: DIM-B pulls are now standard.
-    {6, 0, 0.55f, 0.55f, 1.40f, 7.0f},
+    {4, 0, 0.55f, 0.55f, 1.40f, 7.0f},
     // Floor 11: near-dominance of DIM-B objectives.
-    {6, 0, 0.60f, 0.62f, 1.45f, 8.0f},
+    {4, 0, 0.60f, 0.62f, 1.45f, 8.0f},
     // Floor 12: zone boss — DIM-B mastery check.
-    {6, 0, 0.65f, 0.70f, 1.50f, 9.0f},
+    {5, 0, 0.65f, 0.70f, 1.50f, 9.0f},
 
     // === ZONE 3: Resonant Core (Floors 13-18) — Midgame peak ===
     // Floor 13: breather, but all enemy types unlocked.
-    {6, 0, 0.60f, 0.65f, 1.50f, 9.0f},
+    {4, 0, 0.60f, 0.65f, 1.50f, 9.0f},
     // Floor 14: DIM-B is now the norm, DIM-A is the escape.
-    {6, 0, 0.65f, 0.75f, 1.55f, 10.0f},
+    {5, 0, 0.65f, 0.75f, 1.55f, 10.0f},
     // Floor 15: mid-boss, heavy DIM-B pressure.
-    {7, 0, 0.68f, 0.82f, 1.60f, 10.5f},
+    {5, 0, 0.68f, 0.82f, 1.60f, 10.5f},
     // Floor 16: high-risk high-reward.
-    {7, 0, 0.70f, 0.90f, 1.65f, 11.0f},
+    {5, 0, 0.70f, 0.90f, 1.65f, 11.0f},
     // Floor 17: near-total DIM-B commitment.
-    {7, 0, 0.72f, 0.98f, 1.70f, 12.0f},
+    {5, 0, 0.72f, 0.98f, 1.70f, 12.0f},
     // Floor 18: zone boss — ultimate DIM-B mastery.
-    {7, 0, 0.75f, 1.05f, 1.75f, 13.0f},
+    {6, 0, 0.75f, 1.05f, 1.75f, 13.0f},
 
     // === ZONE 4: Entropy Cascade (Floors 19-24) — Endgame ===
     // Floor 19: breather, but entropy pressure starts building.
-    {7, 0, 0.72f, 1.00f, 1.75f, 13.0f},
+    {5, 0, 0.72f, 1.00f, 1.75f, 13.0f},
     // Floor 20: DIM-B dominates, entropy drains fast.
-    {7, 0, 0.75f, 1.10f, 1.80f, 14.0f},
+    {5, 0, 0.75f, 1.10f, 1.80f, 14.0f},
     // Floor 21: mid-boss, punishing entropy.
-    {7, 0, 0.78f, 1.20f, 1.85f, 15.0f},
+    {6, 0, 0.78f, 1.20f, 1.85f, 15.0f},
     // Floor 22: near-total DIM-B, massive rewards.
-    {8, 0, 0.80f, 1.30f, 1.90f, 16.0f},
+    {6, 0, 0.80f, 1.30f, 1.90f, 16.0f},
     // Floor 23: almost all rifts in DIM-B.
-    {8, 0, 0.82f, 1.40f, 1.95f, 17.0f},
+    {6, 0, 0.82f, 1.40f, 1.95f, 17.0f},
     // Floor 24: zone boss — entropy gauntlet.
-    {8, 0, 0.85f, 1.50f, 2.00f, 18.0f},
+    {6, 0, 0.85f, 1.50f, 2.00f, 18.0f},
 
     // === ZONE 5: The Sovereign's Domain (Floors 25-30) — Finale ===
     // Floor 25: breather before the end. Still brutal.
-    {8, 0, 0.82f, 1.45f, 2.00f, 18.0f},
+    {6, 0, 0.82f, 1.45f, 2.00f, 18.0f},
     // Floor 26: DIM-B is almost mandatory for rewards.
-    {8, 0, 0.85f, 1.55f, 2.10f, 19.0f},
+    {6, 0, 0.85f, 1.55f, 2.10f, 19.0f},
     // Floor 27: mid-boss, dual threat.
-    {8, 0, 0.87f, 1.65f, 2.20f, 20.0f},
+    {6, 0, 0.87f, 1.65f, 2.20f, 20.0f},
     // Floor 28: maximum entropy pressure.
-    {9, 0, 0.88f, 1.75f, 2.30f, 22.0f},
+    {7, 0, 0.88f, 1.75f, 2.30f, 22.0f},
     // Floor 29: penultimate floor — survival gauntlet.
-    {9, 0, 0.90f, 1.85f, 2.40f, 24.0f},
+    {7, 0, 0.90f, 1.85f, 2.40f, 24.0f},
     // Floor 30: finale — the Sovereign awaits.
-    {9, 0, 0.92f, 2.00f, 2.50f, 26.0f},
+    {7, 0, 0.92f, 2.00f, 2.50f, 26.0f},
 }};
 
 inline const DimensionShiftFloorBalance& getDimensionShiftFloorBalance(int floor) {

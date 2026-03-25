@@ -687,8 +687,8 @@ void PlayState::updatePlaytest(float dt) {
 
     if (m_levelComplete) return;
 
-    // --- TIMEOUT --- (increased: bots need ~60-80s per floor, not 40s)
-    float timeoutSec = 600.0f + getZone(m_currentDifficulty) * 200.0f;
+    // --- TIMEOUT --- (bots need ~40-60s per floor × 30 floors = ~1500s minimum)
+    float timeoutSec = 1800.0f + getZone(m_currentDifficulty) * 300.0f;
     if (m_playtestRunTimer > timeoutSec) {
         playtestLog("  [%.0fs] TIMEOUT at F%d", m_playtestRunTimer, m_currentDifficulty);
         playtestOnDeath();
@@ -799,8 +799,8 @@ void PlayState::updatePlaytest(float dt) {
         if (m_ptHumanHesitation > 0) return; // Skip entire frame — frozen in shock
     }
     if (hpDiff < -hp.maxHP * 0.2f) {
-        // Big hit! Human hesitates 0.15-0.35s
-        m_ptHumanHesitation = 0.15f + static_cast<float>(std::rand() % 20) * 0.01f;
+        // Big hit! Human hesitates 0.08-0.18s (reduced — experienced player recovers faster)
+        m_ptHumanHesitation = 0.08f + static_cast<float>(std::rand() % 10) * 0.01f;
     }
 
     // Disorientation after dimension switch (0.1-0.2s of impaired movement)
@@ -812,12 +812,12 @@ void PlayState::updatePlaytest(float dt) {
         }
     }
 
-    // Occasional idle: human takes a breath, assesses situation (0.3-0.6s every 8-15s)
+    // Occasional idle: human takes a breath, assesses situation (0.15-0.3s every 20-35s)
     m_ptHumanIdleTimer -= dt;
     if (m_ptHumanIdleTimer <= 0) {
-        m_ptHumanIdleTimer = 8.0f + static_cast<float>(std::rand() % 70) * 0.1f;
-        // Brief pause — no combat or movement for a moment
-        m_playtestReactionTimer = 0.3f + static_cast<float>(std::rand() % 30) * 0.01f;
+        m_ptHumanIdleTimer = 20.0f + static_cast<float>(std::rand() % 150) * 0.1f;
+        // Brief pause — shorter than before to avoid wasting run time
+        m_playtestReactionTimer = 0.15f + static_cast<float>(std::rand() % 15) * 0.01f;
     }
 
     // Direction change smoothing: don't instantly reverse
@@ -1018,18 +1018,20 @@ void PlayState::updatePlaytest(float dt) {
     } else {
         m_ptNoProgressTimer += dt;
     }
-    float noProgThreshold = m_collapsing ? 3.0f : 5.0f; // Faster recovery from stuck states
+    float noProgThreshold = m_collapsing ? 2.0f : 3.0f; // Aggressive recovery — don't waste time
     if (m_ptNoProgressTimer > noProgThreshold) {
         m_ptNoProgressTimer = 0; m_ptBestDistToTarget = 99999.0f; m_ptNoProgressSkips++;
         auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
         if (m_ptNoProgressSkips <= 1) {
+            // First attempt: teleport near target + dim switch (skip useless spawn return)
+            transform.position = {target.x - 16.0f, target.y - 48.0f};
             inputMut.injectActionPress(Action::DimensionSwitch);
-            transform.position = m_level->getSpawnPoint();
-            phys.velocity = {0, 0}; m_ptLastCheckPos = m_level->getSpawnPoint();
+            phys.velocity = {0, 0}; m_ptLastCheckPos = transform.position;
             return;
         } else {
+            // Second attempt: teleport directly on target + interact
             transform.position = {target.x - 16.0f, target.y - 32.0f};
-            phys.velocity = {0, 0}; ptRecoveryGraceTimer = 1.5f;
+            phys.velocity = {0, 0}; ptRecoveryGraceTimer = 1.0f;
             if (!m_collapsing && targetRiftIdx >= 0 && m_level->isRiftActiveInDimension(targetRiftIdx, dim))
                 inputMut.injectActionPress(Action::Interact);
             m_ptLastCheckPos = target; m_ptNoProgressSkips = 0;
@@ -1043,16 +1045,17 @@ void PlayState::updatePlaytest(float dt) {
     if (moved < 30.0f) m_ptStuckTimer += dt;
     else { m_ptStuckTimer = 0; m_ptLastCheckPos = playerPos; }
 
-    if (m_ptStuckTimer > 3.0f && m_ptStuckTimer < 3.0f + dt * 3) inputMut.injectActionPress(Action::DimensionSwitch);
-    if (m_ptStuckTimer > 5.0f && m_ptStuckTimer < 5.0f + dt * 3) {
+    if (m_ptStuckTimer > 1.5f && m_ptStuckTimer < 1.5f + dt * 3) inputMut.injectActionPress(Action::DimensionSwitch);
+    if (m_ptStuckTimer > 2.5f && m_ptStuckTimer < 2.5f + dt * 3) {
         inputMut.injectActionPress(Action::Jump);
         inputMut.injectActionPress(dirX >= 0 ? Action::MoveLeft : Action::MoveRight);
     }
-    if (m_ptStuckTimer > 8.0f) {
+    if (m_ptStuckTimer > 4.0f) {
+        // Teleport near target instead of spawn — much faster recovery
         auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
-        transform.position = m_level->getSpawnPoint();
+        transform.position = {target.x - 16.0f, target.y - 48.0f};
         phys.velocity = {0, 0}; inputMut.injectActionPress(Action::DimensionSwitch);
-        m_ptStuckTimer = 0; m_ptLastCheckPos = m_level->getSpawnPoint();
+        m_ptStuckTimer = 0; m_ptLastCheckPos = transform.position;
         return;
     }
 
@@ -1118,16 +1121,15 @@ void PlayState::updatePlaytest(float dt) {
         else if (std::abs(dirY) > 200.0f)
             wantDir = ((int)(m_playtestRunTimer * 2) % 8 < 4) ? 1 : -1;
 
-        // Direction change smoothing: 80ms delay when reversing (human momentum)
+        // Direction change smoothing: 30ms delay when reversing (experienced player)
         if (wantDir != 0 && wantDir != m_ptHumanLastMoveDir && m_ptHumanDirChangeDelay > 0) {
-            // Still moving in old direction briefly (human can't instantly reverse)
             if (m_ptHumanLastMoveDir > 0) inputMut.injectActionPress(Action::MoveRight);
             else if (m_ptHumanLastMoveDir < 0) inputMut.injectActionPress(Action::MoveLeft);
         } else {
             if (wantDir > 0) inputMut.injectActionPress(Action::MoveRight);
             else if (wantDir < 0) inputMut.injectActionPress(Action::MoveLeft);
             if (wantDir != m_ptHumanLastMoveDir) {
-                m_ptHumanDirChangeDelay = 0.06f + static_cast<float>(std::rand() % 4) * 0.01f;
+                m_ptHumanDirChangeDelay = 0.02f + static_cast<float>(std::rand() % 2) * 0.01f;
                 m_ptHumanLastMoveDir = wantDir;
             }
         }
@@ -1508,9 +1510,9 @@ ptPostCombat:
         m_ptDimExploreTimer = exploreInterval + static_cast<float>(std::rand() % 30) * 0.1f;
     }
 
-    // Run success at floor 25+
-    if (m_currentDifficulty > 24 && m_playtestRunActive) {
-        playtestLog("  [%.0fs] === SUCCESS Floor %d ===", m_playtestRunTimer, m_currentDifficulty);
+    // Run success at floor 30+ (full game completion)
+    if (m_currentDifficulty > 30 && m_playtestRunActive) {
+        playtestLog("  [%.0fs] === VICTORY Floor %d ===", m_playtestRunTimer, m_currentDifficulty);
         playtestEndRun(true);
     }
 }

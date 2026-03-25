@@ -31,7 +31,8 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
     if (!m_levelComplete) return;
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    float progress = m_levelCompleteTimer / 2.0f; // 0 to 1 over 2 seconds
+    float transitionDur = m_playtest ? 0.1f : 2.0f;
+    float progress = m_levelCompleteTimer / transitionDur; // 0 to 1 over transition duration
     if (progress > 1.0f) progress = 1.0f;
     Uint32 ticks = SDL_GetTicks();
 
