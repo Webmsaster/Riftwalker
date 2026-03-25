@@ -40,13 +40,9 @@ void LevelGenerator::applyTemplate(Level& level, int startX, int startY,
                     }
                     break;
                 case 'R':
+                    // Treat as empty space — rifts are placed separately by addRifts()
+                    // to respect DimensionShiftBalance rift counts per floor
                     tile.type = TileType::Empty;
-                    if (dim == 1) { // Only place rift once (from dimension A)
-                        level.addRiftPosition({
-                            static_cast<float>(tx * 32),
-                            static_cast<float>(ty * 32)
-                        });
-                    }
                     break;
                 default:
                     tile.type = TileType::Empty;
