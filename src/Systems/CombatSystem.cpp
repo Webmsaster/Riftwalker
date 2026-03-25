@@ -19,6 +19,7 @@
 #include "Game/Bestiary.h"
 #include "Game/DimensionManager.h"
 #include "Game/WeaponSystem.h"
+#include "Game/SuitEntropy.h"
 #include <cmath>
 
 float CombatSystem::consumeHitFreeze() {
@@ -793,6 +794,35 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 if (attacker.hasComponent<HealthComponent>()) {
                     auto& attackerHP = attacker.getComponent<HealthComponent>();
                     attackerHP.heal(healAmount);
+                }
+            }
+
+            // Entropy Scythe: reduce entropy by 2 on successful melee hit
+            if (isPlayer && !shieldBlocked && m_suitEntropy &&
+                combat.currentMelee == WeaponID::EntropyScythe &&
+                (combat.currentAttack == AttackType::Melee ||
+                 combat.currentAttack == AttackType::Charged ||
+                 combat.currentAttack == AttackType::Dash)) {
+                m_suitEntropy->reduceEntropy(2.0f);
+                if (m_particles) {
+                    // Green entropy-drain particles flowing toward player
+                    Vec2 playerPos = transform.getCenter();
+                    m_particles->burst(targetCenter, 6, {80, 255, 120, 200}, 100.0f, 2.0f);
+                    m_particles->burst(playerPos, 4, {60, 200, 100, 180}, 40.0f, 1.5f);
+                }
+            }
+
+            // Chain Whip: visual piercing chain effect on hit
+            if (isPlayer && !shieldBlocked &&
+                combat.currentMelee == WeaponID::ChainWhip &&
+                combat.currentAttack == AttackType::Melee && m_particles) {
+                // Orange chain-link sparks along attack direction
+                Vec2 hitDir = combat.attackDirection;
+                for (int i = 0; i < 3; i++) {
+                    float t = (i + 1) * 0.3f;
+                    Vec2 sparkPos = {targetCenter.x + hitDir.x * 20.0f * t,
+                                     targetCenter.y + hitDir.y * 20.0f * t};
+                    m_particles->burst(sparkPos, 3, {255, 180, 60, 220}, 60.0f, 1.5f);
                 }
             }
 

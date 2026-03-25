@@ -57,6 +57,16 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
             createProjectile(entities, pos, combat.attackDirection,
                             projDamage, 500.0f, attacker.dimension, true, isPlayer);
             // No extra SFX each tick (too fast)
+        } else if (isPlayer && combat.currentRanged == WeaponID::DimLauncher) {
+            // Dimensional Launcher: projectile exists in both dimensions (dimension 0)
+            createProjectile(entities, pos, combat.attackDirection,
+                            projDamage, 300.0f, 0, false, isPlayer);
+            AudioManager::instance().play(SFX::RangedShot);
+            // Dimensional rift particles at launch point
+            if (m_particles) {
+                m_particles->burst(pos, 10, {180, 120, 255, 220}, 100.0f, 2.5f);
+                m_particles->burst(pos, 6, {100, 200, 255, 180}, 60.0f, 2.0f);
+            }
         } else {
             // RapidShards: ShardPistol + QuickHands → +30% proj speed, 25% double-shot
             float projSpeed = 400.0f;

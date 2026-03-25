@@ -214,6 +214,7 @@ void PlayState::startNewRun() {
     generateLevel();
     m_combatSystem.setPlayer(m_player.get());
     m_combatSystem.setDimensionManager(&m_dimManager);
+    m_combatSystem.setSuitEntropy(&m_entropy);
     m_hud.setCombatSystem(&m_combatSystem);
     m_hud.setNGPlusTier(m_ngPlusTier);
     m_aiSystem.setLevel(m_level.get());

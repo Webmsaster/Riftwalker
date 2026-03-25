@@ -43,6 +43,7 @@ public:
     void setDashRefreshOnKill(bool v) { m_dashRefreshOnKill = v; }
     bool getDashRefreshOnKill() const { return m_dashRefreshOnKill; }
     void setDimensionManager(class DimensionManager* dm) { m_dimMgr = dm; }
+    void setSuitEntropy(class SuitEntropy* se) { m_suitEntropy = se; }
 
     // Reset per-run state (call on new run start)
     void resetRunState() {
@@ -120,5 +121,6 @@ private:
     bool m_dashRefreshOnKill = false;
     class Player* m_player = nullptr;
     class DimensionManager* m_dimMgr = nullptr;
+    class SuitEntropy* m_suitEntropy = nullptr;
     std::vector<DamageEvent> m_damageEvents;
 };
