@@ -49,13 +49,14 @@ struct PlaytestProfile {
     int dashFrequency;      // 1/N
     float exploreFrequency;
     bool prefersMelee;
+    float combatSeekRange;  // Divert from rift to fight enemies within this range (0=ignore)
 };
 
 constexpr PlaytestProfile kProfiles[] = {
-    {80.0f, 300.0f, 4, 6, 0.25f, 0.25f, 20, 5.0f, false},   // balanced
-    {100.0f, 200.0f, 2, 3, 0.15f, 0.18f, 10, 3.0f, true},    // aggressive
-    {60.0f, 400.0f, 8, 8, 0.40f, 0.35f, 25, 6.0f, false},    // defensive
-    {70.0f, 250.0f, 3, 5, 0.20f, 0.15f, 5, 2.5f, false},     // speedrun
+    {80.0f, 300.0f, 4, 6, 0.25f, 0.25f, 20, 5.0f, false, 200.0f},  // balanced: engage nearby
+    {100.0f, 200.0f, 2, 3, 0.15f, 0.18f, 10, 3.0f, true, 350.0f},  // aggressive: seek combat
+    {60.0f, 400.0f, 8, 8, 0.40f, 0.35f, 25, 6.0f, false, 100.0f},  // defensive: only when close
+    {70.0f, 250.0f, 3, 5, 0.20f, 0.15f, 5, 2.5f, false, 0.0f},     // speedrun: skip all combat
 };
 
 // Relic scoring: positive = good for this class, negative = avoid
@@ -993,6 +994,28 @@ void PlayState::updatePlaytest(float dt) {
                     targetRiftIdx = ri; targetRequiredDim = m_level->getRiftRequiredDimension(ri);
                 }
             }
+        }
+    }
+
+    // Combat engagement: divert from rift to fight nearby enemies (profile-dependent)
+    // This produces more realistic combat data for balance testing
+    if (prof.combatSeekRange > 0 && !seekingPickup && !seekingShrine) {
+        float nearestCombatEnemy = 99999.0f;
+        Vec2 combatTarget = {0, 0};
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.hasComponent<TransformComponent>()) return;
+            auto& et = e.getComponent<TransformComponent>();
+            float dx2 = et.getCenter().x - playerPos.x, dy2 = et.getCenter().y - playerPos.y;
+            float d = std::sqrt(dx2 * dx2 + dy2 * dy2);
+            if (d < nearestCombatEnemy && d < prof.combatSeekRange) {
+                nearestCombatEnemy = d;
+                combatTarget = et.getCenter();
+            }
+        });
+        // Only divert if enemy is closer than the rift (or no rift found yet)
+        if (nearestCombatEnemy < prof.combatSeekRange && nearestCombatEnemy < nearestRiftDist * 0.8f) {
+            target = combatTarget;
         }
     }
 
