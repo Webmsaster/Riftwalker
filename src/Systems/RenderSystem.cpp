@@ -26,6 +26,18 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 
     // Apply color modulation and alpha (run through color-blind filter)
     SDL_Color filteredColor = applyColorBlind(sprite.color);
+
+    // Hit flash: brief white tint when entity takes damage
+    if (entity.hasComponent<HealthComponent>()) {
+        float flashT = entity.getComponent<HealthComponent>().hitFlashTimer;
+        if (flashT > 0) {
+            float intensity = flashT / HealthComponent::HIT_FLASH_DURATION;
+            filteredColor.r = static_cast<Uint8>(std::min(255, static_cast<int>(filteredColor.r + 120 * intensity)));
+            filteredColor.g = static_cast<Uint8>(std::min(255, static_cast<int>(filteredColor.g + 120 * intensity)));
+            filteredColor.b = static_cast<Uint8>(std::min(255, static_cast<int>(filteredColor.b + 120 * intensity)));
+        }
+    }
+
     SDL_SetTextureColorMod(sprite.texture, filteredColor.r, filteredColor.g, filteredColor.b);
     SDL_SetTextureAlphaMod(sprite.texture, static_cast<Uint8>(sprite.color.a * alpha));
     SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);

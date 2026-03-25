@@ -18,6 +18,10 @@ struct HealthComponent : public Component {
     float damageShowTimer = 0;
     static constexpr float DAMAGE_SHOW_DURATION = 2.5f;
 
+    // Hit flash: brief white tint on sprite when damaged
+    float hitFlashTimer = 0;
+    static constexpr float HIT_FLASH_DURATION = 0.12f;
+
     // Callbacks
     std::function<void(float damage)> onDamage;
     std::function<void()> onDeath;
@@ -30,6 +34,7 @@ struct HealthComponent : public Component {
         currentHP -= actual;
         invincibilityTimer = invincibilityTime;
         damageShowTimer = DAMAGE_SHOW_DURATION;
+        hitFlashTimer = HIT_FLASH_DURATION;
         if (onDamage) onDamage(actual);
         if (currentHP <= 0) {
             currentHP = 0;
@@ -48,5 +53,6 @@ struct HealthComponent : public Component {
     void update(float dt) override {
         if (invincibilityTimer > 0) invincibilityTimer -= dt;
         if (damageShowTimer > 0) damageShowTimer -= dt;
+        if (hitFlashTimer > 0) hitFlashTimer -= dt;
     }
 };
