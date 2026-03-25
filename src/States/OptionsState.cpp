@@ -105,13 +105,13 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     game->changeState(StateID::Menu);
                 } else if (m_selected == static_cast<int>(m_options.size()) - 2) {
                     // Reset Defaults
-                    m_options[OPT_MASTER].value   = 100;
-                    m_options[OPT_SFX].value      = 80;
-                    m_options[OPT_MUSIC].value    = 60;
+                    m_options[OPT_MASTER].value   = 70;  // 70% — safe for headphones
+                    m_options[OPT_SFX].value      = 80;  // 80% — clear without being harsh
+                    m_options[OPT_MUSIC].value    = 60;  // 60% — music behind SFX
                     m_options[OPT_MUTE].value     = 0;
                     m_options[OPT_FULLSCR].value  = 0;
                     m_options[OPT_SHAKE].value    = 100;
-                    m_options[OPT_HUD_OPAC].value = 100;
+                    m_options[OPT_HUD_OPAC].value = 90;  // 90% — slightly transparent
                     m_options[OPT_RUMBLE].value     = 1;   // Rumble on
                     m_options[OPT_COLORBLIND].value = 0;   // Color blind off
                     m_options[OPT_HUDSCALE].value   = 100; // HUD scale 100%

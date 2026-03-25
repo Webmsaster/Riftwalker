@@ -36,10 +36,11 @@ int g_smokeFailureCode = 0;
 char g_smokeFailureReason[256] = {};
 
 // Global settings (persisted via riftwalker_settings.cfg)
-float g_sfxVolume      = 1.0f;  // 0.0 - 1.0
-float g_musicVolume    = 1.0f;  // 0.0 - 1.0
+// Defaults tuned for first-time players: volumes conservative, visuals full
+float g_sfxVolume      = 0.8f;  // 0.0 - 1.0 (80% — audible without being harsh)
+float g_musicVolume    = 0.6f;  // 0.0 - 1.0 (60% — music shouldn't overpower SFX)
 float g_shakeIntensity = 1.0f;  // 0.0 - 2.0 (multiplier)
-float g_hudOpacity     = 1.0f;  // 0.5 - 1.0
+float g_hudOpacity     = 0.9f;  // 0.5 - 1.0 (90% — slightly transparent for immersion)
 
 // Null SDL log callback - prevents all SDL_Log from writing to console/stderr
 static void nullLogCallback(void*, int, SDL_LogPriority, const char*) {}

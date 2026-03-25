@@ -380,6 +380,7 @@ void Game::loadSaveData() {
             else if (key == "hud_opacity")     g_hudOpacity     = value;
             else if (key == "color_blind")     g_colorBlindMode = static_cast<int>(value);
             else if (key == "hud_scale")       g_hudScale       = value;
+            else if (key == "master_volume")   { AudioManager::instance().setMasterVolume(value); }
             else if (key == "fullscreen")      { if (m_window && static_cast<int>(value) != 0 && !m_window->isFullscreen()) m_window->toggleFullscreen(); }
             else if (key == "rumble")          { m_input.setRumbleEnabled(static_cast<int>(value) != 0); }
         }
@@ -406,6 +407,7 @@ void Game::saveSaveData() {
 void Game::saveSettings() {
     std::ofstream cfg("riftwalker_settings.cfg");
     if (cfg.is_open()) {
+        cfg << "master_volume "   << AudioManager::instance().getMasterVolume() << "\n";
         cfg << "sfx_volume "      << g_sfxVolume       << "\n";
         cfg << "music_volume "    << g_musicVolume      << "\n";
         cfg << "shake_intensity " << g_shakeIntensity   << "\n";

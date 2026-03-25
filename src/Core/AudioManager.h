@@ -90,7 +90,7 @@ public:
 private:
     AudioManager() = default;
 
-    float m_masterVolume = 1.0f;
+    float m_masterVolume = 0.7f; // 70% — safe default for first-time players
     int m_musicVolume = 64;
     int m_sfxVolume = 64;
     bool m_muted = false;
