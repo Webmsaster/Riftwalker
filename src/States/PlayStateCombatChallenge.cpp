@@ -155,6 +155,13 @@ void PlayState::checkRiftInteraction() {
                     m_collapsing = true;
                     m_collapseTimer = 0;
                     m_level->setExitActive(true);
+                    // Dramatic collapse start: the rift is sealed, escape now!
+                    m_camera.shake(15.0f, 0.5f);
+                    m_camera.flash(0.3f, 255, 255, 255);
+                    m_particles.burst(m_dimManager.playerPos, 60,
+                        {255, 200, 255, 255}, 300.0f, 4.0f);
+                    AudioManager::instance().play(SFX::BossShieldBurst);
+                    m_combatSystem.addHitFreeze(0.15f);
                 }
             } else {
                 AudioManager::instance().play(SFX::RiftFail);
