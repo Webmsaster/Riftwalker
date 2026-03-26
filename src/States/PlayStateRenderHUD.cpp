@@ -321,70 +321,57 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
 }
 
 void PlayState::renderDebugOverlay(SDL_Renderer* renderer, TTF_Font* font) {
-    if (!font || !m_player || !m_player->getEntity()->hasComponent<RelicComponent>()) return;
+    if (!font || !m_player) return;
 
-    auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
-    auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
-    float hpPct = hp.getPercent();
-    int curDim = m_dimManager.getCurrentDimension();
+    // --- Performance & Gameplay section (always available) ---
+    int fps = game ? game->getFPS() : 0;
 
-    // Compute raw damage multiplier (before cap)
-    float rawDmg = 1.0f;
-    for (auto& r : relics.relics) {
-        if (r.id == RelicID::BloodFrenzy && hpPct < 0.3f) rawDmg += 0.25f;
-        if (r.id == RelicID::BerserkerCore) rawDmg += 0.50f;
-        if (r.id == RelicID::VoidHunger) rawDmg += relics.voidHungerBonus;
-        if (r.id == RelicID::DualityGem && (curDim == 1 || RelicSynergy::isDualNatureActive(relics)))
-            rawDmg += 0.25f;
-        if (r.id == RelicID::StabilityMatrix) {
-            float rate = RelicSynergy::getStabilityDmgPerSec(relics);
-            float maxB = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
-            rawDmg += std::min(relics.stabilityTimer * rate, maxB);
-        }
+    // Track average FPS (rolling)
+    static float s_fpsAccum = 0;
+    static int s_fpsFrames = 0;
+    static int s_fpsAvg = 0;
+    s_fpsAccum += static_cast<float>(fps);
+    s_fpsFrames++;
+    if (s_fpsFrames >= 60) {
+        s_fpsAvg = static_cast<int>(s_fpsAccum / static_cast<float>(s_fpsFrames));
+        s_fpsAccum = 0;
+        s_fpsFrames = 0;
     }
-    rawDmg *= RelicSynergy::getPhaseHunterDamageMult(relics);
-    float clampedDmg = RelicSystem::getDamageMultiplier(relics, hpPct, curDim);
 
-    // Compute raw attack speed multiplier (before cap)
-    float rawSpd = 1.0f;
-    for (auto& r : relics.relics) {
-        if (r.id == RelicID::QuickHands) rawSpd += 0.15f;
-    }
-    if (relics.hasRelic(RelicID::RiftConduit) && relics.riftConduitTimer > 0)
-        rawSpd += relics.riftConduitStacks * 0.10f;
-    float clampedSpd = RelicSystem::getAttackSpeedMultiplier(relics);
-
-    // Switch CD with floor detection
-    float baseCD = 0.5f;
-    float cdMult = RelicSystem::getSwitchCooldownMult(relics);
-    float finalCD = m_dimManager.switchCooldown;
-    bool cdFloored = (baseCD * cdMult) < finalCD + 0.001f && relics.hasRelic(RelicID::RiftMantle);
-
-    // Zone count
-    int zoneCount = 0;
+    // Entity counts
+    int totalEntities = static_cast<int>(m_entities.size());
+    int aliveEntities = 0;
+    int enemyCount = 0;
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
+        if (e.isAlive()) {
+            aliveEntities++;
+            auto& tag = e.getTag();
+            if (tag.rfind("enemy", 0) == 0) enemyCount++;
+        }
     });
 
-    // Gameplay paused detection
-    bool gameplayPaused = m_showRelicChoice || m_showNPCDialog
-        || (m_activePuzzle && m_activePuzzle->isActive());
+    // Particle counts
+    int activeParticles = m_particles.getActiveCount();
+    int particlePool = m_particles.getPoolSize();
 
-    // Stability derived values
-    float stabRate = RelicSynergy::getStabilityDmgPerSec(relics);
-    float stabMax = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
-    float stabPct = std::min(relics.stabilityTimer * stabRate, stabMax) * 100.0f;
+    // Player stats
+    auto& playerHP = m_player->getEntity()->getComponent<HealthComponent>();
+    float entropyPct = m_entropy.getPercent() * 100.0f;
+    int curDim = m_dimManager.getCurrentDimension();
 
-    int synergyCount = RelicSynergy::getActiveSynergyCount(relics);
-    float dmgTakenMult = RelicSystem::getDamageTakenMult(relics, curDim);
+    // Floor/Zone info
+    int floor = m_currentDifficulty;
+    int zone = getZone(floor);
+    int floorInZone = getFloorInZone(floor);
+    bool bossFloor = isBossFloor(floor);
 
     // Build lines into stack buffer
     struct Line { char text[96]; SDL_Color color; };
-    Line lines[15];
+    Line lines[28];
     int lineCount = 0;
 
     auto addLine = [&](SDL_Color c, const char* fmt, ...) {
-        if (lineCount >= 15) return;
+        if (lineCount >= 28) return;
         va_list args;
         va_start(args, fmt);
         std::vsnprintf(lines[lineCount].text, sizeof(lines[0].text), fmt, args);
@@ -397,38 +384,111 @@ void PlayState::renderDebugOverlay(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_Color cNormal = {200, 220, 240, 255};
     SDL_Color cWarn   = {255, 100, 80, 255};
     SDL_Color cGreen  = {100, 255, 140, 255};
+    SDL_Color cDim    = {140, 140, 160, 255};
 
-    addLine(cHeader, "=== RELIC SAFETY RAILS (F3/F4) ===");
-    addLine(gameplayPaused ? cWarn : cGreen, "Paused: %s", gameplayPaused ? "YES" : "NO");
-    addLine(rawDmg > clampedDmg + 0.001f ? cWarn : cNormal,
-            "DMG Mult: %.2fx raw -> %.2fx clamped", rawDmg, clampedDmg);
-    addLine(rawSpd > clampedSpd + 0.001f ? cWarn : cNormal,
-            "ATK Speed: %.2fx raw -> %.2fx clamped", rawSpd, clampedSpd);
-    addLine(dmgTakenMult > 1.001f ? cWarn : dmgTakenMult < 0.999f ? cGreen : cNormal,
-            "Damage Taken Mult: %.2fx", dmgTakenMult);
-    if (cdFloored)
-        addLine(cWarn, "Switch CD: %.2fs x%.2f = %.2fs FLOOR", baseCD, cdMult, finalCD);
-    else
-        addLine(cNormal, "Switch CD: %.2fs x%.2f = %.2fs", baseCD, cdMult, finalCD);
-    addLine(cNormal, "VoidHunger: %.0f%% / %.0f%% cap",
-            relics.voidHungerBonus * 100.0f, 40.0f);
-    addLine(cNormal, "VoidRes ICD: %.2fs remain", std::max(0.0f, relics.voidResonanceProcCD));
-    addLine(zoneCount > 0 ? cHeader : cNormal,
-            "Residue: %d/%d zones, spawn ICD %.2fs",
-            zoneCount, RelicSystem::getMaxResidueZones(),
-            std::max(0.0f, relics.dimResidueSpawnCD));
-    addLine(cNormal, "Stability: %.1fs (%.0f%% DMG)",
-            relics.stabilityTimer, stabPct);
-    addLine(cNormal, "Conduit: %d stacks, %.1fs left",
-            relics.riftConduitStacks, std::max(0.0f, relics.riftConduitTimer));
-    addLine(cNormal, "Dim: %d | Synergies: %d | Seed: %d",
-            curDim, synergyCount, m_runSeed);
-    addLine({140, 140, 160, 255}, "F4: snapshot to balance_snapshots.csv");
+    // --- Performance block ---
+    addLine(cHeader, "=== DEBUG OVERLAY (F3) ===");
+    addLine(fps < 30 ? cWarn : fps < 55 ? cNormal : cGreen,
+            "FPS: %d  (avg: %d)", fps, s_fpsAvg);
+    addLine(cNormal, "Entities: %d alive / %d pool", aliveEntities, totalEntities);
+    addLine(enemyCount > 0 ? cNormal : cDim,
+            "Enemies: %d active", enemyCount);
+    addLine(activeParticles > 1500 ? cWarn : cNormal,
+            "Particles: %d / %d pool", activeParticles, particlePool);
+
+    // --- Gameplay block ---
+    addLine(cHeader, "--- Gameplay ---");
+    addLine(bossFloor ? cWarn : cNormal,
+            "Floor %d  (Zone %d-%d)%s", floor, zone + 1, floorInZone,
+            bossFloor ? "  BOSS" : "");
+    addLine(playerHP.getPercent() < 0.3f ? cWarn : cGreen,
+            "HP: %.0f / %.0f (%.0f%%)", playerHP.currentHP, playerHP.maxHP,
+            playerHP.getPercent() * 100.0f);
+    addLine(m_entropy.isCritical() ? cWarn : entropyPct > 70.0f ? cNormal : cGreen,
+            "Entropy: %.0f%%", entropyPct);
+    addLine(cNormal, "Dim: %d | Run: %.0fs | Kills: %d",
+            curDim, m_runTime, enemiesKilled);
+
+    // --- Relic Safety Rails (only if relics available) ---
+    if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+        auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+        float hpPct = playerHP.getPercent();
+
+        // Compute raw damage multiplier (before cap)
+        float rawDmg = 1.0f;
+        for (auto& r : relics.relics) {
+            if (r.id == RelicID::BloodFrenzy && hpPct < 0.3f) rawDmg += 0.25f;
+            if (r.id == RelicID::BerserkerCore) rawDmg += 0.50f;
+            if (r.id == RelicID::VoidHunger) rawDmg += relics.voidHungerBonus;
+            if (r.id == RelicID::DualityGem && (curDim == 1 || RelicSynergy::isDualNatureActive(relics)))
+                rawDmg += 0.25f;
+            if (r.id == RelicID::StabilityMatrix) {
+                float rate = RelicSynergy::getStabilityDmgPerSec(relics);
+                float maxB = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
+                rawDmg += std::min(relics.stabilityTimer * rate, maxB);
+            }
+        }
+        rawDmg *= RelicSynergy::getPhaseHunterDamageMult(relics);
+        float clampedDmg = RelicSystem::getDamageMultiplier(relics, hpPct, curDim);
+
+        // Compute raw attack speed multiplier (before cap)
+        float rawSpd = 1.0f;
+        for (auto& r : relics.relics) {
+            if (r.id == RelicID::QuickHands) rawSpd += 0.15f;
+        }
+        if (relics.hasRelic(RelicID::RiftConduit) && relics.riftConduitTimer > 0)
+            rawSpd += relics.riftConduitStacks * 0.10f;
+        float clampedSpd = RelicSystem::getAttackSpeedMultiplier(relics);
+
+        // Switch CD with floor detection
+        float baseCD = 0.5f;
+        float cdMult = RelicSystem::getSwitchCooldownMult(relics);
+        float finalCD = m_dimManager.switchCooldown;
+        bool cdFloored = (baseCD * cdMult) < finalCD + 0.001f && relics.hasRelic(RelicID::RiftMantle);
+
+        // Zone count
+        int residueCount = 0;
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag() == "dim_residue" && e.isAlive()) residueCount++;
+        });
+
+        // Gameplay paused detection
+        bool gameplayPaused = m_showRelicChoice || m_showNPCDialog
+            || (m_activePuzzle && m_activePuzzle->isActive());
+
+        // Stability derived values
+        float stabRate = RelicSynergy::getStabilityDmgPerSec(relics);
+        float stabMax = RelicSynergy::isRiftMasterActive(relics) ? 0.40f : 0.30f;
+        float stabPct = std::min(relics.stabilityTimer * stabRate, stabMax) * 100.0f;
+
+        int synergyCount = RelicSynergy::getActiveSynergyCount(relics);
+        float dmgTakenMult = RelicSystem::getDamageTakenMult(relics, curDim);
+
+        addLine(cHeader, "--- Relic Rails ---");
+        addLine(gameplayPaused ? cWarn : cGreen, "Paused: %s", gameplayPaused ? "YES" : "NO");
+        addLine(rawDmg > clampedDmg + 0.001f ? cWarn : cNormal,
+                "DMG: %.2fx raw -> %.2fx clamp", rawDmg, clampedDmg);
+        addLine(rawSpd > clampedSpd + 0.001f ? cWarn : cNormal,
+                "SPD: %.2fx raw -> %.2fx clamp", rawSpd, clampedSpd);
+        addLine(dmgTakenMult > 1.001f ? cWarn : dmgTakenMult < 0.999f ? cGreen : cNormal,
+                "DmgTaken: %.2fx", dmgTakenMult);
+        if (cdFloored)
+            addLine(cWarn, "SwitchCD: %.2fs x%.2f = %.2fs FLOOR", baseCD, cdMult, finalCD);
+        else
+            addLine(cNormal, "SwitchCD: %.2fs x%.2f = %.2fs", baseCD, cdMult, finalCD);
+        addLine(cNormal, "VoidHunger: %.0f%%/40%% | Res: %d/%d",
+                relics.voidHungerBonus * 100.0f, residueCount, RelicSystem::getMaxResidueZones());
+        addLine(cNormal, "Stab: %.1fs (%.0f%%) | Cond: %d stk",
+                relics.stabilityTimer, stabPct, relics.riftConduitStacks);
+        addLine(cNormal, "Synergies: %d | Seed: %d", synergyCount, m_runSeed);
+    }
+
+    addLine(cDim, "F4: snapshot to balance_snapshots.csv");
 
     // Render panel
-    int panelX = 10, panelY = 190;
+    int panelX = 10, panelY = 60;
     int lineH = 16, padX = 8, padY = 4;
-    int panelW = 360;
+    int panelW = 380;
     int panelH = padY * 2 + lineCount * lineH;
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);

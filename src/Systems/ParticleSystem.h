@@ -55,6 +55,11 @@ public:
                               float radius = 300.0f);
     void clear();
 
+    // Debug info
+    int getActiveCount() const { int n = 0; for (auto& p : m_particles) if (p.alive) n++; return n; }
+    int getPoolSize() const { return static_cast<int>(m_particles.size()); }
+    int getEmitterCount() const { return static_cast<int>(m_emitters.size()); }
+
 private:
     void spawnParticle(const ParticleEmitter& emitter);
 
