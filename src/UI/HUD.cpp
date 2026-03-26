@@ -176,29 +176,61 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
         SDL_RenderFillRect(renderer, &d3);
     }
 
-    // --- Exit marker (pulsing green square, only when active) ---
+    // --- Exit marker (diamond shape, pulsing urgently when collapse active) ---
     {
         Vec2 exitPt = level->getExitPoint();
         int ex = offsetX + static_cast<int>((exitPt.x / tileSize) * scale);
         int ey = offsetY + static_cast<int>((exitPt.y / tileSize) * scale);
 
         if (ex >= mapX && ex < mapX + mapW && ey >= mapY && ey < mapY + mapH) {
-            float ePulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.007f);
             if (level->isExitActive()) {
-                // Active exit: bright pulsing green
+                // Collapse active: urgent pulsing green diamond
+                // Fast pulse (0.015 rad/ms) to draw attention
+                float ePulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.015f);
                 Uint8 eAlpha = static_cast<Uint8>(180 + 75 * ePulse);
+
+                // Outer glow ring (fades in/out with pulse)
+                Uint8 glowAlpha = static_cast<Uint8>(60 + 80 * ePulse);
+                SDL_SetRenderDrawColor(renderer, 50, 255, 80, glowAlpha);
+                SDL_Rect g1 = {ex - 1, ey - 5, 2, 1};  // top
+                SDL_Rect g2 = {ex - 5, ey - 1, 1, 2};  // left
+                SDL_Rect g3 = {ex + 4, ey - 1, 1, 2};  // right
+                SDL_Rect g4 = {ex - 1, ey + 4, 2, 1};  // bottom
+                SDL_RenderFillRect(renderer, &g1);
+                SDL_RenderFillRect(renderer, &g2);
+                SDL_RenderFillRect(renderer, &g3);
+                SDL_RenderFillRect(renderer, &g4);
+
+                // Diamond body
                 SDL_SetRenderDrawColor(renderer, 50, 255, 80, eAlpha);
-                SDL_Rect er = {ex - 3, ey - 3, 6, 6};
-                SDL_RenderFillRect(renderer, &er);
-                // Inner bright core
-                SDL_SetRenderDrawColor(renderer, 200, 255, 200, 230);
+                SDL_Rect d1 = {ex - 1, ey - 4, 2, 1};  // top tip
+                SDL_Rect d2 = {ex - 2, ey - 3, 4, 1};
+                SDL_Rect d3 = {ex - 3, ey - 2, 6, 1};
+                SDL_Rect d4 = {ex - 4, ey - 1, 8, 2};  // widest
+                SDL_Rect d5 = {ex - 3, ey + 1, 6, 1};
+                SDL_Rect d6 = {ex - 2, ey + 2, 4, 1};
+                SDL_Rect d7 = {ex - 1, ey + 3, 2, 1};  // bottom tip
+                SDL_RenderFillRect(renderer, &d1);
+                SDL_RenderFillRect(renderer, &d2);
+                SDL_RenderFillRect(renderer, &d3);
+                SDL_RenderFillRect(renderer, &d4);
+                SDL_RenderFillRect(renderer, &d5);
+                SDL_RenderFillRect(renderer, &d6);
+                SDL_RenderFillRect(renderer, &d7);
+
+                // Bright core
+                SDL_SetRenderDrawColor(renderer, 200, 255, 200, 255);
                 SDL_Rect ec = {ex - 1, ey - 1, 2, 2};
                 SDL_RenderFillRect(renderer, &ec);
             } else {
-                // Inactive: dim gray square
+                // Inactive: dim gray diamond (smaller)
                 SDL_SetRenderDrawColor(renderer, 80, 80, 80, 100);
-                SDL_Rect er = {ex - 2, ey - 2, 4, 4};
-                SDL_RenderFillRect(renderer, &er);
+                SDL_Rect d1 = {ex, ey - 2, 1, 1};
+                SDL_Rect d2 = {ex - 1, ey - 1, 3, 2};
+                SDL_Rect d3 = {ex, ey + 1, 1, 1};
+                SDL_RenderFillRect(renderer, &d1);
+                SDL_RenderFillRect(renderer, &d2);
+                SDL_RenderFillRect(renderer, &d3);
             }
         }
     }
@@ -234,7 +266,7 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
         });
     }
 
-    // --- Player position dot (blinking white) ---
+    // --- Player position dot (blinking white) with facing direction arrow ---
     if (player && player->getEntity() && player->getEntity()->hasComponent<TransformComponent>()) {
         auto& pt = player->getEntity()->getComponent<TransformComponent>();
         int playerMX = offsetX + static_cast<int>((pt.getCenter().x / tileSize) * scale);
@@ -254,6 +286,28 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             SDL_Rect pc = {playerMX, playerMY, 1, 1};
             SDL_RenderFillRect(renderer, &pc);
+
+            // Direction arrow: small chevron pointing left or right
+            SDL_SetRenderDrawColor(renderer, 200, 240, 255, 220);
+            if (player->facingRight) {
+                // Right-pointing arrow: 3px to the right of the dot
+                int ax = playerMX + 4;
+                SDL_Rect a1 = {ax, playerMY, 1, 1};      // tip
+                SDL_Rect a2 = {ax - 1, playerMY - 1, 1, 1}; // top barb
+                SDL_Rect a3 = {ax - 1, playerMY + 1, 1, 1}; // bottom barb
+                SDL_RenderFillRect(renderer, &a1);
+                SDL_RenderFillRect(renderer, &a2);
+                SDL_RenderFillRect(renderer, &a3);
+            } else {
+                // Left-pointing arrow: 3px to the left of the dot
+                int ax = playerMX - 4;
+                SDL_Rect a1 = {ax, playerMY, 1, 1};      // tip
+                SDL_Rect a2 = {ax + 1, playerMY - 1, 1, 1}; // top barb
+                SDL_Rect a3 = {ax + 1, playerMY + 1, 1, 1}; // bottom barb
+                SDL_RenderFillRect(renderer, &a1);
+                SDL_RenderFillRect(renderer, &a2);
+                SDL_RenderFillRect(renderer, &a3);
+            }
         }
     }
 
