@@ -209,6 +209,13 @@ private:
     int m_lastComboMilestone = 0;
     float m_comboMilestoneFlash = 0;
 
+    // Level-up celebration
+    float m_levelUpTimer = 0;               // Countdown for "LEVEL UP!" text (1.5s)
+    float m_levelUpFlashTimer = 0;          // Golden screen flash (0.3s)
+    int m_levelUpDisplayLevel = 0;          // Level reached (for display)
+    void updateLevelUp(float dt);
+    void renderLevelUp(SDL_Renderer* renderer, TTF_Font* font);
+
     // Floating damage numbers
     std::vector<FloatingDamageNumber> m_damageNumbers;
     void updateDamageNumbers(float dt);

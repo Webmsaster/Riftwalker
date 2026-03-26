@@ -363,7 +363,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     int barH   = static_cast<int>(18 * g_hudScale);
 
     // Semi-transparent HUD backing panel
-    SDL_Rect hudBg = {margin - 5, margin - 5, barW + 20, barH * 4 + 70};
+    SDL_Rect hudBg = {margin - 5, margin - 5, barW + 20, barH * 4 + 70 + static_cast<int>(8 * g_hudScale) + 4};
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 80);
     SDL_RenderFillRect(renderer, &hudBg);
     SDL_SetRenderDrawColor(renderer, 80, 80, 100, 60);
@@ -501,9 +501,34 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
+    // XP Bar (thin, below HP bar)
+    if (player) {
+        int xpBarH = static_cast<int>(8 * g_hudScale);  // Half the height of HP bar
+        int xpY = margin + barH + 2;
+        float xpPct = player->getXPPercent();
+
+        SDL_Color xpColor = {255, 215, 0, 255}; // Gold
+        // Slight pulse when close to leveling up
+        if (xpPct > 0.8f) {
+            float pulse = 0.8f + 0.2f * std::sin(SDL_GetTicks() * 0.008f);
+            xpColor.g = static_cast<Uint8>(215 * pulse);
+        }
+
+        renderBar(renderer, margin + hpBarOffset, xpY, barW - hpBarOffset, xpBarH, xpPct, xpColor, {20, 18, 10, 200});
+
+        if (font) {
+            char xpText[32];
+            std::snprintf(xpText, sizeof(xpText), "Lv.%d  %d/%d", player->level, player->xp, player->xpToNextLevel);
+            renderText(renderer, font, xpText, margin + hpBarOffset + 5, xpY, {255, 230, 160, 220});
+        }
+    }
+
+    // Extra vertical offset introduced by XP bar
+    int xpExtraH = static_cast<int>(8 * g_hudScale) + 4;
+
     // Entropy Bar
     if (entropy) {
-        int ey = margin + barH + 6;
+        int ey = margin + barH + 2 + xpExtraH;
         float ep = entropy->getPercent();
         SDL_Color entropyColor;
         if (ep < 0.25f) entropyColor = {60, 180, 60, 255};
@@ -527,7 +552,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
     // Dimension indicator
     if (dimMgr) {
-        int dimY = margin + (barH + 6) * 2;
+        int dimY = margin + (barH + 6) * 2 + xpExtraH;
         int dim = dimMgr->getCurrentDimension();
         SDL_Color dimColorA = dimMgr->getDimColorA();
         SDL_Color dimColorB = dimMgr->getDimColorB();
@@ -594,7 +619,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Ability bar with cooldown indicators
     if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>()) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();
-        int abY = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3;
+        int abY = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + xpExtraH;
         int iconSize = static_cast<int>(22 * g_hudScale);
         int iconGap  = static_cast<int>(6 * g_hudScale);
 
@@ -705,7 +730,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
     // Active buff indicators (below ability bar)
     if (player) {
-        int buffY = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + static_cast<int>(36 * g_hudScale);
+        int buffY = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + static_cast<int>(36 * g_hudScale) + xpExtraH;
         int buffX = margin;
         int buffSize = static_cast<int>(16 * g_hudScale);
         int buffGap  = static_cast<int>(4 * g_hudScale);
@@ -755,7 +780,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Ability icons (below active buffs)
     if (player && player->getEntity() && player->getEntity()->hasComponent<AbilityComponent>()) {
         auto& abil = player->getEntity()->getComponent<AbilityComponent>();
-        int abStartY  = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + static_cast<int>(58 * g_hudScale);
+        int abStartY  = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + static_cast<int>(58 * g_hudScale) + xpExtraH;
         int abIconSize = static_cast<int>(26 * g_hudScale);
         int abIconGap  = static_cast<int>(6 * g_hudScale);
 

@@ -528,6 +528,10 @@ void PlayState::update(float dt) {
     }
     if (m_killStreakDisplayTimer > 0) m_killStreakDisplayTimer -= dt;
 
+    // Level-up celebration timers
+    if (m_levelUpTimer > 0) m_levelUpTimer -= dt;
+    if (m_levelUpFlashTimer > 0) m_levelUpFlashTimer -= dt;
+
     // Zone transition banner timer
     if (m_zoneTransitionActive) {
         m_zoneTransitionTimer += dt;

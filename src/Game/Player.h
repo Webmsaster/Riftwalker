@@ -61,6 +61,25 @@ public:
     float getMomentumSpeedMult() const;
     float getMomentumAtkSpeedMult() const;
 
+    // XP / Level system
+    int level = 1;
+    int xp = 0;
+    int xpToNextLevel = 100;      // XP required for next level-up
+    bool levelUpPending = false;   // Consumed by PlayState for celebration effects
+    int getXPForLevel(int lvl) const { return 80 + lvl * 20; }
+    void addXP(int amount) {
+        xp += amount;
+        while (xp >= xpToNextLevel) {
+            xp -= xpToNextLevel;
+            level++;
+            xpToNextLevel = getXPForLevel(level);
+            levelUpPending = true;
+        }
+    }
+    float getXPPercent() const {
+        return xpToNextLevel > 0 ? static_cast<float>(xp) / xpToNextLevel : 0.0f;
+    }
+
     // Stats
     float moveSpeed = 250.0f;
     float jumpForce = -420.0f;

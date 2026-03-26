@@ -1068,6 +1068,94 @@ void PlayState::renderKillStreak(SDL_Renderer* renderer, TTF_Font* font) {
     }
 }
 
+// --- Level-Up Celebration ---
+
+void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
+    // Golden screen flash
+    if (m_levelUpFlashTimer > 0) {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        float flashPct = m_levelUpFlashTimer / 0.3f;
+        Uint8 flashA = static_cast<Uint8>(flashPct * 100);
+        SDL_SetRenderDrawColor(renderer, 255, 215, 0, flashA);
+        SDL_Rect fullScreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &fullScreen);
+    }
+
+    // "LEVEL UP!" text centered on screen
+    if (m_levelUpTimer <= 0 || !font) return;
+
+    // Fade out during last 0.4 seconds
+    float alpha = 1.0f;
+    if (m_levelUpTimer < 0.4f) {
+        alpha = m_levelUpTimer / 0.4f;
+    }
+    // Slide up animation: starts 10px below center, rises to center
+    float slideUp = (1.0f - std::min(1.0f, (1.5f - m_levelUpTimer) / 0.3f)) * 10.0f;
+    Uint8 a = static_cast<Uint8>(alpha * 255);
+
+    // Background glow
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    Uint8 glowA = static_cast<Uint8>(alpha * 50);
+    SDL_SetRenderDrawColor(renderer, 255, 200, 0, glowA);
+    int glowW = 360;
+    int glowH = 80;
+    SDL_Rect glow = {SCREEN_WIDTH / 2 - glowW / 2,
+                     SCREEN_HEIGHT / 3 - glowH / 2 + static_cast<int>(slideUp),
+                     glowW, glowH};
+    SDL_RenderFillRect(renderer, &glow);
+
+    // Main text: "LEVEL UP!"
+    float pulse = 1.0f + 0.05f * std::sin(m_levelUpTimer * 12.0f);
+    SDL_Color gold = {255, 215, 0, a};
+    SDL_Surface* surf = TTF_RenderText_Blended(font, "LEVEL UP!", gold);
+    if (surf) {
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+        if (tex) {
+            float scale = 2.5f * pulse;
+            int w = static_cast<int>(surf->w * scale);
+            int h = static_cast<int>(surf->h * scale);
+            SDL_Rect dst = {SCREEN_WIDTH / 2 - w / 2,
+                            SCREEN_HEIGHT / 3 - h / 2 + static_cast<int>(slideUp),
+                            w, h};
+            SDL_SetTextureAlphaMod(tex, a);
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+        }
+        SDL_FreeSurface(surf);
+    }
+
+    // Level number text below
+    char lvlText[32];
+    std::snprintf(lvlText, sizeof(lvlText), "Lv.%d", m_levelUpDisplayLevel);
+    SDL_Color lvlColor = {255, 240, 180, static_cast<Uint8>(a * 0.8f)};
+    SDL_Surface* lvlSurf = TTF_RenderText_Blended(font, lvlText, lvlColor);
+    if (lvlSurf) {
+        SDL_Texture* lvlTex = SDL_CreateTextureFromSurface(renderer, lvlSurf);
+        if (lvlTex) {
+            float lvlScale = 1.6f;
+            int lw = static_cast<int>(lvlSurf->w * lvlScale);
+            int lh = static_cast<int>(lvlSurf->h * lvlScale);
+            SDL_Rect dst = {SCREEN_WIDTH / 2 - lw / 2,
+                            SCREEN_HEIGHT / 3 + 24 + static_cast<int>(slideUp),
+                            lw, lh};
+            SDL_SetTextureAlphaMod(lvlTex, static_cast<Uint8>(a * 0.8f));
+            SDL_RenderCopy(renderer, lvlTex, nullptr, &dst);
+            SDL_DestroyTexture(lvlTex);
+        }
+        SDL_FreeSurface(lvlSurf);
+    }
+
+    // Accent line
+    if (a > 30) {
+        int lineW = static_cast<int>(180 * alpha * pulse);
+        SDL_SetRenderDrawColor(renderer, 255, 215, 0, static_cast<Uint8>(a * 0.5f));
+        SDL_Rect line = {SCREEN_WIDTH / 2 - lineW / 2,
+                         SCREEN_HEIGHT / 3 + 46 + static_cast<int>(slideUp),
+                         lineW, 2};
+        SDL_RenderFillRect(renderer, &line);
+    }
+}
+
 // --- Directional Damage Indicators ---
 
 void PlayState::updateDamageIndicators(float dt) {

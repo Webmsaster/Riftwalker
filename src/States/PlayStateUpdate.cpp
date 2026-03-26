@@ -994,6 +994,30 @@ void PlayState::updateKillEffects() {
     game->getUpgradeSystem().totalEnemiesKilled += m_combatSystem.killCount;
     m_screenEffects.triggerKillFlash();
 
+    // Award XP per kill (base 15, elite/miniboss/boss give more)
+    if (m_player) {
+        for (auto& ke : m_combatSystem.killEvents) {
+            int xpAward = 15;
+            if (ke.wasElite)    xpAward = 30;
+            if (ke.wasMiniBoss) xpAward = 50;
+            if (ke.wasBoss)     xpAward = 120;
+            m_player->addXP(xpAward);
+        }
+        // Check for level-up celebration
+        if (m_player->levelUpPending) {
+            m_player->levelUpPending = false;
+            m_levelUpTimer = 1.5f;
+            m_levelUpFlashTimer = 0.3f;
+            m_levelUpDisplayLevel = m_player->level;
+            // Gold particle burst around player
+            Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().position;
+            SDL_Color gold = {255, 215, 40, 255};
+            m_particles.burst(playerPos, 30, gold, 140.0f, 3.5f);
+            // Small screen shake
+            m_camera.shake(3.0f, 0.2f);
+        }
+    }
+
     // Kill streak tracking: chain kills within 3 seconds
     for (int k = 0; k < m_combatSystem.killCount; k++) {
         if (m_killStreakTimer > 0) {
