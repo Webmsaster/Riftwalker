@@ -32,67 +32,89 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     float transitionDur = m_playtest ? 0.1f : 2.0f;
-    float progress = m_levelCompleteTimer / transitionDur; // 0 to 1 over transition duration
+    float progress = m_levelCompleteTimer / transitionDur;
     if (progress > 1.0f) progress = 1.0f;
+
+    // Iris center: player screen pos or screen center
+    int cx = SCREEN_WIDTH / 2, cy = SCREEN_HEIGHT / 2;
+    if (m_player && m_player->getEntity()) {
+        Vec2 wp = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        Vec2 sp = m_camera.worldToScreen(wp);
+        cx = static_cast<int>(sp.x);
+        cy = static_cast<int>(sp.y);
+    }
+
+    // Max radius = distance from center to farthest corner
+    float dx = std::max((float)cx, (float)(SCREEN_WIDTH - cx));
+    float dy = std::max((float)cy, (float)(SCREEN_HEIGHT - cy));
+    float maxR = std::sqrt(dx * dx + dy * dy);
+
+    // Iris shrinks from maxR to 0 as progress goes 0->1
+    float irisR = maxR * (1.0f - progress);
+    float glowWidth = 12.0f;
     Uint32 ticks = SDL_GetTicks();
+    float pulse = 0.8f + 0.2f * std::sin(ticks * 0.008f);
 
-    // Growing dark overlay
-    Uint8 overlayA = static_cast<Uint8>(progress * 180);
-    SDL_SetRenderDrawColor(renderer, 10, 5, 20, overlayA);
-    SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
-    SDL_RenderFillRect(renderer, &full);
+    // Iris wipe: dark fill outside shrinking circle (2-pixel scanline steps for performance)
+    constexpr int STEP = 2;
+    SDL_SetRenderDrawColor(renderer, 10, 5, 20, 255);
+    for (int y = 0; y < SCREEN_HEIGHT; y += STEP) {
+        float fy = static_cast<float>(y + STEP / 2 - cy);
+        float r2 = irisR * irisR - fy * fy;
+        if (r2 <= 0.0f) {
+            // Entire row is outside circle
+            SDL_Rect row = {0, y, SCREEN_WIDTH, STEP};
+            SDL_RenderFillRect(renderer, &row);
+            continue;
+        }
+        float halfW = std::sqrt(r2);
+        int left = cx - static_cast<int>(halfW);
+        int right = cx + static_cast<int>(halfW);
+        if (left > 0) { SDL_Rect r = {0, y, left, STEP}; SDL_RenderFillRect(renderer, &r); }
+        if (right < SCREEN_WIDTH) { SDL_Rect r = {right, y, SCREEN_WIDTH - right, STEP}; SDL_RenderFillRect(renderer, &r); }
+    }
 
-    // Expanding rift circle from center
-    int maxRadius = 400;
-    int radius = static_cast<int>(progress * maxRadius);
-    float pulse = 0.7f + 0.3f * std::sin(ticks * 0.01f);
-    Uint8 riftA = static_cast<Uint8>((1.0f - progress * 0.5f) * 120 * pulse);
-
-    // Rift ring (multiple concentric rings)
-    for (int r = radius - 6; r <= radius + 6; r += 3) {
-        if (r < 0) continue;
-        for (int angle = 0; angle < 60; angle++) {
-            float a = angle * 6.283185f / 60.0f + ticks * 0.002f;
-            int px = 640 + static_cast<int>(std::cos(a) * r);
-            int py = 360 + static_cast<int>(std::sin(a) * r);
+    // Glowing purple rim at circle edge (ring of dots at the iris boundary)
+    int rimPoints = std::max(60, static_cast<int>(irisR * 0.5f));
+    int glowLayers = static_cast<int>(glowWidth * pulse);
+    for (int layer = 0; layer < glowLayers; layer += 2) {
+        float t = static_cast<float>(layer) / glowWidth;
+        Uint8 a = static_cast<Uint8>((1.0f - t) * 200 * pulse);
+        float lr = irisR - layer; // inner glow
+        if (lr <= 0.0f) break;
+        Uint8 red = static_cast<Uint8>(std::min(255.0f, 160.0f + 60.0f * t));
+        SDL_SetRenderDrawColor(renderer, red, 80, 255, a);
+        for (int i = 0; i < rimPoints; i++) {
+            float ang = i * 6.283185f / rimPoints + ticks * 0.001f;
+            int px = cx + static_cast<int>(std::cos(ang) * lr);
+            int py = cy + static_cast<int>(std::sin(ang) * lr);
             if (px < 0 || px >= SCREEN_WIDTH || py < 0 || py >= SCREEN_HEIGHT) continue;
-            SDL_SetRenderDrawColor(renderer, 180, 100, 255, riftA);
             SDL_Rect dot = {px - 1, py - 1, 3, 3};
             SDL_RenderFillRect(renderer, &dot);
         }
     }
 
-    // Scanlines converging toward center
-    if (progress > 0.3f) {
-        int lineCount = static_cast<int>((progress - 0.3f) * 20);
-        for (int i = 0; i < lineCount; i++) {
-            int y = ((i * 4513 + ticks / 40) % SCREEN_HEIGHT);
-            Uint8 la = static_cast<Uint8>(progress * 60);
-            SDL_SetRenderDrawColor(renderer, 150, 80, 220, la);
-            SDL_Rect line = {0, y, SCREEN_WIDTH, 1};
-            SDL_RenderFillRect(renderer, &line);
-        }
-    }
-
-    // Text banner
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(180 * std::min(1.0f, progress * 3.0f)));
-    SDL_Rect banner = {0, 330, SCREEN_WIDTH, 60};
-    SDL_RenderFillRect(renderer, &banner);
-
-    TTF_Font* font = game->getFont();
-    if (font) {
+    // Text banner (fades in quickly)
+    if (progress < 0.85f) {
         float textAlpha = std::min(1.0f, progress * 3.0f);
-        Uint8 ta = static_cast<Uint8>(textAlpha * 255);
-        SDL_Color c = {140, 255, 180, ta};
-        SDL_Surface* s = TTF_RenderText_Blended(font, "RIFT STABILIZED - Warping to next dimension...", c);
-        if (s) {
-            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-            if (t) {
-                SDL_Rect r = {640 - s->w / 2, 348, s->w, s->h};
-                SDL_RenderCopy(renderer, t, nullptr, &r);
-                SDL_DestroyTexture(t);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(160 * textAlpha));
+        SDL_Rect banner = {0, 330, SCREEN_WIDTH, 60};
+        SDL_RenderFillRect(renderer, &banner);
+
+        TTF_Font* font = game->getFont();
+        if (font) {
+            Uint8 ta = static_cast<Uint8>(textAlpha * 255);
+            SDL_Color c = {140, 255, 180, ta};
+            SDL_Surface* s = TTF_RenderText_Blended(font, "RIFT STABILIZED - Warping to next dimension...", c);
+            if (s) {
+                SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+                if (t) {
+                    SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 348, s->w, s->h};
+                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    SDL_DestroyTexture(t);
+                }
+                SDL_FreeSurface(s);
             }
-            SDL_FreeSurface(s);
         }
     }
 }
