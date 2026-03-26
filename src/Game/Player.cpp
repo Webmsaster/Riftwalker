@@ -198,21 +198,28 @@ void Player::update(float dt, const InputManager& input) {
             // Attack progress (0=start, 1=end)
             float progress = atk.duration > 0.0f ? 1.0f - (combat.attackTimer / atk.duration) : 1.0f;
 
-            // Color varies by attack type
+            // Base trail color from equipped weapon for visual identity
             SDL_Color trailColor;
-            if (combat.currentAttack == AttackType::Dash) {
-                trailColor = {100, 200, 255, 255}; // cyan for dash
-            } else if (combat.currentAttack == AttackType::Charged) {
-                trailColor = {255, 200, 50, 255}; // gold for charged
-            } else {
-                // Melee: escalate color with combo
-                switch (combat.comboCount % 3) {
-                    case 0: trailColor = {255, 255, 200, 255}; break; // white-warm
-                    case 1: trailColor = {255, 200, 80, 255};  break; // orange
-                    case 2: trailColor = {255, 100, 50, 255};  break; // red-orange
-                    default: trailColor = {255, 255, 200, 255}; break;
-                }
+            WeaponID activeWpn = combat.currentMelee; // melee/charged/dash use melee weapon
+            switch (activeWpn) {
+                case WeaponID::RiftBlade:     trailColor = {220, 240, 255, 255}; break; // white-cyan
+                case WeaponID::VoidHammer:    trailColor = {120,  40, 180, 255}; break; // dark purple
+                case WeaponID::PhaseDaggers:  trailColor = { 50, 220, 100, 255}; break; // emerald
+                case WeaponID::EntropyScythe: trailColor = {200,  30,  50, 255}; break; // crimson
+                case WeaponID::ChainWhip:     trailColor = {240, 170,  40, 255}; break; // amber
+                default:                      trailColor = {255, 255, 200, 255}; break;
             }
+            // Combo stage boosts intensity: higher combo = brighter trail
+            int combo = combat.comboCount % 3;
+            float comboBright = 1.0f + combo * 0.15f; // 1.0, 1.15, 1.30
+            trailColor.r = static_cast<Uint8>(std::min(255.0f, trailColor.r * comboBright));
+            trailColor.g = static_cast<Uint8>(std::min(255.0f, trailColor.g * comboBright));
+            trailColor.b = static_cast<Uint8>(std::min(255.0f, trailColor.b * comboBright));
+            // Override for special attack types
+            if (combat.currentAttack == AttackType::Dash)
+                trailColor = {100, 200, 255, 255}; // cyan dash override
+            else if (combat.currentAttack == AttackType::Charged)
+                trailColor = {255, 200, 50, 255}; // gold charged override
 
             // Intensity peaks mid-swing
             float intensity = 1.0f - std::abs(progress - 0.5f) * 2.0f;
