@@ -173,6 +173,16 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     }
 
     // Hybrid rendering: try sprite first, fall back to procedural
+    if (entity.getComponent<SpriteComponent>().texture) {
+        // Drop shadow for texture-based entities (procedural renderers draw their own)
+        int shadowW = screenRect.w * 4 / 5;
+        int shadowH = std::max(2, screenRect.h * 3 / 10);
+        int shadowX = screenRect.x + (screenRect.w - shadowW) / 2;
+        int shadowY = screenRect.y + screenRect.h - shadowH / 2;
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(35 * alpha));
+        SDL_Rect shadowRect = {shadowX, shadowY, shadowW, shadowH};
+        SDL_RenderFillRect(renderer, &shadowRect);
+    }
     if (renderSprite(renderer, screenRect, entity, alpha)) {
         // Sprite rendered successfully — skip procedural, but still apply overlays below
     } else
