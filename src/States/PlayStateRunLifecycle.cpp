@@ -85,6 +85,9 @@ void PlayState::startNewRun() {
     m_tutorialHintIndex = 0;
     m_tutorialHintShowTimer = 0;
     std::memset(m_tutorialHintDone, 0, sizeof(m_tutorialHintDone));
+    // Tutorial only active on very first run, disabled for automated modes
+    m_tutorialActive = (game->getUpgradeSystem().totalRuns == 0)
+                       && !m_smokeTest && !m_playtest;
     m_hasMovedThisRun = false;
     m_hasJumpedThisRun = false;
     m_hasDashedThisRun = false;

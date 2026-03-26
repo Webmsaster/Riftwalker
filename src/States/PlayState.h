@@ -207,9 +207,10 @@ private:
     bool m_waveActive = false;
     void updateSpawnWaves(float dt);
 
-    // Tutorial hints (context-based)
+    // Tutorial hints (context-based, first run only)
     void renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font);
     void renderKeyBox(SDL_Renderer* renderer, TTF_Font* font, const char* key, int x, int y, Uint8 alpha);
+    bool m_tutorialActive = false;     // true only on first run (totalRuns == 0), disabled for smoke/playtest
     float m_tutorialTimer = 0;
     int m_tutorialHintIndex = 0;      // Current hint to show
     float m_tutorialHintShowTimer = 0; // Time current hint has been visible

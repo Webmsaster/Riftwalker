@@ -265,6 +265,32 @@ void ShopState::render(SDL_Renderer* renderer) {
         }
     }
 
+    // First-run tutorial hint: explain the shop on the very first visit
+    if (font && game->getUpgradeSystem().totalRuns == 0 && !m_purchasedThisVisit) {
+        float pulse = 0.6f + 0.4f * std::sin(ticks * 0.004f);
+        Uint8 ta = static_cast<Uint8>(220 * pulse);
+        // Semi-transparent bar above cards
+        SDL_SetRenderDrawColor(renderer, 10, 5, 30, 160);
+        SDL_Rect tutBg = {200, 100, 880, 28};
+        SDL_RenderFillRect(renderer, &tutBg);
+        SDL_SetRenderDrawColor(renderer, 140, 100, 220, ta);
+        SDL_RenderDrawRect(renderer, &tutBg);
+
+        SDL_Color tutColor = {180, 220, 255, ta};
+        SDL_Surface* ts = TTF_RenderText_Blended(font,
+            "Spend Rift Shards to upgrade your abilities for the next level!", tutColor);
+        if (ts) {
+            SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
+            if (tt) {
+                SDL_SetTextureAlphaMod(tt, ta);
+                SDL_Rect tr2 = {640 - ts->w / 2, 104, ts->w, ts->h};
+                SDL_RenderCopy(renderer, tt, nullptr, &tr2);
+                SDL_DestroyTexture(tt);
+            }
+            SDL_FreeSurface(ts);
+        }
+    }
+
     // Instructions at bottom
     if (font) {
         SDL_Color hintColor = {100, 100, 120, 150};

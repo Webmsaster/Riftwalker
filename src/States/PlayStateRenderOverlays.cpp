@@ -542,8 +542,8 @@ void PlayState::renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font
 void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
     if (!font) return;
 
-    // Only show tutorial hints on the first run (totalRuns == 0 means no completed run yet)
-    if (game->getUpgradeSystem().totalRuns > 0) return;
+    // Only show tutorial hints on the first run; flag is set in startNewRun()
+    if (!m_tutorialActive) return;
 
     // Context-based hint system: show hints when conditions are met
     const char* hint = nullptr;
@@ -706,6 +706,12 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
                  && m_tutorialHintDone[3]) {
             hint = "Switch weapons: [Q] Melee  [R] Ranged - try different styles!";
             hintSlot = 15;
+            m_tutorialHintShowTimer = 0;
+        }
+        // Collapse started hint (escape phase)
+        else if (!m_tutorialHintDone[17] && m_collapsing && m_collapseTimer < 3.0f) {
+            hint = "Dimension collapsing! Reach the EXIT before time runs out!";
+            hintSlot = 17;
             m_tutorialHintShowTimer = 0;
         }
     }
