@@ -699,16 +699,35 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                     break;
             }
 
-            // Cooldown overlay (dark sweep from top)
+            // Cooldown overlay (dark sweep from top) + remaining seconds
             if (!ready) {
                 int coverH = static_cast<int>(iconSize * (1.0f - abilities[i].cooldownPct));
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
                 SDL_Rect cover = {ix, abY, iconSize, coverH};
                 SDL_RenderFillRect(renderer, &cover);
+                // Remaining seconds text centered on icon
+                if (font) {
+                    float remain = 0;
+                    if (i == 0) remain = combat.cooldownTimer;
+                    else if (i == 1) remain = combat.cooldownTimer;
+                    else if (i == 2) remain = player->dashCooldownTimer;
+                    else if (i == 3 && dimMgr) remain = dimMgr->getCooldownTimer();
+                    if (remain > 0.05f) {
+                        char cdTxt[8];
+                        std::snprintf(cdTxt, sizeof(cdTxt), "%.1f", remain);
+                        renderText(renderer, font, cdTxt, ix + 2, abY + iconSize / 2 - 5, {255, 255, 255, 220});
+                    }
+                }
             }
 
-            // Border (brighter when ready)
-            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(ready ? 180 : 60));
+            // Border (brighter when ready, pulse when ready)
+            if (ready) {
+                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.006f);
+                Uint8 borderA = static_cast<Uint8>(140 + 60 * pulse);
+                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, borderA);
+            } else {
+                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 60);
+            }
             SDL_RenderDrawRect(renderer, &bg);
 
             // Ready flash: bright glow that fades out when ability comes off cooldown
@@ -892,12 +911,29 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 }
             }
 
-            // Cooldown sweep overlay
+            // Cooldown sweep overlay + remaining seconds text
             if (!ready && !active) {
                 int coverH = static_cast<int>(abIconSize * (1.0f - abIcons[i].cdPct));
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 160);
                 SDL_Rect cover = {ix, abStartY, abIconSize, coverH};
                 SDL_RenderFillRect(renderer, &cover);
+                // Show remaining cooldown seconds
+                if (font) {
+                    float remain = 0;
+                    if (player->playerClass == PlayerClass::Technomancer) {
+                        if (i == 0) remain = player->turretCooldownTimer;
+                        else if (i == 1) remain = player->trapCooldownTimer;
+                        else remain = abil.abilities[2].cooldownTimer;
+                    } else {
+                        remain = abil.abilities[i].cooldownTimer;
+                    }
+                    if (remain > 0.05f) {
+                        char cdTxt[8];
+                        std::snprintf(cdTxt, sizeof(cdTxt), "%.1f", remain);
+                        renderText(renderer, font, cdTxt, ix + 3, abStartY + abIconSize / 2 - 5,
+                                   {255, 255, 255, 220});
+                    }
+                }
             }
 
             // Active glow
@@ -909,8 +945,14 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 SDL_RenderDrawRect(renderer, &glow);
             }
 
-            // Border
-            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(ready || active ? 200 : 60));
+            // Border (pulse when ready)
+            if (ready && !active) {
+                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.006f);
+                Uint8 borderA = static_cast<Uint8>(150 + 50 * pulse);
+                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, borderA);
+            } else {
+                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(active ? 200 : 60));
+            }
             SDL_RenderDrawRect(renderer, &bg);
 
             // Key label
