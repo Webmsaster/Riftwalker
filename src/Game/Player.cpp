@@ -503,20 +503,37 @@ void Player::handleDash(float dt, const InputManager& input) {
         const auto& cc = ClassSystem::getData(playerClass).color;
 
         // Spawn afterimage ghost copies every ~0.04s during dash
+        // Color is dimension-tinted: blue for Dim A, red for Dim B
         spr.afterimageSpawnTimer -= dt;
         if (spr.afterimageSpawnTimer <= 0) {
             spr.afterimageSpawnTimer = 0.04f;
-            SDL_Color ghostColor = {cc.r, cc.g, cc.b, 255};
-            if (isPhaseThrough()) ghostColor = {60, 220, 200, 255};
+            SDL_Color ghostColor;
+            if (isPhaseThrough()) {
+                ghostColor = {60, 220, 200, 255};
+            } else if (dimensionManager) {
+                int dim = dimensionManager->getCurrentDimension();
+                ghostColor = (dim == 1) ? SDL_Color{80, 140, 255, 255}   // blue for Dim A
+                                        : SDL_Color{255, 80, 100, 255};  // red for Dim B
+            } else {
+                ghostColor = {cc.r, cc.g, cc.b, 255};
+            }
             spr.addAfterimage(t.position.x, t.position.y,
                               static_cast<float>(t.width), static_cast<float>(t.height),
                               ghostColor, spr.flipX);
         }
 
         // Particle trail (smaller now that afterimages handle the main visual)
+        // Dimension-tinted to match afterimage color
         if (particles) {
-            SDL_Color ghostColor = {cc.r, cc.g, cc.b, 80};
-            particles->burst(t.getCenter(), 1, ghostColor, 15.0f, 4.0f);
+            SDL_Color trailColor;
+            if (dimensionManager) {
+                int dim = dimensionManager->getCurrentDimension();
+                trailColor = (dim == 1) ? SDL_Color{80, 140, 255, 80}
+                                        : SDL_Color{255, 80, 100, 80};
+            } else {
+                trailColor = {cc.r, cc.g, cc.b, 80};
+            }
+            particles->burst(t.getCenter(), 1, trailColor, 15.0f, 4.0f);
             // Phantom Phase Through: extra cyan phase particles
             if (isPhaseThrough()) {
                 particles->burst(t.getCenter(), 3, {60, 220, 200, 120}, 35.0f, 5.0f);
