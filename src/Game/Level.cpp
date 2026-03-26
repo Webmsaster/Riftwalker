@@ -126,6 +126,28 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
 
     Uint32 ticks = SDL_GetTicks();
 
+    // Floor pass: subtle grid + color variation on empty tiles
+    for (int y = startY; y <= endY; y++) {
+        for (int x = startX; x <= endX; x++) {
+            const Tile& tile = getTile(x, y, currentDim);
+            if (tile.type != TileType::Empty) continue;
+            SDL_FRect fw = { static_cast<float>(x * m_tileSize),
+                             static_cast<float>(y * m_tileSize),
+                             static_cast<float>(m_tileSize),
+                             static_cast<float>(m_tileSize) };
+            SDL_Rect fs = camera.worldToScreen(fw);
+            // Slight color variation based on position hash
+            int hash = (x * 7919 + y * 6271) & 0xFF;
+            Uint8 vary = static_cast<Uint8>(8 + (hash % 11)); // 8-18 range
+            SDL_SetRenderDrawColor(renderer, vary, vary / 2, vary + 4, 18);
+            SDL_RenderFillRect(renderer, &fs);
+            // Grid lines between tiles
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 8);
+            SDL_RenderDrawLine(renderer, fs.x, fs.y, fs.x + fs.w, fs.y);
+            SDL_RenderDrawLine(renderer, fs.x, fs.y, fs.x, fs.y + fs.h);
+        }
+    }
+
     // Render current dimension tiles with edge-aware rendering
     for (int y = startY; y <= endY; y++) {
         for (int x = startX; x <= endX; x++) {
@@ -359,18 +381,20 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
 
 void Level::renderOneWayTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile) const {
     // Always use procedural rendering (tileset tile doesn't match one-way style)
-    // Procedural: Top surface line (thick)
-    SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, 255);
-    SDL_Rect topBar = {sr.x, sr.y, sr.w, 4};
-    SDL_RenderFillRect(renderer, &topBar);
-
-    // Highlight on top
-    Uint8 hiR = static_cast<Uint8>(std::min(255, tile.color.r + 50));
-    Uint8 hiG = static_cast<Uint8>(std::min(255, tile.color.g + 50));
-    Uint8 hiB = static_cast<Uint8>(std::min(255, tile.color.b + 50));
-    SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, 200);
-    SDL_Rect highlight = {sr.x, sr.y, sr.w, 2};
-    SDL_RenderFillRect(renderer, &highlight);
+    // Dashed top bar: alternating 4px colored / 4px gap for platform look
+    for (int dx = 0; dx < sr.w; dx += 8) {
+        int segW = std::min(4, sr.w - dx);
+        SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, 255);
+        SDL_Rect seg = {sr.x + dx, sr.y, segW, 4};
+        SDL_RenderFillRect(renderer, &seg);
+        // Highlight on each dash
+        Uint8 hiR = static_cast<Uint8>(std::min(255, tile.color.r + 50));
+        Uint8 hiG = static_cast<Uint8>(std::min(255, tile.color.g + 50));
+        Uint8 hiB = static_cast<Uint8>(std::min(255, tile.color.b + 50));
+        SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, 200);
+        SDL_Rect hl = {sr.x + dx, sr.y, segW, 2};
+        SDL_RenderFillRect(renderer, &hl);
+    }
 
     // Dashed support lines below
     SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, 80);
@@ -409,6 +433,11 @@ void Level::renderSpikeTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
         SDL_Rect tip = {tipX - 1, tipY, 2, 3};
         SDL_RenderFillRect(renderer, &tip);
     }
+
+    // Hazard glow: 1px border around spike tile
+    SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, 40);
+    SDL_Rect glowR = {sr.x - 1, sr.y - 1, sr.w + 2, sr.h + 2};
+    SDL_RenderDrawRect(renderer, &glowR);
 }
 
 void Level::renderRift(SDL_Renderer* renderer, SDL_Rect sr, Uint32 ticks,
@@ -625,6 +654,11 @@ void Level::renderFireTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile
         SDL_Rect ember = {ex, ey, 2, 2};
         SDL_RenderFillRect(renderer, &ember);
     }
+
+    // Hazard glow: 1px border around fire tile
+    SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g / 2, 0, 40);
+    SDL_Rect glowR = {sr.x - 1, sr.y - 1, sr.w + 2, sr.h + 2};
+    SDL_RenderDrawRect(renderer, &glowR);
 }
 
 void Level::renderConveyorTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
