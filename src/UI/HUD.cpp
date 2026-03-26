@@ -728,53 +728,67 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
-    // Active buff indicators (below ability bar)
+    // Active buff/debuff indicators (below ability bar)
     if (player) {
         int buffY = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + static_cast<int>(36 * g_hudScale) + xpExtraH;
         int buffX = margin;
-        int buffSize = static_cast<int>(16 * g_hudScale);
-        int buffGap  = static_cast<int>(4 * g_hudScale);
+        int buffSize = static_cast<int>(12 * g_hudScale);
+        int buffGap  = static_cast<int>(3 * g_hudScale);
+        int timerBarH = static_cast<int>(3 * g_hudScale); // timer bar height below icon
 
         auto drawBuff = [&](const char* label, float timer, float maxTime, SDL_Color color) {
             if (timer <= 0) return;
             float pct = timer / std::max(0.01f, maxTime);
-            // Background
-            SDL_SetRenderDrawColor(renderer, 10, 10, 20, 180);
+            // Fade alpha when < 2s remaining
+            Uint8 fadeAlpha = (timer < 2.0f) ? static_cast<Uint8>(80 + 175 * (timer / 2.0f)) : 255;
+
+            // Icon background
+            SDL_SetRenderDrawColor(renderer, 10, 10, 20, static_cast<Uint8>(fadeAlpha * 0.7f));
             SDL_Rect bg = {buffX, buffY, buffSize, buffSize};
             SDL_RenderFillRect(renderer, &bg);
-            // Fill based on remaining time
-            int fillH = static_cast<int>(buffSize * pct);
-            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 180);
-            SDL_Rect fill = {buffX, buffY + buffSize - fillH, buffSize, fillH};
-            SDL_RenderFillRect(renderer, &fill);
-            // Border
-            float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
-            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, static_cast<Uint8>(120 * pulse));
-            SDL_RenderDrawRect(renderer, &bg);
-            // Label
+            // Color fill
+            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, static_cast<Uint8>(fadeAlpha * 0.7f));
+            SDL_RenderFillRect(renderer, &bg);
+            // Label centered in icon
             if (font) {
-                renderText(renderer, font, label, buffX + 2, buffY + buffSize + 1,
-                           {color.r, color.g, color.b, 180});
+                renderText(renderer, font, label, buffX + 1, buffY,
+                           {255, 255, 255, fadeAlpha});
             }
+            // Border
+            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, static_cast<Uint8>(fadeAlpha * 0.8f));
+            SDL_RenderDrawRect(renderer, &bg);
+            // Timer bar below icon (shrinks left-to-right)
+            int timerW = static_cast<int>(buffSize * pct);
+            SDL_SetRenderDrawColor(renderer, 20, 20, 30, static_cast<Uint8>(fadeAlpha * 0.6f));
+            SDL_Rect timerBg = {buffX, buffY + buffSize + 1, buffSize, timerBarH};
+            SDL_RenderFillRect(renderer, &timerBg);
+            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, fadeAlpha);
+            SDL_Rect timerFill = {buffX, buffY + buffSize + 1, timerW, timerBarH};
+            SDL_RenderFillRect(renderer, &timerFill);
+
             buffX += buffSize + buffGap;
         };
 
-        drawBuff("SP", player->speedBoostTimer, 6.0f, {255, 255, 80, 255});
-        drawBuff("DM", player->damageBoostTimer, 8.0f, {255, 80, 80, 255});
-        if (player->hasShield) {
-            drawBuff("SH", player->shieldTimer, 8.0f, {100, 180, 255, 255});
-        }
+        // Buffs
+        drawBuff("S", player->speedBoostTimer, 6.0f, {255, 255, 80, 255});
+        drawBuff("D", player->damageBoostTimer, 8.0f, {255, 80, 80, 255});
+        if (player->hasShield)
+            drawBuff("W", player->shieldTimer, 8.0f, {100, 180, 255, 255});
+        if (player->isRiftChargeActive())
+            drawBuff("R", player->riftChargeTimer, player->riftChargeDuration, {80, 160, 255, 255});
+        if (player->hasMomentum())
+            drawBuff("M", player->momentumTimer, player->momentumDuration, {255, 140, 40, 255});
+        if (player->postDashInvisTimer > 0 && player->playerClass == PlayerClass::Phantom)
+            drawBuff("I", player->postDashInvisTimer, ClassSystem::getData(PlayerClass::Phantom).postDashInvisTime,
+                     {60, 220, 200, 255});
 
-        // Status effect indicators (debuffs - shown with distinct warning style)
-        if (player->isBurning()) {
-            drawBuff("FI", player->burnTimer, 3.0f, {255, 120, 30, 255});
-        }
-        if (player->isFrozen()) {
-            drawBuff("IC", player->freezeTimer, 2.0f, {80, 180, 255, 255});
-        }
-        if (player->isPoisoned()) {
-            drawBuff("PO", player->poisonTimer, 4.0f, {80, 220, 80, 255});
-        }
+        // Debuffs (status effects)
+        if (player->isBurning())
+            drawBuff("F", player->burnTimer, 3.0f, {255, 120, 30, 255});
+        if (player->isFrozen())
+            drawBuff("C", player->freezeTimer, 2.0f, {80, 180, 255, 255});
+        if (player->isPoisoned())
+            drawBuff("P", player->poisonTimer, 4.0f, {80, 220, 80, 255});
     }
 
     // Ability icons (below active buffs)
