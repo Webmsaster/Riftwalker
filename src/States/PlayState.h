@@ -176,6 +176,7 @@ private:
 
     // Ambient effects
     float m_ambientDustTimer = 0;
+    float m_riftAmbientTimer = 0;
     float m_wallSlideDustTimer = 0;
 
     // Combat feel

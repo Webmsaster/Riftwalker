@@ -871,6 +871,23 @@ void PlayState::update(float dt) {
         }
     }
 
+    // Ambient rift particles — energy leaking upward from unrepaired rifts
+    m_riftAmbientTimer += dt;
+    if (m_riftAmbientTimer >= 0.3f && m_level) {
+        m_riftAmbientTimer = 0;
+        int curDim = m_dimManager.getCurrentDimension();
+        auto rifts = m_level->getRiftPositions();
+        for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
+            if (m_repairedRiftIndices.count(i)) continue;
+            if (!m_level->isRiftActiveInDimension(i, curDim)) continue;
+            int reqDim = m_level->getRiftRequiredDimension(i);
+            SDL_Color col = (reqDim == 2) ? SDL_Color{220, 50, 50, 140}   // red for dim-B
+                                          : SDL_Color{160, 60, 220, 140}; // purple for dim-A / neutral
+            Vec2 center = {rifts[i].x + 16.0f, rifts[i].y + 16.0f};
+            m_particles.ambientThemeParticle(center, col, 90.0f, 20.0f, 2.5f, 2.0f, -15.0f, 24.0f);
+        }
+    }
+
     // Level complete transition
     if (m_levelComplete) {
         m_levelCompleteTimer += dt;
