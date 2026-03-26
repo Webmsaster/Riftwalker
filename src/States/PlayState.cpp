@@ -918,6 +918,28 @@ void PlayState::update(float dt) {
         }
     }
 
+    // Exit beacon — visual cue so the player can find the exit
+    if (m_level) {
+        Vec2 exitPos = m_level->getExitPoint();
+        exitPos.x += 16.0f; // center on tile
+        exitPos.y += 16.0f;
+        m_exitBeaconTimer -= dt;
+        if (m_collapsing) {
+            // Active exit: bright green rising particles
+            if (m_exitBeaconTimer <= 0) {
+                m_exitBeaconTimer = 0.15f;
+                m_particles.directionalBurst(exitPos, 2, {80, 255, 80, 200}, 90.0f, 30.0f, 80.0f, 3.0f);
+                m_particles.burst(exitPos, 1, {200, 255, 200, 150}, 40.0f, 2.0f);
+            }
+        } else {
+            // Inactive exit: dim gray hint particles
+            if (m_exitBeaconTimer <= 0) {
+                m_exitBeaconTimer = 0.6f;
+                m_particles.ambientThemeParticle(exitPos, {120, 120, 120, 60}, 90.0f, 15.0f, 1.5f, 3.0f, -10.0f);
+            }
+        }
+    }
+
     // Level complete transition
     if (m_levelComplete) {
         m_levelCompleteTimer += dt;
