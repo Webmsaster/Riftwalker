@@ -39,31 +39,29 @@ bool VisualTest::update(int frameCount, Game* game) {
 
     switch (m_phase) {
 
-    // --- Wait for splash screen to show "Press any key" ---
+    // ========== CORE GAMEPLAY FLOW ==========
+
     case Phase::WaitSplash:
         if (frameCount >= 400) {
-            injectKey(SDL_SCANCODE_SPACE); // Space to dismiss splash (not Enter, to avoid menu activation)
+            injectKey(SDL_SCANCODE_SPACE);
             nextPhase(Phase::CaptureMenu);
         }
         break;
 
-    // --- Wait for menu to fully appear, then capture ---
     case Phase::CaptureMenu:
-        if (m_phaseFrame >= 120) { // 2s for transition
+        if (m_phaseFrame >= 120) {
             capture(game, "menu");
             nextPhase(Phase::NavigateToGame);
         }
         break;
 
-    // --- Press Enter to select "New Run" ---
     case Phase::NavigateToGame:
         if (m_phaseFrame >= 30) {
-            injectKey(SDL_SCANCODE_RETURN);
+            injectKey(SDL_SCANCODE_RETURN); // New Run (button 0)
             nextPhase(Phase::WaitClassSelect);
         }
         break;
 
-    // --- Wait for class select to load ---
     case Phase::WaitClassSelect:
         if (m_phaseFrame >= 120) {
             nextPhase(Phase::CaptureClassSel);
@@ -75,32 +73,28 @@ bool VisualTest::update(int frameCount, Game* game) {
         nextPhase(Phase::SelectClass);
         break;
 
-    // --- Select Voidwalker ---
     case Phase::SelectClass:
         if (m_phaseFrame >= 30) {
-            injectKey(SDL_SCANCODE_RETURN);
+            injectKey(SDL_SCANCODE_RETURN); // Voidwalker
             nextPhase(Phase::WaitDiffSelect);
         }
         break;
 
-    // --- Wait for difficulty select ---
     case Phase::WaitDiffSelect:
         if (m_phaseFrame >= 120) {
             nextPhase(Phase::SelectDifficulty);
         }
         break;
 
-    // --- Select Normal difficulty ---
     case Phase::SelectDifficulty:
         if (m_phaseFrame >= 30) {
-            injectKey(SDL_SCANCODE_RETURN);
+            injectKey(SDL_SCANCODE_RETURN); // Normal
             nextPhase(Phase::WaitGameplay);
         }
         break;
 
-    // --- Wait for gameplay to fully initialize ---
     case Phase::WaitGameplay:
-        if (m_phaseFrame >= 300) { // 5s for level gen + run start narrative
+        if (m_phaseFrame >= 420) { // 7s: wait for run start narrative to fade
             nextPhase(Phase::CaptureGameplay);
         }
         break;
@@ -110,7 +104,6 @@ bool VisualTest::update(int frameCount, Game* game) {
         nextPhase(Phase::EnableDebug);
         break;
 
-    // --- Toggle F3 debug overlay ---
     case Phase::EnableDebug:
         if (m_phaseFrame >= 15) {
             injectKey(SDL_SCANCODE_F3);
@@ -121,13 +114,11 @@ bool VisualTest::update(int frameCount, Game* game) {
     case Phase::CaptureDebug:
         if (m_phaseFrame >= 30) {
             capture(game, "debug_overlay");
-            // Turn off debug overlay
-            injectKey(SDL_SCANCODE_F3);
+            injectKey(SDL_SCANCODE_F3); // Turn off
             nextPhase(Phase::OpenPause);
         }
         break;
 
-    // --- Open pause screen ---
     case Phase::OpenPause:
         if (m_phaseFrame >= 30) {
             injectKey(SDL_SCANCODE_ESCAPE);
@@ -138,9 +129,91 @@ bool VisualTest::update(int frameCount, Game* game) {
     case Phase::CapturePause:
         if (m_phaseFrame >= 60) {
             capture(game, "pause");
-            nextPhase(Phase::Done);
+            nextPhase(Phase::ClosePause);
         }
         break;
+
+    // ========== RETURN TO MENU ==========
+
+    case Phase::ClosePause:
+        // Navigate to "Quit to Menu" (button 5): press S 5 times then Enter
+        if (m_phaseFrame == 15) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 20) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 25) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 30) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 35) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 45) injectKey(SDL_SCANCODE_RETURN); // Quit to Menu
+        if (m_phaseFrame >= 50) nextPhase(Phase::WaitMenu2);
+        break;
+
+    case Phase::WaitMenu2:
+        if (m_phaseFrame >= 120) { // Wait for menu transition
+            nextPhase(Phase::NavToUpgrades);
+        }
+        break;
+
+    // ========== UPGRADES SCREEN ==========
+
+    case Phase::NavToUpgrades:
+        // From menu button 0, navigate down to button 4 (Upgrades)
+        if (m_phaseFrame == 10) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 15) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 20) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 25) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 35) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 40) nextPhase(Phase::WaitUpgrades);
+        break;
+
+    case Phase::WaitUpgrades:
+        if (m_phaseFrame >= 90) {
+            nextPhase(Phase::CaptureUpgrades);
+        }
+        break;
+
+    case Phase::CaptureUpgrades:
+        capture(game, "upgrades");
+        nextPhase(Phase::BackFromUpgrades);
+        break;
+
+    case Phase::BackFromUpgrades:
+        if (m_phaseFrame >= 15) {
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::NavToAchievements);
+        }
+        break;
+
+    // ========== ACHIEVEMENTS SCREEN ==========
+
+    case Phase::NavToAchievements:
+        if (m_phaseFrame < 90) break; // Wait for menu transition
+        // After ESC from Upgrades, menu resets to button 0.
+        // Navigate to button 6 (Achievements): 6x S then Enter
+        if (m_phaseFrame == 90) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 95) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 100) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 105) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 110) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 115) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 125) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 130) nextPhase(Phase::WaitAchievements);
+        break;
+
+    case Phase::WaitAchievements:
+        if (m_phaseFrame >= 90) {
+            nextPhase(Phase::CaptureAchievements);
+        }
+        break;
+
+    case Phase::CaptureAchievements:
+        capture(game, "achievements");
+        nextPhase(Phase::BackFromAchievements);
+        break;
+
+    case Phase::BackFromAchievements:
+        nextPhase(Phase::Done);
+        break;
+
+    // ========== COMPLETE ==========
 
     case Phase::Done:
         SDL_Log("VisualTest: Complete. %d screenshots captured.", m_captureCount);

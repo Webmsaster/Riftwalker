@@ -6,12 +6,15 @@
 // Navigates through game states, captures screenshots at each checkpoint,
 // then exits. Uses SDL_PushEvent to inject key inputs.
 //
-// Checkpoints:
-//   01_menu.png         - Main menu (after splash)
-//   02_class_select.png - Class selection screen
-//   03_gameplay.png     - In-game (Floor 1, after spawning)
-//   04_hud_debug.png    - Gameplay with F3 debug overlay
-//   05_pause.png        - Pause screen overlay
+// Checkpoints (extended):
+//   01_menu.png           - Main menu
+//   02_class_select.png   - Class selection screen
+//   03_gameplay.png       - In-game (Floor 1)
+//   04_debug_overlay.png  - Gameplay with F3 debug overlay
+//   05_pause.png          - Pause screen overlay
+//   06_upgrades.png       - Upgrades shop (from menu)
+//   07_achievements.png   - Achievements screen
+//   08_bestiary.png       - Bestiary screen
 //
 // Screenshots are saved to screenshots/visual_test/
 
@@ -24,32 +27,45 @@ public:
     bool update(int frameCount, Game* game);
 
 private:
-    // Inject a key press event into SDL event queue
     void injectKey(SDL_Scancode scancode);
-
-    // Capture a named screenshot (prefix for the checkpoint)
     void capture(Game* game, const char* name);
 
     enum class Phase {
-        WaitSplash,      // Wait for splash to end
-        CaptureMenu,     // Capture main menu
-        NavigateToGame,   // Press Enter to start, navigate menus
-        WaitClassSelect,  // Wait for class select
-        CaptureClassSel,  // Capture class select
-        SelectClass,      // Press Enter to select class
-        WaitDiffSelect,   // Wait for difficulty select
-        SelectDifficulty, // Press Enter on difficulty
-        WaitGameplay,     // Wait for gameplay to load
-        CaptureGameplay,  // Capture gameplay
-        EnableDebug,      // Press F3
-        CaptureDebug,     // Capture with debug overlay
-        OpenPause,        // Press ESC
-        CapturePause,     // Capture pause menu
+        // --- Core gameplay flow ---
+        WaitSplash,
+        CaptureMenu,
+        NavigateToGame,
+        WaitClassSelect,
+        CaptureClassSel,
+        SelectClass,
+        WaitDiffSelect,
+        SelectDifficulty,
+        WaitGameplay,
+        CaptureGameplay,
+        EnableDebug,
+        CaptureDebug,
+        OpenPause,
+        CapturePause,
+        // --- Return to menu for more screens ---
+        ClosePause,         // ESC to resume
+        QuitToMenu,         // ESC again, then navigate to Quit to Menu
+        WaitMenu2,          // Wait for menu to reload
+        // --- Upgrades screen ---
+        NavToUpgrades,
+        WaitUpgrades,
+        CaptureUpgrades,
+        BackFromUpgrades,
+        // --- Achievements screen ---
+        NavToAchievements,
+        WaitAchievements,
+        CaptureAchievements,
+        BackFromAchievements,
+        // --- Done ---
         Done
     };
 
     Phase m_phase = Phase::WaitSplash;
-    int m_phaseFrame = 0;  // Frames since entering current phase
+    int m_phaseFrame = 0;
     int m_captureCount = 0;
 
     void nextPhase(Phase p) { m_phase = p; m_phaseFrame = 0; }

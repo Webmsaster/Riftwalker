@@ -1,0 +1,81 @@
+name: Visual Regression Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  visual-tests:
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    env:
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Export GitHub Actions cache variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          runVcpkgInstall: false
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/vcpkg/installed
+            ${{ github.workspace }}/vcpkg/packages
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-
+
+      - name: Install vcpkg dependencies
+        run: >
+          vcpkg install
+          sdl2
+          sdl2-image
+          sdl2-mixer
+          sdl2-ttf
+          tracy
+          --triplet x64-windows
+
+      - name: Configure CMake
+        run: >
+          cmake -B build -S .
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Build Riftwalker
+        run: cmake --build build --config Release --target Riftwalker
+
+      - name: Build visual_diff
+        run: cmake --build build --config Release --target visual_diff
+
+      - name: Run visual regression tests
+        run: ctest --test-dir build -C Release -R visual_regression -V
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-test-artifacts
+          path: |
+            screenshots/visual_test/
+            build/Release/screenshots/
+            build/visual_test_diffs/
+            build/**/*diff*.png
+            build/**/*actual*.png
+          retention-days: 14

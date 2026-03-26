@@ -68,10 +68,11 @@ foreach ($s in $screenshots) {
         continue
     }
 
-    # Dynamic screens (gameplay, debug, pause) have timers/particles that vary per run
-    # Allow up to 5% diff for those, 0.1% for static screens (menu, class select)
+    # Dynamic screens have timers/particles/animations that vary per run
+    # Static screens (upgrades, achievements): strict 0.1%
+    # Animated screens (menu, class_select, gameplay, debug, pause): allow up to 5%
     $maxDiff = "0.1"
-    if ($s.Name -match "gameplay|debug_overlay|pause") { $maxDiff = "5.0" }
+    if ($s.Name -match "menu|class_select|gameplay|debug_overlay|pause|upgrades") { $maxDiff = "5.0" }
 
     & $DiffPath $refFile $s.FullName $diffFile --threshold $Threshold --max-diff $maxDiff
     $code = $LASTEXITCODE

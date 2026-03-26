@@ -558,6 +558,18 @@ void PlayState::updatePlaytest(float dt) {
         m_ptScreenshotTimer = 0;
         playtestScreenshot("periodic");
     }
+
+    // Floor-checkpoint screenshots (on floor transition)
+    int currentFloor = roomsCleared + 1;
+    if (currentFloor != m_ptLastCompletedLevel + 1) {
+        m_ptLastCompletedLevel = currentFloor - 1;
+        // Screenshot at key floor milestones: 1, 5, 10, 15, 20, 25, 30
+        if (currentFloor == 1 || currentFloor % 5 == 0) {
+            char event[32];
+            std::snprintf(event, sizeof(event), "floor_%d", currentFloor);
+            playtestScreenshot(event);
+        }
+    }
     m_ptDimSwitchCD -= dt;
     m_ptDimExploreTimer -= dt;
     m_ptAbilityCD -= dt;
