@@ -32,6 +32,8 @@ bool g_smokeRegression = false;
 int g_smokeTargetFloor = 5;
 float g_smokeMaxRuntime = 600.0f;
 int g_smokeCompletedFloor = 0;
+bool g_autoScreenshot = false; // --screenshot: take one screenshot after menu loads, then exit
+extern bool g_visualTest;     // --visual-test: navigate states and capture multi-point screenshots
 int g_smokeFailureCode = 0;
 char g_smokeFailureReason[256] = {};
 
@@ -561,6 +563,15 @@ int main(int argc, char* argv[]) {
         if (std::strncmp(argv[i], "--playtest-output=", 18) == 0) {
             std::strncpy(g_playtestOutputFile, argv[i] + 18, sizeof(g_playtestOutputFile) - 1);
             g_playtestOutputFile[sizeof(g_playtestOutputFile) - 1] = '\0';
+            continue;
+        }
+        if (std::strcmp(argv[i], "--screenshot") == 0) {
+            g_autoScreenshot = true;
+            continue;
+        }
+        if (std::strcmp(argv[i], "--visual-test") == 0) {
+            g_visualTest = true;
+            g_forcedRunSeed = 42; // Fixed seed for deterministic gameplay
             continue;
         }
         if (std::strcmp(argv[i], "--validate-generator") == 0) {

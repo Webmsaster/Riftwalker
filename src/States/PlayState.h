@@ -447,6 +447,11 @@ private:
     int m_ptLastCompletedLevel = 0;
     float m_ptStuckTimer = 0;
     Vec2 m_ptLastCheckPos = {0, 0};
+
+    // Playtest auto-screenshots (every 10s + on key events)
+    float m_ptScreenshotTimer = 0;
+    int m_ptScreenshotCount = 0;
+    void playtestScreenshot(const char* event = nullptr);
     float m_ptDimSwitchCD = 0;
     float m_ptDimExploreTimer = 0;
     float m_ptLastEntropyLog = 0;

@@ -26,6 +26,7 @@ No test framework. Manual testing via debug keys in PlayState:
 - **F6** — Smoke test (auto-play bot that exercises movement, combat, dimension switching)
 - **F3** — Debug overlay (entity counts, balance stats, performance)
 - **F4** — Balance snapshot (writes stats to file for tuning)
+- **F9 / F12** — Screenshot (saves to `screenshots/`)
 
 Automated playtest system via CLI:
 ```bash
@@ -34,8 +35,15 @@ build/Release/Riftwalker.exe --playtest --playtest-runs=3 --playtest-class=voidw
 
 # Parallel playtests (all classes × all profiles)
 python tools/run_playtests.py --quick
+
+# Screenshot mode (auto-capture + exit)
+build/Release/Riftwalker.exe --screenshot
 ```
 Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victory) in ~1300s.
+
+**Visual Regression Testing** (new):
+- `python tools/visual-regression.ps1` — Capture reference screenshots, detect regressions
+- `python tools/visual_report.py` — Generate HTML diff reports (Reference / Actual / Diff)
 
 ## Architecture (Riftwalker)
 

@@ -14,6 +14,14 @@ find_package(SDL2_ttf CONFIG REQUIRED)
 # Tracy Profiler (optional, enabled by default in Debug/RelWithDebInfo)
 find_package(Tracy CONFIG REQUIRED)
 
+# pixelmatch-cpp17 for visual regression testing
+include(FetchContent)
+FetchContent_Declare(
+    pixelmatch-cpp17
+    GIT_REPOSITORY https://github.com/jwmcglynn/pixelmatch-cpp17.git
+    GIT_TAG v1.0.3
+)
+
 # Collect all source files
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE HEADERS "src/*.h")
@@ -80,3 +88,31 @@ if(WIN32)
     )
     set_tests_properties(smoke_regression_short PROPERTIES LABELS "smoke;ci")
 endif()
+
+# Visual regression test tool
+FetchContent_MakeAvailable(pixelmatch-cpp17)
+add_executable(visual_diff tools/visual_diff.cpp src/Core/ScreenCapture.cpp)
+target_include_directories(visual_diff PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(visual_diff PRIVATE
+    $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
+    $<IF:$<TARGET_EXISTS:SDL2_image::SDL2_image>,SDL2_image::SDL2_image,SDL2_image::SDL2_image-static>
+    pixelmatch-cpp17
+)
+
+# CTest: visual regression (compare against reference screenshots)
+# Generate a launcher script at configure time to avoid quoting issues with spaces in paths
+file(WRITE "${CMAKE_BINARY_DIR}/run_visual_regression.ps1" "
+Set-StrictMode -Version Latest
+& '${CMAKE_SOURCE_DIR}/tools/visual-regression.ps1' `
+  -ExePath '${CMAKE_BINARY_DIR}/Release/Riftwalker.exe' `
+  -DiffPath '${CMAKE_BINARY_DIR}/Release/visual_diff.exe' `
+  -RefDir '${CMAKE_SOURCE_DIR}/tests/visual_reference'
+exit $LASTEXITCODE
+")
+add_test(
+    NAME visual_regression
+    COMMAND "${RIFTWALKER_POWERSHELL}"
+            -NoProfile -ExecutionPolicy Bypass
+            -File "${CMAKE_BINARY_DIR}/run_visual_regression.ps1"
+)
+set_tests_properties(visual_regression PROPERTIES LABELS "visual;ci")

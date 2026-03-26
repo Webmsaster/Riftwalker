@@ -20,6 +20,7 @@
 #include "Game/Bestiary.h"
 #include "Game/DimensionShiftBalance.h"
 #include "Components/RelicComponent.h"
+#include "Core/ScreenCapture.h"
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
@@ -158,6 +159,9 @@ void PlayState::playtestStartRun() {
     m_ptLastCompletedLevel = 0;
     m_ptStuckTimer = 0;
     m_ptLastCheckPos = {0, 0};
+    m_ptScreenshotTimer = 0;
+    m_ptScreenshotCount = 0;
+    // Screenshot at run start is taken after startNewRun() below
     m_ptDimSwitchCD = 0;
     m_ptDimExploreTimer = 0;
     m_ptLastEntropyLog = 0;
@@ -207,6 +211,7 @@ void PlayState::playtestStartRun() {
 }
 
 void PlayState::playtestOnDeath() {
+    playtestScreenshot("death");
     int deathFloor = std::clamp(m_currentDifficulty - 1, 0, kMaxTrackedFloors - 1);
     m_ptFloorDeathCount[deathFloor]++;
 
@@ -247,6 +252,20 @@ void PlayState::playtestEndRun(bool success) {
         return;
     }
     playtestStartRun();
+}
+
+void PlayState::playtestScreenshot(const char* event) {
+    if (!game) return;
+    SDL_Renderer* renderer = game->getRenderer();
+    if (!renderer) return;
+
+    int floor = roomsCleared + 1;
+    std::string path = ScreenCapture::generatePlaytestFilename(m_playtestRun, floor);
+    ScreenCapture::captureScreenshot(renderer, path);
+    m_ptScreenshotCount++;
+    if (event) {
+        playtestLog("  [screenshot] %s → %s", event, path.c_str());
+    }
 }
 
 void PlayState::playtestWriteReport() {
@@ -532,6 +551,13 @@ void PlayState::updatePlaytest(float dt) {
     m_playtestRunTimer += dt;
     m_playtestReactionTimer -= dt;
     m_playtestThinkTimer -= dt;
+
+    // Auto-screenshot every 10 seconds during playtest
+    m_ptScreenshotTimer += dt;
+    if (m_ptScreenshotTimer >= 10.0f) {
+        m_ptScreenshotTimer = 0;
+        playtestScreenshot("periodic");
+    }
     m_ptDimSwitchCD -= dt;
     m_ptDimExploreTimer -= dt;
     m_ptAbilityCD -= dt;

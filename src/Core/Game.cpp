@@ -22,9 +22,13 @@
 #include "States/DailyLeaderboardState.h"
 #include "States/CreditsState.h"
 #include "States/SplashState.h"
+#include "ScreenCapture.h"
+#include "VisualTest.h"
 #include <SDL2/SDL_image.h>
 #include <fstream>
 #include <sstream>
+
+bool g_screenshotRequested = false;
 
 static void backupFile(const std::string& path) {
     std::ifstream src(path, std::ios::binary);
@@ -144,6 +148,15 @@ bool Game::init() {
 }
 
 void Game::run() {
+    extern bool g_autoScreenshot;
+    int frameCount = 0;
+
+    // Visual test mode
+    VisualTest visualTest;
+    if (g_visualTest) {
+        visualTest.init();
+    }
+
     while (m_running) {
         m_timer.update();
 
@@ -163,6 +176,21 @@ void Game::run() {
         }
 
         render();
+        frameCount++;
+
+        // --screenshot: capture after splash screen ends (~7s at 60fps), then exit
+        if (g_autoScreenshot && frameCount == 420) {
+            g_screenshotRequested = true;
+        }
+        if (g_autoScreenshot && frameCount == 425) {
+            m_running = false;
+        }
+
+        // --visual-test: navigate states and capture screenshots
+        if (g_visualTest && visualTest.update(frameCount, this)) {
+            m_running = false;
+        }
+
         FrameMark;
     }
 }
@@ -178,6 +206,13 @@ void Game::handleEvents() {
 
         if (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_F11) {
             m_window->toggleFullscreen();
+        }
+
+        // F9/F12: Screenshot (works in any state)
+        if (event.type == SDL_KEYDOWN &&
+            (event.key.keysym.scancode == SDL_SCANCODE_F9 ||
+             event.key.keysym.scancode == SDL_SCANCODE_F12)) {
+            g_screenshotRequested = true;
         }
 
         if (event.type == SDL_WINDOWEVENT &&
@@ -366,6 +401,14 @@ void Game::render() {
             break;
         }
         }
+    }
+
+    // Screenshot capture (F9/F12 hotkey or playtest auto-trigger)
+    if (g_screenshotRequested) {
+        g_screenshotRequested = false;
+        auto path = ScreenCapture::generateFilename("riftwalker");
+        bool ok = ScreenCapture::captureScreenshot(renderer, path);
+        SDL_Log("Screenshot %s: %s", ok ? "SAVED" : "FAILED", path.c_str());
     }
 
     SDL_RenderPresent(renderer);

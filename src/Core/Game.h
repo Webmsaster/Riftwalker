@@ -14,6 +14,11 @@
 #include <unordered_map>
 #include <stack>
 
+// Screenshot request flag (set by F12 or playtest, consumed in Game::render)
+extern bool g_screenshotRequested;
+
+class VisualTest;
+
 // Global audio/visual settings (defined in main.cpp, persisted in riftwalker_settings.cfg)
 extern float g_sfxVolume;      // 0.0 - 1.0
 extern float g_musicVolume;    // 0.0 - 1.0
