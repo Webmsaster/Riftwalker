@@ -22,6 +22,10 @@ void HUD::updateFlash(float dt) {
     for (int i = 0; i < 4; i++) {
         if (m_abilityReadyFlash[i] > 0) m_abilityReadyFlash[i] -= dt;
     }
+    // Weapon mastery tier-up flash decay
+    for (int i = 0; i < 2; i++) {
+        if (m_masteryFlash[i] > 0) m_masteryFlash[i] -= dt;
+    }
 }
 
 void HUD::renderFlash(SDL_Renderer* renderer, int screenW, int screenH) {
@@ -1087,18 +1091,18 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Weapon display (bottom center)
     if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>()) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();
-        int wpnY = screenH - 60;
+        int wpnY = screenH - 66;
         int wpnX = screenW / 2 - 100;
 
-        // Background (taller to fit mastery text)
-        SDL_Rect wpnBg = {wpnX, wpnY, 200, 46};
+        // Background (taller to fit mastery progress bar)
+        SDL_Rect wpnBg = {wpnX, wpnY, 200, 52};
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);
         SDL_RenderFillRect(renderer, &wpnBg);
         SDL_SetRenderDrawColor(renderer, 80, 80, 100, 80);
         SDL_RenderDrawRect(renderer, &wpnBg);
 
         // Melee weapon (left side)
-        SDL_Rect meleeBg = {wpnX + 2, wpnY + 2, 96, 42};
+        SDL_Rect meleeBg = {wpnX + 2, wpnY + 2, 96, 48};
         SDL_SetRenderDrawColor(renderer, 180, 60, 60, 60);
         SDL_RenderFillRect(renderer, &meleeBg);
         // Sword icon
@@ -1107,7 +1111,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         SDL_RenderDrawLine(renderer, wpnX + 18, wpnY + 14, wpnX + 26, wpnY + 14);
 
         // Ranged weapon (right side)
-        SDL_Rect rangedBg = {wpnX + 102, wpnY + 2, 96, 42};
+        SDL_Rect rangedBg = {wpnX + 102, wpnY + 2, 96, 48};
         SDL_SetRenderDrawColor(renderer, 60, 60, 180, 60);
         SDL_RenderFillRect(renderer, &rangedBg);
         // Gun icon
@@ -1124,7 +1128,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             renderText(renderer, font, "[Q]", wpnX + 2, wpnY - 14, {150, 150, 160, 120});
             renderText(renderer, font, "[R]", wpnX + 172, wpnY - 14, {150, 150, 160, 120});
 
-            // Weapon Mastery indicators
+            // Weapon Mastery indicators with progress bars
             if (m_combatSystem) {
                 int mIdx = static_cast<int>(combat.currentMelee);
                 int rIdx = static_cast<int>(combat.currentRanged);
@@ -1142,33 +1146,91 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                     }
                 };
 
-                // Melee mastery
-                if (mTier != MasteryTier::None) {
-                    const char* tName = WeaponSystem::getMasteryTierName(mTier);
-                    renderText(renderer, font, tName, wpnX + 30, wpnY + 22, tierColor(mTier));
-                } else {
-                    int next = WeaponSystem::getNextTierThreshold(mKills);
-                    char prog[16];
-                    std::snprintf(prog, sizeof(prog), "%d/%d", mKills, next);
-                    renderText(renderer, font, prog, wpnX + 30, wpnY + 22, {80, 80, 90, 120});
+                // Detect tier-up for gold flash
+                MasteryTier tiers[2] = {mTier, rTier};
+                for (int w = 0; w < 2; w++) {
+                    if (tiers[w] != MasteryTier::None && tiers[w] != m_prevMasteryTier[w]) {
+                        m_masteryFlash[w] = 0.6f;
+                    }
+                    m_prevMasteryTier[w] = tiers[w];
                 }
 
-                // Ranged mastery
-                if (rTier != MasteryTier::None) {
-                    const char* tName = WeaponSystem::getMasteryTierName(rTier);
-                    renderText(renderer, font, tName, wpnX + 134, wpnY + 22, tierColor(rTier));
-                } else {
-                    int next = WeaponSystem::getNextTierThreshold(rKills);
-                    char prog[16];
-                    std::snprintf(prog, sizeof(prog), "%d/%d", rKills, next);
-                    renderText(renderer, font, prog, wpnX + 134, wpnY + 22, {80, 80, 90, 120});
-                }
+                // Helper: compute progress fraction toward next tier
+                auto masteryProgress = [](int kills) -> float {
+                    int next = WeaponSystem::getNextTierThreshold(kills);
+                    if (next == 0) return 1.0f; // Fully mastered
+                    // Previous tier threshold
+                    int prev = 0;
+                    if (next == 25) prev = 10;
+                    else if (next == 50) prev = 25;
+                    float range = static_cast<float>(next - prev);
+                    return (range > 0) ? static_cast<float>(kills - prev) / range : 1.0f;
+                };
+
+                // Helper: render mastery for one weapon slot
+                auto renderMastery = [&](int kills, MasteryTier tier, int baseX, int barY,
+                                         int slotIdx, SDL_Color barColor) {
+                    const int barW = 40;
+                    const int barH = 4;
+
+                    // Tier name or kill count text
+                    int next = WeaponSystem::getNextTierThreshold(kills);
+                    if (tier != MasteryTier::None) {
+                        const char* tName = WeaponSystem::getMasteryTierName(tier);
+                        SDL_Color col = tierColor(tier);
+                        // Gold flash overlay on tier-up
+                        if (m_masteryFlash[slotIdx] > 0) {
+                            float t = m_masteryFlash[slotIdx] / 0.6f;
+                            Uint8 flashA = static_cast<Uint8>(200 * t);
+                            col = {255, 220, 80, flashA};
+                        }
+                        renderText(renderer, font, tName, baseX, barY - 14, col);
+                        // Show progress to next tier (or "MAX" if mastered)
+                        if (next > 0) {
+                            char prog[16];
+                            std::snprintf(prog, sizeof(prog), "%d/%d", kills, next);
+                            renderText(renderer, font, prog, baseX + 44, barY - 14, {100, 100, 110, 140});
+                        }
+                    } else {
+                        char prog[16];
+                        std::snprintf(prog, sizeof(prog), "%d/%d", kills, next);
+                        renderText(renderer, font, prog, baseX, barY - 14, {100, 100, 110, 140});
+                    }
+
+                    // Progress bar (40x4 px)
+                    float pct = masteryProgress(kills);
+                    SDL_Color bgCol = {30, 30, 40, 160};
+                    renderBar(renderer, baseX, barY, barW, barH, pct, barColor, bgCol);
+
+                    // Thin border around bar
+                    SDL_SetRenderDrawColor(renderer, 60, 60, 80, 100);
+                    SDL_Rect barRect = {baseX, barY, barW, barH};
+                    SDL_RenderDrawRect(renderer, &barRect);
+
+                    // Gold flash glow around bar on tier-up
+                    if (m_masteryFlash[slotIdx] > 0) {
+                        float t = m_masteryFlash[slotIdx] / 0.6f;
+                        Uint8 flashA = static_cast<Uint8>(120 * t);
+                        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+                        SDL_SetRenderDrawColor(renderer, 255, 220, 80, flashA);
+                        SDL_Rect glow = {baseX - 1, barY - 1, barW + 2, barH + 2};
+                        SDL_RenderDrawRect(renderer, &glow);
+                    }
+                };
+
+                // Melee mastery (under weapon name)
+                renderMastery(mKills, mTier, wpnX + 30, wpnY + 38, 0,
+                              tierColor(mTier));
+
+                // Ranged mastery (under weapon name)
+                renderMastery(rKills, rTier, wpnX + 134, wpnY + 38, 1,
+                              tierColor(rTier));
             }
 
             // Weapon-Relic Synergy indicator (show active synergy name below weapon panel)
             if (player->getEntity()->hasComponent<RelicComponent>()) {
                 auto& relics = player->getEntity()->getComponent<RelicComponent>();
-                int synergyY = wpnY + 48;
+                int synergyY = wpnY + 54;
                 for (int i = 0; i < static_cast<int>(SynergyID::COUNT); i++) {
                     auto sid = static_cast<SynergyID>(i);
                     if (RelicSynergy::isWeaponSynergyActive(relics, sid,

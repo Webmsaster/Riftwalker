@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <set>
+#include "Game/WeaponSystem.h"
 
 class Player;
 class SuitEntropy;
@@ -54,6 +55,10 @@ private:
     // Ability ready flash: brief glow when cooldown finishes
     float m_abilityReadyFlash[4] = {};  // melee, ranged, dash, dim-switch
     bool m_abilityWasOnCooldown[4] = {};
+
+    // Weapon mastery tier-up flash (gold pulse when tier increases)
+    float m_masteryFlash[2] = {};  // [0]=melee, [1]=ranged — counts down from 0.6
+    MasteryTier m_prevMasteryTier[2] = {};  // track previous tier to detect changes
 
     // Off-screen texture for HUD opacity (lazily created, freed on resize)
     SDL_Texture* m_hudTarget = nullptr;
