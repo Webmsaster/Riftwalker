@@ -748,6 +748,39 @@ void LevelGenerator::placeNPCs(Level& level, const std::vector<LGRoom>& rooms, i
     }
 }
 
+void LevelGenerator::placeCrates(Level& level, const std::vector<LGRoom>& rooms, int difficulty) {
+    if (rooms.size() < 3) return;
+
+    // 1-3 crates per non-start/exit room
+    for (size_t i = 1; i + 1 < rooms.size(); i++) {
+        auto& room = rooms[i];
+        if (room.w < 6 || room.h < 4) continue;
+
+        int crateCount = 1 + static_cast<int>(m_rng() % 3); // 1-3
+        for (int c = 0; c < crateCount; c++) {
+            int cx = room.x + 2 + static_cast<int>(m_rng() % std::max(1, room.w - 4));
+            int cy = room.y + room.h - 3;
+
+            // Find valid floor position (empty tile with solid below)
+            bool placed = false;
+            for (int attempt = 0; attempt < 10; attempt++) {
+                int dim = (m_rng() % 2 == 0) ? 1 : 2;
+                if (level.inBounds(cx, cy) && level.inBounds(cx, cy + 1) &&
+                    !level.isSolid(cx, cy, dim) && level.isSolid(cx, cy + 1, dim)) {
+                    level.addCrateSpawn(
+                        {static_cast<float>(cx * 32), static_cast<float>(cy * 32)},
+                        dim
+                    );
+                    placed = true;
+                    break;
+                }
+                cx = room.x + 2 + static_cast<int>(m_rng() % std::max(1, room.w - 4));
+                cy = room.y + 2 + static_cast<int>(m_rng() % std::max(1, room.h - 4));
+            }
+        }
+    }
+}
+
 RoomTemplate LevelGenerator::getRandomRoom(int difficulty) {
     (void)difficulty;
     auto& templates = getRoomTemplates();

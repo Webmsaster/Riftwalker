@@ -63,6 +63,11 @@ public:
     std::vector<SpawnPoint> getEnemySpawns() const { return m_enemySpawns; }
     void addEnemySpawn(Vec2 pos, int type, int dim) { m_enemySpawns.push_back({pos, type, dim}); }
 
+    // Breakable crate spawn points
+    struct CrateSpawn { Vec2 position; int dimension; };
+    std::vector<CrateSpawn> getCrateSpawns() const { return m_crateSpawns; }
+    void addCrateSpawn(Vec2 pos, int dim) { m_crateSpawns.push_back({pos, dim}); }
+
     // Hazard checks
     bool isInLaserBeam(float worldX, float worldY, int dimension) const;
     bool isOnConveyor(int tileX, int tileY, int dimension, int& direction) const;
@@ -105,6 +110,7 @@ private:
     std::vector<Vec2> m_riftPositions;
     LevelTopology m_topology;
     std::vector<SpawnPoint> m_enemySpawns;
+    std::vector<CrateSpawn> m_crateSpawns;
     std::vector<SecretRoom> m_secretRooms;
     std::vector<RandomEvent> m_randomEvents;
     std::vector<NPCData> m_npcs;

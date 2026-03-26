@@ -84,6 +84,7 @@ private:
     void startNewRun();
     void generateLevel();
     void spawnEnemies();
+    void spawnCrates();
     void applyThemeVariant(Entity& e, int dimension);
     void applyNGPlusModifiers(Entity& e);  // Scale enemy stats for active NG+ tier
     void handlePuzzleInput(int action);

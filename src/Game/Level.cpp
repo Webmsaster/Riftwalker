@@ -840,6 +840,7 @@ void Level::clear() {
     m_riftPositions.clear();
     m_topology = {};
     m_enemySpawns.clear();
+    m_crateSpawns.clear();
     m_secretRooms.clear();
     m_randomEvents.clear();
     m_npcs.clear();

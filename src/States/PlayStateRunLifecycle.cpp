@@ -23,6 +23,8 @@
 #include "States/RunSummaryState.h"
 #include "States/DailyLeaderboardState.h"
 #include "Components/RelicComponent.h"
+#include "Game/ItemDrop.h"
+#include "Components/ColliderComponent.h"
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
@@ -291,6 +293,7 @@ void PlayState::generateLevel() {
     m_camera.setBounds(0, 0, m_level->getPixelWidth(), m_level->getPixelHeight());
 
     spawnEnemies();
+    spawnCrates();
 
     // Boss every 6 floors (zone boss) or every 3rd floor in zone (mid-boss)
     m_isBossLevel = isBossFloor(m_currentDifficulty) || isMidBossFloor(m_currentDifficulty);
@@ -429,6 +432,48 @@ void PlayState::spawnEnemies() {
 
     // Start first combat challenge for this level
     startCombatChallenge();
+}
+
+void PlayState::spawnCrates() {
+    auto crateSpawns = m_level->getCrateSpawns();
+    Player* player = m_player.get();
+    ParticleSystem* particles = &m_particles;
+    EntityManager* em = &m_entities;
+    int difficulty = m_currentDifficulty;
+
+    for (auto& cs : crateSpawns) {
+        auto& e = m_entities.addEntity("enemy_crate");
+        e.dimension = cs.dimension;
+
+        auto& t = e.addComponent<TransformComponent>(cs.position.x, cs.position.y, 16, 16);
+        (void)t;
+
+        auto& hp = e.addComponent<HealthComponent>();
+        hp.maxHP = 15.0f;
+        hp.currentHP = 15.0f;
+        hp.invincibilityTime = 0; // No i-frames on crates
+
+        auto& sprite = e.addComponent<SpriteComponent>();
+        sprite.setColor(139, 90, 43); // Brown wood color
+        sprite.renderLayer = 2;
+
+        // On death: spawn random pickup + particle burst + SFX
+        Entity* cratePtr = &e;
+        hp.onDeath = [cratePtr, em, particles, player, difficulty]() {
+            if (!cratePtr->hasComponent<TransformComponent>()) return;
+            Vec2 pos = cratePtr->getComponent<TransformComponent>().getCenter();
+
+            // Brown/wood particle burst
+            if (particles) {
+                particles->burst(pos, 8, {139, 90, 43, 220}, 100.0f, 3.0f);
+                particles->burst(pos, 4, {180, 130, 70, 180}, 60.0f, 2.0f);
+            }
+
+            AudioManager::instance().play(SFX::BreakableWall);
+            ItemDrop::spawnRandomDrop(*em, pos, cratePtr->dimension, difficulty, player);
+            cratePtr->destroy();
+        };
+    }
 }
 
 void PlayState::applyThemeVariant(Entity& e, int dimension) {

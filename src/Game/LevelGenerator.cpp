@@ -297,6 +297,7 @@ Level LevelGenerator::generateCandidate(int difficulty, int seed, LevelTopology&
     }
     placeRandomEvents(level, rooms, difficulty);
     placeNPCs(level, rooms, difficulty);
+    placeCrates(level, rooms, difficulty);
 
     int riftCount = getDimensionShiftRiftCount(difficulty);
     addRifts(level, rooms, difficulty, riftCount, &rifts);

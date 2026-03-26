@@ -220,6 +220,23 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         renderPlayerTurret(renderer, screenRect, entity, alpha);
     } else if (tag == "player_trap") {
         renderShockTrap(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_crate") {
+        // Breakable crate: brown box with darker outline and plank lines
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        Uint8 a = static_cast<Uint8>(sprite.color.a * alpha);
+        int dx = screenRect.x, dy = screenRect.y, dw = screenRect.w, dh = screenRect.h;
+        // Shadow
+        fillRect(renderer, dx + 2, dy + dh, dw - 4, 3, 0, 0, 0, static_cast<Uint8>(a * 0.35f));
+        // Dark outline
+        fillRect(renderer, dx, dy, dw, dh, 80, 50, 20, a);
+        // Main body
+        fillRect(renderer, dx + 1, dy + 1, dw - 2, dh - 2, 139, 90, 43, a);
+        // Highlight top
+        fillRect(renderer, dx + 1, dy + 1, dw - 2, 2, 180, 130, 70, static_cast<Uint8>(a * 0.7f));
+        // Horizontal plank line
+        fillRect(renderer, dx + 2, dy + dh / 2, dw - 4, 1, 100, 65, 30, a);
+        // Vertical plank line
+        fillRect(renderer, dx + dw / 2, dy + 2, 1, dh - 4, 100, 65, 30, a);
     } else if (tag.find("pickup_") == 0) {
         renderPickup(renderer, screenRect, entity, alpha);
     } else if (tag == "projectile") {
