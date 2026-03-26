@@ -11,6 +11,7 @@ riftwalker_lore.dat
 # Debug/test output
 *.log
 playtest_results/
+dist/
 balance_snapshots.csv
 boss_test*.png
 clean_level*.png
