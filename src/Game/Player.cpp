@@ -256,8 +256,18 @@ void Player::update(float dt, const InputManager& input) {
             } else {
                 particles->burst(feetPos, 6, {180, 180, 200, 200}, 60.0f, 2.0f);
             }
+            // Extra debris on high falls (>400px drop distance)
+            float fallDist = t.position.y - fallStartY;
+            if (fallDist > 400.0f && !slamLanding) {
+                particles->directionalBurst(feetPos, 4, {140, 130, 110, 180}, 180.0f, 70.0f, 60.0f, 3.0f);
+                particles->directionalBurst(feetPos, 4, {140, 130, 110, 180}, 0.0f, 70.0f, 60.0f, 3.0f);
+            }
         }
         AudioManager::instance().play(slamLanding ? SFX::MeleeHit : SFX::PlayerLand);
+    }
+    // Track fall start position
+    if (!wasInAir && !phys.onGround) {
+        fallStartY = m_entity->getComponent<TransformComponent>().position.y;
     }
     wasInAir = !phys.onGround;
 

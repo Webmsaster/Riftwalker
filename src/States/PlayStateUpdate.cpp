@@ -251,12 +251,21 @@ void PlayState::updateDimensionEffects(float dt) {
 }
 
 void PlayState::updatePlayerPhysicsEffects(float dt) {
-    // Landing effects: screen shake + dust particles proportional to fall speed
+    // Landing effects: camera shake + dust proportional to fall distance & speed
     {
         auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
         if (phys.onGround && !phys.wasOnGround && phys.landingImpactSpeed > 250.0f) {
+            auto& tr = m_player->getEntity()->getComponent<TransformComponent>();
+            float fallDist = tr.position.y - m_player->fallStartY;
             float t = std::min((phys.landingImpactSpeed - 250.0f) / 550.0f, 1.0f);
-            m_camera.shake(2.0f + t * 6.0f, 0.08f + t * 0.12f);
+
+            // Camera shake gated by fall distance: <200px none, 200-400 subtle, >400 strong
+            if (fallDist > 200.0f) {
+                float distFactor = std::min((fallDist - 200.0f) / 200.0f, 1.0f); // 0-1 over 200-400px
+                float shakeAmt = 2.0f + distFactor * 3.0f;  // 2-5px
+                float shakeDur = 0.10f + distFactor * 0.05f; // 0.10-0.15s
+                m_camera.shake(shakeAmt, shakeDur);
+            }
             game->getInputMutable().rumble(0.2f + t * 0.4f, 80 + static_cast<int>(t * 120));
 
             // Landing squash: sprite goes wide+short on impact
@@ -265,7 +274,6 @@ void PlayState::updatePlayerPhysicsEffects(float dt) {
             spr.landingSquashIntensity = 0.1f + t * 0.15f; // 0.1-0.25 based on fall speed
 
             // Landing dust cloud at feet -- bigger for harder landings
-            auto& tr = m_player->getEntity()->getComponent<TransformComponent>();
             Vec2 feetPos = {tr.getCenter().x, tr.position.y + tr.height};
             int dustCount = 6 + static_cast<int>(t * 10);
             float dustSpeed = 40.0f + t * 80.0f;
