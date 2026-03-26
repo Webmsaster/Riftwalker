@@ -965,17 +965,29 @@ bool PlayState::updatePlayerDeath() {
                 AudioManager::instance().play(SFX::PlayerDeath);
                 m_camera.shake(20.0f, 0.8f);
 
-                // Death explosion particles
+                // Death explosion particles (dramatic multi-layer burst)
                 Vec2 deathPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
                 const auto& classColor = ClassSystem::getData(m_player->playerClass).color;
-                m_particles.burst(deathPos, 40, {classColor.r, classColor.g, classColor.b, 255}, 300.0f, 6.0f);
-                m_particles.burst(deathPos, 25, {255, 60, 40, 255}, 200.0f, 5.0f);
-                m_particles.burst(deathPos, 15, {255, 255, 200, 255}, 250.0f, 4.0f);
-                // Expanding ring
+                // Core burst: class-colored (large, fast)
+                m_particles.burst(deathPos, 55, {classColor.r, classColor.g, classColor.b, 255}, 380.0f, 7.0f);
+                // Fire layer: red-orange embers
+                m_particles.burst(deathPos, 35, {255, 60, 40, 255}, 280.0f, 5.5f);
+                // Hot core: bright white-yellow sparks
+                m_particles.burst(deathPos, 25, {255, 255, 200, 255}, 320.0f, 4.5f);
+                // Smoke layer: dark particles that linger
+                m_particles.burst(deathPos, 20, {60, 50, 50, 180}, 150.0f, 8.0f);
+                // Expanding ring (denser, larger radius)
+                for (int i = 0; i < 24; i++) {
+                    float angle = i * 6.283185f / 24.0f;
+                    float radius = 12.0f + static_cast<float>(std::rand() % 6);
+                    Vec2 ringPos = {deathPos.x + std::cos(angle) * radius, deathPos.y + std::sin(angle) * radius};
+                    m_particles.burst(ringPos, 3, {255, 100, 60, 220}, 220.0f, 3.5f);
+                }
+                // Secondary expanding ring (outer, fainter)
                 for (int i = 0; i < 16; i++) {
-                    float angle = i * 6.283185f / 16.0f;
-                    Vec2 ringPos = {deathPos.x + std::cos(angle) * 8.0f, deathPos.y + std::sin(angle) * 8.0f};
-                    m_particles.burst(ringPos, 2, {255, 100, 60, 200}, 180.0f, 3.0f);
+                    float angle = (i + 0.5f) * 6.283185f / 16.0f;
+                    Vec2 outerPos = {deathPos.x + std::cos(angle) * 20.0f, deathPos.y + std::sin(angle) * 20.0f};
+                    m_particles.burst(outerPos, 2, {classColor.r, classColor.g, classColor.b, 150}, 160.0f, 4.0f);
                 }
 
                 m_hud.triggerDamageFlash();

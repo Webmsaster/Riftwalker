@@ -119,6 +119,7 @@ void PlayState::startNewRun() {
     m_voidSovereignDefeated = false;
     m_trails.clear();
     m_moveTrailTimer = 0.0f;
+    m_camera.zoom = 1.0f; // Reset death zoom
     m_runTime = 0.0f;
     m_bestCombo = 0;
     m_nearNPCIndex = -1;

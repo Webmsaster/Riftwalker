@@ -34,16 +34,25 @@ void PlayState::renderDeathSequence(SDL_Renderer* renderer) {
     float progress = 1.0f - (m_deathSequenceTimer / m_deathSequenceDuration);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // Full screen red-black fade (intensifies over time)
-    Uint8 overlayAlpha = static_cast<Uint8>(std::min(180.0f, progress * 220.0f));
+    // Layer 1: Desaturation (gray overlay that drains color from the world)
+    // Ramps up from 0 to ~120 alpha, giving a "life draining away" feel
+    {
+        Uint8 grayAlpha = static_cast<Uint8>(std::min(120.0f, progress * 160.0f));
+        SDL_SetRenderDrawColor(renderer, 30, 30, 35, grayAlpha);
+        SDL_Rect fullScreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &fullScreen);
+    }
+
+    // Layer 2: Red-black fade on top of desaturation (intensifies over time)
+    Uint8 overlayAlpha = static_cast<Uint8>(std::min(160.0f, progress * 200.0f));
     SDL_SetRenderDrawColor(renderer, 40, 0, 0, overlayAlpha);
     SDL_Rect fullScreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &fullScreen);
 
-    // Vignette border (thick red edges)
-    int borderW = static_cast<int>(20 + progress * 60);
-    Uint8 borderAlpha = static_cast<Uint8>(std::min(200.0f, progress * 250.0f));
-    SDL_SetRenderDrawColor(renderer, 180, 20, 0, borderAlpha);
+    // Layer 3: Expanding dark vignette border (red edges closing in)
+    int borderW = static_cast<int>(20 + progress * 80);
+    Uint8 borderAlpha = static_cast<Uint8>(std::min(220.0f, progress * 270.0f));
+    SDL_SetRenderDrawColor(renderer, 140, 10, 0, borderAlpha);
     SDL_Rect top = {0, 0, SCREEN_WIDTH, borderW};
     SDL_Rect bot = {0, SCREEN_HEIGHT - borderW, SCREEN_WIDTH, borderW};
     SDL_Rect lft = {0, 0, borderW, SCREEN_HEIGHT};
@@ -52,24 +61,48 @@ void PlayState::renderDeathSequence(SDL_Renderer* renderer) {
     SDL_RenderFillRect(renderer, &bot);
     SDL_RenderFillRect(renderer, &lft);
     SDL_RenderFillRect(renderer, &rgt);
+    // Softer inner vignette (darker, slightly smaller)
+    int innerW = std::max(0, borderW - 15);
+    Uint8 innerAlpha = static_cast<Uint8>(std::min(180.0f, progress * 220.0f));
+    SDL_SetRenderDrawColor(renderer, 10, 0, 0, innerAlpha);
+    SDL_Rect iTop = {0, 0, SCREEN_WIDTH, innerW};
+    SDL_Rect iBot = {0, SCREEN_HEIGHT - innerW, SCREEN_WIDTH, innerW};
+    SDL_Rect iLft = {0, 0, innerW, SCREEN_HEIGHT};
+    SDL_Rect iRgt = {SCREEN_WIDTH - innerW, 0, innerW, SCREEN_HEIGHT};
+    SDL_RenderFillRect(renderer, &iTop);
+    SDL_RenderFillRect(renderer, &iBot);
+    SDL_RenderFillRect(renderer, &iLft);
+    SDL_RenderFillRect(renderer, &iRgt);
 
-    // "SUIT FAILURE" text (fades in)
+    // Layer 4: Scanline flicker effect (brief horizontal lines for glitch feel)
+    if (progress > 0.1f && progress < 0.9f) {
+        Uint8 scanAlpha = static_cast<Uint8>(30 + 40 * std::sin(SDL_GetTicks() * 0.03f));
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, scanAlpha);
+        int scanStep = 4 + (std::rand() % 3); // slightly randomized spacing
+        for (int y = 0; y < SCREEN_HEIGHT; y += scanStep) {
+            SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
+        }
+    }
+
+    // "SUIT FAILURE" text (fades in with pulsing glow)
     TTF_Font* font = game->getFont();
-    if (font && progress > 0.2f) {
-        float textAlpha = std::min(1.0f, (progress - 0.2f) * 2.0f);
+    if (font && progress > 0.15f) {
+        float textAlpha = std::min(1.0f, (progress - 0.15f) * 2.5f);
         Uint8 ta = static_cast<Uint8>(textAlpha * 255);
-        float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.015f);
+        float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.012f);
         Uint8 tr = static_cast<Uint8>(200 * pulse + 55);
-        SDL_Color deathColor = {tr, 30, 20, ta};
+        SDL_Color deathColor = {tr, 20, 10, ta};
         SDL_Surface* ds = TTF_RenderText_Blended(font, LOC("gameover.suit_failure"), deathColor);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
                 SDL_SetTextureAlphaMod(dt, ta);
-                // Center of screen, slight upward drift
-                int yOff = static_cast<int>(progress * 15.0f);
-                SDL_Rect dr = {SCREEN_WIDTH / 2 - ds->w / 2,
-                               SCREEN_HEIGHT / 2 - ds->h / 2 - yOff,
+                // Center of screen, slight upward drift + subtle shake
+                int yOff = static_cast<int>(progress * 20.0f);
+                int shakeX = (progress < 0.6f) ? ((std::rand() % 5) - 2) : 0;
+                int shakeY = (progress < 0.6f) ? ((std::rand() % 3) - 1) : 0;
+                SDL_Rect dr = {SCREEN_WIDTH / 2 - ds->w / 2 + shakeX,
+                               SCREEN_HEIGHT / 2 - ds->h / 2 - yOff + shakeY,
                                ds->w, ds->h};
                 SDL_RenderCopy(renderer, dt, nullptr, &dr);
                 SDL_DestroyTexture(dt);

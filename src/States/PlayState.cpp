@@ -277,29 +277,50 @@ void PlayState::update(float dt) {
         }
     }
 
-    // Death sequence: dramatic freeze before ending the run
+    // Death sequence: dramatic slow-mo + zoom before ending the run
     if (m_playerDying) {
-        m_deathSequenceTimer -= dt;
-        m_camera.update(dt);       // camera shake continues
-        m_particles.update(dt);    // death particles animate
-        m_screenEffects.update(dt);
+        float progress = 1.0f - (m_deathSequenceTimer / m_deathSequenceDuration);
 
-        // Slow-motion particle drip during death
-        if (m_player && m_deathSequenceTimer > 0.3f) {
+        // Time slowdown: 30% speed in first second, ramp back up at the end
+        float deathSlowdown = (m_deathSequenceTimer > 0.2f) ? 0.3f : 1.0f;
+        float slowDt = dt * deathSlowdown;
+
+        m_deathSequenceTimer -= dt; // Real-time countdown (not slowed)
+
+        // Camera zoom: smoothly zoom in to 1.35x centered on player
+        float targetZoom = 1.0f + 0.35f * std::min(1.0f, progress * 2.0f); // reach max zoom at 50%
+        m_camera.zoom += (targetZoom - m_camera.zoom) * std::min(1.0f, dt * 4.0f);
+
+        m_camera.update(slowDt);       // camera shake continues (slowed)
+        m_particles.update(slowDt);    // death particles animate (slowed)
+        m_screenEffects.update(slowDt);
+
+        // Slow-motion particle drip during death (enhanced: more particles, wider spread)
+        if (m_player && m_deathSequenceTimer > 0.2f) {
             auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
             Vec2 center = pt.getCenter();
-            float progress = 1.0f - (m_deathSequenceTimer / m_deathSequenceDuration);
-            Uint8 alpha = static_cast<Uint8>(80 + 120 * progress);
+            Uint8 alpha = static_cast<Uint8>(80 + 140 * progress);
+            // Primary ember drip
             m_particles.burst(
-                {center.x + static_cast<float>((std::rand() % 30) - 15),
-                 center.y + static_cast<float>((std::rand() % 20) - 10)},
-                1 + static_cast<int>(progress * 3),
+                {center.x + static_cast<float>((std::rand() % 40) - 20),
+                 center.y + static_cast<float>((std::rand() % 30) - 15)},
+                2 + static_cast<int>(progress * 4),
                 {255, static_cast<Uint8>(60 + 100 * (1.0f - progress)), 40, alpha},
-                40.0f + progress * 80.0f, 2.0f + progress * 3.0f);
+                50.0f + progress * 100.0f, 2.5f + progress * 4.0f);
+            // Secondary soul-fragment particles (white/blue, float upward)
+            if (std::rand() % 3 == 0) {
+                m_particles.burst(
+                    {center.x + static_cast<float>((std::rand() % 20) - 10),
+                     center.y - 5.0f},
+                    1 + static_cast<int>(progress * 2),
+                    {200, 220, 255, static_cast<Uint8>(60 + 80 * progress)},
+                    30.0f + progress * 40.0f, 1.5f + progress * 2.0f);
+            }
         }
 
         if (m_deathSequenceTimer <= 0) {
             m_playerDying = false;
+            m_camera.zoom = 1.0f; // Reset zoom before transitioning
             if (m_playtest) {
                 playtestOnDeath();
             } else {
