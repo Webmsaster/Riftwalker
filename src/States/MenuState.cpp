@@ -402,6 +402,11 @@ void MenuState::render(SDL_Renderer* renderer) {
         }
     }
 
+    // Career stats panel
+    if (font) {
+        renderCareerStats(renderer, font);
+    }
+
     // Buttons
     for (auto& btn : m_buttons) {
         btn.render(renderer, font);
@@ -527,4 +532,60 @@ void MenuState::renderDailyInfo(SDL_Renderer* renderer, TTF_Font* font) {
     else
         std::snprintf(scoreBuf, sizeof(scoreBuf), "Best: ---");
     drawLine(scoreBuf, {180, 180, 60, 255}, textY + lineH * 3);
+}
+
+void MenuState::renderCareerStats(SDL_Renderer* renderer, TTF_Font* font) {
+    auto& ups = game->getUpgradeSystem();
+    if (ups.totalRuns == 0) return; // Nothing to show yet
+
+    int lineH = 16;
+    int panelW = 220;
+    int panelH = lineH * 4 + 14;
+    int panelX = 12;
+    int panelY = SCREEN_HEIGHT - panelH - 20;
+
+    Uint8 alpha = static_cast<Uint8>(120 * m_fadeIn);
+
+    // Panel background
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 12, 8, 24, alpha);
+    SDL_Rect bg = {panelX, panelY, panelW, panelH};
+    SDL_RenderFillRect(renderer, &bg);
+    SDL_SetRenderDrawColor(renderer, 60, 45, 100, static_cast<Uint8>(80 * m_fadeIn));
+    SDL_RenderDrawRect(renderer, &bg);
+
+    int tx = panelX + 8;
+    int ty = panelY + 6;
+    Uint8 ta = static_cast<Uint8>(180 * m_fadeIn);
+
+    auto drawStat = [&](const char* text, SDL_Color color, int y) {
+        SDL_Surface* s = TTF_RenderText_Blended(font, text, color);
+        if (!s) return;
+        SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+        if (t) {
+            SDL_SetTextureAlphaMod(t, ta);
+            SDL_Rect dst = {tx, y, s->w, s->h};
+            SDL_RenderCopy(renderer, t, nullptr, &dst);
+            SDL_DestroyTexture(t);
+        }
+        SDL_FreeSurface(s);
+    };
+
+    // Header
+    drawStat("CAREER STATS", {100, 85, 140, 255}, ty);
+
+    // Line 1: Runs | Best Floor
+    char buf[96];
+    std::snprintf(buf, sizeof(buf), "Runs: %d  |  Best Floor: %d",
+                  ups.totalRuns, ups.bestRoomReached);
+    drawStat(buf, {80, 75, 120, 255}, ty + lineH);
+
+    // Line 2: Kills | Rifts
+    std::snprintf(buf, sizeof(buf), "Kills: %d  |  Rifts: %d",
+                  ups.totalEnemiesKilled, ups.totalRiftsRepaired);
+    drawStat(buf, {80, 75, 120, 255}, ty + lineH * 2);
+
+    // Line 3: Shards
+    std::snprintf(buf, sizeof(buf), "Shards: %d", ups.getRiftShards());
+    drawStat(buf, {80, 75, 120, 255}, ty + lineH * 3);
 }
