@@ -104,6 +104,7 @@ private:
 // 0=Off, 1=Deuteranopia (red-green), 2=Tritanopia (blue-yellow)
 inline int g_colorBlindMode = 0;
 inline float g_hudScale = 1.0f; // 0.75 - 1.5
+inline bool g_crtEffect = false; // CRT scanline post-processing
 
 // Color blind helper: remap colors for visibility
 inline SDL_Color applyColorBlind(SDL_Color c) {

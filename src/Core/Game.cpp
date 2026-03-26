@@ -436,6 +436,7 @@ void Game::loadSaveData() {
             else if (key == "fullscreen")      { if (m_window && static_cast<int>(value) != 0 && !m_window->isFullscreen()) m_window->toggleFullscreen(); }
             else if (key == "rumble")          { m_input.setRumbleEnabled(static_cast<int>(value) != 0); }
             else if (key == "language")        { Localization::instance().setLanguage(static_cast<int>(value) == 1 ? Lang::DE : Lang::EN); }
+            else if (key == "crt_effect")      { g_crtEffect = (static_cast<int>(value) != 0); }
         }
         cfg.close();
     }
@@ -470,6 +471,7 @@ void Game::saveSettings() {
         cfg << "fullscreen "      << (m_window ? (m_window->isFullscreen() ? 1 : 0) : 0) << "\n";
         cfg << "rumble "           << (m_input.isRumbleEnabled() ? 1 : 0) << "\n";
         cfg << "language "         << static_cast<int>(Localization::instance().getLanguage()) << "\n";
+        cfg << "crt_effect "       << (g_crtEffect ? 1 : 0) << "\n";
         cfg.close();
     }
 }

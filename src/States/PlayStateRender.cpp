@@ -778,4 +778,13 @@ void PlayState::render(SDL_Renderer* renderer) {
     if (m_showRelicChoice) {
         renderRelicChoice(renderer, game->getFont());
     }
+
+    // CRT scanline post-processing effect (drawn last, on top of everything)
+    if (g_crtEffect) {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 30);
+        for (int y = 0; y < SCREEN_HEIGHT; y += 2) {
+            SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
+        }
+    }
 }

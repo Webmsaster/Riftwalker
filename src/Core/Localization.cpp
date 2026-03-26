@@ -95,6 +95,7 @@ void Localization::loadStrings() {
     m_en["options.lang_de"]        = "Deutsch";
     m_en["options.on"]             = "ON";
     m_en["options.off"]            = "OFF";
+    m_en["options.crt_effect"]     = "CRT Effect";
     m_en["options.nav_hint"]       = "A/D Adjust  |  W/S Navigate  |  ENTER Toggle  |  ESC Back";
 
     // Game Over
@@ -206,6 +207,7 @@ void Localization::loadStrings() {
     m_de["options.lang_de"]        = "Deutsch";
     m_de["options.on"]             = "AN";
     m_de["options.off"]            = "AUS";
+    m_de["options.crt_effect"]     = "CRT-Effekt";
     m_de["options.nav_hint"]       = "A/D Anpassen  |  W/S Navigieren  |  ENTER Umschalten  |  ESC Zurueck";
 
     // Game Over
