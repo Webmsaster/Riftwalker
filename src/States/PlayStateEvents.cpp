@@ -962,6 +962,16 @@ void PlayState::pushUnlockNotification(const char* name, bool isWeapon) {
                   "%s UNLOCKED: %s", isWeapon ? "WEAPON" : "CLASS", name);
     notif.timer = notif.maxTimer;
     m_unlockNotifHead++;
+
+    // Gold particle burst at notification position (screen-center top)
+    Vec2 camPos = m_camera.getPosition();
+    float z = m_camera.zoom;
+    float sw = static_cast<float>(m_camera.getViewWidth());
+    float sh = static_cast<float>(m_camera.getViewHeight());
+    Vec2 worldPos = {(640.0f - sw / 2.0f) / z + camPos.x,
+                     (155.0f - sh / 2.0f) / z + camPos.y};
+    SDL_Color gold = {255, 200, 50, 255};
+    m_particles.burst(worldPos, 20, gold, 120.0f, 3.0f);
 }
 
 void PlayState::updateUnlockNotifications(float dt) {
