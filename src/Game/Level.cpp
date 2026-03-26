@@ -952,25 +952,32 @@ void Level::renderGravityWell(SDL_Renderer* renderer, SDL_Rect sr, const Tile& t
 }
 
 void Level::renderTeleporter(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
-    (void)tile;
     // Always use procedural rendering (tileset teleporter tiles don't match)
-    // Procedural: Glowing portal
+    // Color-code by pair ID so matched teleporters are visually linked
+    static const SDL_Color pairColors[] = {
+        {50, 220, 100, 255}, {220, 80, 180, 255}, {80, 160, 255, 255},
+        {255, 200, 60, 255}, {60, 240, 220, 255}, {255, 120, 80, 255}
+    };
+    const SDL_Color& pc = pairColors[tile.variant % 6];
     float time = ticks * 0.005f;
     float pulse = 0.5f + 0.5f * std::sin(time);
     // Base
-    SDL_SetRenderDrawColor(renderer, 30, 60, 30, 200);
+    SDL_SetRenderDrawColor(renderer, pc.r / 6, pc.g / 6, pc.b / 6, 200);
     SDL_RenderFillRect(renderer, &sr);
     // Inner glow
     Uint8 ga = static_cast<Uint8>(100 + 100 * pulse);
     SDL_Rect inner = {sr.x + 4, sr.y + 4, sr.w - 8, sr.h - 8};
-    SDL_SetRenderDrawColor(renderer, 50, 220, 100, ga);
+    SDL_SetRenderDrawColor(renderer, pc.r, pc.g, pc.b, ga);
     SDL_RenderFillRect(renderer, &inner);
     // Center bright
     SDL_Rect center = {sr.x + sr.w / 2 - 4, sr.y + sr.h / 2 - 4, 8, 8};
-    SDL_SetRenderDrawColor(renderer, 100, 255, 150, static_cast<Uint8>(180 + 60 * pulse));
+    Uint8 br = static_cast<Uint8>(std::min(255, pc.r + 80));
+    Uint8 bg = static_cast<Uint8>(std::min(255, pc.g + 80));
+    Uint8 bb = static_cast<Uint8>(std::min(255, pc.b + 80));
+    SDL_SetRenderDrawColor(renderer, br, bg, bb, static_cast<Uint8>(180 + 60 * pulse));
     SDL_RenderFillRect(renderer, &center);
     // Border
-    SDL_SetRenderDrawColor(renderer, 80, 255, 120, static_cast<Uint8>(120 * pulse));
+    SDL_SetRenderDrawColor(renderer, pc.r, pc.g, pc.b, static_cast<Uint8>(120 * pulse));
     SDL_RenderDrawRect(renderer, &sr);
 }
 
