@@ -252,6 +252,20 @@ void CombatSystem::processProjectileLifetime(EntityManager& entities, float dt) 
         sprite.animTimer += dt;
         if (sprite.animTimer > 3.0f) {
             proj.destroy();
+            return;
+        }
+        // Trail particles behind moving projectiles
+        if (m_particles && proj.hasComponent<TransformComponent>()) {
+            sprite.afterimageSpawnTimer += dt;
+            if (sprite.afterimageSpawnTimer >= 0.05f) {
+                sprite.afterimageSpawnTimer -= 0.05f;
+                auto& t = proj.getComponent<TransformComponent>();
+                SDL_Color trail = {static_cast<Uint8>(sprite.color.r * 3 / 4),
+                                   static_cast<Uint8>(sprite.color.g * 3 / 4),
+                                   static_cast<Uint8>(sprite.color.b * 3 / 4),
+                                   180};
+                m_particles->burst(t.getCenter(), 1, trail, 20.0f, 2.0f);
+            }
         }
         // Fade out in last second
         if (sprite.animTimer > 2.0f) {

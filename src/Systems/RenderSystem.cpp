@@ -509,6 +509,22 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
             SDL_SetRenderDrawColor(renderer, 255, 220, 80, static_cast<Uint8>(120 * pulse * alpha));
             SDL_RenderDrawRect(renderer, &mbGlow);
 
+            // Mini-boss crown horns (two golden triangles above head)
+            {
+                Uint8 crownA = static_cast<Uint8>((180 + 75 * pulse) * alpha); // pulse 180-255
+                int cx = screenRect.x + screenRect.w / 2;
+                int hornTop = screenRect.y - 10; // 4px above entity top + 6px height
+                // Left horn
+                SDL_SetRenderDrawColor(renderer, 255, 200, 50, crownA);
+                SDL_RenderDrawLine(renderer, cx - 3 - 2, hornTop + 6, cx - 3, hornTop);
+                SDL_RenderDrawLine(renderer, cx - 3, hornTop, cx - 3 + 2, hornTop + 6);
+                SDL_RenderDrawLine(renderer, cx - 3 - 2, hornTop + 6, cx - 3 + 2, hornTop + 6);
+                // Right horn
+                SDL_RenderDrawLine(renderer, cx + 3 - 2, hornTop + 6, cx + 3, hornTop);
+                SDL_RenderDrawLine(renderer, cx + 3, hornTop, cx + 3 + 2, hornTop + 6);
+                SDL_RenderDrawLine(renderer, cx + 3 - 2, hornTop + 6, cx + 3 + 2, hornTop + 6);
+            }
+
             // Mini-boss HP bar above entity
             if (entity.hasComponent<HealthComponent>()) {
                 auto& mbHP = entity.getComponent<HealthComponent>();
