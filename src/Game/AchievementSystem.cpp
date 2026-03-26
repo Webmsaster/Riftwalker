@@ -50,6 +50,25 @@ void AchievementSystem::init() {
         {"speed_demon",     "Speed Demon",        "Complete the game in under 10 minutes",          "+5% Move Speed"},
         {"weapon_collector","Arsenal Master",     "Unlock all 10 weapons",                          "+3% All DMG"},
         {"dimension_dancer","Dimension Dancer",   "Switch dimensions 50 times in one run",          "-5% Switch CD"},
+        // Class mastery achievements
+        {"void_mastery",    "Void Master",        "Win a run as Voidwalker",                        "+5% Phase DMG"},
+        {"berserk_mastery", "Berserker Lord",     "Win a run as Berserker",                         "+5% Melee DMG"},
+        {"phantom_mastery", "Ghost Protocol",     "Win a run as Phantom",                           "+3% Dodge Chance"},
+        {"tech_mastery",    "Chief Engineer",     "Win a run as Technomancer",                      "+5% Construct DMG"},
+        {"all_classes",     "Jack of All Trades", "Win a run with each class",                      "+10 Max HP"},
+        // Relic achievements
+        {"relic_collector", "Relic Hoarder",      "Hold 6 relics in a single run",                  "+5% Relic Drop"},
+        {"synergy_hunter",  "Synergist",          "Activate 3 relic synergies in one run",          "+3% All DMG"},
+        {"cursed_survivor", "Curse Bearer",       "Win a run with 3 cursed relics",                 "+5% All DMG"},
+        // Combat achievements
+        {"parry_master",    "Parry King",         "Parry 20 attacks in a single run",               "+5% Counter DMG"},
+        {"no_damage_boss",  "Untouchable",        "Defeat a boss without taking damage",            "+5 Max HP"},
+        {"kill_streak_50",  "Massacre",           "Kill 50 enemies in a single floor",              "+3% All DMG"},
+        {"ranged_only",     "Sharpshooter",       "Complete 5 floors using only ranged weapons",    "+5% Ranged DMG"},
+        // Exploration achievements
+        {"lore_hunter",     "Lore Keeper",        "Discover all 12 lore fragments",                 "+10% Shard Drop"},
+        {"ascension_1",     "New Game Plus",      "Complete Ascension Tier 1",                      "+5 Max HP"},
+        {"ascension_5",     "True Riftwalker",    "Complete Ascension Tier 5",                      "+10% All DMG"},
     };
 }
 

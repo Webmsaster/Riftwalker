@@ -1302,6 +1302,27 @@ void PlayState::updatePostCombat(float dt) {
         }
     }
 
+    // Relic achievements
+    if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
+        auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+        if (static_cast<int>(relics.relics.size()) >= 6) ach.unlock("relic_collector");
+        if (RelicSynergy::getActiveSynergyCount(relics) >= 3) ach.unlock("synergy_hunter");
+        // Count cursed relics
+        int cursedCount = 0;
+        for (auto& r : relics.relics) {
+            if (RelicSystem::isCursed(r.id)) cursedCount++;
+        }
+        if (cursedCount >= 3) ach.unlock("cursed_survivor");
+    }
+
+    // Combat: kill count milestone
+    if (enemiesKilled >= 50) ach.unlock("kill_streak_50");
+
+    // Lore completion
+    if (game->getLoreSystem() && game->getLoreSystem()->discoveredCount() >= 12) {
+        ach.unlock("lore_hunter");
+    }
+
     // Meta-progression unlock checks (class + weapon unlocks)
     checkUnlockConditions();
     updateUnlockNotifications(dt);

@@ -1,7 +1,10 @@
 #include "States/EndingState.h"
 #include "Core/Game.h"
+#include "Game/ClassSystem.h"
 #include <cmath>
 #include <cstdio>
+
+extern PlayerClass g_selectedClass;
 
 void EndingState::enter() {
     m_fontTitle = TTF_OpenFont("assets/fonts/default.ttf", 32);
@@ -22,6 +25,26 @@ void EndingState::enter() {
         m_endingType = 1; // Destroyer: 200+ kills
     } else {
         m_endingType = 0; // Healer: default ending
+    }
+
+    // Class mastery achievements
+    if (game) {
+        auto& ach = game->getAchievements();
+        switch (g_selectedClass) {
+            case PlayerClass::Voidwalker:   ach.unlock("void_mastery"); break;
+            case PlayerClass::Berserker:    ach.unlock("berserk_mastery"); break;
+            case PlayerClass::Phantom:      ach.unlock("phantom_mastery"); break;
+            case PlayerClass::Technomancer: ach.unlock("tech_mastery"); break;
+            default: break;
+        }
+        // Jack of All Trades: check if all 4 class masteries are unlocked
+        if (ach.isUnlocked("void_mastery") && ach.isUnlocked("berserk_mastery") &&
+            ach.isUnlocked("phantom_mastery") && ach.isUnlocked("tech_mastery")) {
+            ach.unlock("all_classes");
+        }
+        // Ascension achievements (based on maxDifficulty which tracks NG+ tier completion)
+        if (maxDifficulty >= 31) ach.unlock("ascension_1");  // Beat Floor 31 = NG+1
+        if (maxDifficulty >= 35) ach.unlock("ascension_5");  // NG+5 territory
     }
 }
 
