@@ -1155,6 +1155,19 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             char shardText[32];
             std::snprintf(shardText, sizeof(shardText), "%d", riftShards);
             renderText(renderer, font, shardText, infoX + 16, iy2, {200, 170, 255, 180});
+
+            // Run timer — pulses gold under 10:00 (speedrun territory)
+            int mins = static_cast<int>(m_runTime) / 60;
+            int secs = static_cast<int>(m_runTime) % 60;
+            char timerText[16];
+            std::snprintf(timerText, sizeof(timerText), "%02d:%02d", mins, secs);
+            SDL_Color timerCol = {160, 160, 180, 150}; // dim default
+            if (m_runTime < 600.0f) { // under 10 minutes — gold pulse
+                float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.005f);
+                Uint8 a = static_cast<Uint8>(200 * pulse);
+                timerCol = {255, 215, 80, a};
+            }
+            renderText(renderer, font, timerText, infoX + 100, iy2, timerCol);
         }
     }
 

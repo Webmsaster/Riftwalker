@@ -755,6 +755,7 @@ void PlayState::render(SDL_Renderer* renderer) {
     // HUD (on top of everything)
     m_hud.setFloor(m_currentDifficulty);
     m_hud.setKillCount(enemiesKilled);
+    m_hud.setRunTime(m_runTime);
     m_hud.render(renderer, game->getFont(), m_player.get(), &m_entropy, &m_dimManager,
                  SCREEN_WIDTH, SCREEN_HEIGHT, game->getFPS(), game->getUpgradeSystem().getRiftShards());
 

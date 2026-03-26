@@ -23,6 +23,7 @@ public:
     void setFloor(int floor) { m_currentFloor = floor; }
     void setKillCount(int kills) { m_killCount = kills; }
     void setNGPlusTier(int tier) { m_ngPlusTier = tier; }
+    void setRunTime(float t) { m_runTime = t; }
 
     // Minimap toggle (M key)
     void toggleMinimap() { m_showMinimap = !m_showMinimap; }
@@ -51,6 +52,7 @@ private:
     int m_killCount = 0;
     bool m_showMinimap = true;  // M key toggle
     int m_ngPlusTier = 0;  // NG+ tier shown as gold number in top-right
+    float m_runTime = 0.0f; // Run timer (seconds), set each frame
 
     // Ability ready flash: brief glow when cooldown finishes
     float m_abilityReadyFlash[4] = {};  // melee, ranged, dash, dim-switch
