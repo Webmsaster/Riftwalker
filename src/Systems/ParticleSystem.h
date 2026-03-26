@@ -39,6 +39,8 @@ struct ParticleEmitter {
 
 class ParticleSystem {
 public:
+    ParticleSystem();
+
     void update(float dt);
     void render(SDL_Renderer* renderer, const Camera& camera);
 
@@ -56,14 +58,17 @@ public:
     void clear();
 
     // Debug info
-    int getActiveCount() const { int n = 0; for (auto& p : m_particles) if (p.alive) n++; return n; }
+    int getActiveCount() const { return m_activeCount; }
     int getPoolSize() const { return static_cast<int>(m_particles.size()); }
     int getEmitterCount() const { return static_cast<int>(m_emitters.size()); }
 
 private:
     void spawnParticle(const ParticleEmitter& emitter);
+    int findFreeSlot();
 
     std::vector<Particle> m_particles;
     std::vector<ParticleEmitter> m_emitters;
+    int m_activeCount = 0;       // Cached count of alive particles
+    int m_firstFree = 0;         // Hint for next free slot search
     static constexpr int MAX_PARTICLES = 2000;
 };

@@ -4,6 +4,7 @@
 #include "Core/Localization.h"
 #include "Game/Bestiary.h"
 #include "Game/DailyRun.h"
+#include "Game/ChallengeMode.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -406,6 +407,11 @@ void MenuState::render(SDL_Renderer* renderer) {
         btn.render(renderer, font);
     }
 
+    // Daily Run info panel (shown when "Daily Run" button is highlighted)
+    if (font && m_selectedButton == 1) {
+        renderDailyInfo(renderer, font);
+    }
+
     // Keyboard shortcut hint
     if (font) {
         SDL_Color hintC = {120, 120, 140, 180};
@@ -443,4 +449,82 @@ void MenuState::render(SDL_Renderer* renderer) {
         SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
         SDL_RenderFillRect(renderer, &full);
     }
+}
+
+void MenuState::renderDailyInfo(SDL_Renderer* renderer, TTF_Font* font) {
+    // Gather daily data
+    auto todayDate = DailyRun::getTodayDate();
+    int seed = DailyRun::getTodaySeed();
+    MutatorID mut = DailyRun::getDailyMutator();
+    const auto& mutData = ChallengeMode::getMutatorData(mut);
+
+    DailyRun dailyRun;
+    dailyRun.load("riftwalker_daily.dat");
+    int bestScore = dailyRun.getTodayBest();
+
+    // Panel position: right of the menu buttons, aligned with button 1 (Daily Run)
+    int btnW = 260;
+    int btnH = 30;
+    int gap = 2;
+    int totalMenuH = 12 * (btnH + gap) - gap;
+    int startY = SCREEN_HEIGHT - totalMenuH - 16;
+    int panelX = SCREEN_WIDTH / 2 + btnW / 2 + 16;
+    int panelY = startY + (btnH + gap); // same Y as button 1
+
+    int panelW = 230;
+    int lineH = 18;
+    int panelH = lineH * 4 + 16; // 4 lines + padding
+    int textX = panelX + 10;
+    int textY = panelY + 8;
+
+    // Fade based on menu fade
+    Uint8 panelAlpha = static_cast<Uint8>(180 * m_fadeIn);
+
+    // Panel background
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 18, 14, 32, panelAlpha);
+    SDL_Rect panelRect = {panelX, panelY, panelW, panelH};
+    SDL_RenderFillRect(renderer, &panelRect);
+
+    // Panel border
+    Uint8 borderAlpha = static_cast<Uint8>(120 * m_fadeIn);
+    SDL_SetRenderDrawColor(renderer, 100, 60, 180, borderAlpha);
+    SDL_RenderDrawRect(renderer, &panelRect);
+
+    // Helper lambda to render a line of text
+    auto drawLine = [&](const char* text, SDL_Color color, int y) {
+        SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
+        if (!surface) return;
+        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+        if (texture) {
+            SDL_SetTextureAlphaMod(texture, static_cast<Uint8>(255 * m_fadeIn));
+            SDL_Rect dst = {textX, y, surface->w, surface->h};
+            SDL_RenderCopy(renderer, texture, nullptr, &dst);
+            SDL_DestroyTexture(texture);
+        }
+        SDL_FreeSurface(surface);
+    };
+
+    // Line 1: Date
+    char dateBuf[48];
+    std::snprintf(dateBuf, sizeof(dateBuf), "Date: %s", todayDate.c_str());
+    drawLine(dateBuf, {160, 150, 190, 255}, textY);
+
+    // Line 2: Seed
+    char seedBuf[48];
+    std::snprintf(seedBuf, sizeof(seedBuf), "Seed: %d", seed);
+    drawLine(seedBuf, {140, 130, 170, 255}, textY + lineH);
+
+    // Line 3: Mutator
+    char mutBuf[64];
+    std::snprintf(mutBuf, sizeof(mutBuf), "Mutator: %s", mutData.name);
+    drawLine(mutBuf, {200, 160, 255, 255}, textY + lineH * 2);
+
+    // Line 4: Best score
+    char scoreBuf[48];
+    if (bestScore > 0)
+        std::snprintf(scoreBuf, sizeof(scoreBuf), "Best: %d", bestScore);
+    else
+        std::snprintf(scoreBuf, sizeof(scoreBuf), "Best: ---");
+    drawLine(scoreBuf, {180, 180, 60, 255}, textY + lineH * 3);
 }

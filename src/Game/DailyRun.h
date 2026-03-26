@@ -3,6 +3,9 @@
 #include <vector>
 #include <ctime>
 
+// Forward declare MutatorID to avoid pulling in ChallengeMode.h
+enum class MutatorID;
+
 // Calculates score using the standard formula.
 // floors * 1000 + kills * 50 + rifts * 200 + shards * 2 + bestCombo * 100 - deathPenalty
 // deathPenalty is 0 for victory (deathCause==5), 500 otherwise.
@@ -43,6 +46,7 @@ class DailyRun {
 public:
     static int getTodaySeed();
     static std::string getTodayDate();
+    static MutatorID getDailyMutator();
 
     // Add a full entry; keeps top 10 per date and last 7 days of dates.
     void addEntry(const DailyLeaderboardEntry& entry);

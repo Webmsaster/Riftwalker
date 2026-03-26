@@ -14,6 +14,7 @@ public:
 private:
     void renderPortal(SDL_Renderer* renderer);
     void renderTitle(SDL_Renderer* renderer, TTF_Font* font);
+    void renderDailyInfo(SDL_Renderer* renderer, TTF_Font* font);
 
     std::vector<Button> m_buttons;
     int m_selectedButton = 0;

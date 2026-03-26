@@ -1,6 +1,14 @@
 #include "EntityManager.h"
 #include <algorithm>
 
+EntityManager::EntityManager() {
+    m_entities.reserve(INITIAL_ENTITY_RESERVE);
+    m_snapshotBuffer.reserve(INITIAL_ENTITY_RESERVE);
+    m_tagQueryBuffer.reserve(64);
+    m_dimQueryBuffer.reserve(INITIAL_ENTITY_RESERVE);
+    m_componentQueryBuffer.reserve(INITIAL_ENTITY_RESERVE);
+}
+
 Entity& EntityManager::addEntity(const std::string& tag) {
     auto entity = std::make_unique<Entity>(this, tag);
     Entity& ref = *entity;

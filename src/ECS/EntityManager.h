@@ -6,6 +6,9 @@
 
 class EntityManager {
 public:
+    static constexpr size_t INITIAL_ENTITY_RESERVE = 200;
+
+    EntityManager();
     Entity& addEntity(const std::string& tag = "");
     void update(float dt);
     void refresh(); // Remove dead entities

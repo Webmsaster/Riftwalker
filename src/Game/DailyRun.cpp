@@ -1,4 +1,5 @@
 #include "Game/DailyRun.h"
+#include "Game/ChallengeMode.h"
 #include <fstream>
 #include <algorithm>
 #include <cstdio>
@@ -15,6 +16,15 @@ int DailyRun::getTodaySeed() {
 #endif
     struct tm* t = &tBuf;
     return (t->tm_year + 1900) * 10000 + (t->tm_mon + 1) * 100 + t->tm_mday;
+}
+
+MutatorID DailyRun::getDailyMutator() {
+    // Derive a deterministic mutator from the daily seed
+    int seed = getTodaySeed();
+    int mutCount = static_cast<int>(MutatorID::COUNT) - 1; // exclude None
+    if (mutCount <= 0) return MutatorID::None;
+    int pick = ((seed * 2654435761u) >> 16) % mutCount; // hash for better distribution
+    return static_cast<MutatorID>(pick + 1); // +1 to skip None
 }
 
 std::string DailyRun::getTodayDate() {

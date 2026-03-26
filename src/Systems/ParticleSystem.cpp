@@ -12,6 +12,13 @@ static Uint8 lerpByte(Uint8 a, Uint8 b, float t) {
     return static_cast<Uint8>(a + (b - a) * t);
 }
 
+ParticleSystem::ParticleSystem() {
+    // Pre-allocate particle pool to avoid runtime reallocations
+    m_particles.resize(MAX_PARTICLES);
+    for (auto& p : m_particles) p.alive = false;
+    m_emitters.reserve(64);
+}
+
 void ParticleSystem::update(float dt) {
     ZoneScopedN("ParticleUpdate");
     // Update emitters
@@ -40,7 +47,8 @@ void ParticleSystem::update(float dt) {
         m_emitters.end()
     );
 
-    // Update particles
+    // Update particles in-place (no erase — dead slots are reused)
+    m_activeCount = 0;
     for (auto& p : m_particles) {
         if (!p.alive) continue;
         p.lifetime -= dt;
@@ -50,14 +58,8 @@ void ParticleSystem::update(float dt) {
         p.position += p.velocity * dt;
         p.size -= p.sizeDecay * dt;
         if (p.size < 0) p.size = 0;
+        ++m_activeCount;
     }
-
-    // Remove dead particles
-    m_particles.erase(
-        std::remove_if(m_particles.begin(), m_particles.end(),
-            [](const Particle& p) { return !p.alive; }),
-        m_particles.end()
-    );
 }
 
 void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
@@ -99,11 +101,24 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
     }
 }
 
-void ParticleSystem::spawnParticle(const ParticleEmitter& emitter) {
-    if (static_cast<int>(m_particles.size()) >= MAX_PARTICLES) return;
-    if (m_particles.capacity() == 0) m_particles.reserve(MAX_PARTICLES);
+int ParticleSystem::findFreeSlot() {
+    // Search from hint position, wrap around
+    int size = static_cast<int>(m_particles.size());
+    for (int i = 0; i < size; ++i) {
+        int idx = (m_firstFree + i) % size;
+        if (!m_particles[idx].alive) {
+            m_firstFree = (idx + 1) % size;
+            return idx;
+        }
+    }
+    return -1; // Pool full
+}
 
-    Particle p;
+void ParticleSystem::spawnParticle(const ParticleEmitter& emitter) {
+    int slot = findFreeSlot();
+    if (slot < 0) return; // Pool full, drop particle
+
+    Particle& p = m_particles[slot];
     p.position = emitter.position;
 
     float angle = (emitter.direction + randFloat(-emitter.spread / 2, emitter.spread / 2)) * 3.14159f / 180.0f;
@@ -120,8 +135,7 @@ void ParticleSystem::spawnParticle(const ParticleEmitter& emitter) {
     p.size = emitter.size;
     p.sizeDecay = emitter.sizeDecay;
     p.alive = true;
-
-    m_particles.push_back(p);
+    ++m_activeCount;
 }
 
 void ParticleSystem::burst(Vec2 pos, int count, SDL_Color color, float speed, float size) {
@@ -168,7 +182,8 @@ void ParticleSystem::weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, floa
     // Spawn trail particles along the weapon line (origin -> tip)
     int count = static_cast<int>(2 + intensity * 2); // 2-4 particles per frame
     for (int i = 0; i < count; i++) {
-        if (m_particles.size() >= MAX_PARTICLES) return;
+        int slot = findFreeSlot();
+        if (slot < 0) return; // Pool full
 
         float t = randFloat(0.3f, 1.0f); // bias toward tip
         Vec2 pos = {
@@ -179,7 +194,7 @@ void ParticleSystem::weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, floa
         pos.x += randFloat(-3.0f, 3.0f);
         pos.y += randFloat(-3.0f, 3.0f);
 
-        Particle p;
+        Particle& p = m_particles[slot];
         p.position = pos;
         // Slow drift away from weapon line
         p.velocity = {randFloat(-20.0f, 20.0f), randFloat(-30.0f, 10.0f)};
@@ -193,7 +208,7 @@ void ParticleSystem::weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, floa
         p.sizeDecay = p.size * 6.0f; // fast shrink
         p.gravity = 0;
         p.alive = true;
-        m_particles.push_back(p);
+        ++m_activeCount;
     }
 }
 
@@ -239,7 +254,9 @@ void ParticleSystem::addEmitter(const ParticleEmitter& emitter) {
 }
 
 void ParticleSystem::clear() {
-    m_particles.clear();
-    m_particles.reserve(MAX_PARTICLES);
+    // Mark all particles as dead — keep pool allocated
+    for (auto& p : m_particles) p.alive = false;
+    m_activeCount = 0;
+    m_firstFree = 0;
     m_emitters.clear();
 }
