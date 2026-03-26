@@ -219,6 +219,9 @@ struct AIComponent : public Component {
     float eiCorePulse = 0;           // Visual: pulsing core animation timer
     float eiHoverY = 0;              // Hover offset (sine wave)
 
+    // Aggro alert: "!" indicator when enemy first notices player
+    float aggroAlertTimer = 0;
+
     // Environmental hazard damage cooldown (per-enemy)
     float hazardDmgCooldown = 0;
 

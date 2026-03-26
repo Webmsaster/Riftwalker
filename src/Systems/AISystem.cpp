@@ -423,6 +423,12 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             ai.dimSpeedMod *= ai.summonerBuffSpeedMult;
         }
 
+        // Tick aggro alert timer
+        if (ai.aggroAlertTimer > 0) ai.aggroAlertTimer -= dt;
+
+        // Track previous state to detect aggro transitions
+        AIState prevState = ai.state;
+
         // Check if enemy is in the same dimension as player
         bool sameDim = (e->dimension == 0 || e->dimension == playerDimension);
 
@@ -456,6 +462,12 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
                     updateBoss(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities);
                 break;
             }
+        }
+
+        // Trigger aggro alert when enemy first notices player
+        if ((prevState == AIState::Idle || prevState == AIState::Patrol) &&
+            (ai.state == AIState::Chase || ai.state == AIState::Attack)) {
+            ai.aggroAlertTimer = 0.5f;
         }
 
         // Drive sprite animation based on AI state

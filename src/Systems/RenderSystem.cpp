@@ -430,6 +430,17 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
             }
         }
 
+        // Aggro alert: "!" exclamation mark when enemy first spots the player
+        if (ai.aggroAlertTimer > 0) {
+            float fade = ai.aggroAlertTimer / 0.5f; // 1→0 over 0.5s
+            Uint8 alertA = static_cast<Uint8>(255 * fade * alpha);
+            int cx = screenRect.x + screenRect.w / 2;
+            int ey = screenRect.y - 8;
+            // "!" as a vertical bar + dot
+            fillRect(renderer, cx - 1, ey - 7, 3, 5, 255, 240, 80, alertA);
+            fillRect(renderer, cx - 1, ey,     3, 2, 255, 240, 80, alertA);
+        }
+
         // Elite modifier aura + HP bar
         if (ai.isElite) {
             float time = ai.eliteGlowTimer * 3.0f;
