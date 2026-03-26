@@ -540,18 +540,34 @@ void PlayState::update(float dt) {
         if (aliveAfterCombat == 0 && m_currentWave >= static_cast<int>(m_spawnWaves.size())) {
             m_waveClearTriggered = true;
             m_waveClearTimer = 2.0f;
+            m_waveClearFlashTimer = 0.15f; // screen brightness pulse
             m_combatSystem.addHitFreeze(0.15f);
             m_camera.shake(10.0f, 0.3f);
             game->getInputMutable().rumble(0.5f, 200);
             AudioManager::instance().play(SFX::ShrineBlessing);
             if (m_player) {
+                // XP bonus for clearing the wave
+                constexpr int waveClearXP = 25;
+                m_player->addXP(waveClearXP);
                 Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
-                m_particles.burst(pPos, 40, {255, 215, 0, 255}, 300.0f, 5.0f);
-                m_particles.burst(pPos, 20, {255, 255, 200, 255}, 200.0f, 4.0f);
+                // Floating "+25 XP" indicator
+                FloatingDamageNumber xpNum;
+                xpNum.position = {pPos.x, pPos.y - 30.0f};
+                xpNum.value = 0;
+                xpNum.isBuff = true;
+                xpNum.buffText = "+25 XP";
+                xpNum.lifetime = 1.2f;
+                xpNum.maxLifetime = 1.2f;
+                xpNum.isPlayerDamage = false;
+                m_damageNumbers.push_back(xpNum);
+                // Cyan/white celebration particles
+                m_particles.burst(pPos, 40, {0, 255, 255, 255}, 300.0f, 5.0f);
+                m_particles.burst(pPos, 20, {220, 255, 255, 255}, 200.0f, 4.0f);
             }
         }
     }
     if (m_waveClearTimer > 0) m_waveClearTimer -= dt;
+    if (m_waveClearFlashTimer > 0) m_waveClearFlashTimer -= dt;
     if (m_weaponSwitchDisplayTimer > 0) m_weaponSwitchDisplayTimer -= dt;
 
     // Kill streak timers

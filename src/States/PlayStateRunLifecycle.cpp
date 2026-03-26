@@ -208,6 +208,7 @@ void PlayState::startNewRun() {
     m_spikeDmgCooldown = 0;
     m_waveClearTriggered = false;
     m_waveClearTimer = 0;
+    m_waveClearFlashTimer = 0;
     m_killStreakTimer = 0;
     m_killStreakCount = 0;
     m_killStreakDisplayTimer = 0;
@@ -368,6 +369,7 @@ void PlayState::spawnEnemies() {
     m_waveActive = false;
     m_waveClearTriggered = false;
     m_waveClearTimer = 0;
+    m_waveClearFlashTimer = 0;
 
     // Zone-based wave sizing: Zone 0=3-4, Zone 1=4-5, Zone 2=5-6, Zone 3=6-7, Zone 4=7-8
     int waveZone = getZone(m_currentDifficulty);

@@ -707,7 +707,16 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Zone transition banner (non-blocking, on zone change)
     renderZoneTransition(renderer, game->getFont());
 
-    // Wave/area clear celebration text
+    // Screen brightness pulse on wave clear
+    if (m_waveClearFlashTimer > 0) {
+        float flashAlpha = (m_waveClearFlashTimer / 0.15f) * 60.0f; // brief white flash, max ~60 alpha
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, static_cast<Uint8>(flashAlpha));
+        SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &full);
+    }
+
+    // Wave clear celebration text
     if (m_waveClearTimer > 0 && game->getFont()) {
         float t = m_waveClearTimer / 2.0f; // 1.0 -> 0.0
         // Fade in fast (first 0.3s), then hold, then fade out (last 0.5s)
@@ -717,9 +726,9 @@ void PlayState::render(SDL_Renderer* renderer) {
         else alpha = 1.0f;                             // hold
         Uint8 a = static_cast<Uint8>(alpha * 255);
 
-        // Gold text "AREA CLEARED"
-        SDL_Color gold = {255, 215, 0, a};
-        SDL_Surface* surf = TTF_RenderText_Blended(game->getFont(), "AREA CLEARED", gold);
+        // Cyan/white text "WAVE CLEARED"
+        SDL_Color cyan = {0, 255, 255, a};
+        SDL_Surface* surf = TTF_RenderText_Blended(game->getFont(), "WAVE CLEARED", cyan);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
@@ -736,11 +745,11 @@ void PlayState::render(SDL_Renderer* renderer) {
             SDL_FreeSurface(surf);
         }
 
-        // Subtle gold line underneath
+        // Subtle cyan line underneath
         if (a > 30) {
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
             int lineW = static_cast<int>(200 * alpha);
-            SDL_SetRenderDrawColor(renderer, 255, 215, 0, static_cast<Uint8>(a * 0.5f));
+            SDL_SetRenderDrawColor(renderer, 0, 255, 255, static_cast<Uint8>(a * 0.5f));
             SDL_Rect line = {SCREEN_WIDTH / 2 - lineW / 2, SCREEN_HEIGHT / 3 + 14, lineW, 2};
             SDL_RenderFillRect(renderer, &line);
         }

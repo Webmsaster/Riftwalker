@@ -195,6 +195,7 @@ private:
 
     // Wave/area clear celebration
     float m_waveClearTimer = 0;       // text overlay duration (2s)
+    float m_waveClearFlashTimer = 0;  // screen brightness pulse (0.15s)
     bool m_waveClearTriggered = false; // prevent re-trigger until new enemies spawn
 
     // Run intro overlay (atmospheric story text at run start)
