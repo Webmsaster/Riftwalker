@@ -231,7 +231,19 @@ void RiftPuzzle::render(SDL_Renderer* renderer, int screenW, int screenH) {
     SDL_Rect frame = {cx - frameW / 2, cy - frameH / 2, frameW, frameH};
     SDL_SetRenderDrawColor(renderer, 30, 20, 50, 240);
     SDL_RenderFillRect(renderer, &frame);
-    SDL_SetRenderDrawColor(renderer, 120, 60, 200, 255);
+
+    // Pulsing dimensional glow border (expanding rings)
+    float pulse = 0.5f + 0.5f * std::sin(m_timer * 3.5f);
+    for (int ring = 3; ring >= 1; ring--) {
+        Uint8 alpha = static_cast<Uint8>((40 + 50 * pulse) / ring);
+        SDL_SetRenderDrawColor(renderer, 140, 60, 220, alpha);
+        SDL_Rect glow = {frame.x - ring * 2, frame.y - ring * 2,
+                         frame.w + ring * 4, frame.h + ring * 4};
+        SDL_RenderDrawRect(renderer, &glow);
+    }
+    // Bright inner border with pulse
+    Uint8 borderBright = static_cast<Uint8>(120 + 135 * pulse);
+    SDL_SetRenderDrawColor(renderer, borderBright, 60, 220, 255);
     SDL_RenderDrawRect(renderer, &frame);
 
     // Timer bar
