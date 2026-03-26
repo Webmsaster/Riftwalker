@@ -50,6 +50,7 @@ public:
     void dimensionSwitch(Vec2 pos, SDL_Color colorA, SDL_Color colorB);
     void damageEffect(Vec2 pos, SDL_Color color);
     void weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, float intensity = 1.0f);
+    void chargeGather(Vec2 center, int count, SDL_Color color, float radius, float inwardSpeed, float size = 2.5f);
     void ambientDust(Vec2 pos, SDL_Color color, float radius = 200.0f);
     void ambientThemeParticle(Vec2 pos, SDL_Color color, float dirDeg = 270.0f,
                               float speed = 15.0f, float size = 2.0f,

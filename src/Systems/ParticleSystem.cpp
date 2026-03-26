@@ -212,6 +212,27 @@ void ParticleSystem::weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, floa
     }
 }
 
+void ParticleSystem::chargeGather(Vec2 center, int count, SDL_Color color, float radius, float inwardSpeed, float size) {
+    for (int i = 0; i < count; i++) {
+        int slot = findFreeSlot();
+        if (slot < 0) return;
+        float angle = randFloat(0.0f, 360.0f) * 3.14159f / 180.0f;
+        Particle& p = m_particles[slot];
+        p.position = {center.x + std::cos(angle) * radius, center.y + std::sin(angle) * radius};
+        p.velocity = {-std::cos(angle) * inwardSpeed, -std::sin(angle) * inwardSpeed};
+        p.color = color;
+        p.colorEnd = {255, 255, 255, 0};
+        p.useColorLerp = true;
+        p.lifetime = radius / std::max(inwardSpeed, 1.0f);
+        p.maxLifetime = p.lifetime;
+        p.size = size;
+        p.sizeDecay = size * 0.3f;
+        p.gravity = 0;
+        p.alive = true;
+        ++m_activeCount;
+    }
+}
+
 void ParticleSystem::ambientDust(Vec2 pos, SDL_Color color, float radius) {
     ParticleEmitter e;
     e.position = {pos.x + randFloat(-radius, radius), pos.y + randFloat(-radius, radius)};

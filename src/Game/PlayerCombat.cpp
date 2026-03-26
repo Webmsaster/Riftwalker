@@ -128,12 +128,20 @@ void Player::handleAttack(const InputManager& input) {
                 particles->burst(t.getCenter(), 14, {255, 230, 100, 255}, 80.0f, 2.0f);
             }
         }
-        // Charge particles while holding
-        if (particles && combat.chargeTimer >= combat.minChargeTime) {
+        // Charge-up gathering particles (entire charge duration)
+        if (particles) {
             auto& t = m_entity->getComponent<TransformComponent>();
             float cp = combat.getChargePercent();
-            Uint8 g = static_cast<Uint8>(200 * (1.0f - cp * 0.5f));
-            particles->burst(t.getCenter(), 1, {255, g, 50, 200}, 30.0f + cp * 60.0f, 1.5f);
+            Uint8 brightness = static_cast<Uint8>(100 + 155 * cp);
+            Uint8 g = static_cast<Uint8>(150 * (1.0f - cp * 0.6f));
+            int count = 1 + static_cast<int>(cp * 2); // 1-3 particles
+            float radius = 35.0f - cp * 15.0f;        // tightens as charge grows
+            particles->chargeGather(t.getCenter(), count, {brightness, g, 30, 220},
+                                    radius, 60.0f + cp * 80.0f, 1.5f + cp * 1.5f);
+            // Extra glow particles post-minCharge
+            if (combat.chargeTimer >= combat.minChargeTime) {
+                particles->burst(t.getCenter(), 1, {255, g, 50, 200}, 30.0f + cp * 60.0f, 1.5f);
+            }
         }
         return;
     }

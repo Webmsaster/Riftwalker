@@ -278,21 +278,25 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         fillRect(renderer, x + 3 * w / 4 - 1, y + h, 2, flameH - 1, 255, 255, 150, static_cast<Uint8>(a * 0.6f));
     }
 
-    // Charge glow: golden aura intensifies with charge
+    // Charge glow: golden aura intensifies with charge (visible from start)
     if (entity.hasComponent<CombatComponent>()) {
         auto& cb = entity.getComponent<CombatComponent>();
-        if (cb.isCharging && cb.chargeTimer >= cb.minChargeTime) {
+        if (cb.isCharging) {
             float cp = cb.getChargePercent();
-            Uint8 glowA = static_cast<Uint8>(40 + 120 * cp);
-            int glowR = static_cast<int>(4 + 8 * cp);
+            // Pulse effect: subtle breathing that speeds up near full charge
+            float pulse = 0.85f + 0.15f * std::sin(SDL_GetTicks() * (0.006f + cp * 0.012f));
+            Uint8 glowA = static_cast<Uint8>((20 + 140 * cp) * pulse);
+            int glowR = static_cast<int>(2 + 10 * cp);
             SDL_Rect glow = {x - glowR, y - glowR, w + glowR * 2, h + glowR * 2};
             SDL_SetRenderDrawColor(renderer, 255, 200, 50, static_cast<Uint8>(glowA * alpha));
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
             SDL_RenderFillRect(renderer, &glow);
-            // Brighter inner glow
-            SDL_Rect innerGlow = {x - glowR / 2, y - glowR / 2, w + glowR, h + glowR};
-            SDL_SetRenderDrawColor(renderer, 255, 255, 150, static_cast<Uint8>(glowA * 0.5f * alpha));
-            SDL_RenderFillRect(renderer, &innerGlow);
+            // Brighter inner glow (appears after min charge)
+            if (cb.chargeTimer >= cb.minChargeTime) {
+                SDL_Rect innerGlow = {x - glowR / 2, y - glowR / 2, w + glowR, h + glowR};
+                SDL_SetRenderDrawColor(renderer, 255, 255, 150, static_cast<Uint8>(glowA * 0.5f * alpha));
+                SDL_RenderFillRect(renderer, &innerGlow);
+            }
         }
 
         // Parry success aura: golden rim when next hit is guaranteed crit
