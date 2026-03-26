@@ -517,6 +517,20 @@ void PlayState::update(float dt) {
         }
     }
 
+    // Consume parry events for "PARRY!" floating text
+    for (auto& pe : m_combatSystem.parryEvents) {
+        FloatingDamageNumber num;
+        num.position = {pe.position.x, pe.position.y - 20.0f};
+        num.value = 0;
+        num.isBuff = true;
+        num.buffText = "PARRY!";
+        num.lifetime = 1.0f;
+        num.maxLifetime = 1.0f;
+        num.isPlayerDamage = false;
+        m_damageNumbers.push_back(num);
+    }
+    m_combatSystem.parryEvents.clear();
+
     // Wave/area clear celebration: all waves spawned + all enemies dead
     if (m_combatSystem.killCount > 0 && !m_isBossLevel && !m_waveClearTriggered) {
         int aliveAfterCombat = 0;

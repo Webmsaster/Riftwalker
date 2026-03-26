@@ -917,6 +917,8 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Color color;
         if (dn.isShard) {
             color = {200, 150, 255, alpha};
+        } else if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
+            color = {255, 225, 80, alpha}; // bright gold for parry
         } else if (dn.isBuff) {
             color = {100, 220, 255, alpha};
         } else if (dn.isHeal) {
@@ -950,9 +952,11 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
         if (surface) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
-                // Scale up for crits and large damage
+                // Scale up for crits, parry, and large damage
                 float scale = 1.0f;
-                if (dn.isCritical) {
+                if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
+                    scale = 1.8f; // biggest text in the game
+                } else if (dn.isCritical) {
                     scale = 1.5f;
                 } else if (dn.value > 20) {
                     scale = 1.3f;

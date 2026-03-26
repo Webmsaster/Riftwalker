@@ -61,6 +61,7 @@ public:
         m_elementWeapon = 0;
         m_dashRefreshOnKill = false;
         m_damageEvents.clear();
+        parryEvents.clear();
     }
 
     // Hit-freeze: returns accumulated freeze time and resets
@@ -89,6 +90,10 @@ public:
 
     // Kill events with metadata (consumed each frame by PlayState for combat challenges)
     std::vector<KillEvent> killEvents;
+
+    // Parry flash events (consumed by PlayState for "PARRY!" text)
+    struct ParryEvent { Vec2 position; };
+    std::vector<ParryEvent> parryEvents;
 
     // Balance tracking (consumed by PlayState for run summary)
     int voidResonanceProcs = 0;

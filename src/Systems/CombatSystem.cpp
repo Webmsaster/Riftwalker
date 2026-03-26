@@ -237,13 +237,21 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         attacker.getComponent<AIComponent>().stun(1.5f);
                     }
 
-                    // Parry feedback
-                    if (m_camera) m_camera->shake(6.0f, 0.15f);
+                    // Parry feedback — the MOST satisfying moment in the game
+                    if (m_camera) {
+                        m_camera->shake(10.0f, 0.2f);
+                        m_camera->flash(0.15f, 255, 235, 200); // warm white-gold flash
+                    }
                     m_pendingHitFreeze += 0.12f;
                     if (m_particles) {
-                        m_particles->burst(targetCenter, 20, {255, 215, 0, 255}, 200.0f, 3.0f);
-                        m_particles->burst(targetCenter, 10, {255, 255, 255, 255}, 150.0f, 2.0f);
+                        // Expanding ring: fast outward, large, white-gold
+                        m_particles->burst(targetCenter, 24, {255, 255, 255, 255}, 350.0f, 4.0f);
+                        m_particles->burst(targetCenter, 16, {255, 215, 0, 255}, 250.0f, 3.5f);
+                        // Inner gold sparkle
+                        m_particles->burst(targetCenter, 10, {255, 200, 60, 255}, 100.0f, 2.0f);
                     }
+                    // Queue "PARRY!" floating text for PlayState
+                    parryEvents.push_back({targetCenter});
                     return; // Negate the hit entirely
                 }
             }
