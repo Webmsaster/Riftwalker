@@ -250,22 +250,28 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
                 }
             }
 
-            // Heal Aura: heal nearby enemies 3 HP/s
+            // Heal Aura: heal nearby enemies 3 HP/s (checked every 0.5s to avoid O(n^2))
             if (ai.eliteMod == EliteModifier::HealAura && e->hasComponent<TransformComponent>()) {
-                auto& t = e->getComponent<TransformComponent>();
-                Vec2 center = t.getCenter();
-                entities.forEach([&](Entity& other) {
-                    if (&other == e || !other.isAlive()) return;
-                    if (other.getTag().find("enemy") == std::string::npos) return;
-                    if (!other.hasComponent<TransformComponent>() || !other.hasComponent<HealthComponent>()) return;
-                    auto& ot = other.getComponent<TransformComponent>();
-                    float dist = std::abs(ot.getCenter().x - center.x) + std::abs(ot.getCenter().y - center.y);
-                    if (dist < 120.0f) {
-                        other.getComponent<HealthComponent>().heal(3.0f * dt);
-                    }
-                });
+                ai.healAuraTimer -= dt;
+                if (ai.healAuraTimer <= 0) {
+                    ai.healAuraTimer = 0.5f;
+                    auto& t = e->getComponent<TransformComponent>();
+                    Vec2 center = t.getCenter();
+                    entities.forEach([&](Entity& other) {
+                        if (&other == e || !other.isAlive()) return;
+                        if (other.getTag().find("enemy") == std::string::npos) return;
+                        if (!other.hasComponent<TransformComponent>() || !other.hasComponent<HealthComponent>()) return;
+                        auto& ot = other.getComponent<TransformComponent>();
+                        float dist = std::abs(ot.getCenter().x - center.x) + std::abs(ot.getCenter().y - center.y);
+                        if (dist < 120.0f) {
+                            other.getComponent<HealthComponent>().heal(1.5f); // 3 HP/s * 0.5s interval
+                        }
+                    });
+                }
                 // Visual: green heal particles
                 if (m_particles) {
+                    auto& t = e->getComponent<TransformComponent>();
+                    Vec2 center = t.getCenter();
                     float auraPhase = std::fmod(ai.eliteGlowTimer * 5.0f, 6.28f);
                     float ox = std::cos(auraPhase) * 22.0f;
                     float oy = std::sin(auraPhase) * 14.0f;

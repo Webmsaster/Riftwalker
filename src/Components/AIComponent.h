@@ -65,6 +65,7 @@ struct AIComponent : public Component {
     float eliteShieldRegenTimer = 0; // Shielded: regen cooldown
     float eliteTeleportTimer = 0;  // Teleporter: teleport cooldown
     float eliteVampHealAccum = 0;  // Vampiric: accumulated heal
+    float healAuraTimer = 0;       // HealAura: cooldown to avoid per-frame O(n) scan
 
     // Detection
     float detectRange = 200.0f;

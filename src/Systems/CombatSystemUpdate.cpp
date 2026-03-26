@@ -35,6 +35,23 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
             float fallBonus = std::max(0.0f, std::min(fallDist / 200.0f, 1.5f));
             damage *= (1.0f + fallBonus);
 
+            // Early-out: check if any enemy could possibly be in slam radius
+            // using a fast AABB pre-check before the full entity scan
+            float radiusSq = radius * radius;
+            bool anyInRange = false;
+            entities.forEach([&](Entity& target) {
+                if (anyInRange) return; // already found one, skip rest of pre-check
+                if (target.getTag().find("enemy") == std::string::npos) return;
+                if (!target.hasComponent<TransformComponent>()) return;
+                if (target.dimension != 0 && target.dimension != currentDim) return;
+                auto& tt = target.getComponent<TransformComponent>();
+                // Cheap Manhattan distance pre-check (Manhattan > sqrt(2)*radius means definitely out)
+                float adx = std::abs(tt.getCenter().x - slamCenter.x);
+                float ady = std::abs(tt.getCenter().y - slamCenter.y);
+                if (adx < radius && ady < radius) anyInRange = true;
+            });
+
+            if (anyInRange) {
             entities.forEach([&](Entity& target) {
                 if (target.getTag().find("enemy") == std::string::npos) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
@@ -43,6 +60,8 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
                 auto& tt = target.getComponent<TransformComponent>();
                 float dx = tt.getCenter().x - slamCenter.x;
                 float dy = tt.getCenter().y - slamCenter.y;
+                // Skip if clearly out of range (cheap squared-distance check)
+                if (dx * dx + dy * dy >= radiusSq) return;
                 float dist = std::sqrt(dx * dx + dy * dy);
 
                 if (dist < radius && radius > 0.0f) {
@@ -63,7 +82,7 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
                         target.getComponent<PhysicsBody>().velocity += kb;
                     }
                     if (m_particles) {
-                        m_particles->burst(tt.getCenter(), 10, {255, 200, 80, 255}, 150.0f, 3.0f);
+                        m_particles->burst(tt.getCenter(), 4, {255, 200, 80, 255}, 150.0f, 3.0f); // reduced from 10
                     }
 
                     // Kill tracking
@@ -116,17 +135,18 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
                         AudioManager::instance().play(SFX::EnemyDeath);
                         target.destroy();
                         if (m_particles) {
-                            m_particles->burst(tt.getCenter(), 25, {255, 180, 60, 255}, 200.0f, 4.0f);
+                            m_particles->burst(tt.getCenter(), 12, {255, 180, 60, 255}, 200.0f, 4.0f); // reduced from 25
                             // Slam death launch: burst left+right from impact
-                            m_particles->directionalBurst(tt.getCenter(), 8, {255, 200, 80, 255},
+                            m_particles->directionalBurst(tt.getCenter(), 4, {255, 200, 80, 255},  // reduced from 8
                                                            0.0f, 60.0f, 280.0f, 3.0f);
-                            m_particles->directionalBurst(tt.getCenter(), 8, {255, 200, 80, 255},
+                            m_particles->directionalBurst(tt.getCenter(), 4, {255, 200, 80, 255},  // reduced from 8
                                                            180.0f, 60.0f, 280.0f, 3.0f);
                         }
                         emitElementDeathFX(tt.getCenter(), slamElem);
                     }
                 }
             });
+            } // anyInRange
 
             if (m_camera) m_camera->shake(12.0f, 0.3f);
             m_pendingHitFreeze += 0.12f;
