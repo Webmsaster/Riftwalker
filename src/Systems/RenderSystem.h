@@ -42,6 +42,9 @@ private:
     // Sprite-based rendering (returns true if sprite was rendered)
     bool renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
 
+    // Shared HP bar rendering for all enemies (color gradient, lag bar, elite marker)
+    void renderEnemyHPBar(SDL_Renderer* renderer, int x, int y, int w, Entity& entity, float alpha, bool isBoss = false);
+
     // Helper
     void fillRect(SDL_Renderer* r, int x, int y, int w, int h, Uint8 cr, Uint8 cg, Uint8 cb, Uint8 ca);
     void drawLine(SDL_Renderer* r, int x1, int y1, int x2, int y2, Uint8 cr, Uint8 cg, Uint8 cb, Uint8 ca);

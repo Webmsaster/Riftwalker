@@ -174,18 +174,7 @@ void RenderSystem::renderBoss(SDL_Renderer* renderer, SDL_Rect rect, Entity& ent
     }
 
     // HP bar (large, above boss)
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hp = entity.getComponent<HealthComponent>();
-        int barW = w + 20;
-        int barH = 5;
-        int barX = x - 10;
-        int barY = y - 14;
-        fillRect(renderer, barX, barY, barW, barH, 40, 20, 40, a);
-        fillRect(renderer, barX, barY, static_cast<int>(barW * hp.getPercent()), barH, 200, 40, 180, a);
-        // Phase markers
-        fillRect(renderer, barX + barW * 2 / 3, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
-        fillRect(renderer, barX + barW / 3, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha, true);
 }
 
 void RenderSystem::renderVoidWyrm(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
@@ -308,17 +297,7 @@ void RenderSystem::renderVoidWyrm(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     }
 
     // HP bar
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hp = entity.getComponent<HealthComponent>();
-        int barW = w + 20;
-        int barH = 5;
-        int bX = x - 10;
-        int bY = y - 14;
-        fillRect(renderer, bX, bY, barW, barH, 20, 40, 20, a);
-        fillRect(renderer, bX, bY, static_cast<int>(barW * hp.getPercent()), barH, 40, 200, 100, a);
-        fillRect(renderer, bX + barW * 2 / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
-        fillRect(renderer, bX + barW / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha, true);
 }
 
 void RenderSystem::renderDimensionalArchitect(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
@@ -467,17 +446,7 @@ void RenderSystem::renderDimensionalArchitect(SDL_Renderer* renderer, SDL_Rect r
     }
 
     // HP bar
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hpComp = entity.getComponent<HealthComponent>();
-        int barW = w + 24;
-        int barH = 5;
-        int bX = x - 12;
-        int bY = y - 16;
-        fillRect(renderer, bX, bY, barW, barH, 20, 20, 50, a);
-        fillRect(renderer, bX, bY, static_cast<int>(barW * hpComp.getPercent()), barH, 100, 140, 255, a);
-        fillRect(renderer, bX + barW * 2 / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
-        fillRect(renderer, bX + barW / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha, true);
 }
 
 void RenderSystem::renderTemporalWeaver(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
@@ -649,17 +618,7 @@ void RenderSystem::renderTemporalWeaver(SDL_Renderer* renderer, SDL_Rect rect, E
     }
 
     // HP bar
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hpComp = entity.getComponent<HealthComponent>();
-        int barW = w + 24;
-        int barH = 5;
-        int bX = x - 12;
-        int bY = y - 16;
-        fillRect(renderer, bX, bY, barW, barH, 30, 25, 10, a);
-        fillRect(renderer, bX, bY, static_cast<int>(barW * hpComp.getPercent()), barH, 220, 190, 80, a);
-        fillRect(renderer, bX + barW * 2 / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
-        fillRect(renderer, bX + barW / 3, bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha, true);
 }
 
 void RenderSystem::renderVoidSovereign(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
@@ -766,21 +725,6 @@ void RenderSystem::renderVoidSovereign(SDL_Renderer* renderer, SDL_Rect rect, En
         fillRect(renderer, x - 10, y - 10, w + 20, h + 20, 255, 0, 0, lockA);
     }
 
-    // HP bar with phase markers at 70% and 40%
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hpComp = entity.getComponent<HealthComponent>();
-        int barW = w + 30;
-        int barH = 6;
-        int bX = x - 15;
-        int bY = y - 18;
-        fillRect(renderer, bX, bY, barW, barH, 30, 10, 40, a);
-        // HP fill - color changes by phase
-        Uint8 hpR = (phase == 1) ? 120 : (phase == 2) ? 180 : 255;
-        Uint8 hpG = 0;
-        Uint8 hpB = (phase == 1) ? 180 : (phase == 2) ? 100 : 50;
-        fillRect(renderer, bX, bY, static_cast<int>(barW * hpComp.getPercent()), barH, hpR, hpG, hpB, a);
-        // Phase markers at 70% and 40%
-        fillRect(renderer, bX + static_cast<int>(barW * 0.7f), bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.5f));
-        fillRect(renderer, bX + static_cast<int>(barW * 0.4f), bY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.5f));
-    }
+    // HP bar with phase markers
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha, true);
 }

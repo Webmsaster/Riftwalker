@@ -6,6 +6,85 @@
 #include <cmath>
 #include <algorithm>
 
+// Shared HP bar for all enemies: color gradient, delayed damage lag bar, elite diamond marker
+void RenderSystem::renderEnemyHPBar(SDL_Renderer* renderer, int x, int y, int w,
+                                     Entity& entity, float alpha, bool isBoss) {
+    if (!entity.hasComponent<HealthComponent>()) return;
+    auto& hp = entity.getComponent<HealthComponent>();
+    float pct = hp.getPercent();
+    if (pct >= 1.0f && !isBoss) return; // full HP: nothing to show (bosses always show)
+
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int barW = isBoss ? w + 20 : w;
+    int barH = isBoss ? 5 : 4;
+    int barX = isBoss ? x - 10 : x;
+    int barY = isBoss ? y - 14 : y - 8;
+
+    // Background (dark)
+    fillRect(renderer, barX - 1, barY - 1, barW + 2, barH + 2, 10, 10, 10, a);
+    fillRect(renderer, barX, barY, barW, barH, 30, 30, 30, a);
+
+    // Lag bar (delayed damage indicator — fading orange/white)
+    float lagPct = hp.getLagPercent();
+    if (lagPct > pct) {
+        int lagW = static_cast<int>(barW * lagPct);
+        fillRect(renderer, barX, barY, lagW, barH, 200, 120, 60, static_cast<Uint8>(a * 0.8f));
+    }
+
+    // Current HP fill with color gradient: green > yellow > red
+    int hpW = static_cast<int>(barW * pct);
+    Uint8 r, g, b;
+    if (pct > 0.6f) {
+        // Green to yellow (60%-100%)
+        float t = (pct - 0.6f) / 0.4f; // 1 at full, 0 at 60%
+        r = static_cast<Uint8>(220 - 180 * t);  // 220 -> 40
+        g = static_cast<Uint8>(200 + 40 * t);   // 200 -> 240
+        b = static_cast<Uint8>(40);
+    } else if (pct > 0.3f) {
+        // Yellow to orange (30%-60%)
+        float t = (pct - 0.3f) / 0.3f; // 1 at 60%, 0 at 30%
+        r = static_cast<Uint8>(240 - 20 * t);   // 240 -> 220
+        g = static_cast<Uint8>(80 + 120 * t);   // 80 -> 200
+        b = static_cast<Uint8>(30);
+    } else {
+        // Orange to red (0%-30%)
+        float t = pct / 0.3f; // 1 at 30%, 0 at 0%
+        r = static_cast<Uint8>(200 + 40 * t);   // 200 -> 240
+        g = static_cast<Uint8>(30 + 50 * t);    // 30 -> 80
+        b = static_cast<Uint8>(20);
+    }
+    fillRect(renderer, barX, barY, hpW, barH, r, g, b, a);
+
+    // Subtle top highlight on HP fill (1px lighter strip)
+    if (hpW > 2) {
+        fillRect(renderer, barX, barY, hpW, 1,
+                 static_cast<Uint8>(std::min(255, r + 40)),
+                 static_cast<Uint8>(std::min(255, g + 30)),
+                 static_cast<Uint8>(std::min(255, b + 20)),
+                 static_cast<Uint8>(a * 0.5f));
+    }
+
+    // Boss phase markers
+    if (isBoss) {
+        fillRect(renderer, barX + barW * 2 / 3, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+        fillRect(renderer, barX + barW / 3, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+    }
+
+    // Elite diamond marker
+    if (entity.hasComponent<AIComponent>()) {
+        auto& ai = entity.getComponent<AIComponent>();
+        if (ai.isElite) {
+            // Small diamond icon to the left of the HP bar
+            int dx = barX - 6;
+            int dy = barY + barH / 2;
+            // Diamond shape: 4 pixels arranged as a diamond
+            fillRect(renderer, dx, dy - 2, 3, 1, 255, 220, 80, a);
+            fillRect(renderer, dx - 1, dy - 1, 5, 1, 255, 220, 80, a);
+            fillRect(renderer, dx, dy, 3, 1, 255, 220, 80, a);
+        }
+    }
+}
+
 void RenderSystem::renderWalker(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
@@ -58,13 +137,7 @@ void RenderSystem::renderWalker(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     }
 
     // HP bar
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hp = entity.getComponent<HealthComponent>();
-        if (hp.getPercent() < 1.0f) {
-            fillRect(renderer, x, y - 6, w, 3, 40, 20, 20, a);
-            fillRect(renderer, x, y - 6, static_cast<int>(w * hp.getPercent()), 3, 220, 50, 50, a);
-        }
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha);
 }
 
 void RenderSystem::renderFlyer(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
@@ -114,13 +187,7 @@ void RenderSystem::renderFlyer(SDL_Renderer* renderer, SDL_Rect rect, Entity& en
     drawLine(renderer, cx, cy + 6, cx + static_cast<int>(std::sin(time * 0.7f) * 3), cy + 14, 160, 50, 190, a);
 
     // HP bar
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hp = entity.getComponent<HealthComponent>();
-        if (hp.getPercent() < 1.0f) {
-            fillRect(renderer, x, y - 6, w, 3, 40, 20, 40, a);
-            fillRect(renderer, x, y - 6, static_cast<int>(w * hp.getPercent()), 3, 180, 70, 210, a);
-        }
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha);
 }
 
 void RenderSystem::renderTurret(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
@@ -174,13 +241,7 @@ void RenderSystem::renderTurret(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     }
 
     // HP bar
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hp = entity.getComponent<HealthComponent>();
-        if (hp.getPercent() < 1.0f) {
-            fillRect(renderer, x, y - 6, w, 3, 40, 40, 20, a);
-            fillRect(renderer, x, y - 6, static_cast<int>(w * hp.getPercent()), 3, 200, 200, 50, a);
-        }
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha);
 }
 
 void RenderSystem::renderCharger(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
@@ -241,13 +302,7 @@ void RenderSystem::renderCharger(SDL_Renderer* renderer, SDL_Rect rect, Entity& 
     fillRect(renderer, x + 2 * w / 3 - 3, y + h / 6, 3, 3, 255, 100, 30, a);
 
     // HP bar
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hp = entity.getComponent<HealthComponent>();
-        if (hp.getPercent() < 1.0f) {
-            fillRect(renderer, x, y - 6, w, 3, 40, 30, 10, a);
-            fillRect(renderer, x, y - 6, static_cast<int>(w * hp.getPercent()), 3, 220, 120, 40, a);
-        }
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha);
 }
 
 void RenderSystem::renderPhaser(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
@@ -292,13 +347,7 @@ void RenderSystem::renderPhaser(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     }
 
     // HP bar
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hp = entity.getComponent<HealthComponent>();
-        if (hp.getPercent() < 1.0f) {
-            fillRect(renderer, x, y - 6, w, 3, 30, 20, 40, a);
-            fillRect(renderer, x, y - 6, static_cast<int>(w * hp.getPercent()), 3, 100, 50, 200, a);
-        }
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha);
 }
 
 void RenderSystem::renderExploder(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
@@ -360,10 +409,7 @@ void RenderSystem::renderExploder(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     fillRect(renderer, sparkX + 2, sparkY - 1, 1, 1, 255, 200, 50, a);
 
     // HP bar
-    if (hpPct < 1.0f) {
-        fillRect(renderer, x, y - 6, w, 3, 40, 20, 10, a);
-        fillRect(renderer, x, y - 6, static_cast<int>(w * hpPct), 3, 255, 80, 30, a);
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha);
 }
 
 void RenderSystem::renderShielder(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
@@ -422,13 +468,7 @@ void RenderSystem::renderShielder(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     }
 
     // HP bar
-    if (entity.hasComponent<HealthComponent>()) {
-        auto& hp = entity.getComponent<HealthComponent>();
-        if (hp.getPercent() < 1.0f) {
-            fillRect(renderer, x, y - 6, w, 3, 20, 30, 40, a);
-            fillRect(renderer, x, y - 6, static_cast<int>(w * hp.getPercent()), 3, 80, 180, 220, a);
-        }
-    }
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha);
 }
 
 void RenderSystem::renderCrawler(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
