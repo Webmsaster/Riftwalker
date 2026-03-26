@@ -57,7 +57,8 @@ void Localization::loadStrings() {
 
     // Pause Stats
     m_en["pause.run_stats"]        = "RUN STATS";
-    m_en["pause.floor"]            = "Floor: %d";
+    m_en["pause.floor"]            = "Floor: %d / Zone %d";
+    m_en["pause.level"]            = "Level: %d  (%d/%d XP)";
     m_en["pause.difficulty"]       = "Difficulty: %s";
     m_en["pause.diff_easy"]        = "Easy";
     m_en["pause.diff_normal"]      = "Normal";
@@ -169,7 +170,8 @@ void Localization::loadStrings() {
 
     // Pause Stats
     m_de["pause.run_stats"]        = "LAUF-STATISTIK";
-    m_de["pause.floor"]            = "Etage: %d";
+    m_de["pause.floor"]            = "Etage: %d / Zone %d";
+    m_de["pause.level"]            = "Level: %d  (%d/%d XP)";
     m_de["pause.difficulty"]       = "Schwierigkeit: %s";
     m_de["pause.diff_easy"]        = "Leicht";
     m_de["pause.diff_normal"]      = "Normal";

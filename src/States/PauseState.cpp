@@ -9,6 +9,7 @@
 #include "Components/RelicComponent.h"
 #include "Components/CombatComponent.h"
 #include "Components/HealthComponent.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -336,10 +337,14 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_RenderDrawLine(renderer, lx, ly, lx + 200, ly);
     ly += 8;
 
-    // Floor
-    std::snprintf(buf, sizeof(buf), LOC("pause.floor"), playState->roomsCleared + 1);
-    renderStatText(renderer, font, buf, lx, ly, valCol);
-    ly += 18;
+    // Floor / Zone
+    {
+        int floor = playState->roomsCleared + 1;
+        int zone  = std::clamp((floor - 1) / 6, 0, 4) + 1;
+        std::snprintf(buf, sizeof(buf), LOC("pause.floor"), floor, zone);
+        renderStatText(renderer, font, buf, lx, ly, valCol);
+        ly += 18;
+    }
 
     // Difficulty
     const char* diffNames[] = {LOC("pause.diff_easy"), LOC("pause.diff_normal"), LOC("pause.diff_hard")};
@@ -438,6 +443,11 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
                 my += 16;
             }
         }
+
+        // Player level / XP
+        std::snprintf(buf, sizeof(buf), LOC("pause.level"), player->level, player->xp, player->xpToNextLevel);
+        renderStatText(renderer, font, buf, mx, my, {180, 220, 255, 255});
+        my += 18;
 
         // HP
         if (pe.hasComponent<HealthComponent>()) {
