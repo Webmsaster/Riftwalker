@@ -101,6 +101,21 @@ void DailyLeaderboardState::update(float dt) {
         if (m_fadeIn > 1.f) m_fadeIn = 1.f;
     }
     m_newBestPulse += dt * 5.0f;
+
+    // Gamepad navigation
+    auto& input = game->getInput();
+    if (!input.hasGamepad()) return;
+
+    if (input.isActionPressed(Action::MenuUp)) {
+        if (m_scrollOffset > 0) m_scrollOffset--;
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        m_scrollOffset++;
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuSelect);
+        game->popState();
+    }
 }
 
 void DailyLeaderboardState::render(SDL_Renderer* renderer) {

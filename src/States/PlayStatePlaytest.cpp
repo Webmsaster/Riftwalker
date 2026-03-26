@@ -166,6 +166,12 @@ void PlayState::playtestStartRun() {
     m_ptBestDistToTarget = 99999.0f;
     m_ptNoProgressSkips = 0;
     m_ptSkipRiftMask = 0;
+    m_ptStuckPhase = 0;
+    m_ptStuckReverseTimer = 0;
+    m_ptFallStunTimer = 0;
+    m_ptFallInvincTimer = 0;
+    m_ptIntentionalDmgTimer = 0;
+    m_ptDimMistakeTimer = 0;
     m_ptAbilityCD = 0;
     m_ptChargeTimer = 0;
     m_ptCharging = false;
@@ -186,7 +192,8 @@ void PlayState::playtestStartRun() {
     m_ptWavePrepTimer = 0;
     m_ptDefensiveFloor = false;
     // Human input variance: each run has slightly different base reaction time
-    m_ptHumanReactionBase = 0.18f + static_cast<float>(std::rand() % 10) * 0.01f; // 0.18-0.27s
+    // Real humans in action games: 200-350ms average reaction
+    m_ptHumanReactionBase = 0.22f + static_cast<float>(std::rand() % 14) * 0.01f; // 0.22-0.35s
     m_ptHumanHesitation = 0;
     m_ptHumanDimDisorient = 0;
     m_ptHumanIdleTimer = 3.0f + static_cast<float>(std::rand() % 50) * 0.1f; // First idle in 3-8s
@@ -790,8 +797,8 @@ void PlayState::updatePlaytest(float dt) {
     // HUMAN INPUT SIMULATION
     // ========================================================================
 
-    // Fatigue: reactions slow down over time (0.5% per minute)
-    m_ptHumanFatigue = std::min(m_playtestRunTimer * 0.00008f, 0.12f); // Max +120ms at 25 min
+    // Fatigue: reactions slow down over time (~1% per minute)
+    m_ptHumanFatigue = std::min(m_playtestRunTimer * 0.00017f, 0.18f); // Max +180ms at ~18 min
 
     // Hesitation: brief freeze after taking a big hit (simulates "oh shit" moment)
     if (m_ptHumanHesitation > 0) {
@@ -839,7 +846,7 @@ void PlayState::updatePlaytest(float dt) {
         m_ptWavePrepTimer += dt;
     }
 
-    // Auto-rescue: fell below map
+    // Auto-rescue: fell below map (legitimate respawn — humans restart from known position)
     {
         Vec2 spawn = m_level->getSpawnPoint();
         float mapBottom = m_level->getPixelHeight() * 0.85f;
@@ -849,8 +856,27 @@ void PlayState::updatePlaytest(float dt) {
             transform.position = spawn;
             phys.velocity = {0, 0};
             m_ptFallCount++;
+            m_ptFallStunTimer = 1.0f;   // Brief stun: human takes a moment to reorient
+            m_ptFallInvincTimer = 1.0f;  // 1s invincibility so respawn isn't instant death
             if (m_ptFallCount % 3 == 0) inputMut.injectActionPress(Action::DimensionSwitch);
             return;
+        }
+    }
+
+    // Fall stun: no inputs while reorienting after respawn
+    if (m_ptFallStunTimer > 0) {
+        m_ptFallStunTimer -= dt;
+        m_ptFallInvincTimer -= dt;
+        // Grant brief invincibility by healing back any damage taken during grace period
+        if (m_ptFallInvincTimer > 0 && hp.currentHP < m_playtestLastHP) {
+            hp.currentHP = m_playtestLastHP; // Undo damage during invincibility
+        }
+        return; // No inputs during stun
+    }
+    if (m_ptFallInvincTimer > 0) {
+        m_ptFallInvincTimer -= dt;
+        if (hp.currentHP < m_playtestLastHP) {
+            hp.currentHP = m_playtestLastHP; // Still invincible but can move
         }
     }
 
@@ -860,6 +886,10 @@ void PlayState::updatePlaytest(float dt) {
         m_ptHumanDimDisorient = 0.1f + static_cast<float>(std::rand() % 10) * 0.01f; // 0.1-0.2s
     }
     ptLastDim = dim;
+
+    // Human imperfection: sometimes ignore nearby threats while focused on navigation
+    // 8% chance per second to not react to hazards/enemies in path
+    bool humanIgnoringThreat = (std::rand() % 1000 < static_cast<int>(80.0f * dt));
 
     // Preliminary move direction (toward exit, refined later with actual target)
     int moveDir = (m_level->getExitPoint().x >= playerPos.x) ? 1 : -1;
@@ -1035,50 +1065,103 @@ void PlayState::updatePlaytest(float dt) {
         m_ptDimSwitchCD = 2.0f;
     }
 
-    // Progress tracking
+    // Progress tracking — human-like recovery (NO teleportation)
     if (distToTarget < m_ptBestDistToTarget - 20.0f) {
         m_ptBestDistToTarget = distToTarget; m_ptNoProgressTimer = 0;
+        m_ptStuckPhase = 0; // Making progress, reset recovery phase
     } else {
         m_ptNoProgressTimer += dt;
     }
-    float noProgThreshold = m_collapsing ? 2.0f : 3.0f; // Aggressive recovery — don't waste time
-    if (m_ptNoProgressTimer > noProgThreshold) {
-        m_ptNoProgressTimer = 0; m_ptBestDistToTarget = 99999.0f; m_ptNoProgressSkips++;
-        auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
-        if (m_ptNoProgressSkips <= 1) {
-            // First attempt: teleport near target + dim switch (skip useless spawn return)
-            transform.position = {target.x - 16.0f, target.y - 48.0f};
-            inputMut.injectActionPress(Action::DimensionSwitch);
-            phys.velocity = {0, 0}; m_ptLastCheckPos = transform.position;
-            return;
-        } else {
-            // Second attempt: teleport directly on target + interact
-            transform.position = {target.x - 16.0f, target.y - 32.0f};
-            phys.velocity = {0, 0}; ptRecoveryGraceTimer = 1.0f;
-            if (!m_collapsing && targetRiftIdx >= 0 && m_level->isRiftActiveInDimension(targetRiftIdx, dim))
-                inputMut.injectActionPress(Action::Interact);
-            m_ptLastCheckPos = target; m_ptNoProgressSkips = 0;
-            return;
+
+    // Reverse movement: when backtracking to find alternate route
+    if (m_ptStuckReverseTimer > 0) {
+        m_ptStuckReverseTimer -= dt;
+        // Move OPPOSITE to target + jump to explore alternate paths
+        inputMut.injectActionPress(dirX >= 0 ? Action::MoveLeft : Action::MoveRight);
+        if (phys.onGround || phys.canCoyoteJump()) inputMut.injectActionPress(Action::Jump);
+        if (m_ptStuckReverseTimer <= 0) {
+            m_ptBestDistToTarget = 99999.0f; // Reset distance tracking after backtrack
         }
+        // Don't skip remaining nav — let wall/floor scanning still run
     }
 
-    // Stuck detection
+    // Escalating no-progress recovery (like a human trying different strategies)
+    if (m_ptNoProgressTimer > 3.0f && m_ptStuckPhase == 0) {
+        // Phase 1: try dimension switch (maybe wall only exists in one dimension)
+        m_ptStuckPhase = 1;
+        m_ptNoProgressTimer = 0;
+        inputMut.injectActionPress(Action::DimensionSwitch);
+        m_ptDimSwitchCD = 1.0f;
+        if (phys.onGround || phys.canCoyoteJump()) inputMut.injectActionPress(Action::Jump);
+    } else if (m_ptNoProgressTimer > 3.0f && m_ptStuckPhase == 1) {
+        // Phase 2: backtrack — move opposite direction for 2-3 seconds
+        m_ptStuckPhase = 2;
+        m_ptNoProgressTimer = 0;
+        m_ptStuckReverseTimer = 2.0f + static_cast<float>(std::rand() % 10) * 0.1f;
+    } else if (m_ptNoProgressTimer > 4.0f && m_ptStuckPhase == 2) {
+        // Phase 3: dash-jump in opposite direction (bigger escape attempt)
+        m_ptStuckPhase = 3;
+        m_ptNoProgressTimer = 0;
+        inputMut.injectActionPress(dirX >= 0 ? Action::MoveLeft : Action::MoveRight);
+        if (m_player->dashCooldownTimer <= 0) inputMut.injectActionPress(Action::Dash);
+        if (phys.onGround || phys.canCoyoteJump()) inputMut.injectActionPress(Action::Jump);
+        inputMut.injectActionPress(Action::DimensionSwitch);
+        m_ptDimSwitchCD = 1.0f;
+        // Also try skipping this rift and targeting the next one
+        if (targetRiftIdx >= 0) m_ptSkipRiftMask |= (1 << targetRiftIdx);
+        m_ptBestDistToTarget = 99999.0f;
+    } else if (m_ptNoProgressTimer > 15.0f && m_ptStuckPhase >= 3) {
+        // Phase 4 (LAST RESORT): return to spawn point — like a human backtracking to start
+        auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
+        transform.position = m_level->getSpawnPoint();
+        phys.velocity = {0, 0};
+        m_ptStuckPhase = 0;
+        m_ptNoProgressTimer = 0;
+        m_ptBestDistToTarget = 99999.0f;
+        m_ptNoProgressSkips++;
+        m_ptLastCheckPos = transform.position;
+        ptRecoveryGraceTimer = 1.0f;
+        playtestLog("  [%.0fs] F%d: Stuck for 15s+, backtracking to spawn (attempt %d)",
+            m_playtestRunTimer, m_currentDifficulty, m_ptNoProgressSkips);
+        return;
+    }
+
+    // Stuck detection — escalating human-like recovery (NO teleportation to target)
     float moved = std::sqrt((playerPos.x - m_ptLastCheckPos.x) * (playerPos.x - m_ptLastCheckPos.x)
                           + (playerPos.y - m_ptLastCheckPos.y) * (playerPos.y - m_ptLastCheckPos.y));
     if (moved < 30.0f) m_ptStuckTimer += dt;
     else { m_ptStuckTimer = 0; m_ptLastCheckPos = playerPos; }
 
-    if (m_ptStuckTimer > 1.5f && m_ptStuckTimer < 1.5f + dt * 3) inputMut.injectActionPress(Action::DimensionSwitch);
-    if (m_ptStuckTimer > 2.5f && m_ptStuckTimer < 2.5f + dt * 3) {
+    // 2s stuck: try dimension switch (wall might only exist in one dimension)
+    if (m_ptStuckTimer > 2.0f && m_ptStuckTimer < 2.0f + dt * 3) {
+        inputMut.injectActionPress(Action::DimensionSwitch);
+        m_ptDimSwitchCD = 1.0f;
+    }
+    // 4s stuck: reverse direction + jump (try alternate route)
+    if (m_ptStuckTimer > 4.0f && m_ptStuckTimer < 4.0f + dt * 3) {
         inputMut.injectActionPress(Action::Jump);
         inputMut.injectActionPress(dirX >= 0 ? Action::MoveLeft : Action::MoveRight);
+        m_ptStuckReverseTimer = 1.5f; // Backtrack briefly
     }
-    if (m_ptStuckTimer > 4.0f) {
-        // Teleport near target instead of spawn — much faster recovery
+    // 8s stuck: dash in opposite direction + jump (bigger escape)
+    if (m_ptStuckTimer > 8.0f && m_ptStuckTimer < 8.0f + dt * 3) {
+        inputMut.injectActionPress(dirX >= 0 ? Action::MoveLeft : Action::MoveRight);
+        if (m_player->dashCooldownTimer <= 0) inputMut.injectActionPress(Action::Dash);
+        inputMut.injectActionPress(Action::Jump);
+        inputMut.injectActionPress(Action::DimensionSwitch);
+        m_ptDimSwitchCD = 1.0f;
+    }
+    // 15s stuck: return to spawn (like a human backtracking to a known safe spot)
+    if (m_ptStuckTimer > 15.0f) {
         auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
-        transform.position = {target.x - 16.0f, target.y - 48.0f};
-        phys.velocity = {0, 0}; inputMut.injectActionPress(Action::DimensionSwitch);
-        m_ptStuckTimer = 0; m_ptLastCheckPos = transform.position;
+        transform.position = m_level->getSpawnPoint();
+        phys.velocity = {0, 0};
+        m_ptStuckTimer = 0;
+        m_ptLastCheckPos = transform.position;
+        ptRecoveryGraceTimer = 1.0f;
+        m_ptBestDistToTarget = 99999.0f;
+        playtestLog("  [%.0fs] F%d: Position-stuck for 15s, returning to spawn",
+            m_playtestRunTimer, m_currentDifficulty);
         return;
     }
 
@@ -1178,7 +1261,9 @@ void PlayState::updatePlaytest(float dt) {
     bool canJump = phys.onGround || phys.canCoyoteJump();
 
     if (canJump) {
-        bool shouldJump = blocked || targetAbove || !hasFloorAhead || hazardNearby || hazardAhead;
+        // humanIgnoringThreat: sometimes don't react to hazards (distracted by navigation)
+        bool shouldJump = blocked || targetAbove || !hasFloorAhead
+            || ((hazardNearby || hazardAhead) && !humanIgnoringThreat);
         if (shouldJump && std::rand() % 100 < 90)
             inputMut.injectActionPress(Action::Jump);
         if (std::rand() % 40 == 0) inputMut.injectActionPress(Action::Jump);
@@ -1250,6 +1335,22 @@ void PlayState::updatePlaytest(float dt) {
         if (inCombat) m_ptFloorCombatTime += dt;
     }
 
+    // --- INTENTIONAL COMBAT DAMAGE: humans don't perfectly avoid everything ---
+    m_ptIntentionalDmgTimer -= dt;
+    m_ptDimMistakeTimer -= dt;
+
+    // 30% chance to NOT retreat when enemies are close (human fails to react in time)
+    // This is checked below in the retreat logic — we set a flag here
+    bool humanFailedDodge = (std::rand() % 100 < 30);
+
+    // Dimension switch timing mistakes: occasionally switch to wrong dimension for 0.5s
+    if (m_ptDimMistakeTimer <= 0 && std::rand() % 600 == 0) {
+        // Oops — switched at wrong time, briefly in a dangerous dimension
+        inputMut.injectActionPress(Action::DimensionSwitch);
+        m_ptDimSwitchCD = 0.5f; // Short cooldown so they switch back quickly
+        m_ptDimMistakeTimer = 10.0f; // Don't make this mistake too often
+    }
+
     // Pre-scan: count threats for retreat decision
     int preScanMeleeThreats = 0;
     float preScanNearestDist = 99999.0f;
@@ -1270,9 +1371,11 @@ void PlayState::updatePlaytest(float dt) {
 
     // RETREAT: kite backward when overwhelmed at low HP
     // Defensive floors (died here before): trigger retreat at higher HP
+    // humanFailedDodge: 30% chance to NOT retreat (human reacted too slowly)
     float retreatThreshold = m_ptDefensiveFloor ? 0.45f : 0.30f;
     int retreatEnemyCount = m_ptDefensiveFloor ? 1 : 2;
-    if (hpPct < retreatThreshold && preScanMeleeThreats >= retreatEnemyCount && preScanNearestDist < 100.0f) {
+    if (hpPct < retreatThreshold && preScanMeleeThreats >= retreatEnemyCount && preScanNearestDist < 100.0f
+        && !humanFailedDodge) {
         // Move AWAY from threat center
         if (preScanMeleeThreats > 0) {
             preScanThreatCenter.x /= preScanMeleeThreats;
@@ -1339,7 +1442,8 @@ void PlayState::updatePlaytest(float dt) {
         });
 
         // --- BOSS TELEGRAPH DODGE ---
-        if (bossIsTelegraphing && nearestEnemy < 250.0f) {
+        // 25% chance to fail the dodge (human reaction too slow or wrong timing)
+        if (bossIsTelegraphing && nearestEnemy < 250.0f && std::rand() % 100 >= 25) {
             // Boss is winding up: dodge via dimension switch or dash away
             if (m_ptDimSwitchCD <= 0 && std::rand() % 2 == 0) {
                 inputMut.injectActionPress(Action::DimensionSwitch);
@@ -1359,6 +1463,9 @@ void PlayState::updatePlaytest(float dt) {
             }
             m_playtestReactionTimer = 0.3f;
             goto ptPostCombat;
+        } else if (bossIsTelegraphing && nearestEnemy < 250.0f) {
+            // Failed to dodge: human freezes or reacts too late, just keeps attacking
+            m_playtestReactionTimer = humanReaction(m_ptHumanReactionBase, 2.0f, m_ptHumanFatigue);
         }
 
         // --- BOSS PHASE + DEFENSIVE FLOOR ADAPTATION ---

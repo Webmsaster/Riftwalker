@@ -1,6 +1,7 @@
 // PlayStateRenderOverlays.cpp -- Split from PlayStateRender.cpp (modal overlays, notifications, tutorial)
 #include "PlayState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/Enemy.h"
 #include "Components/TransformComponent.h"
 #include "Components/HealthComponent.h"
@@ -60,7 +61,7 @@ void PlayState::renderDeathSequence(SDL_Renderer* renderer) {
         float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.015f);
         Uint8 tr = static_cast<Uint8>(200 * pulse + 55);
         SDL_Color deathColor = {tr, 30, 20, ta};
-        SDL_Surface* ds = TTF_RenderText_Blended(font, "SUIT FAILURE", deathColor);
+        SDL_Surface* ds = TTF_RenderText_Blended(font, LOC("gameover.suit_failure"), deathColor);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {

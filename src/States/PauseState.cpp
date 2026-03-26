@@ -2,6 +2,7 @@
 #include "PlayState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "Game/WeaponSystem.h"
 #include "Game/RelicSystem.h"
 #include "Game/ClassSystem.h"
@@ -26,18 +27,18 @@ void PauseState::enter() {
     int gap = 10;
 
     m_buttons.clear();
-    m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, "Resume");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 1, btnW, btnH, "Restart Run");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Daily Leaderboard");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Options");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, "Abandon Run");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 5, btnW, btnH, "Quit to Menu");
+    m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, LOC("pause.resume"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 1, btnW, btnH, LOC("pause.restart"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, LOC("pause.daily_leaderboard"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, LOC("pause.options"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, LOC("pause.abandon"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 5, btnW, btnH, LOC("pause.quit_menu"));
 
     m_buttons[0].onClick = [this]() { game->popState(); };
     m_buttons[1].onClick = [this]() {
         if (!m_confirmRestart) {
             m_confirmRestart = true;
-            m_buttons[1].setText("Restart? Progress lost!");
+            m_buttons[1].setText(LOC("pause.restart_confirm"));
             return;
         }
         if (auto* playState = dynamic_cast<PlayState*>(game->getState(StateID::Play))) {
@@ -51,7 +52,7 @@ void PauseState::enter() {
     m_buttons[4].onClick = [this]() {
         if (!m_confirmAbandon) {
             m_confirmAbandon = true;
-            m_buttons[4].setText("Confirm Abandon?");
+            m_buttons[4].setText(LOC("pause.abandon_confirm"));
             return;
         }
         if (auto* playState = dynamic_cast<PlayState*>(game->getState(StateID::Play))) {
@@ -78,16 +79,16 @@ void PauseState::handleEvent(const SDL_Event& event) {
                 m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
                 m_buttons[m_selectedButton].setSelected(true);
                 AudioManager::instance().play(SFX::MenuSelect);
-                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText("Abandon Run"); }
-                if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText("Restart Run"); }
+                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
+                if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
                 break;
             case SDL_SCANCODE_S: case SDL_SCANCODE_DOWN:
                 m_buttons[m_selectedButton].setSelected(false);
                 m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
                 m_buttons[m_selectedButton].setSelected(true);
                 AudioManager::instance().play(SFX::MenuSelect);
-                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText("Abandon Run"); }
-                if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText("Restart Run"); }
+                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
+                if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
                 break;
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
                 AudioManager::instance().play(SFX::MenuConfirm);
@@ -107,8 +108,8 @@ void PauseState::handleEvent(const SDL_Event& event) {
                     m_selectedButton = i;
                     m_buttons[m_selectedButton].setSelected(true);
                     AudioManager::instance().play(SFX::MenuSelect);
-                    if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText("Abandon Run"); }
-                    if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText("Restart Run"); }
+                    if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
+                    if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
                 }
                 break;
             }
@@ -143,16 +144,16 @@ void PauseState::update(float dt) {
         m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
         m_buttons[m_selectedButton].setSelected(true);
         AudioManager::instance().play(SFX::MenuSelect);
-        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText("Abandon Run"); }
-        if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText("Restart Run"); }
+        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
+        if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
     }
     if (input.isActionPressed(Action::MenuDown)) {
         m_buttons[m_selectedButton].setSelected(false);
         m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
         m_buttons[m_selectedButton].setSelected(true);
         AudioManager::instance().play(SFX::MenuSelect);
-        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText("Abandon Run"); }
-        if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText("Restart Run"); }
+        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
+        if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
     }
     if (input.isActionPressed(Action::Confirm)) {
         AudioManager::instance().play(SFX::MenuConfirm);
@@ -219,7 +220,7 @@ void PauseState::render(SDL_Renderer* renderer) {
     if (font) {
         // Glow layer
         SDL_Color glowC = {120, 80, 200, static_cast<Uint8>(60 + 40 * pulse)};
-        SDL_Surface* gs = TTF_RenderText_Blended(font, "P A U S E D", glowC);
+        SDL_Surface* gs = TTF_RenderText_Blended(font, LOC("pause.title"), glowC);
         if (gs) {
             SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
             if (gt) {
@@ -233,7 +234,7 @@ void PauseState::render(SDL_Renderer* renderer) {
 
         // Main title
         SDL_Color c = {200, 200, 230, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, "P A U S E D", c);
+        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("pause.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -287,7 +288,7 @@ void PauseState::render(SDL_Renderer* renderer) {
     // Controls hint
     if (font) {
         SDL_Color hintC = {120, 120, 140, 180};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, "ESC Resume  |  W/S Navigate  |  ENTER Select", hintC);
+        SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("pause.nav_hint"), hintC);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
@@ -329,54 +330,54 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
     int lx = 85;
     int ly = 200;
 
-    renderStatText(renderer, font, "RUN STATS", lx, ly, accentCol);
+    renderStatText(renderer, font, LOC("pause.run_stats"), lx, ly, accentCol);
     ly += 22;
     SDL_SetRenderDrawColor(renderer, 100, 80, 160, 80);
     SDL_RenderDrawLine(renderer, lx, ly, lx + 200, ly);
     ly += 8;
 
     // Floor
-    std::snprintf(buf, sizeof(buf), "Floor: %d", playState->roomsCleared + 1);
+    std::snprintf(buf, sizeof(buf), LOC("pause.floor"), playState->roomsCleared + 1);
     renderStatText(renderer, font, buf, lx, ly, valCol);
     ly += 18;
 
     // Difficulty
-    const char* diffNames[] = {"Easy", "Normal", "Hard"};
+    const char* diffNames[] = {LOC("pause.diff_easy"), LOC("pause.diff_normal"), LOC("pause.diff_hard")};
     int diff = playState->getCurrentDifficulty();
-    std::snprintf(buf, sizeof(buf), "Difficulty: %s", (diff >= 0 && diff <= 2) ? diffNames[diff] : "??");
+    std::snprintf(buf, sizeof(buf), LOC("pause.difficulty"), (diff >= 0 && diff <= 2) ? diffNames[diff] : "??");
     renderStatText(renderer, font, buf, lx, ly, valCol);
     ly += 18;
 
     // Boss level indicator
     if (playState->isBossLevel()) {
-        renderStatText(renderer, font, "** BOSS FLOOR **", lx, ly, {255, 80, 80, 255});
+        renderStatText(renderer, font, LOC("pause.boss_floor"), lx, ly, {255, 80, 80, 255});
         ly += 18;
     }
 
     // Run time
     int mins = static_cast<int>(playState->getRunTime()) / 60;
     int secs = static_cast<int>(playState->getRunTime()) % 60;
-    std::snprintf(buf, sizeof(buf), "Time: %d:%02d", mins, secs);
+    std::snprintf(buf, sizeof(buf), LOC("pause.time"), mins, secs);
     renderStatText(renderer, font, buf, lx, ly, valCol);
     ly += 18;
 
     // Kills
-    std::snprintf(buf, sizeof(buf), "Kills: %d", playState->enemiesKilled);
+    std::snprintf(buf, sizeof(buf), LOC("pause.kills"), playState->enemiesKilled);
     renderStatText(renderer, font, buf, lx, ly, valCol);
     ly += 18;
 
     // Rifts
-    std::snprintf(buf, sizeof(buf), "Rifts Repaired: %d", playState->riftsRepaired);
+    std::snprintf(buf, sizeof(buf), LOC("pause.rifts_repaired"), playState->riftsRepaired);
     renderStatText(renderer, font, buf, lx, ly, valCol);
     ly += 18;
 
     // Shards
-    std::snprintf(buf, sizeof(buf), "Shards: %d", playState->shardsCollected);
+    std::snprintf(buf, sizeof(buf), LOC("pause.shards"), playState->shardsCollected);
     renderStatText(renderer, font, buf, lx, ly, {255, 215, 80, 255});
     ly += 18;
 
     // Best combo
-    std::snprintf(buf, sizeof(buf), "Best Combo: %d", playState->getBestCombo());
+    std::snprintf(buf, sizeof(buf), LOC("pause.best_combo"), playState->getBestCombo());
     renderStatText(renderer, font, buf, lx, ly, valCol);
     ly += 18;
 
@@ -394,7 +395,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
 
         int mx = 340;
         int my = 200;
-        renderStatText(renderer, font, "EQUIPMENT", mx, my, accentCol);
+        renderStatText(renderer, font, LOC("pause.equipment"), mx, my, accentCol);
         my += 22;
         SDL_SetRenderDrawColor(renderer, 100, 80, 160, 80);
         SDL_RenderDrawLine(renderer, mx, my, mx + 200, my);
@@ -403,7 +404,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
         // Class
         PlayerClass pc = player->playerClass;
         if (pc >= PlayerClass::Voidwalker && pc < PlayerClass::COUNT) {
-            std::snprintf(buf, sizeof(buf), "Class: %s", ClassSystem::getData(pc).name);
+            std::snprintf(buf, sizeof(buf), LOC("pause.class"), ClassSystem::getData(pc).name);
             renderStatText(renderer, font, buf, mx, my, valCol);
             my += 18;
         }
@@ -413,10 +414,10 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
             auto& combat = pe.getComponent<CombatComponent>();
             const char* mName = WeaponSystem::getWeaponName(combat.currentMelee);
             const char* rName = WeaponSystem::getWeaponName(combat.currentRanged);
-            std::snprintf(buf, sizeof(buf), "Melee: %s", mName);
+            std::snprintf(buf, sizeof(buf), LOC("pause.melee"), mName);
             renderStatText(renderer, font, buf, mx, my, {255, 180, 80, 255});
             my += 18;
-            std::snprintf(buf, sizeof(buf), "Ranged: %s", rName);
+            std::snprintf(buf, sizeof(buf), LOC("pause.ranged"), rName);
             renderStatText(renderer, font, buf, mx, my, {80, 200, 255, 255});
             my += 18;
 
@@ -441,7 +442,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
         // HP
         if (pe.hasComponent<HealthComponent>()) {
             auto& hp = pe.getComponent<HealthComponent>();
-            std::snprintf(buf, sizeof(buf), "HP: %.0f / %.0f", hp.currentHP, hp.maxHP);
+            std::snprintf(buf, sizeof(buf), LOC("pause.hp"), hp.currentHP, hp.maxHP);
             SDL_Color hpCol = (hp.getPercent() < 0.3f) ? SDL_Color{255, 80, 80, 255} : SDL_Color{80, 255, 80, 255};
             renderStatText(renderer, font, buf, mx, my, hpCol);
             my += 20;
@@ -452,7 +453,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
             auto& relics = pe.getComponent<RelicComponent>();
             if (!relics.relics.empty()) {
                 my += 4;
-                renderStatText(renderer, font, "RELICS", mx, my, accentCol);
+                renderStatText(renderer, font, LOC("pause.relics"), mx, my, accentCol);
                 my += 22;
                 SDL_SetRenderDrawColor(renderer, 100, 80, 160, 80);
                 SDL_RenderDrawLine(renderer, mx, my, mx + 200, my);

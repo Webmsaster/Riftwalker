@@ -1,5 +1,6 @@
 #include "RunSummaryState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/AchievementSystem.h"
 #include "Game/ClassSystem.h"
 #include "Game/UpgradeSystem.h"
@@ -39,13 +40,22 @@ void RunSummaryState::enter() {
 }
 
 void RunSummaryState::handleEvent(const SDL_Event& event) {
-    if (event.type == SDL_KEYDOWN && m_fadeIn >= 1.0f) {
-        if (event.key.keysym.scancode == SDL_SCANCODE_RETURN ||
-            event.key.keysym.scancode == SDL_SCANCODE_SPACE ||
-            event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-            game->changeState(StateID::Menu);
-        } else if (event.key.keysym.scancode == SDL_SCANCODE_L && isDailyRun) {
-            game->pushState(StateID::DailyLeaderboard);
+    if (m_fadeIn >= 1.0f) {
+        if (event.type == SDL_KEYDOWN) {
+            if (event.key.keysym.scancode == SDL_SCANCODE_RETURN ||
+                event.key.keysym.scancode == SDL_SCANCODE_SPACE ||
+                event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+                game->changeState(StateID::Menu);
+            } else if (event.key.keysym.scancode == SDL_SCANCODE_L && isDailyRun) {
+                game->pushState(StateID::DailyLeaderboard);
+            }
+        }
+        if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+            auto btn = event.cbutton.button;
+            if (btn == SDL_CONTROLLER_BUTTON_A || btn == SDL_CONTROLLER_BUTTON_B ||
+                btn == SDL_CONTROLLER_BUTTON_START) {
+                game->changeState(StateID::Menu);
+            }
         }
     }
 }
@@ -111,7 +121,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
     Uint8 alpha = static_cast<Uint8>(255 * m_fadeIn);
 
     // Title with glow
-    SDL_Surface* ts = TTF_RenderText_Blended(font, "R U N  E N D E D", {200, 80, 80, 255});
+    SDL_Surface* ts = TTF_RenderText_Blended(font, LOC("summary.title"), {200, 80, 80, 255});
     if (ts) {
         SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
         if (tt) {
@@ -193,7 +203,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             ? SDL_Color{100, 255, 100, alpha}   // Victory: green
             : SDL_Color{255, 120, 80, alpha};    // Death: red-orange
         char causeLine[64];
-        std::snprintf(causeLine, sizeof(causeLine), "Cause: %s", causeText);
+        std::snprintf(causeLine, sizeof(causeLine), LOC("summary.cause"), causeText);
         SDL_Surface* cs = TTF_RenderText_Blended(font, causeLine, causeColor);
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
@@ -214,7 +224,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
     if (m_statsTimer > 0.2f) {
         char gradeText[16];
-        std::snprintf(gradeText, sizeof(gradeText), "Grade: %s", grade);
+        std::snprintf(gradeText, sizeof(gradeText), LOC("summary.grade"), grade);
         SDL_Surface* gs = TTF_RenderText_Blended(font, gradeText, gradeColor);
         if (gs) {
             SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
@@ -232,17 +242,17 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
     // Stats (reveal one by one)
     struct Stat { const char* label; int value; SDL_Color barColor; };
     Stat stats[] = {
-        {"Rooms Cleared",     roomsCleared,                             {100, 200, 255, 255}},
-        {"Enemies Defeated",  enemiesKilled,                            {255, 100,  80, 255}},
-        {"Rifts Repaired",    riftsRepaired,                            {180, 100, 255, 255}},
-        {"Shards Earned",     shardsEarned,                             {255, 200,  80, 255}},
-        {"Relics Collected",  relicsCollected,                          {200, 140, 255, 255}},
-        {"Best Combo",        bestCombo,                                {255, 180,  60, 255}},
-        {"Dim Switches",      dimensionSwitches,                        { 80, 210, 255, 255}},
-        {"Damage Taken",      damageTaken,                              {255,  80, 120, 255}},
-        {"Aerial Kills",      aerialKills,                              {180, 255, 140, 255}},
-        {"Dash Kills",        dashKills,                                {120, 200, 255, 255}},
-        {"Total Runs",        game->getUpgradeSystem().totalRuns,       {150, 150, 180, 255}},
+        {LOC("summary.rooms_cleared"),     roomsCleared,                             {100, 200, 255, 255}},
+        {LOC("summary.enemies_defeated"),  enemiesKilled,                            {255, 100,  80, 255}},
+        {LOC("summary.rifts_repaired"),    riftsRepaired,                            {180, 100, 255, 255}},
+        {LOC("summary.shards_earned"),     shardsEarned,                             {255, 200,  80, 255}},
+        {LOC("summary.relics_collected"),  relicsCollected,                          {200, 140, 255, 255}},
+        {LOC("summary.best_combo"),        bestCombo,                                {255, 180,  60, 255}},
+        {LOC("summary.dim_switches"),      dimensionSwitches,                        { 80, 210, 255, 255}},
+        {LOC("summary.damage_taken"),      damageTaken,                              {255,  80, 120, 255}},
+        {LOC("summary.aerial_kills"),      aerialKills,                              {180, 255, 140, 255}},
+        {LOC("summary.dash_kills"),        dashKills,                                {120, 200, 255, 255}},
+        {LOC("summary.total_runs"),        game->getUpgradeSystem().totalRuns,       {150, 150, 180, 255}},
     };
 
     int statCount = 11;
@@ -323,7 +333,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
         // Header
         SDL_Color hdrC = {140, 120, 180, ba};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, "Balance Summary", hdrC);
+        SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("summary.balance"), hdrC);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
@@ -413,7 +423,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         SDL_RenderDrawRect(renderer, &recordBg);
 
         SDL_Color recordColor = {255, 220, 50, ra};
-        SDL_Surface* rs = TTF_RenderText_Blended(font, "NEW RECORD!", recordColor);
+        SDL_Surface* rs = TTF_RenderText_Blended(font, LOC("summary.new_record"), recordColor);
         if (rs) {
             SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
             if (rt) {
@@ -463,7 +473,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         // "DAILY SCORE" label
         {
             SDL_Color lc = {180, 160, 220, sa};
-            SDL_Surface* dls = TTF_RenderText_Blended(font, "DAILY SCORE", lc);
+            SDL_Surface* dls = TTF_RenderText_Blended(font, LOC("summary.daily_score"), lc);
             if (dls) {
                 SDL_Texture* dlt = SDL_CreateTextureFromSurface(renderer, dls);
                 if (dlt) {
@@ -501,7 +511,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         if (isNewDailyBest) {
             Uint8 nba = static_cast<Uint8>(sa * pulse);
             SDL_Color nbc = {255, 230, 80, nba};
-            SDL_Surface* nbs = TTF_RenderText_Blended(font, "NEW BEST!", nbc);
+            SDL_Surface* nbs = TTF_RenderText_Blended(font, LOC("summary.new_best"), nbc);
             if (nbs) {
                 SDL_Texture* nbt = SDL_CreateTextureFromSurface(renderer, nbs);
                 if (nbt) {
@@ -524,7 +534,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             }
         } else if (m_todayRank > 0) {
             char rankBuf[32];
-            std::snprintf(rankBuf, sizeof(rankBuf), "Rank: #%d today", m_todayRank);
+            std::snprintf(rankBuf, sizeof(rankBuf), LOC("summary.rank_today"), m_todayRank);
             SDL_Color rc = {160, 200, 140, sa};
             SDL_Surface* drs = TTF_RenderText_Blended(font, rankBuf, rc);
             if (drs) {
@@ -548,7 +558,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         // Leaderboard hint for daily runs
         if (isDailyRun) {
             SDL_Color lc = {120, 200, 150, pa};
-            SDL_Surface* dls = TTF_RenderText_Blended(font, "Press L to view Leaderboard", lc);
+            SDL_Surface* dls = TTF_RenderText_Blended(font, LOC("summary.leaderboard_hint"), lc);
             if (dls) {
                 SDL_Texture* dlt = SDL_CreateTextureFromSurface(renderer, dls);
                 if (dlt) {
@@ -561,7 +571,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         }
 
         SDL_Color c = {150, 130, 200, pa};
-        SDL_Surface* s = TTF_RenderText_Blended(font, "Press ENTER to continue", c);
+        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("summary.continue"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {

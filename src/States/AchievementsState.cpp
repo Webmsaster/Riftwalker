@@ -47,6 +47,29 @@ void AchievementsState::handleEvent(const SDL_Event& event) {
 
 void AchievementsState::update(float dt) {
     m_animTimer += dt;
+
+    // Gamepad navigation
+    auto& input = game->getInput();
+    if (!input.hasGamepad()) return;
+
+    if (input.isActionPressed(Action::MenuUp)) {
+        if (m_scrollOffset > 0) {
+            m_scrollOffset -= 60;
+            if (m_scrollOffset < 0) m_scrollOffset = 0;
+            AudioManager::instance().play(SFX::MenuSelect);
+        }
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        if (m_scrollOffset < m_maxScroll) {
+            m_scrollOffset += 60;
+            if (m_scrollOffset > m_maxScroll) m_scrollOffset = m_maxScroll;
+            AudioManager::instance().play(SFX::MenuSelect);
+        }
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuSelect);
+        game->popState();
+    }
 }
 
 void AchievementsState::render(SDL_Renderer* renderer) {

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 enum class Action {
     MoveLeft, MoveRight, MoveUp, MoveDown, Jump, Dash,
@@ -87,5 +88,10 @@ private:
     Uint8 m_padReleasedBuffer[SDL_CONTROLLER_BUTTON_MAX];
 
     float m_distortion;
+    float m_deadzone = 0.25f;
     bool m_rumbleEnabled = true;
+
+public:
+    void setDeadzone(float dz) { m_deadzone = std::clamp(dz, 0.05f, 0.5f); }
+    float getDeadzone() const { return m_deadzone; }
 };

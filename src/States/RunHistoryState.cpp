@@ -52,6 +52,25 @@ void RunHistoryState::handleEvent(const SDL_Event& event) {
 
 void RunHistoryState::update(float dt) {
     m_time += dt;
+
+    // Gamepad navigation
+    auto& input = game->getInput();
+    if (!input.hasGamepad()) return;
+
+    if (input.isActionPressed(Action::MenuUp)) {
+        if (m_scrollOffset > 0) m_scrollOffset--;
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        m_scrollOffset++;
+        const auto& hist = game->getUpgradeSystem().getRunHistory();
+        int maxVis = (Game::SCREEN_HEIGHT - 160) / 24;
+        int maxScroll = std::max(0, static_cast<int>(hist.size()) - maxVis);
+        if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuSelect);
+        game->popState();
+    }
 }
 
 void RunHistoryState::render(SDL_Renderer* renderer) {

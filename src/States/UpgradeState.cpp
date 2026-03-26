@@ -98,6 +98,35 @@ void UpgradeState::handleEvent(const SDL_Event& event) {
 void UpgradeState::update(float dt) {
     m_time += dt;
     if (m_flashTimer > 0) m_flashTimer -= dt;
+
+    // Gamepad navigation
+    auto& input = game->getInput();
+    if (!input.hasGamepad()) return;
+
+    auto& upgrades = game->getUpgradeSystem();
+    int total = static_cast<int>(upgrades.getUpgrades().size());
+    if (total == 0) return;
+
+    if (input.isActionPressed(Action::MenuUp)) {
+        m_selectedUpgrade = (m_selectedUpgrade - 1 + total) % total;
+        if (m_selectedUpgrade < m_scrollOffset) m_scrollOffset = m_selectedUpgrade;
+        if (m_selectedUpgrade >= m_scrollOffset + VISIBLE_ITEMS)
+            m_scrollOffset = m_selectedUpgrade - VISIBLE_ITEMS + 1;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        m_selectedUpgrade = (m_selectedUpgrade + 1) % total;
+        if (m_selectedUpgrade >= m_scrollOffset + VISIBLE_ITEMS)
+            m_scrollOffset = m_selectedUpgrade - VISIBLE_ITEMS + 1;
+        if (m_selectedUpgrade < m_scrollOffset) m_scrollOffset = m_selectedUpgrade;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::Confirm)) {
+        purchaseSelected();
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        game->changeState(StateID::Menu);
+    }
 }
 
 void UpgradeState::renderText(SDL_Renderer* renderer, TTF_Font* font,

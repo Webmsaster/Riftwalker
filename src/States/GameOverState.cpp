@@ -1,5 +1,6 @@
 #include "GameOverState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
@@ -22,16 +23,16 @@ void GameOverState::enter() {
 
     // Select subtitle based on death cause
     switch (s_deathCause) {
-        case 1:  m_subtitleText = "Hull integrity failure — HP depleted"; break;
-        case 2:  m_subtitleText = "Suit entropy reached critical level"; break;
-        case 3:  m_subtitleText = "Dimensional rift collapsed"; break;
-        case 4:  m_subtitleText = "Time expired — speedrun failed"; break;
-        default: m_subtitleText = "Suit entropy reached critical level"; break;
+        case 1:  m_subtitleText = LOC("gameover.death_hp"); break;
+        case 2:  m_subtitleText = LOC("gameover.death_entropy"); break;
+        case 3:  m_subtitleText = LOC("gameover.death_rift"); break;
+        case 4:  m_subtitleText = LOC("gameover.death_time"); break;
+        default: m_subtitleText = LOC("gameover.death_entropy"); break;
     }
 }
 
 void GameOverState::handleEvent(const SDL_Event& event) {
-    if (event.type == SDL_KEYDOWN && m_timer > 1.5f) {
+    if ((event.type == SDL_KEYDOWN || event.type == SDL_CONTROLLERBUTTONDOWN) && m_timer > 1.5f) {
         game->changeState(StateID::Menu);
     }
 }
@@ -94,7 +95,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
     if (!font) return;
 
     // Main title with color channel separation (glitch effect)
-    SDL_Surface* textSurf = TTF_RenderText_Blended(font, "S U I T  C R A S H", {255, 255, 255, 255});
+    SDL_Surface* textSurf = TTF_RenderText_Blended(font, LOC("gameover.title"), {255, 255, 255, 255});
     if (textSurf) {
         int tw = textSurf->w * 2;
         int th = textSurf->h * 2;
@@ -168,7 +169,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
         char buf[128];
         int mins = static_cast<int>(s_runTime) / 60;
         int secs = static_cast<int>(s_runTime) % 60;
-        std::snprintf(buf, sizeof(buf), "Floor %d  |  %d Kills  |  %d:%02d",
+        std::snprintf(buf, sizeof(buf), LOC("gameover.floor_stats"),
                       s_floorsCleared, s_killCount, mins, secs);
 
         SDL_Surface* ss = TTF_RenderText_Blended(font, buf, statCol);
@@ -206,7 +207,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
 
         // "CRITICAL" text
         SDL_Color critColor = {255, static_cast<Uint8>(60 * pulse), 40, ba};
-        SDL_Surface* cs = TTF_RenderText_Blended(font, "CRITICAL", critColor);
+        SDL_Surface* cs = TTF_RenderText_Blended(font, LOC("gameover.critical"), critColor);
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
@@ -225,7 +226,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
         float blink = 0.5f + 0.5f * std::sin(m_timer * 3.0f);
         Uint8 pa = static_cast<Uint8>(180 * promptAlpha * blink);
         SDL_Color c2 = {120, 100, 140, pa};
-        SDL_Surface* s2 = TTF_RenderText_Blended(font, "Press any key to return", c2);
+        SDL_Surface* s2 = TTF_RenderText_Blended(font, LOC("gameover.continue"), c2);
         if (s2) {
             SDL_Texture* t2 = SDL_CreateTextureFromSurface(renderer, s2);
             if (t2) {

@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "Localization.h"
 #include <tracy/Tracy.hpp>
 #include "States/MenuState.h"
 #include "States/PlayState.h"
@@ -434,6 +435,7 @@ void Game::loadSaveData() {
             else if (key == "master_volume")   { AudioManager::instance().setMasterVolume(value); }
             else if (key == "fullscreen")      { if (m_window && static_cast<int>(value) != 0 && !m_window->isFullscreen()) m_window->toggleFullscreen(); }
             else if (key == "rumble")          { m_input.setRumbleEnabled(static_cast<int>(value) != 0); }
+            else if (key == "language")        { Localization::instance().setLanguage(static_cast<int>(value) == 1 ? Lang::DE : Lang::EN); }
         }
         cfg.close();
     }
@@ -467,6 +469,7 @@ void Game::saveSettings() {
         cfg << "hud_scale "       << g_hudScale         << "\n";
         cfg << "fullscreen "      << (m_window ? (m_window->isFullscreen() ? 1 : 0) : 0) << "\n";
         cfg << "rumble "           << (m_input.isRumbleEnabled() ? 1 : 0) << "\n";
+        cfg << "language "         << static_cast<int>(Localization::instance().getLanguage()) << "\n";
         cfg.close();
     }
 }

@@ -60,8 +60,8 @@ void CreditsState::handleEvent(const SDL_Event& event) {
         }
     }
 
-    // Also allow mouse click to go back
-    if (event.type == SDL_MOUSEBUTTONDOWN) {
+    // Also allow mouse click or gamepad to go back
+    if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_CONTROLLERBUTTONDOWN) {
         if (game) game->changeState(StateID::Menu);
     }
 }

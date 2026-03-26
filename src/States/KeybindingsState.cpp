@@ -138,6 +138,26 @@ void KeybindingsState::handleEvent(const SDL_Event& event) {
 void KeybindingsState::update(float dt) {
     m_time += dt;
     if (m_listening) m_blinkTimer += dt;
+
+    // Gamepad navigation (only when not listening for a key rebind)
+    auto& input = game->getInput();
+    if (!input.hasGamepad() || m_listening) return;
+
+    if (input.isActionPressed(Action::MenuUp)) {
+        m_selected = (m_selected - 1 + totalItems()) % totalItems();
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        m_selected = (m_selected + 1) % totalItems();
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::Confirm)) {
+        confirmSelected();
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::Options);
+    }
 }
 
 void KeybindingsState::render(SDL_Renderer* renderer) {

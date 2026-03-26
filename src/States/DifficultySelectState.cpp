@@ -79,6 +79,26 @@ void DifficultySelectState::handleEvent(const SDL_Event& event) {
 
 void DifficultySelectState::update(float dt) {
     m_time += dt;
+
+    // Gamepad navigation
+    auto& input = game->getInput();
+    if (!input.hasGamepad()) return;
+
+    if (input.isActionPressed(Action::MenuUp)) {
+        m_selected = (m_selected - 1 + 3) % 3;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        m_selected = (m_selected + 1) % 3;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::Confirm)) {
+        handleConfirm();
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::Menu);
+    }
 }
 
 void DifficultySelectState::render(SDL_Renderer* renderer) {

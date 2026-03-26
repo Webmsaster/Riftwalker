@@ -71,6 +71,11 @@ void InputManager::setupDefaultBindings() {
     m_keyBindings[Action::Ability1] = SDL_SCANCODE_1;
     m_keyBindings[Action::Ability2] = SDL_SCANCODE_2;
     m_keyBindings[Action::Ability3] = SDL_SCANCODE_3;
+
+    // Ability gamepad bindings
+    m_padBindings[Action::Ability1] = SDL_CONTROLLER_BUTTON_LEFTSTICK;
+    m_padBindings[Action::Ability2] = SDL_CONTROLLER_BUTTON_RIGHTSTICK;
+    m_padBindings[Action::Ability3] = SDL_CONTROLLER_BUTTON_BACK;
 }
 
 void InputManager::update() {
@@ -171,10 +176,14 @@ float InputManager::getAxis(Action negative, Action positive) const {
     if (isActionDown(negative)) value -= 1.0f;
     if (isActionDown(positive)) value += 1.0f;
 
-    // Gamepad left stick
+    // Gamepad left stick (horizontal or vertical depending on the actions)
     if (m_gamepad && value == 0.0f) {
-        float axis = getGamepadAxis(SDL_CONTROLLER_AXIS_LEFTX);
-        if (std::abs(axis) > 0.2f) value = axis;
+        bool isVertical = (negative == Action::MoveUp || negative == Action::MenuUp);
+        SDL_GameControllerAxis stickAxis = isVertical
+            ? SDL_CONTROLLER_AXIS_LEFTY
+            : SDL_CONTROLLER_AXIS_LEFTX;
+        float axis = getGamepadAxis(stickAxis);
+        if (std::abs(axis) > m_deadzone) value = axis;
     }
 
     // Entropy distortion: add random drift

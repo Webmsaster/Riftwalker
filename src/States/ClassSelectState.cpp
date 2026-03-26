@@ -82,6 +82,32 @@ void ClassSelectState::handleEvent(const SDL_Event& event) {
 void ClassSelectState::update(float dt) {
     m_time += dt;
     m_previewBob = std::sin(m_time * 2.0f) * 4.0f;
+
+    // Gamepad navigation
+    auto& input = game->getInput();
+    if (!input.hasGamepad()) return;
+
+    if (input.isActionPressed(Action::MenuLeft)) {
+        m_selected = (m_selected - 1 + ClassSystem::CLASS_COUNT) % ClassSystem::CLASS_COUNT;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::MenuRight)) {
+        m_selected = (m_selected + 1) % ClassSystem::CLASS_COUNT;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::Confirm)) {
+        if (ClassSystem::isUnlocked(static_cast<PlayerClass>(m_selected))) {
+            g_selectedClass = static_cast<PlayerClass>(m_selected);
+            AudioManager::instance().play(SFX::MenuConfirm);
+            game->changeState(StateID::DifficultySelect);
+        } else {
+            AudioManager::instance().play(SFX::RiftFail);
+        }
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::Menu);
+    }
 }
 
 void ClassSelectState::render(SDL_Renderer* renderer) {

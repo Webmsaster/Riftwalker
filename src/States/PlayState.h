@@ -430,11 +430,15 @@ private:
     float m_ptDimExploreTimer = 0;
     float m_ptLastEntropyLog = 0;
     int m_ptFallCount = 0;
-    // Progress tracking for smart teleport
+    // Progress tracking for human-like stuck recovery (no teleport)
     float m_ptNoProgressTimer = 0;
     float m_ptBestDistToTarget = 99999.0f;
     int m_ptNoProgressSkips = 0;
     int m_ptSkipRiftMask = 0;
+    int m_ptStuckPhase = 0;            // Escalating recovery: 0=none, 1=dimswitch, 2=reverse, 3=dash-escape, 4=spawn-return
+    float m_ptStuckReverseTimer = 0;   // Timer for moving in opposite direction
+    float m_ptFallStunTimer = 0;       // Brief stun after fall-respawn
+    float m_ptFallInvincTimer = 0;     // Invincibility after fall-respawn
     // Per-floor balance tracking (accumulated across runs)
     struct FloorStats {
         // Survivability
@@ -502,6 +506,8 @@ private:
     int m_ptHumanLastMoveDir = 0;         // Smoothing: don't instantly reverse
     float m_ptHumanDirChangeDelay = 0;    // Delay before allowing direction change
     float m_ptHumanFatigue = 0;           // Builds over time, slows reactions
+    float m_ptIntentionalDmgTimer = 0;    // Cooldown for intentional damage-taking (human imperfection)
+    float m_ptDimMistakeTimer = 0;        // Timer for wrong-dimension exposure (human timing error)
 
     // Event chains (multi-level quest lines)
     EventChain m_eventChain;

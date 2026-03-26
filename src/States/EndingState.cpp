@@ -358,27 +358,22 @@ void EndingState::render(SDL_Renderer* renderer) {
 }
 
 void EndingState::handleEvent(const SDL_Event& event) {
+    bool isConfirm = false;
     if (event.type == SDL_KEYDOWN) {
+        isConfirm = (event.key.keysym.sym == SDLK_SPACE || event.key.keysym.sym == SDLK_RETURN);
+    } else if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+        isConfirm = (event.cbutton.button == SDL_CONTROLLER_BUTTON_A ||
+                     event.cbutton.button == SDL_CONTROLLER_BUTTON_START);
+    }
+
+    if (isConfirm) {
         switch (m_phase) {
-            case 0: // Skip flash (only SPACE/RETURN)
-                if (event.key.keysym.sym == SDLK_SPACE || event.key.keysym.sym == SDLK_RETURN) {
-                    m_phase = 1;
-                    m_phaseTimer = 0.0f;
-                }
+            case 0: m_phase = 1; m_phaseTimer = 0.0f; break;
+            case 1: m_phase = 2; m_phaseTimer = 0.0f; break;
+            case 2:
+                if (m_phaseTimer > 3.0f) { m_phase = 3; m_phaseTimer = 0.0f; }
                 break;
-            case 1: // Skip story
-                if (event.key.keysym.sym == SDLK_SPACE) {
-                    m_phase = 2;
-                    m_phaseTimer = 0.0f;
-                }
-                break;
-            case 2: // Go to thank you
-                if (event.key.keysym.sym == SDLK_SPACE && m_phaseTimer > 3.0f) {
-                    m_phase = 3;
-                    m_phaseTimer = 0.0f;
-                }
-                break;
-            case 3: // Return to menu
+            case 3:
                 if (m_phaseTimer > 2.0f) {
                     if (game) game->changeState(StateID::Menu);
                 }

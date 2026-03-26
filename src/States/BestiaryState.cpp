@@ -180,6 +180,27 @@ void BestiaryState::handleEvent(const SDL_Event& event) {
 // ---- Update ----
 void BestiaryState::update(float dt) {
     m_time += dt;
+
+    // Gamepad navigation
+    auto& input = game->getInput();
+    if (!input.hasGamepad()) return;
+
+    if (input.isActionPressed(Action::MenuUp)) {
+        m_selected = (m_selected - 1 + m_totalEntries) % m_totalEntries;
+        AudioManager::instance().play(SFX::MenuSelect);
+        if (m_selected < m_scrollOffset) m_scrollOffset = m_selected;
+        if (m_selected >= m_scrollOffset + VISIBLE) m_scrollOffset = m_selected - VISIBLE + 1;
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        m_selected = (m_selected + 1) % m_totalEntries;
+        AudioManager::instance().play(SFX::MenuSelect);
+        if (m_selected < m_scrollOffset) m_scrollOffset = m_selected;
+        if (m_selected >= m_scrollOffset + VISIBLE) m_scrollOffset = m_selected - VISIBLE + 1;
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::Menu);
+    }
 }
 
 // ---- Render ----

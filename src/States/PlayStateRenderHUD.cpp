@@ -1,6 +1,7 @@
 // PlayStateRenderHUD.cpp -- Split from PlayStateRender.cpp (HUD panels, status displays, combat feedback)
 #include "PlayState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/Enemy.h"
 #include "Components/TransformComponent.h"
 #include "Components/HealthComponent.h"
@@ -45,7 +46,7 @@ void PlayState::renderCollapseWarning(SDL_Renderer* renderer) {
         int secs = static_cast<int>(remaining);
         int tenths = static_cast<int>((remaining - secs) * 10);
         char buf[32];
-        std::snprintf(buf, sizeof(buf), "COLLAPSE: %d.%d", secs, tenths);
+        std::snprintf(buf, sizeof(buf), LOC("hud.collapse"), secs, tenths);
 
         // Pulsing red-white text
         Uint8 pulse = static_cast<Uint8>(200 + 55 * std::sin(SDL_GetTicks() * 0.01f));

@@ -20,6 +20,23 @@ void LoreState::exit() {
 
 void LoreState::update(float dt) {
     m_time += dt;
+
+    // Gamepad navigation
+    auto& input = game->getInput();
+    if (!input.hasGamepad() || !m_lore) return;
+
+    int total = static_cast<int>(m_lore->getFragments().size());
+    if (total == 0) return;
+
+    if (input.isActionPressed(Action::MenuUp)) {
+        m_selected = (m_selected - 1 + total) % total;
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        m_selected = (m_selected + 1) % total;
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        if (game) game->changeState(StateID::Menu);
+    }
 }
 
 void LoreState::render(SDL_Renderer* renderer) {

@@ -88,6 +88,65 @@ void ChallengeSelectState::handleEvent(const SDL_Event& event) {
 
 void ChallengeSelectState::update(float dt) {
     m_time += dt;
+
+    // Gamepad navigation
+    auto& input = game->getInput();
+    if (!input.hasGamepad()) return;
+
+    int challengeCount = ChallengeMode::getChallengeCount();
+    int mutatorCount = ChallengeMode::getMutatorCount();
+
+    if (input.isActionPressed(Action::MenuUp)) {
+        AudioManager::instance().play(SFX::MenuSelect);
+        if (m_inMutatorSection) {
+            m_focusedMutator = (m_focusedMutator - 1 + mutatorCount) % mutatorCount;
+        } else {
+            m_selectedChallenge = (m_selectedChallenge - 1 + challengeCount) % challengeCount;
+        }
+    }
+    if (input.isActionPressed(Action::MenuDown)) {
+        AudioManager::instance().play(SFX::MenuSelect);
+        if (m_inMutatorSection) {
+            m_focusedMutator = (m_focusedMutator + 1) % mutatorCount;
+        } else {
+            m_selectedChallenge = (m_selectedChallenge + 1) % challengeCount;
+        }
+    }
+    if (input.isActionPressed(Action::MenuRight)) {
+        if (!m_inMutatorSection) {
+            m_inMutatorSection = true;
+            AudioManager::instance().play(SFX::MenuSelect);
+        }
+    }
+    if (input.isActionPressed(Action::MenuLeft)) {
+        if (m_inMutatorSection) {
+            m_inMutatorSection = false;
+            AudioManager::instance().play(SFX::MenuSelect);
+        }
+    }
+    if (input.isActionPressed(Action::Confirm)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        if (m_inMutatorSection) {
+            MutatorID mid = static_cast<MutatorID>(m_focusedMutator + 1);
+            bool isActive = (g_activeMutators[0] == mid || g_activeMutators[1] == mid);
+            if (isActive) {
+                if (g_activeMutators[0] == mid) g_activeMutators[0] = MutatorID::None;
+                if (g_activeMutators[1] == mid) g_activeMutators[1] = MutatorID::None;
+            } else {
+                if (g_activeMutators[0] == MutatorID::None)
+                    g_activeMutators[0] = mid;
+                else if (g_activeMutators[1] == MutatorID::None)
+                    g_activeMutators[1] = mid;
+            }
+        } else {
+            g_activeChallenge = static_cast<ChallengeID>(m_selectedChallenge + 1);
+            game->changeState(StateID::ClassSelect);
+        }
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::Menu);
+    }
 }
 
 void ChallengeSelectState::render(SDL_Renderer* renderer) {

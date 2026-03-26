@@ -155,6 +155,27 @@ void ShopState::handleEvent(const SDL_Event& event) {
 
 void ShopState::update(float dt) {
     m_animTimer += dt;
+
+    // Gamepad navigation
+    auto& input = game->getInput();
+    if (!input.hasGamepad()) return;
+
+    int totalOptions = static_cast<int>(m_offerings.size()) + 1;
+    if (input.isActionPressed(Action::MenuLeft)) {
+        m_selectedIndex = (m_selectedIndex - 1 + totalOptions) % totalOptions;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::MenuRight)) {
+        m_selectedIndex = (m_selectedIndex + 1) % totalOptions;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+    if (input.isActionPressed(Action::Confirm)) {
+        confirmSelection();
+    }
+    if (input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->popState();
+    }
 }
 
 void ShopState::render(SDL_Renderer* renderer) {

@@ -1,6 +1,7 @@
 #include "MenuState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "Game/Bestiary.h"
 #include "Game/DailyRun.h"
 #include <algorithm>
@@ -21,18 +22,18 @@ void MenuState::enter() {
     int startY = SCREEN_HEIGHT - totalMenuH - 16;
 
     m_buttons.clear();
-    m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, "New Run");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap), btnW, btnH, "Daily Run");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Daily Leaderboard");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Challenges");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, "Upgrades");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 5, btnW, btnH, "Bestiary");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 6, btnW, btnH, "Achievements");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 7, btnW, btnH, "Lore");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 8, btnW, btnH, "Run History");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 9, btnW, btnH, "Credits");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 10, btnW, btnH, "Options");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 11, btnW, btnH, "Quit");
+    m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, LOC("menu.new_run"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap), btnW, btnH, LOC("menu.daily_run"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, LOC("menu.daily_leaderboard"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, LOC("menu.challenges"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, LOC("menu.upgrades"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 5, btnW, btnH, LOC("menu.bestiary"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 6, btnW, btnH, LOC("menu.achievements"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 7, btnW, btnH, LOC("menu.lore"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 8, btnW, btnH, LOC("menu.run_history"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 9, btnW, btnH, LOC("menu.credits"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 10, btnW, btnH, LOC("menu.options"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 11, btnW, btnH, LOC("menu.quit"));
 
     m_buttons[0].onClick = [this]() { game->changeState(StateID::ClassSelect); };
     m_buttons[1].onClick = [this]() { g_dailyRunActive = true; game->changeState(StateID::ClassSelect); };
@@ -338,7 +339,7 @@ void MenuState::render(SDL_Renderer* renderer) {
     if (font) {
         char shardText[64];
         int shards = game->getUpgradeSystem().getRiftShards();
-        std::snprintf(shardText, sizeof(shardText), "Rift Shards: %d", shards);
+        std::snprintf(shardText, sizeof(shardText), LOC("menu.rift_shards"), shards);
         Uint8 shardAlpha = static_cast<Uint8>(200.0f * m_fadeIn);
         SDL_Color shardColor = {180, 140, 255, shardAlpha};
         SDL_Surface* ss = TTF_RenderText_Blended(font, shardText, shardColor);
@@ -367,7 +368,7 @@ void MenuState::render(SDL_Renderer* renderer) {
     // Ascension level display (above buttons)
     if (font && AscensionSystem::currentLevel > 0) {
         char ascText[64];
-        std::snprintf(ascText, sizeof(ascText), "Ascension %d", AscensionSystem::currentLevel);
+        std::snprintf(ascText, sizeof(ascText), LOC("menu.ascension"), AscensionSystem::currentLevel);
         float pulse = 0.7f + 0.3f * std::sin(m_time * 2.0f);
         Uint8 aa = static_cast<Uint8>(220 * pulse * m_fadeIn);
         SDL_Color ascColor = {255, 180, 60, aa};
@@ -387,7 +388,7 @@ void MenuState::render(SDL_Renderer* renderer) {
 
         // Rift Cores display
         char coreText[64];
-        std::snprintf(coreText, sizeof(coreText), "Rift Cores: %d", AscensionSystem::riftCores);
+        std::snprintf(coreText, sizeof(coreText), LOC("menu.rift_cores"), AscensionSystem::riftCores);
         SDL_Surface* cs = TTF_RenderText_Blended(font, coreText, SDL_Color{200, 150, 255, static_cast<Uint8>(180 * m_fadeIn)});
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
@@ -408,7 +409,7 @@ void MenuState::render(SDL_Renderer* renderer) {
     // Keyboard shortcut hint
     if (font) {
         SDL_Color hintC = {120, 120, 140, 180};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, "W/S Navigate  |  ENTER Select  |  ESC Quit", hintC);
+        SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("menu.nav_hint"), hintC);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
