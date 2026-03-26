@@ -15,39 +15,84 @@ void ScreenEffects::update(float dt) {
 void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF_Font* font) {
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // 1. Vignette (always, stronger at low HP)
+    // 1. Cinematic vignette (always on — subtle darkened edges/corners, stronger at low HP)
     {
-        float strength = 0.15f + (1.0f - m_hpPercent) * 0.25f;
-        Uint8 vigA = static_cast<Uint8>(strength * 255);
-        int edgeW = screenW / 6;
-        int edgeH = screenH / 6;
-        // Top
-        for (int i = 0; i < edgeH; i++) {
-            Uint8 a = static_cast<Uint8>(vigA * (1.0f - static_cast<float>(i) / edgeH));
+        // Base: very subtle (max alpha ~25), ramps up when HP drops
+        float baseStrength = 0.10f; // Subtle permanent vignette
+        float hpBoost = (1.0f - m_hpPercent) * 0.30f; // Gets stronger at low HP
+        float strength = baseStrength + hpBoost;
+        Uint8 vigA = static_cast<Uint8>(std::min(255.0f, strength * 255.0f));
+
+        // ~5% of screen from each edge for base, wider when HP-boosted
+        int edgeW = screenW / 15 + static_cast<int>(hpBoost * screenW * 0.08f);
+        int edgeH = screenH / 15 + static_cast<int>(hpBoost * screenH * 0.08f);
+
+        // Use coarser step size for performance (2px bands instead of 1px)
+        constexpr int kStep = 2;
+
+        // Top edge gradient
+        for (int i = 0; i < edgeH; i += kStep) {
+            float grad = 1.0f - static_cast<float>(i) / edgeH;
+            grad = grad * grad; // Quadratic falloff for smooth cinematic look
+            Uint8 a = static_cast<Uint8>(vigA * grad);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, a);
-            SDL_Rect r = {0, i, screenW, 1};
+            SDL_Rect r = {0, i, screenW, kStep};
             SDL_RenderFillRect(renderer, &r);
         }
-        // Bottom
-        for (int i = 0; i < edgeH; i++) {
-            Uint8 a = static_cast<Uint8>(vigA * (static_cast<float>(i) / edgeH));
+        // Bottom edge gradient
+        for (int i = 0; i < edgeH; i += kStep) {
+            float grad = static_cast<float>(i) / edgeH;
+            grad = grad * grad;
+            Uint8 a = static_cast<Uint8>(vigA * grad);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, a);
-            SDL_Rect r = {0, screenH - edgeH + i, screenW, 1};
+            SDL_Rect r = {0, screenH - edgeH + i, screenW, kStep};
             SDL_RenderFillRect(renderer, &r);
         }
-        // Left
-        for (int i = 0; i < edgeW; i++) {
-            Uint8 a = static_cast<Uint8>(vigA * (1.0f - static_cast<float>(i) / edgeW));
+        // Left edge gradient
+        for (int i = 0; i < edgeW; i += kStep) {
+            float grad = 1.0f - static_cast<float>(i) / edgeW;
+            grad = grad * grad;
+            Uint8 a = static_cast<Uint8>(vigA * grad);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, a);
-            SDL_Rect r = {i, 0, 1, screenH};
+            SDL_Rect r = {i, 0, kStep, screenH};
             SDL_RenderFillRect(renderer, &r);
         }
-        // Right
-        for (int i = 0; i < edgeW; i++) {
-            Uint8 a = static_cast<Uint8>(vigA * (static_cast<float>(i) / edgeW));
+        // Right edge gradient
+        for (int i = 0; i < edgeW; i += kStep) {
+            float grad = static_cast<float>(i) / edgeW;
+            grad = grad * grad;
+            Uint8 a = static_cast<Uint8>(vigA * grad);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, a);
-            SDL_Rect r = {screenW - edgeW + i, 0, 1, screenH};
+            SDL_Rect r = {screenW - edgeW + i, 0, kStep, screenH};
             SDL_RenderFillRect(renderer, &r);
+        }
+
+        // Corner darkening: extra alpha where two edges overlap (coarse blocks)
+        int cornerW = edgeW;
+        int cornerH = edgeH;
+        Uint8 cornerMaxA = static_cast<Uint8>(std::min(255, static_cast<int>(vigA) * 3 / 4));
+        constexpr int kCornerBlock = 6; // Block size for corner fill
+        int cornerPositions[4][2] = {
+            {0, 0}, {screenW - cornerW, 0},
+            {0, screenH - cornerH}, {screenW - cornerW, screenH - cornerH}
+        };
+        for (auto& cp : cornerPositions) {
+            for (int by = 0; by < cornerH; by += kCornerBlock) {
+                for (int bx = 0; bx < cornerW; bx += kCornerBlock) {
+                    // Distance from the outer corner (0 = at corner, 1 = at inner edge)
+                    float fx = static_cast<float>(cp[0] == 0 ? bx : cornerW - bx) / cornerW;
+                    float fy = static_cast<float>(cp[1] == 0 ? by : cornerH - by) / cornerH;
+                    float d = (1.0f - fx) * (1.0f - fy); // 1 at corner, 0 at inner edge
+                    if (d > 0.1f) {
+                        Uint8 a = static_cast<Uint8>(cornerMaxA * d * d);
+                        SDL_SetRenderDrawColor(renderer, 0, 0, 0, a);
+                        int w = std::min(kCornerBlock, cornerW - bx);
+                        int h = std::min(kCornerBlock, cornerH - by);
+                        SDL_Rect r = {cp[0] + bx, cp[1] + by, w, h};
+                        SDL_RenderFillRect(renderer, &r);
+                    }
+                }
+            }
         }
     }
 
