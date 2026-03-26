@@ -517,6 +517,7 @@ void PlayState::update(float dt) {
         }
     }
     if (m_waveClearTimer > 0) m_waveClearTimer -= dt;
+    if (m_weaponSwitchDisplayTimer > 0) m_weaponSwitchDisplayTimer -= dt;
 
     // Kill streak timers
     if (m_killStreakTimer > 0) {
@@ -996,6 +997,24 @@ void PlayState::update(float dt) {
             emitBuffPickup(wColor, WeaponSystem::getWeaponName(wid));
             m_camera.shake(10.0f, 0.3f);
             m_player->weaponPickupPending = -1;
+        }
+
+        // Weapon switch visual feedback (Q/E cycling)
+        if (m_player->weaponSwitchPending > 0) {
+            auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+            bool isMelee = (m_player->weaponSwitchPending == 1);
+            WeaponID wid = isMelee ? combat.currentMelee : combat.currentRanged;
+            m_weaponSwitchName = WeaponSystem::getWeaponName(wid);
+            m_weaponSwitchDisplayTimer = 1.5f;
+            m_weaponSwitchIsMelee = isMelee;
+
+            // Particle burst at player position in weapon color
+            SDL_Color burstColor = isMelee
+                ? SDL_Color{255, 180, 60, 200}   // Orange/white for melee
+                : SDL_Color{60, 180, 255, 200};   // Blue/cyan for ranged
+            m_particles.burst(pPos, 8, burstColor, 100.0f, 2.5f);
+
+            m_player->weaponSwitchPending = 0;
         }
     }
 

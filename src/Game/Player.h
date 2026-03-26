@@ -169,6 +169,7 @@ public:
     void switchRanged();  // Cycle ranged weapon (E)
     void applyWeaponStats();
     float weaponSwitchCooldown = 0;
+    int weaponSwitchPending = 0; // 0=none, 1=melee switched, 2=ranged switched (consumed by PlayState)
 
     // Grappling Hook state
     bool isGrappling = false;         // Currently swinging on rope

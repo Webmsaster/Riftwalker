@@ -297,10 +297,10 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
             }
         }
 
-        // Ground slam landing AoE
+        // Ground slam landing AoE — heavy low-frequency rumble
         if (phys.onGround && ai.bossLeapTimer > 2.0f * phaseCooldownMult) {
             ai.bossLeapTimer = 1.5f * phaseCooldownMult;
-            if (m_camera) m_camera->shake(10.0f, 0.3f);
+            if (m_camera) m_camera->shake(16.0f, 0.55f);
             AudioManager::instance().play(SFX::SpikeDamage);
             if (m_particles) {
                 m_particles->burst(pos, 30, {180, 60, 255, 255}, 300.0f, 4.0f);

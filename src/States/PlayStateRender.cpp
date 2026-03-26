@@ -482,6 +482,9 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Floating damage numbers
     renderDamageNumbers(renderer, game->getFont());
 
+    // Weapon switch display (floating name below player)
+    renderWeaponSwitchDisplay(renderer, game->getFont());
+
     // Kill feed (bottom-right)
     renderKillFeed(renderer, game->getFont());
 

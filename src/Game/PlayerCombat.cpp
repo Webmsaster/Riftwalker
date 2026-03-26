@@ -334,6 +334,7 @@ void Player::switchMelee() {
     combat.daggerHitCount = 0; // Reset PhaseDaggers hit counter on weapon switch
     applyWeaponStats();
     weaponSwitchCooldown = 0.3f;
+    weaponSwitchPending = 1; // Signal PlayState for visual feedback
     AudioManager::instance().play(SFX::MenuSelect);
 }
 
@@ -343,6 +344,7 @@ void Player::switchRanged() {
     combat.currentRanged = WeaponSystem::nextRanged(combat.currentRanged);
     applyWeaponStats();
     weaponSwitchCooldown = 0.3f;
+    weaponSwitchPending = 2; // Signal PlayState for visual feedback
     AudioManager::instance().play(SFX::MenuSelect);
 }
 

@@ -989,3 +989,61 @@ void PlayState::renderQuestHUD(SDL_Renderer* renderer, TTF_Font* font) {
         }
     }
 }
+
+void PlayState::renderWeaponSwitchDisplay(SDL_Renderer* renderer, TTF_Font* font) {
+    if (m_weaponSwitchDisplayTimer <= 0 || !font || !m_player) return;
+
+    auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+    Vec2 center = pt.getCenter();
+    Vec2 camPos = m_camera.getPosition();
+
+    int screenX = static_cast<int>(center.x - camPos.x);
+    int screenY = static_cast<int>(center.y - camPos.y) + 32; // Below player sprite
+
+    // Fade out during the last 0.5s
+    float alpha = 1.0f;
+    if (m_weaponSwitchDisplayTimer < 0.5f) {
+        alpha = m_weaponSwitchDisplayTimer / 0.5f;
+    }
+    // Slight upward float over time
+    float elapsed = 1.5f - m_weaponSwitchDisplayTimer;
+    screenY -= static_cast<int>(elapsed * 12.0f);
+
+    Uint8 a = static_cast<Uint8>(alpha * 230);
+
+    // Weapon name color: orange for melee, cyan for ranged
+    SDL_Color textColor = m_weaponSwitchIsMelee
+        ? SDL_Color{255, 200, 80, a}
+        : SDL_Color{80, 200, 255, a};
+
+    SDL_Surface* surf = TTF_RenderText_Blended(font, m_weaponSwitchName.c_str(), textColor);
+    if (surf) {
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+        if (tex) {
+            SDL_SetTextureAlphaMod(tex, a);
+            SDL_Rect dst = {screenX - surf->w / 2, screenY, surf->w, surf->h};
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+        }
+        SDL_FreeSurface(surf);
+    }
+
+    // Small category label ("MELEE" / "RANGED") above the weapon name
+    const char* category = m_weaponSwitchIsMelee ? "MELEE" : "RANGED";
+    Uint8 catAlpha = static_cast<Uint8>(alpha * 140);
+    SDL_Color catColor = {200, 200, 200, catAlpha};
+    SDL_Surface* catSurf = TTF_RenderText_Blended(font, category, catColor);
+    if (catSurf) {
+        SDL_Texture* catTex = SDL_CreateTextureFromSurface(renderer, catSurf);
+        if (catTex) {
+            SDL_SetTextureAlphaMod(catTex, catAlpha);
+            // Render at half scale for a smaller label
+            int catW = catSurf->w / 2;
+            int catH = catSurf->h / 2;
+            SDL_Rect catDst = {screenX - catW / 2, screenY - catH - 2, catW, catH};
+            SDL_RenderCopy(renderer, catTex, nullptr, &catDst);
+            SDL_DestroyTexture(catTex);
+        }
+        SDL_FreeSurface(catSurf);
+    }
+}

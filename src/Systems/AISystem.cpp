@@ -879,8 +879,9 @@ void AISystem::explode(Entity& entity, EntityManager& entities) {
         m_particles->burst(center, 15, {255, 50, 20, 255}, 300.0f, 6.0f);
     }
 
+    // Sharp burst shake for explosion — high intensity, short duration
     if (m_camera) {
-        m_camera->shake(12.0f, 0.3f);
+        m_camera->shake(18.0f, 0.15f);
     }
 
     AudioManager::instance().play(SFX::EnemyDeath);

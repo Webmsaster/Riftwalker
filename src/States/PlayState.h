@@ -166,6 +166,12 @@ private:
     float m_riftDimensionHintTimer = 0;
     int m_riftDimensionHintRequiredDim = 0;
 
+    // Weapon switch display (floating name + particle burst)
+    float m_weaponSwitchDisplayTimer = 0;
+    std::string m_weaponSwitchName;
+    bool m_weaponSwitchIsMelee = false; // true=melee (orange), false=ranged (blue)
+    void renderWeaponSwitchDisplay(SDL_Renderer* renderer, TTF_Font* font);
+
     // Ambient effects
     float m_ambientDustTimer = 0;
     float m_wallSlideDustTimer = 0;

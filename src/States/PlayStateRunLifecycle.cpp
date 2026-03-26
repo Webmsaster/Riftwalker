@@ -327,6 +327,9 @@ void PlayState::generateLevel() {
         spawnChainEvent();
     }
 
+    // Brief settling shake — like landing in a new dimension
+    m_camera.shake(3.0f, 0.25f);
+
     // Start ambient music
     AudioManager::instance().playAmbient(m_dimManager.getCurrentDimension());
 
