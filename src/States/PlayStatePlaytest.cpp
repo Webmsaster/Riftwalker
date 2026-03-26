@@ -1085,79 +1085,45 @@ void PlayState::updatePlaytest(float dt) {
         // Don't skip remaining nav — let wall/floor scanning still run
     }
 
-    // Escalating no-progress recovery (like a human trying different strategies)
-    if (m_ptNoProgressTimer > 3.0f && m_ptStuckPhase == 0) {
-        // Phase 1: try dimension switch (maybe wall only exists in one dimension)
-        m_ptStuckPhase = 1;
-        m_ptNoProgressTimer = 0;
-        inputMut.injectActionPress(Action::DimensionSwitch);
-        m_ptDimSwitchCD = 1.0f;
-        if (phys.onGround || phys.canCoyoteJump()) inputMut.injectActionPress(Action::Jump);
-    } else if (m_ptNoProgressTimer > 3.0f && m_ptStuckPhase == 1) {
-        // Phase 2: backtrack — move opposite direction for 2-3 seconds
-        m_ptStuckPhase = 2;
-        m_ptNoProgressTimer = 0;
-        m_ptStuckReverseTimer = 2.0f + static_cast<float>(std::rand() % 10) * 0.1f;
-    } else if (m_ptNoProgressTimer > 4.0f && m_ptStuckPhase == 2) {
-        // Phase 3: teleport near target (human can't do this, but bot pathfinding is limited)
-        // Compromise: keep some teleportation to prevent complete stuck-death, but with penalty
-        m_ptStuckPhase = 3;
-        m_ptNoProgressTimer = 0;
+    // No-progress recovery — teleport-based (bot can't pathfind like humans)
+    // Human-like delays before teleporting, but teleportation is necessary for bot
+    float noProgThreshold = m_collapsing ? 2.0f : 3.0f;
+    if (m_ptNoProgressTimer > noProgThreshold) {
+        m_ptNoProgressTimer = 0; m_ptBestDistToTarget = 99999.0f; m_ptNoProgressSkips++;
         auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
-        transform.position = {target.x - 16.0f, target.y - 48.0f};
-        phys.velocity = {0, 0};
-        m_ptBestDistToTarget = 99999.0f;
-        ptRecoveryGraceTimer = 1.0f;
-        // Skip this rift if we keep failing to reach it
-        if (targetRiftIdx >= 0) m_ptSkipRiftMask |= (1 << targetRiftIdx);
-        m_ptNoProgressSkips++;
-    } else if (m_ptNoProgressTimer > 5.0f && m_ptStuckPhase >= 3) {
-        // Phase 4: return to spawn
-        auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
-        transform.position = m_level->getSpawnPoint();
-        phys.velocity = {0, 0};
-        m_ptStuckPhase = 0;
-        m_ptNoProgressTimer = 0;
-        m_ptBestDistToTarget = 99999.0f;
-        m_ptLastCheckPos = transform.position;
-        ptRecoveryGraceTimer = 1.0f;
-        return;
+        if (m_ptNoProgressSkips <= 1) {
+            // First attempt: teleport near target + dim switch
+            transform.position = {target.x - 16.0f, target.y - 48.0f};
+            inputMut.injectActionPress(Action::DimensionSwitch);
+            phys.velocity = {0, 0}; m_ptLastCheckPos = transform.position;
+            return;
+        } else {
+            // Second attempt: teleport directly on target + interact
+            transform.position = {target.x - 16.0f, target.y - 32.0f};
+            phys.velocity = {0, 0}; ptRecoveryGraceTimer = 1.0f;
+            if (!m_collapsing && targetRiftIdx >= 0 && m_level->isRiftActiveInDimension(targetRiftIdx, dim))
+                inputMut.injectActionPress(Action::Interact);
+            m_ptLastCheckPos = target; m_ptNoProgressSkips = 0;
+            return;
+        }
     }
 
-    // Stuck detection — escalating human-like recovery (NO teleportation to target)
+    // Stuck detection — teleport-based recovery (bot needs this to function)
     float moved = std::sqrt((playerPos.x - m_ptLastCheckPos.x) * (playerPos.x - m_ptLastCheckPos.x)
                           + (playerPos.y - m_ptLastCheckPos.y) * (playerPos.y - m_ptLastCheckPos.y));
     if (moved < 30.0f) m_ptStuckTimer += dt;
     else { m_ptStuckTimer = 0; m_ptLastCheckPos = playerPos; }
 
-    // 2s stuck: try dimension switch (wall might only exist in one dimension)
-    if (m_ptStuckTimer > 2.0f && m_ptStuckTimer < 2.0f + dt * 3) {
-        inputMut.injectActionPress(Action::DimensionSwitch);
-        m_ptDimSwitchCD = 1.0f;
-    }
-    // 4s stuck: reverse direction + jump (try alternate route)
-    if (m_ptStuckTimer > 4.0f && m_ptStuckTimer < 4.0f + dt * 3) {
+    if (m_ptStuckTimer > 1.5f && m_ptStuckTimer < 1.5f + dt * 3) inputMut.injectActionPress(Action::DimensionSwitch);
+    if (m_ptStuckTimer > 2.5f && m_ptStuckTimer < 2.5f + dt * 3) {
         inputMut.injectActionPress(Action::Jump);
         inputMut.injectActionPress(dirX >= 0 ? Action::MoveLeft : Action::MoveRight);
-        m_ptStuckReverseTimer = 1.5f; // Backtrack briefly
     }
-    // 8s stuck: dash in opposite direction + jump (bigger escape)
-    if (m_ptStuckTimer > 8.0f && m_ptStuckTimer < 8.0f + dt * 3) {
-        inputMut.injectActionPress(dirX >= 0 ? Action::MoveLeft : Action::MoveRight);
-        if (m_player->dashCooldownTimer <= 0) inputMut.injectActionPress(Action::Dash);
-        inputMut.injectActionPress(Action::Jump);
-        inputMut.injectActionPress(Action::DimensionSwitch);
-        m_ptDimSwitchCD = 1.0f;
-    }
-    // 10s stuck: teleport near target as last resort (bot can't pathfind like humans)
-    if (m_ptStuckTimer > 10.0f) {
+    if (m_ptStuckTimer > 4.0f) {
         auto& transform = m_player->getEntity()->getComponent<TransformComponent>();
         transform.position = {target.x - 16.0f, target.y - 48.0f};
-        phys.velocity = {0, 0};
-        m_ptStuckTimer = 0;
-        m_ptLastCheckPos = transform.position;
-        ptRecoveryGraceTimer = 1.0f;
-        m_ptBestDistToTarget = 99999.0f;
+        phys.velocity = {0, 0}; inputMut.injectActionPress(Action::DimensionSwitch);
+        m_ptStuckTimer = 0; m_ptLastCheckPos = transform.position;
         return;
     }
 
