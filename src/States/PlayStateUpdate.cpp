@@ -1027,6 +1027,7 @@ void PlayState::updateKillEffects() {
             m_particles.burst(playerPos, 30, gold, 140.0f, 3.5f);
             // Small screen shake
             m_camera.shake(3.0f, 0.2f);
+            AudioManager::instance().play(SFX::LevelComplete);
         }
     }
 
@@ -1044,18 +1045,22 @@ void PlayState::updateKillEffects() {
             m_killStreakText = "GODLIKE!";
             m_killStreakColor = {255, 40, 40, 255};
             m_killStreakDisplayTimer = 2.0f;
+            AudioManager::instance().play(SFX::ComboMilestone);
         } else if (m_killStreakCount >= 8) {
             m_killStreakText = "UNSTOPPABLE!";
             m_killStreakColor = {255, 160, 30, 255};
             m_killStreakDisplayTimer = 1.5f;
+            AudioManager::instance().play(SFX::ComboMilestone);
         } else if (m_killStreakCount >= 5) {
             m_killStreakText = "RAMPAGE!";
             m_killStreakColor = {255, 220, 50, 255};
             m_killStreakDisplayTimer = 1.5f;
+            AudioManager::instance().play(SFX::ComboMilestone);
         } else if (m_killStreakCount >= 3) {
             m_killStreakText = "TRIPLE KILL!";
             m_killStreakColor = {255, 255, 255, 255};
             m_killStreakDisplayTimer = 1.5f;
+            AudioManager::instance().play(SFX::ComboMilestone);
         }
     }
 

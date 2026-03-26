@@ -916,6 +916,7 @@ void PlayState::update(float dt) {
                 m_zoneTransitionNumber = zi + 1;
                 m_zoneTransitionTimer = 0;
                 m_zoneTransitionActive = true;
+                AudioManager::instance().play(SFX::RiftRepair);
                 // Skip banner for automated bots
                 if (m_playtest || m_smokeTest) m_zoneTransitionActive = false;
             }
