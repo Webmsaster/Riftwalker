@@ -204,7 +204,9 @@ void Game::handleEvents() {
 
         m_input.handleEvent(event);
 
-        if (m_currentState) {
+        // Block input to states during transitions to prevent
+        // accidental actions while the screen is obscured
+        if (m_currentState && m_transition == TransitionState::None) {
             m_currentState->handleEvent(event);
         }
     }
@@ -215,12 +217,15 @@ void Game::update() {
     // Handle screen transition
     if (m_transition != TransitionState::None) {
         m_transitionTimer += Timer::FIXED_TIMESTEP;
-        float progress = m_transitionTimer / m_transitionDuration;
-        if (progress > 1.0f) progress = 1.0f;
+        float rawProgress = m_transitionTimer / m_transitionDuration;
+        if (rawProgress > 1.0f) rawProgress = 1.0f;
+
+        // Apply easing for smooth acceleration/deceleration
+        float progress = easeInOutCubic(rawProgress);
 
         if (m_transition == TransitionState::FadeOut) {
             m_transitionAlpha = static_cast<Uint8>(progress * 255);
-            if (progress >= 1.0f) {
+            if (rawProgress >= 1.0f) {
                 // Actually change state now
                 if (m_pendingPush) {
                     auto it = m_states.find(m_pendingState);
@@ -247,11 +252,16 @@ void Game::update() {
             }
         } else if (m_transition == TransitionState::FadeIn) {
             m_transitionAlpha = static_cast<Uint8>((1.0f - progress) * 255);
-            if (progress >= 1.0f) {
+            if (rawProgress >= 1.0f) {
                 m_transition = TransitionState::None;
                 m_transitionAlpha = 0;
             }
         }
+
+        // Block state updates during the last half of fade-out
+        // so the old state doesn't process input while invisible
+        if (m_transition == TransitionState::FadeOut && rawProgress > 0.5f)
+            return;
     }
 
     if (m_currentState) {
@@ -287,44 +297,73 @@ void Game::render() {
         m_currentState->render(renderer);
     }
 
-    // Transition overlay: rift warp effect
+    // Transition overlay: style-dependent effect
     if (m_transitionAlpha > 0) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         float progress = static_cast<float>(m_transitionAlpha) / 255.0f;
-
-        // Base dark overlay with dimension color tint
-        Uint8 tintR = 40, tintG = 20, tintB = 60; // Purple rift color
-        SDL_SetRenderDrawColor(renderer, tintR, tintG, tintB, m_transitionAlpha);
         SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
-        SDL_RenderFillRect(renderer, &full);
 
-        // Glitch scanlines during transition
-        if (progress > 0.2f && progress < 0.95f) {
-            int lineCount = static_cast<int>(progress * 15);
-            Uint32 ticks = SDL_GetTicks();
-            for (int i = 0; i < lineCount; i++) {
-                int y = ((i * 7919 + ticks / 50) % SCREEN_HEIGHT);
-                int h = 1 + (i % 3);
-                int offset = static_cast<int>((((i * 3251 + ticks / 30) % 40) - 20) * progress);
-                Uint8 la = static_cast<Uint8>(progress * 120);
-                // Alternating purple/cyan lines
-                if (i % 2 == 0)
-                    SDL_SetRenderDrawColor(renderer, 150, 50, 200, la);
-                else
-                    SDL_SetRenderDrawColor(renderer, 50, 150, 200, la);
-                SDL_Rect line = {offset, y, SCREEN_WIDTH, h};
-                SDL_RenderFillRect(renderer, &line);
+        switch (m_transitionStyle) {
+        case TransitionStyle::Rift: {
+            // Purple rift dimension warp
+            SDL_SetRenderDrawColor(renderer, 40, 20, 60, m_transitionAlpha);
+            SDL_RenderFillRect(renderer, &full);
+
+            // Glitch scanlines during mid-transition
+            if (progress > 0.2f && progress < 0.95f) {
+                int lineCount = static_cast<int>(progress * 12);
+                Uint32 ticks = SDL_GetTicks();
+                for (int i = 0; i < lineCount; i++) {
+                    int y = ((i * 7919 + ticks / 50) % SCREEN_HEIGHT);
+                    int h = 1 + (i % 3);
+                    int offset = static_cast<int>((((i * 3251 + ticks / 30) % 40) - 20) * progress);
+                    Uint8 la = static_cast<Uint8>(progress * 100);
+                    if (i % 2 == 0)
+                        SDL_SetRenderDrawColor(renderer, 150, 50, 200, la);
+                    else
+                        SDL_SetRenderDrawColor(renderer, 50, 150, 200, la);
+                    SDL_Rect line = {offset, y, SCREEN_WIDTH, h};
+                    SDL_RenderFillRect(renderer, &line);
+                }
             }
-        }
 
-        // Central rift flash at peak
-        if (progress > 0.7f) {
-            float flashIntensity = (progress - 0.7f) / 0.3f;
-            Uint8 fa = static_cast<Uint8>(flashIntensity * 80);
-            SDL_SetRenderDrawColor(renderer, 200, 150, 255, fa);
-            int fh = static_cast<int>(flashIntensity * 40);
-            SDL_Rect flash = {0, SCREEN_HEIGHT / 2 - fh, SCREEN_WIDTH, fh * 2};
-            SDL_RenderFillRect(renderer, &flash);
+            // Central rift flash at peak
+            if (progress > 0.7f) {
+                float flashIntensity = (progress - 0.7f) / 0.3f;
+                Uint8 fa = static_cast<Uint8>(flashIntensity * 80);
+                SDL_SetRenderDrawColor(renderer, 200, 150, 255, fa);
+                int fh = static_cast<int>(flashIntensity * 40);
+                SDL_Rect flash = {0, SCREEN_HEIGHT / 2 - fh, SCREEN_WIDTH, fh * 2};
+                SDL_RenderFillRect(renderer, &flash);
+            }
+            break;
+        }
+        case TransitionStyle::Death: {
+            // Red death fade with vignette
+            Uint8 r = static_cast<Uint8>(60 + 40 * progress);
+            SDL_SetRenderDrawColor(renderer, r, 5, 5, m_transitionAlpha);
+            SDL_RenderFillRect(renderer, &full);
+
+            // Vignette darkening from edges at high progress
+            if (progress > 0.4f) {
+                float vignetteStrength = (progress - 0.4f) / 0.6f;
+                Uint8 va = static_cast<Uint8>(vignetteStrength * 120);
+                // Top/bottom bars closing in
+                int barH = static_cast<int>(vignetteStrength * SCREEN_HEIGHT * 0.15f);
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, va);
+                SDL_Rect topBar = {0, 0, SCREEN_WIDTH, barH};
+                SDL_Rect botBar = {0, SCREEN_HEIGHT - barH, SCREEN_WIDTH, barH};
+                SDL_RenderFillRect(renderer, &topBar);
+                SDL_RenderFillRect(renderer, &botBar);
+            }
+            break;
+        }
+        case TransitionStyle::Subtle: {
+            // Simple dark fade for menu transitions
+            SDL_SetRenderDrawColor(renderer, 10, 10, 15, m_transitionAlpha);
+            SDL_RenderFillRect(renderer, &full);
+            break;
+        }
         }
     }
 
@@ -335,8 +374,20 @@ void Game::changeState(StateID id) {
     if (m_transition != TransitionState::None) return; // already transitioning
     m_pendingState = id;
     m_pendingPush = false;
+    m_transitionStyle = pickTransitionStyle(id);
     m_transition = TransitionState::FadeOut;
     m_transitionTimer = 0;
+}
+
+Game::TransitionStyle Game::pickTransitionStyle(StateID target) const {
+    // Death/GameOver gets the red death transition
+    if (target == StateID::GameOver || target == StateID::RunSummary)
+        return TransitionStyle::Death;
+    // Play gets the rift warp (entering a run)
+    if (target == StateID::Play)
+        return TransitionStyle::Rift;
+    // Menu sub-screens get subtle fade
+    return TransitionStyle::Subtle;
 }
 
 void Game::pushState(StateID id) {

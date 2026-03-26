@@ -84,10 +84,20 @@ private:
     enum class TransitionState { None, FadeOut, FadeIn };
     TransitionState m_transition = TransitionState::None;
     float m_transitionTimer = 0;
-    float m_transitionDuration = 0.25f;
+    float m_transitionDuration = 0.3f;  // 0.3s per phase = 0.6s total
     StateID m_pendingState = StateID::Menu;
     bool m_pendingPush = false;
     Uint8 m_transitionAlpha = 0;
+
+    // Transition style per state change
+    enum class TransitionStyle { Rift, Death, Subtle };
+    TransitionStyle m_transitionStyle = TransitionStyle::Rift;
+    TransitionStyle pickTransitionStyle(StateID target) const;
+
+    // Smooth easing (ease-in-out cubic)
+    static float easeInOutCubic(float t) {
+        return t < 0.5f ? 4.0f * t * t * t : 1.0f - (-2.0f * t + 2.0f) * (-2.0f * t + 2.0f) * (-2.0f * t + 2.0f) / 2.0f;
+    }
 };
 
 // Accessibility globals
