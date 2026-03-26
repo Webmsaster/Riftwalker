@@ -51,22 +51,102 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
         }
     }
 
-    // 2. Low HP pulse (red border, heartbeat rhythm)
-    if (m_hpPercent < 0.25f) {
-        float heartbeat = std::sin(m_time * 6.0f); // ~1Hz heartbeat
-        heartbeat = heartbeat > 0 ? heartbeat : 0;
-        float intensity = (0.25f - m_hpPercent) / 0.25f;
-        Uint8 a = static_cast<Uint8>(heartbeat * intensity * 80);
-        SDL_SetRenderDrawColor(renderer, 200, 0, 0, a);
-        int border = 4;
-        SDL_Rect top = {0, 0, screenW, border};
-        SDL_Rect bot = {0, screenH - border, screenW, border};
-        SDL_Rect left = {0, 0, border, screenH};
-        SDL_Rect right = {screenW - border, 0, border, screenH};
-        SDL_RenderFillRect(renderer, &top);
-        SDL_RenderFillRect(renderer, &bot);
-        SDL_RenderFillRect(renderer, &left);
-        SDL_RenderFillRect(renderer, &right);
+    // 2. Low HP warning: pulsing red vignette + heartbeat screen pulse
+    if (m_hpPercent < 0.25f && m_hpPercent > 0.0f) {
+        float intensity = (0.25f - m_hpPercent) / 0.25f; // 0 at 25%, 1 at 0%
+
+        // Heartbeat-like double pulse (lub-dub pattern, ~1Hz cycle)
+        // Phase within one heartbeat cycle (0-1 over ~1 second)
+        float pulseSpeed = 1.0f + intensity * 0.8f; // Faster at lower HP (1-1.8 Hz)
+        float phase = std::fmod(m_time * pulseSpeed, 1.0f);
+        float beat = 0.0f;
+        // "Lub" (strong beat) at phase 0.0-0.12
+        if (phase < 0.12f) {
+            float t = phase / 0.12f;
+            beat = std::sin(t * 3.14159f); // Quick rise-fall
+        }
+        // "Dub" (weaker beat) at phase 0.18-0.28
+        else if (phase > 0.18f && phase < 0.28f) {
+            float t = (phase - 0.18f) / 0.10f;
+            beat = 0.6f * std::sin(t * 3.14159f); // Softer second beat
+        }
+
+        // Red vignette gradient at all four edges
+        float vigStrength = (0.3f + beat * 0.7f) * intensity;
+        int edgeW = static_cast<int>(screenW * (0.06f + vigStrength * 0.08f)); // 6-14% of screen width
+        int edgeH = static_cast<int>(screenH * (0.06f + vigStrength * 0.08f));
+        Uint8 maxAlpha = static_cast<Uint8>(40 + vigStrength * 50); // 40-90 max alpha
+
+        // Top edge
+        for (int i = 0; i < edgeH; i++) {
+            float grad = 1.0f - static_cast<float>(i) / edgeH;
+            grad = grad * grad; // Quadratic falloff for smoother gradient
+            Uint8 a = static_cast<Uint8>(maxAlpha * grad);
+            SDL_SetRenderDrawColor(renderer, 160, 15, 15, a);
+            SDL_Rect r = {0, i, screenW, 1};
+            SDL_RenderFillRect(renderer, &r);
+        }
+        // Bottom edge
+        for (int i = 0; i < edgeH; i++) {
+            float grad = static_cast<float>(i) / edgeH;
+            grad = grad * grad;
+            Uint8 a = static_cast<Uint8>(maxAlpha * grad);
+            SDL_SetRenderDrawColor(renderer, 160, 15, 15, a);
+            SDL_Rect r = {0, screenH - edgeH + i, screenW, 1};
+            SDL_RenderFillRect(renderer, &r);
+        }
+        // Left edge
+        for (int i = 0; i < edgeW; i++) {
+            float grad = 1.0f - static_cast<float>(i) / edgeW;
+            grad = grad * grad;
+            Uint8 a = static_cast<Uint8>(maxAlpha * grad);
+            SDL_SetRenderDrawColor(renderer, 160, 15, 15, a);
+            SDL_Rect r = {i, 0, 1, screenH};
+            SDL_RenderFillRect(renderer, &r);
+        }
+        // Right edge
+        for (int i = 0; i < edgeW; i++) {
+            float grad = static_cast<float>(i) / edgeW;
+            grad = grad * grad;
+            Uint8 a = static_cast<Uint8>(maxAlpha * grad);
+            SDL_SetRenderDrawColor(renderer, 160, 15, 15, a);
+            SDL_Rect r = {screenW - edgeW + i, 0, 1, screenH};
+            SDL_RenderFillRect(renderer, &r);
+        }
+
+        // Corner darkening (coarse blocks for performance — 4 corners)
+        int cornerSize = std::min(edgeW, edgeH);
+        Uint8 cornerAlpha = static_cast<Uint8>(maxAlpha * 0.4f);
+        constexpr int kCornerStep = 8; // Block size for corner fill
+        // All four corners
+        int cornerPositions[4][2] = {{0, 0}, {screenW - cornerSize, 0},
+                                     {0, screenH - cornerSize}, {screenW - cornerSize, screenH - cornerSize}};
+        for (auto& cp : cornerPositions) {
+            for (int by = 0; by < cornerSize; by += kCornerStep) {
+                for (int bx = 0; bx < cornerSize; bx += kCornerStep) {
+                    // Distance from the corner (0=at corner, 1=at edge of zone)
+                    float fx = static_cast<float>(cp[0] == 0 ? bx : cornerSize - bx) / cornerSize;
+                    float fy = static_cast<float>(cp[1] == 0 ? by : cornerSize - by) / cornerSize;
+                    float d = (1.0f - fx) * (1.0f - fy);
+                    if (d > 0.15f) {
+                        Uint8 a = static_cast<Uint8>(cornerAlpha * d * d);
+                        SDL_SetRenderDrawColor(renderer, 140, 10, 10, a);
+                        int w = std::min(kCornerStep, cornerSize - bx);
+                        int h = std::min(kCornerStep, cornerSize - by);
+                        SDL_Rect r = {cp[0] + bx, cp[1] + by, w, h};
+                        SDL_RenderFillRect(renderer, &r);
+                    }
+                }
+            }
+        }
+
+        // Heartbeat full-screen pulse (very subtle red wash on each beat)
+        if (beat > 0.1f) {
+            Uint8 pulseAlpha = static_cast<Uint8>(beat * intensity * 18); // Very subtle, max 18
+            SDL_SetRenderDrawColor(renderer, 120, 0, 0, pulseAlpha);
+            SDL_Rect full = {0, 0, screenW, screenH};
+            SDL_RenderFillRect(renderer, &full);
+        }
     }
 
     // 3. Kill flash

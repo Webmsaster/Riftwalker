@@ -286,6 +286,51 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             }
         }
 
+        // --- Elemental aura particles (Fire/Ice/Electric variants) ---
+        if (ai.element != EnemyElement::None && m_particles && e->hasComponent<TransformComponent>()) {
+            auto& t = e->getComponent<TransformComponent>();
+            // Emit ~1-2 particles per second, staggered by entity position hash
+            Uint32 ticks = SDL_GetTicks();
+            int hash = static_cast<int>(t.position.x * 11 + t.position.y * 17) & 0xFFF;
+            Uint32 interval = 600; // ~1.7 particles per second
+            if (((ticks + hash) % interval) < static_cast<Uint32>(dt * 1000)) {
+                Vec2 center = t.getCenter();
+                float ox = static_cast<float>((std::rand() % 20) - 10);
+                float oy = static_cast<float>((std::rand() % 16) - 8);
+
+                switch (ai.element) {
+                    case EnemyElement::Fire: {
+                        // Orange/red particles drifting upward
+                        Uint8 g = static_cast<Uint8>(60 + std::rand() % 80); // 60-140
+                        SDL_Color fireColor = {255, g, 20, 160};
+                        m_particles->directionalBurst(
+                            {center.x + ox, center.y + oy}, 1, fireColor,
+                            270.0f, 40.0f, 25.0f, 2.0f); // upward
+                        break;
+                    }
+                    case EnemyElement::Ice: {
+                        // Cyan/white particles drifting downward
+                        Uint8 r = static_cast<Uint8>(150 + std::rand() % 106); // 150-255
+                        SDL_Color iceColor = {r, 230, 255, 140};
+                        m_particles->directionalBurst(
+                            {center.x + ox, center.y + oy}, 1, iceColor,
+                            90.0f, 50.0f, 15.0f, 1.8f); // downward
+                        break;
+                    }
+                    case EnemyElement::Electric: {
+                        // Yellow spark particles in random directions
+                        SDL_Color sparkColor = {255, 255, 60, 180};
+                        float randomDir = static_cast<float>(std::rand() % 360);
+                        m_particles->directionalBurst(
+                            {center.x + ox, center.y + oy}, 1, sparkColor,
+                            randomDir, 30.0f, 50.0f, 1.5f); // random burst
+                        break;
+                    }
+                    default: break;
+                }
+            }
+        }
+
         // --- Synergy pre-pass: reset and compute per-frame synergy flags ---
         ai.synergySummonerBuff = false;
         ai.summonerBuffSpeedMult = 1.0f;
