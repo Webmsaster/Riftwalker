@@ -685,6 +685,9 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Directional damage indicators (red edge flash toward damage source)
     renderDamageIndicators(renderer);
 
+    // Off-screen enemy proximity arrows at screen edges
+    renderOffscreenEnemyIndicators(renderer);
+
     // Camera screen flash (boss death white flash, etc.)
     {
         float flashAlpha = m_camera.getFlashAlpha();

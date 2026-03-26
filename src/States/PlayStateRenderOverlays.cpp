@@ -1269,3 +1269,93 @@ void PlayState::renderDamageIndicators(SDL_Renderer* renderer) {
                  0, SCREEN_HEIGHT - kEdgeThickness - kEdgeFadeInner, SCREEN_WIDTH, kEdgeFadeInner);
     }
 }
+
+void PlayState::renderOffscreenEnemyIndicators(SDL_Renderer* renderer) {
+    if (!m_player || !m_player->getEntity()) return;
+
+    Vec2 camPos = m_camera.getPosition();
+    float halfW = SCREEN_WIDTH / 2.0f;
+    float halfH = SCREEN_HEIGHT / 2.0f;
+    int currentDim = m_dimManager.getCurrentDimension();
+
+    // Collect nearby off-screen enemies, sorted by distance (closest first)
+    struct Indicator { int sx, sy; float dist; };
+    Indicator indicators[5];
+    int count = 0;
+
+    m_entities.forEach([&](Entity& e) {
+        if (count >= 5) return;
+        if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+        if (e.dimension != 0 && e.dimension != currentDim) return;
+        if (!e.hasComponent<TransformComponent>()) return;
+        auto& t = e.getComponent<TransformComponent>();
+        Vec2 ePos = t.getCenter();
+
+        float dx = ePos.x - camPos.x;
+        float dy = ePos.y - camPos.y;
+        bool offscreen = std::abs(dx) > halfW || std::abs(dy) > halfH;
+        if (!offscreen) return;
+
+        float dist = std::sqrt(dx * dx + dy * dy);
+        float maxDist = halfW * 3.0f;
+        if (dist > maxDist) return;
+
+        // Clamp to screen edge with margin
+        int sx = static_cast<int>(std::clamp(dx + halfW, 16.0f, static_cast<float>(SCREEN_WIDTH) - 16.0f));
+        int sy = static_cast<int>(std::clamp(dy + halfH, 16.0f, static_cast<float>(SCREEN_HEIGHT) - 16.0f));
+
+        // Insert sorted by distance (closest = index 0)
+        int insertIdx = count;
+        for (int i = 0; i < count; i++) {
+            if (dist < indicators[i].dist) { insertIdx = i; break; }
+        }
+        for (int i = std::min(count, 4); i > insertIdx; i--) indicators[i] = indicators[i - 1];
+        if (insertIdx < 5) {
+            indicators[insertIdx] = {sx, sy, dist};
+            if (count < 5) count++;
+        }
+    });
+
+    if (count == 0) return;
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    float maxDist = halfW * 3.0f;
+
+    for (int i = 0; i < count; i++) {
+        auto& ind = indicators[i];
+        // Fade: closer = more opaque
+        float t = 1.0f - (ind.dist / maxDist);
+        Uint8 alpha = static_cast<Uint8>(80 + 150 * t);
+
+        // Arrow direction: from screen center toward clamped point
+        float adx = static_cast<float>(ind.sx) - halfW;
+        float ady = static_cast<float>(ind.sy) - halfH;
+        float len = std::sqrt(adx * adx + ady * ady);
+        if (len < 1.0f) continue;
+        float nx = adx / len;
+        float ny = ady / len;
+
+        // Triangle size: closer enemies = slightly larger (5-7px)
+        int sz = static_cast<int>(5 + 2 * t);
+
+        // Triangle tip points toward enemy, base is perpendicular
+        int tipX = ind.sx;
+        int tipY = ind.sy;
+        int baseX1 = tipX - static_cast<int>(nx * sz + ny * sz * 0.6f);
+        int baseY1 = tipY - static_cast<int>(ny * sz - nx * sz * 0.6f);
+        int baseX2 = tipX - static_cast<int>(nx * sz - ny * sz * 0.6f);
+        int baseY2 = tipY - static_cast<int>(ny * sz + nx * sz * 0.6f);
+
+        // Filled red triangle (3 lines forming filled shape)
+        SDL_SetRenderDrawColor(renderer, 220, 50, 40, alpha);
+        // Fill by drawing horizontal lines between edges
+        for (int s = 0; s <= sz; s++) {
+            float frac = static_cast<float>(s) / static_cast<float>(sz);
+            int x1 = tipX + static_cast<int>((baseX1 - tipX) * frac);
+            int y1 = tipY + static_cast<int>((baseY1 - tipY) * frac);
+            int x2 = tipX + static_cast<int>((baseX2 - tipX) * frac);
+            int y2 = tipY + static_cast<int>((baseY2 - tipY) * frac);
+            SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+        }
+    }
+}

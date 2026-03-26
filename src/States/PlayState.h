@@ -233,6 +233,9 @@ private:
     void updateDamageIndicators(float dt);
     void renderDamageIndicators(SDL_Renderer* renderer);
 
+    // Off-screen enemy proximity arrows at screen edges
+    void renderOffscreenEnemyIndicators(SDL_Renderer* renderer);
+
     // Spawn wave system
     std::vector<std::vector<Level::SpawnPoint>> m_spawnWaves;
     int m_currentWave = 0;
