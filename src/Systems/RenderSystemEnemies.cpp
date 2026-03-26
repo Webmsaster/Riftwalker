@@ -22,18 +22,30 @@ void RenderSystem::renderWalker(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         }
     }
 
+    // Drop shadow
+    fillRect(renderer, x + 3, y + h, w - 6, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
     // Animated legs
     float time = SDL_GetTicks() * 0.006f;
     int legOff = static_cast<int>(std::sin(time) * 2);
     fillRect(renderer, x + 2, y + h - 8 + legOff, w / 3, 8, 150, 40, 40, a);
     fillRect(renderer, x + w - w / 3 - 2, y + h - 8 - legOff, w / 3, 8, 150, 40, 40, a);
 
+    // Body outline
+    fillRect(renderer, x - 1, y + 3, w + 2, h - 10, 100, 20, 20, a);
     // Bulky body
     fillRect(renderer, x, y + 4, w, h - 12, 200, 55, 55, a);
+    // Body top highlight
+    fillRect(renderer, x + 1, y + 5, w - 2, 2, 240, 90, 90, static_cast<Uint8>(a * 0.6f));
+    // Body bottom darkening
+    fillRect(renderer, x + 1, y + h - 10, w - 2, 2, 140, 30, 30, static_cast<Uint8>(a * 0.5f));
     fillRect(renderer, x + 3, y + h / 2, w - 6, h / 4, 160, 40, 40, a);
 
-    // Head
+    // Head outline + fill
+    fillRect(renderer, x + 1, y - 1, w - 2, h / 3 + 2, 120, 25, 25, a);
     fillRect(renderer, x + 2, y, w - 4, h / 3, 220, 60, 60, a);
+    // Head top highlight
+    fillRect(renderer, x + 3, y + 1, w - 6, 2, 255, 100, 100, static_cast<Uint8>(a * 0.5f));
 
     // Angry eyes
     int eyeY = y + h / 6;
@@ -83,9 +95,17 @@ void RenderSystem::renderFlyer(SDL_Renderer* renderer, SDL_Rect rect, Entity& en
         SDL_RenderDrawLine(renderer, cx + 2, cy + i * 2, cx + w / 2 + 4, cy - wingOff - 4 + i);
     }
 
-    // Diamond body
+    // Drop shadow (faint for flying entity)
+    fillRect(renderer, cx - 4, cy + h / 2 + 6, 8, 2, 0, 0, 0, static_cast<Uint8>(a * 0.2f));
+
+    // Diamond body outline
+    fillRect(renderer, cx - 5, cy - 7, 10, 14, 100, 30, 130, a);
+    fillRect(renderer, cx - 7, cy - 4, 14, 8, 100, 30, 130, a);
+    // Diamond body fill
     fillRect(renderer, cx - 4, cy - 6, 8, 12, 180, 70, 210, a);
     fillRect(renderer, cx - 6, cy - 3, 12, 6, 180, 70, 210, a);
+    // Top highlight
+    fillRect(renderer, cx - 3, cy - 5, 6, 2, 220, 120, 240, static_cast<Uint8>(a * 0.6f));
 
     // Glowing eye
     fillRect(renderer, cx - 2, cy - 3, 4, 3, 255, 100, 255, a);
@@ -108,12 +128,19 @@ void RenderSystem::renderTurret(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     bool flipped = entity.getComponent<SpriteComponent>().flipX;
 
+    // Drop shadow
+    fillRect(renderer, x + 1, y + h, w - 2, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
     // Wide base
     fillRect(renderer, x - 2, y + h - 8, w + 4, 8, 140, 140, 40, a);
     fillRect(renderer, x, y + h - 12, w, 6, 160, 160, 50, a);
 
+    // Box body outline
+    fillRect(renderer, x + 1, y + 3, w - 2, h - 14, 100, 100, 20, a);
     // Box body
     fillRect(renderer, x + 2, y + 4, w - 4, h - 16, 200, 200, 55, a);
+    // Top highlight
+    fillRect(renderer, x + 3, y + 5, w - 6, 2, 240, 240, 90, static_cast<Uint8>(a * 0.5f));
     fillRect(renderer, x + 5, y + 8, w - 10, h - 24, 170, 170, 40, a);
 
     // Barrel
@@ -162,19 +189,42 @@ void RenderSystem::renderCharger(SDL_Renderer* renderer, SDL_Rect rect, Entity& 
     auto& sprite = entity.getComponent<SpriteComponent>();
     bool flipped = sprite.flipX;
 
+    // Drop shadow
+    fillRect(renderer, x + 2, y + h, w - 4, 3, 0, 0, 0, static_cast<Uint8>(a * 0.35f));
+
     // Thick legs
     fillRect(renderer, x + 2, y + h - 8, w / 3, 8, 180, 90, 30, a);
     fillRect(renderer, x + w - w / 3 - 2, y + h - 8, w / 3, 8, 180, 90, 30, a);
 
+    // Body outline
+    fillRect(renderer, x - 3, y + 5, w + 6, h - 12,
+             static_cast<Uint8>(sprite.color.r * 0.35f),
+             static_cast<Uint8>(sprite.color.g * 0.35f),
+             static_cast<Uint8>(sprite.color.b * 0.35f), a);
     // Wide body
     fillRect(renderer, x - 2, y + 6, w + 4, h - 14, sprite.color.r, sprite.color.g, sprite.color.b, a);
+    // Body top highlight
+    fillRect(renderer, x - 1, y + 7, w + 2, 2,
+             static_cast<Uint8>(std::min(255, sprite.color.r + 50)),
+             static_cast<Uint8>(std::min(255, sprite.color.g + 40)),
+             static_cast<Uint8>(std::min(255, sprite.color.b + 30)),
+             static_cast<Uint8>(a * 0.6f));
     // Armor plate
     fillRect(renderer, x, y + 8, w, h / 3,
              static_cast<Uint8>(std::min(255, sprite.color.r + 20)),
              static_cast<Uint8>(std::min(255, sprite.color.g + 10)),
              sprite.color.b, a);
+    // Body bottom darkening
+    fillRect(renderer, x - 1, y + h - 10, w + 2, 2,
+             static_cast<Uint8>(sprite.color.r * 0.5f),
+             static_cast<Uint8>(sprite.color.g * 0.5f),
+             static_cast<Uint8>(sprite.color.b * 0.5f), static_cast<Uint8>(a * 0.5f));
 
-    // Head
+    // Head outline + fill
+    fillRect(renderer, x + 3, y - 1, w - 6, h / 3 + 2,
+             static_cast<Uint8>(sprite.color.r * 0.4f),
+             static_cast<Uint8>(sprite.color.g * 0.4f),
+             static_cast<Uint8>(sprite.color.b * 0.4f), a);
     fillRect(renderer, x + 4, y, w - 8, h / 3, sprite.color.r, sprite.color.g, sprite.color.b, a);
 
     // Horns
@@ -207,6 +257,9 @@ void RenderSystem::renderPhaser(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 
     float time = SDL_GetTicks() * 0.005f;
     int shimmer = static_cast<int>(std::sin(time) * 3);
+
+    // Drop shadow (faint for ghostly entity)
+    fillRect(renderer, x + 4, y + h, w - 8, 2, 0, 0, 0, static_cast<Uint8>(a * 0.15f));
 
     // Ghostly wavy body
     for (int i = 0; i < h; i += 2) {
@@ -277,9 +330,20 @@ void RenderSystem::renderExploder(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     float pulseSpeed = 1.0f + (1.0f - hpPct) * 4.0f;
     float pulse = 0.7f + 0.3f * std::sin(time * pulseSpeed);
 
+    // Drop shadow
+    fillRect(renderer, x + 2, y + h - 2, w - 4, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
     Uint8 bodyR = static_cast<Uint8>(255 * pulse);
     Uint8 bodyG = static_cast<Uint8>(60 * pulse);
+    // Body outline (dark border)
+    fillRect(renderer, x - 1, y + 1, w + 2, h - 2,
+             static_cast<Uint8>(bodyR * 0.3f), static_cast<Uint8>(bodyG * 0.3f), 8, a);
     fillRect(renderer, x, y + 2, w, h - 4, bodyR, bodyG, 20, a);
+    // Top highlight
+    fillRect(renderer, x + 1, y + 3, w - 2, 2,
+             static_cast<Uint8>(std::min(255, (int)bodyR + 40)),
+             static_cast<Uint8>(std::min(255, (int)bodyG + 60)), 50,
+             static_cast<Uint8>(a * 0.5f));
 
     // Inner glow (brighter as HP decreases)
     Uint8 glowA = static_cast<Uint8>(a * (0.3f + (1.0f - hpPct) * 0.5f));
@@ -308,17 +372,29 @@ void RenderSystem::renderShielder(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     auto& sprite = entity.getComponent<SpriteComponent>();
     bool flipped = sprite.flipX;
 
+    // Drop shadow
+    fillRect(renderer, x + 3, y + h, w - 6, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
     // Legs
     fillRect(renderer, x + 3, y + h - 8, w / 3, 8, 50, 120, 160, a);
     fillRect(renderer, x + w - w / 3 - 3, y + h - 8, w / 3, 8, 50, 120, 160, a);
 
+    // Body outline
+    fillRect(renderer, x + 1, y + 5, w - 2, h - 12, 30, 80, 110, a);
     // Body (armored)
     fillRect(renderer, x + 2, y + 6, w - 4, h - 14, 70, 160, 200, a);
-    // Armor highlight
-    fillRect(renderer, x + 3, y + 7, (w - 6) / 2, h / 3, 100, 190, 230, static_cast<Uint8>(a * 0.6f));
+    // Top highlight
+    fillRect(renderer, x + 3, y + 7, w - 6, 2, 110, 200, 240, static_cast<Uint8>(a * 0.6f));
+    // Armor highlight (left edge)
+    fillRect(renderer, x + 3, y + 9, (w - 6) / 2, h / 3, 100, 190, 230, static_cast<Uint8>(a * 0.6f));
+    // Bottom darkening
+    fillRect(renderer, x + 2, y + h - 10, w - 4, 2, 40, 100, 140, static_cast<Uint8>(a * 0.5f));
 
-    // Head with helmet
+    // Head outline + fill
+    fillRect(renderer, x + 3, y - 1, w - 6, h / 3 + 2, 30, 80, 110, a);
     fillRect(renderer, x + 4, y, w - 8, h / 3, 60, 140, 180, a);
+    // Head top highlight
+    fillRect(renderer, x + 5, y + 1, w - 10, 2, 90, 180, 220, static_cast<Uint8>(a * 0.5f));
     // Visor slit
     int visorY = y + h / 8;
     fillRect(renderer, x + 6, visorY, w - 12, 3, 200, 240, 255, a);
@@ -367,8 +443,24 @@ void RenderSystem::renderCrawler(SDL_Renderer* renderer, SDL_Rect rect, Entity& 
         onCeiling = entity.getComponent<AIComponent>().onCeiling;
     }
 
+    // Drop shadow (underneath for ground crawlers, above for ceiling)
+    if (!onCeiling) {
+        fillRect(renderer, x + 3, y + h, w - 6, 2, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+    }
+
+    // Body outline
+    fillRect(renderer, x + 1, y + 1, w - 2, h - 2,
+             static_cast<Uint8>(sprite.color.r * 0.35f),
+             static_cast<Uint8>(sprite.color.g * 0.35f),
+             static_cast<Uint8>(sprite.color.b * 0.35f), a);
     // Flat, wide body (like a bug)
     fillRect(renderer, x + 2, y + 2, w - 4, h - 4, sprite.color.r, sprite.color.g, sprite.color.b, a);
+    // Top highlight
+    fillRect(renderer, x + 3, y + 3, w - 6, 2,
+             static_cast<Uint8>(std::min(255, sprite.color.r + 50)),
+             static_cast<Uint8>(std::min(255, sprite.color.g + 50)),
+             static_cast<Uint8>(std::min(255, sprite.color.b + 50)),
+             static_cast<Uint8>(a * 0.5f));
 
     // Carapace stripe
     fillRect(renderer, x + 4, y + h / 3, w - 8, 2,
@@ -405,15 +497,28 @@ void RenderSystem::renderSummoner(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     auto& sprite = entity.getComponent<SpriteComponent>();
     float time = SDL_GetTicks() * 0.004f;
 
+    // Drop shadow
+    fillRect(renderer, x + 3, y + h, w - 6, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
     // Robed body (trapezoid shape)
     int robeTop = w / 2;
     int robeBot = w;
+    // Robe outline
+    fillRect(renderer, x - 1, y + h / 2 - 1, robeBot + 2, h / 2 + 2,
+             static_cast<Uint8>(sprite.color.r * 0.3f),
+             static_cast<Uint8>(sprite.color.g * 0.3f),
+             static_cast<Uint8>(sprite.color.b * 0.3f), a);
     fillRect(renderer, x + (w - robeTop) / 2, y + h / 4, robeTop, h / 4,
              sprite.color.r, sprite.color.g, sprite.color.b, a);
     fillRect(renderer, x, y + h / 2, robeBot, h / 2,
              static_cast<Uint8>(sprite.color.r * 0.7f),
              static_cast<Uint8>(sprite.color.g * 0.7f),
              static_cast<Uint8>(sprite.color.b * 0.7f), a);
+    // Bottom highlight on robe
+    fillRect(renderer, x + 1, y + h - 3, robeBot - 2, 2,
+             static_cast<Uint8>(sprite.color.r * 0.5f),
+             static_cast<Uint8>(sprite.color.g * 0.5f),
+             static_cast<Uint8>(sprite.color.b * 0.5f), static_cast<Uint8>(a * 0.4f));
 
     // Hood/head
     int headW = w / 2;
@@ -453,13 +558,31 @@ void RenderSystem::renderSniper(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         telegraphing = entity.getComponent<AIComponent>().isTelegraphing;
     }
 
+    // Drop shadow
+    fillRect(renderer, x + 3, y + h, w - 6, 2, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
+    // Body outline
+    fillRect(renderer, x + 3, y + h / 5 - 1, w - 6, h * 3 / 5 + 2,
+             static_cast<Uint8>(sprite.color.r * 0.35f),
+             static_cast<Uint8>(sprite.color.g * 0.35f),
+             static_cast<Uint8>(sprite.color.b * 0.35f), a);
     // Thin body
     fillRect(renderer, x + 4, y + h / 5, w - 8, h * 3 / 5,
              sprite.color.r, sprite.color.g, sprite.color.b, a);
+    // Top highlight
+    fillRect(renderer, x + 5, y + h / 5 + 1, w - 10, 2,
+             static_cast<Uint8>(std::min(255, sprite.color.r + 50)),
+             static_cast<Uint8>(std::min(255, sprite.color.g + 50)),
+             static_cast<Uint8>(std::min(255, sprite.color.b + 50)),
+             static_cast<Uint8>(a * 0.5f));
 
-    // Head (small)
+    // Head outline + fill
     int headW = w / 2;
     int headH = h / 5;
+    fillRect(renderer, x + (w - headW) / 2 - 1, y - 1, headW + 2, headH + 2,
+             static_cast<Uint8>(sprite.color.r * 0.4f),
+             static_cast<Uint8>(sprite.color.g * 0.4f),
+             static_cast<Uint8>(sprite.color.b * 0.4f), a);
     fillRect(renderer, x + (w - headW) / 2, y, headW, headH,
              sprite.color.r, sprite.color.g, sprite.color.b, a);
 
@@ -530,6 +653,9 @@ void RenderSystem::renderTeleporter(SDL_Renderer* renderer, SDL_Rect rect, Entit
     auto& sprite = entity.getComponent<SpriteComponent>();
     float time = SDL_GetTicks() * 0.004f;
 
+    // Drop shadow
+    fillRect(renderer, x + 2, y + h, w - 4, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
     // Hooded robe body (trapezoid: narrow top, wide bottom)
     int robeTopW = w / 2;
     int robeBotW = w + 4;
@@ -545,10 +671,13 @@ void RenderSystem::renderTeleporter(SDL_Renderer* renderer, SDL_Rect rect, Entit
         fillRect(renderer, rowX, rowY, rowW, 1, robeR, robeG, robeB, a);
     }
 
-    // Hood (dark purple dome)
+    // Hood outline + fill (dark purple dome)
     int hoodW = w * 2 / 3;
     int hoodH = h / 3;
+    fillRect(renderer, cx - hoodW / 2 - 1, y - 1, hoodW + 2, hoodH + 2, 30, 15, 55, a);
     fillRect(renderer, cx - hoodW / 2, y, hoodW, hoodH, 60, 30, 100, a);
+    // Hood top highlight
+    fillRect(renderer, cx - hoodW / 2 + 2, y + 1, hoodW - 4, 2, 90, 50, 140, static_cast<Uint8>(a * 0.5f));
     fillRect(renderer, cx - hoodW / 2 + 2, y + 2, hoodW - 4, hoodH / 2, 50, 25, 85, a);
 
     // Cyan-purple pulsing eyes under hood
@@ -595,14 +724,22 @@ void RenderSystem::renderReflector(SDL_Renderer* renderer, SDL_Rect rect, Entity
     bool flipped = sprite.flipX;
     float time = SDL_GetTicks() * 0.004f;
 
+    // Drop shadow
+    fillRect(renderer, x + 3, y + h, w - 6, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
+    // Body outline
+    fillRect(renderer, x, y + h / 5 - 1, w, h * 3 / 5 + 2, 80, 90, 110, a);
     // Broad silver-blue body
     fillRect(renderer, x + 1, y + h / 5, w - 2, h * 3 / 5, 140, 160, 190, a);
+    // Top highlight
+    fillRect(renderer, x + 2, y + h / 5 + 1, w - 4, 2, 180, 200, 230, static_cast<Uint8>(a * 0.6f));
     // Darker core
     fillRect(renderer, x + 3, y + h / 4, w - 6, h / 2, 100, 120, 150, a);
 
-    // Head with eye slit
+    // Head outline + fill
     int headW = w * 3 / 4;
     int headH = h / 5;
+    fillRect(renderer, cx - headW / 2 - 1, y - 1, headW + 2, headH + 2, 90, 100, 130, a);
     fillRect(renderer, cx - headW / 2, y, headW, headH, 160, 170, 200, a);
     // Eye slit (narrow horizontal line)
     fillRect(renderer, cx - headW / 3, y + headH / 2, headW * 2 / 3, 2, 200, 220, 255, a);
@@ -665,10 +802,17 @@ void RenderSystem::renderLeech(SDL_Renderer* renderer, SDL_Rect rect, Entity& en
     bool flipped = sprite.flipX;
     float time = SDL_GetTicks() * 0.005f;
 
+    // Drop shadow
+    fillRect(renderer, x + 3, y + h, w - 6, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
     // Low, wide blob body (no legs)
     int bodyY = y + h / 4;
     int bodyH = h * 3 / 4;
+    // Body outline
+    fillRect(renderer, x - 1, bodyY + 1, w + 2, bodyH - 2, 25, 50, 20, a);
     fillRect(renderer, x, bodyY + 2, w, bodyH - 4, 50, 100, 40, a);
+    // Top highlight
+    fillRect(renderer, x + 1, bodyY + 3, w - 2, 2, 80, 140, 65, static_cast<Uint8>(a * 0.5f));
     // Rounded top (slightly lighter)
     fillRect(renderer, x + 2, bodyY, w - 4, bodyH / 3, 60, 120, 50, a);
 

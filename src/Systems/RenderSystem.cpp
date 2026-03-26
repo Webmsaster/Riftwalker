@@ -217,11 +217,45 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     } else if (tag == "projectile") {
         renderProjectile(renderer, screenRect, entity, alpha);
     } else {
-        // Default: colored rectangle with outline
+        // Default: polished procedural rectangle with outline, highlight, shadow, and eye dots
         auto& sprite = entity.getComponent<SpriteComponent>();
         Uint8 a = static_cast<Uint8>(sprite.color.a * alpha);
-        fillRect(renderer, screenRect.x, screenRect.y, screenRect.w, screenRect.h,
+        int dx = screenRect.x, dy = screenRect.y, dw = screenRect.w, dh = screenRect.h;
+
+        // Drop shadow (dark oval below entity)
+        fillRect(renderer, dx + 2, dy + dh, dw - 4, 3,
+                 0, 0, 0, static_cast<Uint8>(a * 0.35f));
+
+        // Darker outline (1px border)
+        fillRect(renderer, dx, dy, dw, dh,
+                 static_cast<Uint8>(sprite.color.r * 0.4f),
+                 static_cast<Uint8>(sprite.color.g * 0.4f),
+                 static_cast<Uint8>(sprite.color.b * 0.4f), a);
+
+        // Main body fill (inset by 1px)
+        fillRect(renderer, dx + 1, dy + 1, dw - 2, dh - 2,
                  sprite.color.r, sprite.color.g, sprite.color.b, a);
+
+        // Top highlight (2px lighter band)
+        fillRect(renderer, dx + 1, dy + 1, dw - 2, 2,
+                 static_cast<Uint8>(std::min(255, sprite.color.r + 60)),
+                 static_cast<Uint8>(std::min(255, sprite.color.g + 60)),
+                 static_cast<Uint8>(std::min(255, sprite.color.b + 60)),
+                 static_cast<Uint8>(a * 0.7f));
+
+        // Bottom darkening (2px darker band)
+        fillRect(renderer, dx + 1, dy + dh - 3, dw - 2, 2,
+                 static_cast<Uint8>(sprite.color.r * 0.6f),
+                 static_cast<Uint8>(sprite.color.g * 0.6f),
+                 static_cast<Uint8>(sprite.color.b * 0.6f),
+                 static_cast<Uint8>(a * 0.5f));
+
+        // Eye dots (2 small white rectangles near top)
+        if (dw >= 8 && dh >= 8) {
+            int eyeY2 = dy + dh / 4;
+            fillRect(renderer, dx + dw / 3, eyeY2, 2, 2, 255, 255, 255, a);
+            fillRect(renderer, dx + 2 * dw / 3 - 2, eyeY2, 2, 2, 255, 255, 255, a);
+        }
     }
 
     // Hit flash: overlay when enemy just took damage (differentiated by weight class)

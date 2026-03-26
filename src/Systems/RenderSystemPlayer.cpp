@@ -89,6 +89,12 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     int x = rect.x + (rect.w - w) / 2;
     int y = rect.y + (rect.h - h);
 
+    // Drop shadow below player (dark ellipse at feet)
+    fillRect(renderer, x + 3, y + h, w - 6, 3,
+             0, 0, 0, static_cast<Uint8>(a * 0.3f));
+    fillRect(renderer, x + 5, y + h + 2, w - 10, 2,
+             0, 0, 0, static_cast<Uint8>(a * 0.15f));
+
     // Legs (state-based animation)
     int legH = h / 4;
     int legW = w / 3;
@@ -134,12 +140,26 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     Uint8 bodyR = 50, bodyG = 100, bodyB = 200;
     if (attacking) { bodyR = 220; bodyG = 200; bodyB = 80; }
 
+    // Body outline (dark border)
+    fillRect(renderer, x + 1, bodyY - 1, w - 2, bodyH + 2,
+             static_cast<Uint8>(bodyR * 0.3f), static_cast<Uint8>(bodyG * 0.3f),
+             static_cast<Uint8>(bodyB * 0.3f), a);
+    // Body fill
     fillRect(renderer, x + 2, bodyY, w - 4, bodyH, bodyR, bodyG, bodyB, a);
-    // Body highlight
+    // Body top highlight (lighter band)
+    fillRect(renderer, x + 3, bodyY + 1, w - 6, 2,
+             static_cast<Uint8>(std::min(255, bodyR + 50)),
+             static_cast<Uint8>(std::min(255, bodyG + 50)),
+             static_cast<Uint8>(std::min(255, bodyB + 40)), static_cast<Uint8>(a * 0.6f));
+    // Body side highlight (left edge)
     fillRect(renderer, x + 3, bodyY + 1, w / 3, bodyH - 2,
              static_cast<Uint8>(std::min(255, bodyR + 40)),
              static_cast<Uint8>(std::min(255, bodyG + 40)),
              static_cast<Uint8>(std::min(255, bodyB + 30)), static_cast<Uint8>(a * 0.5f));
+    // Body bottom darkening
+    fillRect(renderer, x + 2, bodyY + bodyH - 3, w - 4, 3,
+             static_cast<Uint8>(bodyR * 0.6f), static_cast<Uint8>(bodyG * 0.6f),
+             static_cast<Uint8>(bodyB * 0.6f), static_cast<Uint8>(a * 0.5f));
 
     // Chest emblem (diamond)
     int cx = x + w / 2, cy = bodyY + bodyH / 3;
@@ -151,7 +171,11 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     // Head
     int headH = h / 4;
     int headW = w - 4;
+    // Head outline
+    fillRect(renderer, x + 1, y - 1, headW + 2, headH + 2, 20, 40, 90, a);
     fillRect(renderer, x + 2, y, headW, headH, 45, 85, 180, a);
+    // Head top highlight
+    fillRect(renderer, x + 3, y + 1, headW - 2, 2, 70, 120, 210, static_cast<Uint8>(a * 0.6f));
 
     // Visor (glowing)
     int visorY = y + headH / 3;

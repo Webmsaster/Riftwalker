@@ -37,17 +37,52 @@ void RenderSystem::renderBoss(SDL_Renderer* renderer, SDL_Rect rect, Entity& ent
     fillRect(renderer, x + w - legW - 4, y + h - legH - static_cast<int>(legAnim),
              legW, legH, 100, 30, 90, a);
 
+    // Drop shadow (wide for boss)
+    fillRect(renderer, x + 4, y + h, w - 8, 4, 0, 0, 0, static_cast<Uint8>(a * 0.35f));
+    fillRect(renderer, x + 8, y + h + 3, w - 16, 2, 0, 0, 0, static_cast<Uint8>(a * 0.15f));
+
+    // Pulsing glow outline (intensifies with phase)
+    float glowPulse = 0.5f + 0.5f * std::sin(time * 2.5f * bossPhase);
+    Uint8 glowOutA = static_cast<Uint8>((60 + 40 * bossPhase) * glowPulse * alpha);
+    SDL_Rect glowOutline = {x - 3, y - 3, w + 6, h + 6};
+    SDL_SetRenderDrawColor(renderer, sprite.color.r, sprite.color.g, sprite.color.b, glowOutA);
+    SDL_RenderDrawRect(renderer, &glowOutline);
+    SDL_Rect glowOutline2 = {x - 2, y - 2, w + 4, h + 4};
+    SDL_SetRenderDrawColor(renderer,
+        static_cast<Uint8>(std::min(255, sprite.color.r + 60)),
+        static_cast<Uint8>(std::min(255, sprite.color.g + 40)),
+        static_cast<Uint8>(std::min(255, sprite.color.b + 40)),
+        static_cast<Uint8>(glowOutA * 0.6f));
+    SDL_RenderDrawRect(renderer, &glowOutline2);
+
     // Massive body
     int bodyH = h * 3 / 5;
     int bodyY = y + h / 5;
+    // Body outline
+    fillRect(renderer, x - 1, bodyY - 1, w + 2, bodyH + 2,
+             static_cast<Uint8>(sprite.color.r * 0.3f),
+             static_cast<Uint8>(sprite.color.g * 0.3f),
+             static_cast<Uint8>(sprite.color.b * 0.3f), a);
     fillRect(renderer, x, bodyY, w, bodyH, sprite.color.r, sprite.color.g, sprite.color.b, a);
+    // Body top highlight
+    fillRect(renderer, x + 1, bodyY + 1, w - 2, 3,
+             static_cast<Uint8>(std::min(255, sprite.color.r + 50)),
+             static_cast<Uint8>(std::min(255, sprite.color.g + 50)),
+             static_cast<Uint8>(std::min(255, sprite.color.b + 50)),
+             static_cast<Uint8>(a * 0.6f));
 
     // Armor plates
-    fillRect(renderer, x + 2, bodyY + 2, w - 4, bodyH / 3,
+    fillRect(renderer, x + 2, bodyY + 4, w - 4, bodyH / 3,
              static_cast<Uint8>(std::min(255, sprite.color.r + 30)),
              static_cast<Uint8>(std::min(255, sprite.color.g + 20)),
              static_cast<Uint8>(std::min(255, sprite.color.b + 20)),
              static_cast<Uint8>(a * 0.7f));
+    // Body bottom darkening
+    fillRect(renderer, x + 1, bodyY + bodyH - 4, w - 2, 3,
+             static_cast<Uint8>(sprite.color.r * 0.5f),
+             static_cast<Uint8>(sprite.color.g * 0.5f),
+             static_cast<Uint8>(sprite.color.b * 0.5f),
+             static_cast<Uint8>(a * 0.5f));
 
     // Rift core in chest (glowing)
     int coreX = x + w / 2;
@@ -63,7 +98,18 @@ void RenderSystem::renderBoss(SDL_Renderer* renderer, SDL_Rect rect, Entity& ent
     int headH = h / 4;
     int headW = w * 2 / 3;
     int headX = x + (w - headW) / 2;
+    // Head outline
+    fillRect(renderer, headX - 1, y - 1, headW + 2, headH + 2,
+             static_cast<Uint8>(sprite.color.r * 0.3f),
+             static_cast<Uint8>(sprite.color.g * 0.3f),
+             static_cast<Uint8>(sprite.color.b * 0.3f), a);
     fillRect(renderer, headX, y, headW, headH, sprite.color.r, sprite.color.g, sprite.color.b, a);
+    // Head top highlight
+    fillRect(renderer, headX + 1, y + 1, headW - 2, 2,
+             static_cast<Uint8>(std::min(255, sprite.color.r + 50)),
+             static_cast<Uint8>(std::min(255, sprite.color.g + 50)),
+             static_cast<Uint8>(std::min(255, sprite.color.b + 50)),
+             static_cast<Uint8>(a * 0.5f));
 
     // Crown spikes
     int spikeH = 8 + bossPhase * 2;
