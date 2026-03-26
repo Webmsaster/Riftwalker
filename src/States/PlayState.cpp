@@ -768,16 +768,80 @@ void PlayState::update(float dt) {
         });
     });
 
-    // Ambient dimension dust (subtle atmospheric particles)
+    // Ambient theme particles (subtle atmospheric effects matching world theme)
     m_ambientDustTimer += dt;
-    if (m_ambientDustTimer >= 0.3f) {
+    if (m_ambientDustTimer >= 0.4f) {
         m_ambientDustTimer = 0;
         if (m_player) {
             Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
-            SDL_Color dustColor = (m_dimManager.getCurrentDimension() == 1)
-                ? SDL_Color{100, 140, 220, 80}   // Dim A: blue dust
-                : SDL_Color{220, 120, 80, 80};   // Dim B: warm dust
-            m_particles.ambientDust(pPos, dustColor, 300.0f);
+            const auto& theme = (m_dimManager.getCurrentDimension() == 1) ? m_themeA : m_themeB;
+            switch (theme.id) {
+                case ThemeID::VictorianClockwork:
+                    // Golden clockwork dust drifting down
+                    m_particles.ambientThemeParticle(pPos, {180, 150, 80, 100}, 270.0f,
+                        12.0f, 2.0f, 3.5f, 20.0f);
+                    break;
+                case ThemeID::DeepOcean:
+                    // Light blue bubbles floating up
+                    m_particles.ambientThemeParticle(pPos, {100, 180, 255, 90}, 90.0f,
+                        18.0f, 2.5f, 4.0f, -30.0f);
+                    break;
+                case ThemeID::NeonCity:
+                    // Neon sparks flickering (random bright colors)
+                    {
+                        Uint8 nr = (std::rand() % 2) ? 255 : 50;
+                        Uint8 ng = (std::rand() % 2) ? 255 : 50;
+                        Uint8 nb = (std::rand() % 2) ? 255 : 50;
+                        m_particles.ambientThemeParticle(pPos, {nr, ng, nb, 140}, 0.0f,
+                            35.0f, 1.5f, 1.2f, 0.0f);
+                    }
+                    break;
+                case ThemeID::AncientRuins:
+                    // Sandy dust motes drifting slowly
+                    m_particles.ambientThemeParticle(pPos, {190, 170, 130, 70}, 250.0f,
+                        8.0f, 1.5f, 4.0f, 10.0f);
+                    break;
+                case ThemeID::CrystalCavern:
+                    // Shimmering crystal sparkles
+                    m_particles.ambientThemeParticle(pPos, {200, 220, 255, 130}, 90.0f,
+                        10.0f, 1.0f, 2.0f, -5.0f);
+                    break;
+                case ThemeID::BioMechanical:
+                    // Green toxic drips falling
+                    m_particles.ambientThemeParticle(pPos, {80, 220, 60, 110}, 270.0f,
+                        25.0f, 2.0f, 2.5f, 60.0f);
+                    break;
+                case ThemeID::FrozenWasteland:
+                    // White snowflakes drifting down with slight wind
+                    m_particles.ambientThemeParticle(pPos, {230, 240, 255, 100}, 250.0f,
+                        14.0f, 2.0f, 5.0f, 8.0f);
+                    break;
+                case ThemeID::VolcanicCore:
+                    // Orange embers rising
+                    m_particles.ambientThemeParticle(pPos, {255, 130, 30, 120}, 90.0f,
+                        20.0f, 2.0f, 3.0f, -40.0f);
+                    break;
+                case ThemeID::FloatingIslands:
+                    // Faint wind wisps (horizontal drift)
+                    m_particles.ambientThemeParticle(pPos, {200, 220, 240, 60}, 0.0f,
+                        22.0f, 1.5f, 3.5f, -10.0f);
+                    break;
+                case ThemeID::VoidRealm:
+                    // Purple void particles swirling
+                    m_particles.ambientThemeParticle(pPos, {160, 60, 220, 110}, 180.0f,
+                        16.0f, 2.5f, 3.0f, 0.0f);
+                    break;
+                case ThemeID::SpaceWestern:
+                    // Dusty orange particles drifting with wind
+                    m_particles.ambientThemeParticle(pPos, {210, 160, 90, 80}, 350.0f,
+                        12.0f, 2.0f, 3.5f, 15.0f);
+                    break;
+                case ThemeID::Biopunk:
+                    // Green bioluminescent spores floating up
+                    m_particles.ambientThemeParticle(pPos, {100, 255, 80, 100}, 100.0f,
+                        10.0f, 2.0f, 4.5f, -20.0f);
+                    break;
+            }
         }
     }
 

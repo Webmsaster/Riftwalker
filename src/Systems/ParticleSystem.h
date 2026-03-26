@@ -49,6 +49,10 @@ public:
     void damageEffect(Vec2 pos, SDL_Color color);
     void weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, float intensity = 1.0f);
     void ambientDust(Vec2 pos, SDL_Color color, float radius = 200.0f);
+    void ambientThemeParticle(Vec2 pos, SDL_Color color, float dirDeg = 270.0f,
+                              float speed = 15.0f, float size = 2.0f,
+                              float lifetime = 3.0f, float gravity = 0.0f,
+                              float radius = 300.0f);
     void clear();
 
 private:

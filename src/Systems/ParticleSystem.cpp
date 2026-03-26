@@ -214,6 +214,26 @@ void ParticleSystem::ambientDust(Vec2 pos, SDL_Color color, float radius) {
     addEmitter(e);
 }
 
+void ParticleSystem::ambientThemeParticle(Vec2 pos, SDL_Color color, float dirDeg,
+                                          float speed, float size, float lifetime,
+                                          float gravity, float radius) {
+    ParticleEmitter e;
+    e.position = {pos.x + randFloat(-radius, radius), pos.y + randFloat(-radius, radius)};
+    e.colorStart = color;
+    e.colorEnd = {color.r, color.g, color.b, 0};
+    e.burstCount = 1;
+    e.speed = speed;
+    e.speedVariance = speed * 0.4f;
+    e.lifetime = lifetime;
+    e.lifetimeVariance = lifetime * 0.3f;
+    e.size = size;
+    e.sizeDecay = size * 0.3f;
+    e.direction = dirDeg;
+    e.spread = 40.0f;
+    e.gravity = gravity;
+    addEmitter(e);
+}
+
 void ParticleSystem::addEmitter(const ParticleEmitter& emitter) {
     m_emitters.push_back(emitter);
 }
