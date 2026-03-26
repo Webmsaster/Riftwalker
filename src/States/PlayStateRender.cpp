@@ -564,6 +564,9 @@ void PlayState::render(SDL_Renderer* renderer) {
         }
     }
 
+    // Kill streak notification (centered, above mid-screen)
+    renderKillStreak(renderer, game->getFont());
+
     // HUD (on top of everything)
     m_hud.setFloor(m_currentDifficulty);
     m_hud.setKillCount(enemiesKilled);

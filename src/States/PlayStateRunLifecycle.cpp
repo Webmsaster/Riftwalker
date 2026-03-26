@@ -205,6 +205,10 @@ void PlayState::startNewRun() {
     m_spikeDmgCooldown = 0;
     m_waveClearTriggered = false;
     m_waveClearTimer = 0;
+    m_killStreakTimer = 0;
+    m_killStreakCount = 0;
+    m_killStreakDisplayTimer = 0;
+    m_killStreakText.clear();
     m_playerDying = false;
     m_deathSequenceTimer = 0;
     m_deathCause = 0;
@@ -695,6 +699,11 @@ void PlayState::endRun() {
 
 void PlayState::abandonRun() {
     finalizeRun(true);
+}
+
+void PlayState::requestRestart() {
+    m_pendingRestart = true;
+    game->popState(); // Pop the pause overlay so update() runs
 }
 
 void PlayState::populateRunSummary(int runShards, bool isNewRecord) {

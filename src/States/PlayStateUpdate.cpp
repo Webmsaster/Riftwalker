@@ -994,6 +994,35 @@ void PlayState::updateKillEffects() {
     game->getUpgradeSystem().totalEnemiesKilled += m_combatSystem.killCount;
     m_screenEffects.triggerKillFlash();
 
+    // Kill streak tracking: chain kills within 3 seconds
+    for (int k = 0; k < m_combatSystem.killCount; k++) {
+        if (m_killStreakTimer > 0) {
+            m_killStreakCount++;
+        } else {
+            m_killStreakCount = 1;
+        }
+        m_killStreakTimer = 3.0f;
+
+        // Escalating streak thresholds
+        if (m_killStreakCount >= 12) {
+            m_killStreakText = "GODLIKE!";
+            m_killStreakColor = {255, 40, 40, 255};
+            m_killStreakDisplayTimer = 2.0f;
+        } else if (m_killStreakCount >= 8) {
+            m_killStreakText = "UNSTOPPABLE!";
+            m_killStreakColor = {255, 160, 30, 255};
+            m_killStreakDisplayTimer = 1.5f;
+        } else if (m_killStreakCount >= 5) {
+            m_killStreakText = "RAMPAGE!";
+            m_killStreakColor = {255, 220, 50, 255};
+            m_killStreakDisplayTimer = 1.5f;
+        } else if (m_killStreakCount >= 3) {
+            m_killStreakText = "TRIPLE KILL!";
+            m_killStreakColor = {255, 255, 255, 255};
+            m_killStreakDisplayTimer = 1.5f;
+        }
+    }
+
     // Relic on-kill effects
     if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
         auto& relics = m_player->getEntity()->getComponent<RelicComponent>();

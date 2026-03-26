@@ -200,6 +200,13 @@ void PlayState::update(float dt) {
     ZoneScopedN("PlayStateUpdate");
     if (!m_player || !m_level) return;
 
+    // Quick restart requested from pause menu
+    if (m_pendingRestart) {
+        m_pendingRestart = false;
+        startNewRun();
+        return;
+    }
+
     // Generate level FIRST after returning from shop (before any gameplay logic)
     // This prevents stale state (old collapsing/exit) from triggering false completions
     if (m_pendingLevelGen) {
@@ -500,6 +507,15 @@ void PlayState::update(float dt) {
         }
     }
     if (m_waveClearTimer > 0) m_waveClearTimer -= dt;
+
+    // Kill streak timers
+    if (m_killStreakTimer > 0) {
+        m_killStreakTimer -= dt;
+        if (m_killStreakTimer <= 0) {
+            m_killStreakCount = 0;
+        }
+    }
+    if (m_killStreakDisplayTimer > 0) m_killStreakDisplayTimer -= dt;
 
     // Zone transition banner timer
     if (m_zoneTransitionActive) {

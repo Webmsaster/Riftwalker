@@ -78,6 +78,7 @@ public:
     CombatSystem& getCombatSystem() { return m_combatSystem; }
     bool isBossLevel() const { return m_isBossLevel; }
     void abandonRun();
+    void requestRestart();  // Quick restart from pause menu
 
 private:
     void startNewRun();
@@ -175,6 +176,14 @@ private:
     float m_conveyorParticleTimer = 0;
     float m_heartbeatTimer = 0;  // Low HP heartbeat SFX interval
 
+    // Kill streak notification
+    float m_killStreakTimer = 0;          // time window for chaining kills (3s)
+    int m_killStreakCount = 0;            // current streak count
+    float m_killStreakDisplayTimer = 0;   // how long to show the streak text
+    std::string m_killStreakText;         // e.g. "TRIPLE KILL!"
+    SDL_Color m_killStreakColor{255, 255, 255, 255}; // color per tier
+    void renderKillStreak(SDL_Renderer* renderer, TTF_Font* font);
+
     // Wave/area clear celebration
     float m_waveClearTimer = 0;       // text overlay duration (2s)
     bool m_waveClearTriggered = false; // prevent re-trigger until new enemies spawn
@@ -244,6 +253,9 @@ private:
 
     // Teleporter cooldown (reset per run)
     float m_teleportCooldown = 0;
+
+    // Deferred actions (checked at top of update)
+    bool m_pendingRestart = false;
 
     // Shop / Run buffs
     bool m_pendingLevelGen = false;

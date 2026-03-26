@@ -20,25 +20,38 @@ static constexpr int BOTTOM_BAR_Y = 720 - 3; // SCREEN_HEIGHT - 3
 
 void PauseState::enter() {
     int cx = 640;
-    int startY = 320;
+    int startY = 300;
     int btnW = 240;
-    int btnH = 48;
-    int gap = 12;
+    int btnH = 44;
+    int gap = 10;
 
     m_buttons.clear();
     m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, "Resume");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 1, btnW, btnH, "Daily Leaderboard");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Options");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Abandon Run");
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, "Quit to Menu");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 1, btnW, btnH, "Restart Run");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, "Daily Leaderboard");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, "Options");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, "Abandon Run");
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 5, btnW, btnH, "Quit to Menu");
 
     m_buttons[0].onClick = [this]() { game->popState(); };
-    m_buttons[1].onClick = [this]() { game->pushState(StateID::DailyLeaderboard); };
-    m_buttons[2].onClick = [this]() { game->pushState(StateID::Options); };
-    m_buttons[3].onClick = [this]() {
+    m_buttons[1].onClick = [this]() {
+        if (!m_confirmRestart) {
+            m_confirmRestart = true;
+            m_buttons[1].setText("Restart? Progress lost!");
+            return;
+        }
+        if (auto* playState = dynamic_cast<PlayState*>(game->getState(StateID::Play))) {
+            playState->requestRestart();
+            return;
+        }
+        game->changeState(StateID::Menu);
+    };
+    m_buttons[2].onClick = [this]() { game->pushState(StateID::DailyLeaderboard); };
+    m_buttons[3].onClick = [this]() { game->pushState(StateID::Options); };
+    m_buttons[4].onClick = [this]() {
         if (!m_confirmAbandon) {
             m_confirmAbandon = true;
-            m_buttons[3].setText("Confirm Abandon?");
+            m_buttons[4].setText("Confirm Abandon?");
             return;
         }
         if (auto* playState = dynamic_cast<PlayState*>(game->getState(StateID::Play))) {
@@ -47,10 +60,11 @@ void PauseState::enter() {
         }
         game->changeState(StateID::Menu);
     };
-    m_buttons[4].onClick = [this]() { game->changeState(StateID::Menu); };
+    m_buttons[5].onClick = [this]() { game->changeState(StateID::Menu); };
 
     m_selectedButton = 0;
     m_buttons[0].setSelected(true);
+    m_confirmRestart = false;
 }
 
 void PauseState::handleEvent(const SDL_Event& event) {
@@ -64,14 +78,16 @@ void PauseState::handleEvent(const SDL_Event& event) {
                 m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
                 m_buttons[m_selectedButton].setSelected(true);
                 AudioManager::instance().play(SFX::MenuSelect);
-                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[3].setText("Abandon Run"); }
+                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText("Abandon Run"); }
+                if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText("Restart Run"); }
                 break;
             case SDL_SCANCODE_S: case SDL_SCANCODE_DOWN:
                 m_buttons[m_selectedButton].setSelected(false);
                 m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
                 m_buttons[m_selectedButton].setSelected(true);
                 AudioManager::instance().play(SFX::MenuSelect);
-                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[3].setText("Abandon Run"); }
+                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText("Abandon Run"); }
+                if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText("Restart Run"); }
                 break;
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
                 AudioManager::instance().play(SFX::MenuConfirm);
@@ -91,7 +107,8 @@ void PauseState::handleEvent(const SDL_Event& event) {
                     m_selectedButton = i;
                     m_buttons[m_selectedButton].setSelected(true);
                     AudioManager::instance().play(SFX::MenuSelect);
-                    if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[3].setText("Abandon Run"); }
+                    if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText("Abandon Run"); }
+                    if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText("Restart Run"); }
                 }
                 break;
             }
@@ -126,14 +143,16 @@ void PauseState::update(float dt) {
         m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
         m_buttons[m_selectedButton].setSelected(true);
         AudioManager::instance().play(SFX::MenuSelect);
-        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[3].setText("Abandon Run"); }
+        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText("Abandon Run"); }
+        if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText("Restart Run"); }
     }
     if (input.isActionPressed(Action::MenuDown)) {
         m_buttons[m_selectedButton].setSelected(false);
         m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
         m_buttons[m_selectedButton].setSelected(true);
         AudioManager::instance().play(SFX::MenuSelect);
-        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[3].setText("Abandon Run"); }
+        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText("Abandon Run"); }
+        if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText("Restart Run"); }
     }
     if (input.isActionPressed(Action::Confirm)) {
         AudioManager::instance().play(SFX::MenuConfirm);
@@ -232,8 +251,21 @@ void PauseState::render(SDL_Renderer* renderer) {
 
     // Buttons
     for (int i = 0; i < static_cast<int>(m_buttons.size()); i++) {
+        // Highlight Restart Run button in orange while confirming
+        if (i == 1 && m_confirmRestart) {
+            SDL_Color savedNormal = m_buttons[i].normalColor;
+            SDL_Color savedSelected = m_buttons[i].selectedColor;
+            SDL_Color savedText = m_buttons[i].textColor;
+            m_buttons[i].normalColor   = {120, 80, 10, 255};
+            m_buttons[i].selectedColor = {200, 130, 20, 255};
+            m_buttons[i].textColor     = {255, 220, 150, 255};
+            m_buttons[i].render(renderer, font);
+            m_buttons[i].normalColor   = savedNormal;
+            m_buttons[i].selectedColor = savedSelected;
+            m_buttons[i].textColor     = savedText;
+        }
         // Highlight Abandon Run button in red while confirming
-        if (i == 3 && m_confirmAbandon) {
+        else if (i == 4 && m_confirmAbandon) {
             SDL_Color savedNormal = m_buttons[i].normalColor;
             SDL_Color savedSelected = m_buttons[i].selectedColor;
             SDL_Color savedText = m_buttons[i].textColor;

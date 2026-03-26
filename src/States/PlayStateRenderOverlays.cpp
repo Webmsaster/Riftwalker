@@ -1013,3 +1013,56 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_RenderFillRect(renderer, &line);
     }
 }
+
+void PlayState::renderKillStreak(SDL_Renderer* renderer, TTF_Font* font) {
+    if (m_killStreakDisplayTimer <= 0 || m_killStreakText.empty() || !font) return;
+
+    // Fade out during last 0.4 seconds
+    float alpha = 1.0f;
+    if (m_killStreakDisplayTimer < 0.4f) {
+        alpha = m_killStreakDisplayTimer / 0.4f;
+    }
+    Uint8 a = static_cast<Uint8>(alpha * 255);
+
+    // Slight scale pulse based on remaining time
+    float pulse = 1.0f + 0.06f * std::sin(m_killStreakDisplayTimer * 10.0f);
+
+    // GODLIKE tier gets a glow background
+    bool isGodlike = (m_killStreakCount >= 12);
+    if (isGodlike) {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        Uint8 glowA = static_cast<Uint8>(alpha * 40);
+        SDL_SetRenderDrawColor(renderer, 255, 30, 30, glowA);
+        int glowW = 320;
+        int glowH = 60;
+        SDL_Rect glow = {SCREEN_WIDTH / 2 - glowW / 2, SCREEN_HEIGHT / 4 - glowH / 2, glowW, glowH};
+        SDL_RenderFillRect(renderer, &glow);
+    }
+
+    // Render streak text centered, above screen middle
+    SDL_Color col = {m_killStreakColor.r, m_killStreakColor.g, m_killStreakColor.b, a};
+    SDL_Surface* surf = TTF_RenderText_Blended(font, m_killStreakText.c_str(), col);
+    if (surf) {
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+        if (tex) {
+            float scale = 2.2f * pulse;
+            int w = static_cast<int>(surf->w * scale);
+            int h = static_cast<int>(surf->h * scale);
+            SDL_Rect dst = {SCREEN_WIDTH / 2 - w / 2, SCREEN_HEIGHT / 4 - h / 2, w, h};
+            SDL_SetTextureAlphaMod(tex, a);
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+        }
+        SDL_FreeSurface(surf);
+    }
+
+    // Accent line under the text
+    if (a > 30) {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        int lineW = static_cast<int>(160 * alpha * pulse);
+        SDL_SetRenderDrawColor(renderer, m_killStreakColor.r, m_killStreakColor.g,
+                               m_killStreakColor.b, static_cast<Uint8>(a * 0.6f));
+        SDL_Rect line = {SCREEN_WIDTH / 2 - lineW / 2, SCREEN_HEIGHT / 4 + 18, lineW, 2};
+        SDL_RenderFillRect(renderer, &line);
+    }
+}
