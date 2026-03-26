@@ -688,6 +688,12 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     int sparkCount = (isCrit && isPlayer) ? 8 : (3 + comboStage);
                     m_particles->burst(hitPos, sparkCount, {255, 255, 255, 255}, 80.0f, 1.5f);
 
+                    // Crit finisher: gold flash + extra radial gold burst
+                    if (isCrit && isPlayer) {
+                        m_camera->flash(0.07f, 255, 220, 100); // brief gold flash
+                        m_particles->burst(hitPos, 12, {255, 200, 60, 255}, 300.0f, 3.5f);
+                    }
+
                     // Combo finisher (3rd hit): extra visual punch + audio
                     if (isPlayer && comboStage == 2 && !isDashAttack && !isCrit) {
                         m_camera->flash(0.1f);  // brief white screen flash

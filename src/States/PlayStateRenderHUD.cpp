@@ -926,7 +926,7 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
         } else if (dn.isPlayerDamage) {
             color = {255, 60, 40, alpha};
         } else if (dn.isCritical) {
-            color = {255, 180, 40, alpha};
+            color = {255, 215, 50, alpha}; // bright gold
         } else {
             color = {255, 240, 100, alpha};
         }
@@ -957,7 +957,7 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
                 if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
                     scale = 1.8f; // biggest text in the game
                 } else if (dn.isCritical) {
-                    scale = 1.5f;
+                    scale = 1.8f;
                 } else if (dn.value > 20) {
                     scale = 1.3f;
                 }
