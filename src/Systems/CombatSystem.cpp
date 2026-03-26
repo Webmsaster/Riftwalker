@@ -679,6 +679,14 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     // Small white sparks at impact point
                     int sparkCount = (isCrit && isPlayer) ? 8 : (3 + comboStage);
                     m_particles->burst(hitPos, sparkCount, {255, 255, 255, 255}, 80.0f, 1.5f);
+
+                    // Combo finisher (3rd hit): extra visual punch
+                    if (isPlayer && comboStage == 2 && !isDashAttack && !isCrit) {
+                        m_camera->flash(0.1f);  // brief white screen flash
+                        m_particles->burst(hitPos, 15, {255, 240, 150, 255}, 250.0f, 4.0f); // gold burst
+                        m_particles->directionalBurst(hitPos, 8, {255, 255, 220, 255},
+                            hitDirDeg, 15.0f, 350.0f, 2.5f); // tight slash line
+                    }
                 }
             }
 
