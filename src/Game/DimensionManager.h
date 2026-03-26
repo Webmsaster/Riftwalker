@@ -17,6 +17,7 @@ public:
     bool isSwitching() const { return m_switching; }
     int getSwitchCount() const { return m_switchCount; }
     float getCooldownTimer() const { return m_cooldownTimer; }
+    float getGlitchIntensity() const { return m_glitchIntensity; }
 
     // Colors per dimension
     SDL_Color getDimColorA() const { return m_dimColorA; }

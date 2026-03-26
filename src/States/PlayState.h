@@ -94,6 +94,7 @@ private:
 
     // Render helper methods extracted from render()
     void renderCollapseWarning(SDL_Renderer* renderer);
+    void renderDimensionBorder(SDL_Renderer* renderer);
     void renderRiftProgress(SDL_Renderer* renderer);
     void renderDeathSequence(SDL_Renderer* renderer);
     void renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* font);

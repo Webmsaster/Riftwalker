@@ -534,6 +534,25 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
     }
 }
 
+void PlayState::renderDimensionBorder(SDL_Renderer* renderer) {
+    int dim = m_dimManager.getCurrentDimension();
+    // Dim A = cool blue/purple, Dim B = warm red
+    SDL_Color c = (dim == 1) ? SDL_Color{60, 80, 180, 40} : SDL_Color{180, 60, 60, 40};
+
+    // Brief flash after dimension switch (glitch intensity decays over ~0.33s)
+    float glitch = m_dimManager.getGlitchIntensity();
+    if (glitch > 0) {
+        c.a = static_cast<Uint8>(std::min(255, static_cast<int>(c.a) + static_cast<int>(80 * glitch)));
+    }
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+    for (int i = 0; i < 2; i++) {
+        SDL_Rect r = {i, i, SCREEN_WIDTH - 2 * i, SCREEN_HEIGHT - 2 * i};
+        SDL_RenderDrawRect(renderer, &r);
+    }
+}
+
 void PlayState::render(SDL_Renderer* renderer) {
     ZoneScopedN("PlayStateRender");
     // Parallax background
@@ -598,6 +617,9 @@ void PlayState::render(SDL_Renderer* renderer) {
 
     // Dimension switch visual effect
     m_dimManager.applyVisualEffect(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    // Dimension border tint (subtle color cue for current dimension)
+    renderDimensionBorder(renderer);
 
     // Entropy visual effects
     m_entropy.applyVisualEffects(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
