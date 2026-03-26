@@ -16,6 +16,7 @@
 #include "Game/RelicSynergy.h"
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 void HUD::updateFlash(float dt) {
     if (m_damageFlash > 0) m_damageFlash -= dt;
@@ -1067,63 +1068,51 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         SDL_RenderFillRect(renderer, &fFill);
     }
 
-    // Floor indicator + Rift Shards (top right)
+    // Floor / Zone + Rift Shards — compact info strip below minimap
     {
-        int shardX = screenW - 170;
-        int shardY = margin;
+        const int infoX = screenW - 170;
+        const int infoY = m_showMinimap ? 130 : 12;
+        const int zone  = std::clamp((m_currentFloor - 1) / 6, 0, 4) + 1;
 
-        // Floor indicator (above shards)
+        // Background panel
+        SDL_Rect infoBg = {infoX - 5, infoY - 2, 170, 36};
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 90);
+        SDL_RenderFillRect(renderer, &infoBg);
+
         if (font) {
-            char floorText[32];
+            // Line 1: "F12 / Zone 2"  (boss floors pulse red)
+            char floorText[48];
             bool isBoss = (m_currentFloor % 3 == 0);
             if (isBoss) {
-                if (m_currentFloor == 12) {
-                    std::snprintf(floorText, sizeof(floorText), "FLOOR 12 - FINAL BOSS");
-                } else {
-                    std::snprintf(floorText, sizeof(floorText), "FLOOR %d - BOSS", m_currentFloor);
-                }
+                std::snprintf(floorText, sizeof(floorText), "F%d / Zone %d  BOSS", m_currentFloor, zone);
                 float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
-                Uint8 a = static_cast<Uint8>(255 * pulse);
-                renderText(renderer, font, floorText, shardX - 10, shardY - 20, {255, 80, 60, a});
+                Uint8 a = static_cast<Uint8>(220 * pulse);
+                renderText(renderer, font, floorText, infoX, infoY, {255, 80, 60, a});
             } else {
-                std::snprintf(floorText, sizeof(floorText), "FLOOR %d", m_currentFloor);
-                renderText(renderer, font, floorText, shardX + 20, shardY - 20, {180, 180, 200, 200});
+                std::snprintf(floorText, sizeof(floorText), "F%d / Zone %d", m_currentFloor, zone);
+                renderText(renderer, font, floorText, infoX, infoY, {180, 180, 200, 180});
             }
 
-            // Kill counter
-            char killText[32];
-            std::snprintf(killText, sizeof(killText), "Kills: %d", m_killCount);
-            renderText(renderer, font, killText, shardX + 100, shardY - 20, {200, 160, 160, 160});
+            // Kill count + NG+ on same line (right side)
+            char extraText[32];
+            if (g_newGamePlusLevel > 0)
+                std::snprintf(extraText, sizeof(extraText), "K:%d NG+%d", m_killCount, g_newGamePlusLevel);
+            else
+                std::snprintf(extraText, sizeof(extraText), "K:%d", m_killCount);
+            renderText(renderer, font, extraText, infoX + 100, infoY, {200, 160, 160, 150});
 
-            // NG+ indicator
-            if (g_newGamePlusLevel > 0) {
-                char ngText[16];
-                std::snprintf(ngText, sizeof(ngText), "NG+%d", g_newGamePlusLevel);
-                float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.006f);
-                Uint8 a = static_cast<Uint8>(255 * pulse);
-                renderText(renderer, font, ngText, shardX + 180, shardY - 20, {200, 120, 255, a});
-            }
-        }
+            // Line 2: diamond icon + shard count
+            int iy2 = infoY + 17;
+            int ix = infoX + 6, iy = iy2 + 6;
+            SDL_SetRenderDrawColor(renderer, 180, 130, 255, 200);
+            SDL_RenderDrawLine(renderer, ix, iy - 5, ix + 5, iy);
+            SDL_RenderDrawLine(renderer, ix + 5, iy, ix, iy + 5);
+            SDL_RenderDrawLine(renderer, ix, iy + 5, ix - 5, iy);
+            SDL_RenderDrawLine(renderer, ix - 5, iy, ix, iy - 5);
 
-        SDL_Rect shardBg = {shardX - 5, shardY - 3, 165, 26};
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 80);
-        SDL_RenderFillRect(renderer, &shardBg);
-
-        // Diamond shard icon
-        int ix = shardX + 6, iy = shardY + 10;
-        SDL_SetRenderDrawColor(renderer, 180, 130, 255, 255);
-        SDL_RenderDrawLine(renderer, ix, iy - 6, ix + 6, iy);
-        SDL_RenderDrawLine(renderer, ix + 6, iy, ix, iy + 6);
-        SDL_RenderDrawLine(renderer, ix, iy + 6, ix - 6, iy);
-        SDL_RenderDrawLine(renderer, ix - 6, iy, ix, iy - 6);
-        SDL_SetRenderDrawColor(renderer, 150, 100, 230, 180);
-        SDL_Rect diamondInner = {ix - 3, iy - 3, 6, 6};
-        SDL_RenderFillRect(renderer, &diamondInner);
-
-        if (font) {
             char shardText[32];
-            std::snprintf(shardText, sizeof(shardText), "%d Shards", riftShards);
-            renderText(renderer, font, shardText, shardX + 20, shardY, {200, 170, 255, 255});
+            std::snprintf(shardText, sizeof(shardText), "%d", riftShards);
+            renderText(renderer, font, shardText, infoX + 16, iy2, {200, 170, 255, 180});
         }
     }
 
