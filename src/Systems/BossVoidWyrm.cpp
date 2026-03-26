@@ -109,7 +109,7 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityMa
                             if (!hp.isInvincible()) {
                                 hp.takeDamage(8.0f);
                                 if (m_combatSystem)
-                                    m_combatSystem->addDamageEvent(tPos, 8.0f, true);
+                                    m_combatSystem->addDamageEvent(tPos, 8.0f, true, false, false, pos);
                             }
                         }
                     });
@@ -173,7 +173,7 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityMa
                             float dmg = 18.0f * falloff;
                             hp.takeDamage(dmg);
                             if (m_combatSystem)
-                                m_combatSystem->addDamageEvent(tPos, dmg, true);
+                                m_combatSystem->addDamageEvent(tPos, dmg, true, false, false, pos);
                         }
                         if (target.hasComponent<PhysicsBody>()) {
                             Vec2 knockDir = (tPos - pos).normalized();

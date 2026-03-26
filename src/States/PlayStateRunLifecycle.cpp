@@ -239,6 +239,7 @@ void PlayState::generateLevel() {
     m_entities.clear();
     m_particles.clear();
     m_damageNumbers.clear();
+    m_damageIndicators.clear();
     m_trails.clear();
 
     m_levelGen.setThemes(m_themeA, m_themeB);

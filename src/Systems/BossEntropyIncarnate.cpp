@@ -102,7 +102,7 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, Vec2 playerPos, 
                                     float dmg = 10.0f + ai.bossPhase * 3.0f;
                                     thp.takeDamage(dmg);
                                     if (m_combatSystem)
-                                        m_combatSystem->addDamageEvent(tPos, dmg, true);
+                                        m_combatSystem->addDamageEvent(tPos, dmg, true, false, false, pos);
                                 }
                             }
                             // Knockback
@@ -419,7 +419,7 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, Vec2 playerPos, 
                     if (!thp.isInvincible()) {
                         thp.takeDamage(20.0f);
                         if (m_combatSystem)
-                            m_combatSystem->addDamageEvent(tPos, 20.0f, true);
+                            m_combatSystem->addDamageEvent(tPos, 20.0f, true, false, false, pos);
                     }
                 }
                 if (target.hasComponent<PhysicsBody>()) {

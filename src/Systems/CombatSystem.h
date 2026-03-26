@@ -14,6 +14,7 @@ struct DamageEvent {
     bool isPlayerDamage; // true = player took damage, false = enemy took damage
     bool isCritical = false;
     bool feedbackHandled = false; // true = source already did shake/flash/SFX
+    Vec2 sourcePos{0, 0}; // World position of damage source (for directional indicators)
 };
 
 struct KillEvent {
@@ -65,8 +66,8 @@ public:
     // Hit-freeze: returns accumulated freeze time and resets
     float consumeHitFreeze();
     void addHitFreeze(float amount) { m_pendingHitFreeze += amount; }
-    void addDamageEvent(Vec2 pos, float dmg, bool isPlayerDmg, bool isCrit = false, bool fbHandled = false) {
-        m_damageEvents.push_back({pos, dmg, isPlayerDmg, isCrit, fbHandled});
+    void addDamageEvent(Vec2 pos, float dmg, bool isPlayerDmg, bool isCrit = false, bool fbHandled = false, Vec2 srcPos = {0, 0}) {
+        m_damageEvents.push_back({pos, dmg, isPlayerDmg, isCrit, fbHandled, srcPos});
     }
 
     // Damage events for floating numbers

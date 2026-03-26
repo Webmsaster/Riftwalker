@@ -454,9 +454,11 @@ void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
                 hp.takeDamage(finalDmg);
                 // Track damage event for floating numbers + achievement tracking
                 if (other->hasComponent<TransformComponent>()) {
+                    Vec2 srcPos = self->hasComponent<TransformComponent>()
+                        ? self->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
                     cs->m_damageEvents.push_back({
                         other->getComponent<TransformComponent>().getCenter(),
-                        finalDmg, isPlayerDamage, false
+                        finalDmg, isPlayerDamage, false, false, srcPos
                     });
                 }
                 // Impact particles at hit location

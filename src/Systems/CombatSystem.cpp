@@ -496,7 +496,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             if (shieldBlocked) {
                 float actualDmg = damage * 0.1f;
                 hp.takeDamage(actualDmg);
-                m_damageEvents.push_back({targetCenter, actualDmg, !isPlayer, false});
+                m_damageEvents.push_back({targetCenter, actualDmg, !isPlayer, false, false, transform.getCenter()});
                 if (m_particles) {
                     Vec2 shieldPos = {targetCenter.x + (target.getComponent<AIComponent>().facingRight ? 16.0f : -16.0f),
                                       targetCenter.y};
@@ -509,7 +509,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 bool targetIsPlayer = (!isPlayer && target.getTag() == "player");
                 if (targetIsPlayer && hp.isInvincible()) return;
                 hp.takeDamage(damage);
-                m_damageEvents.push_back({targetCenter, damage, !isPlayer, isCrit});
+                m_damageEvents.push_back({targetCenter, damage, !isPlayer, isCrit, false, transform.getCenter()});
 
                 // Combo-stage knockback variation (player only)
                 int comboStage = (isPlayer && combat.comboCount > 0) ? ((combat.comboCount - 1) % 3) : 0;

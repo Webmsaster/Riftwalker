@@ -506,6 +506,9 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Damage flash overlay
     m_hud.renderFlash(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+    // Directional damage indicators (red edge flash toward damage source)
+    renderDamageIndicators(renderer);
+
     // Camera screen flash (boss death white flash, etc.)
     {
         float flashAlpha = m_camera.getFlashAlpha();

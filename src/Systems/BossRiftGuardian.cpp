@@ -72,7 +72,7 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
                         if (!hp.isInvincible()) {
                             hp.takeDamage(15.0f);
                             if (m_combatSystem)
-                                m_combatSystem->addDamageEvent(tPos, 15.0f, true);
+                                m_combatSystem->addDamageEvent(tPos, 15.0f, true, false, false, pos);
                         }
                     }
                 }
@@ -318,7 +318,7 @@ void AISystem::updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManage
                         float dmg = 20.0f * falloff;
                         hp.takeDamage(dmg);
                         if (m_combatSystem)
-                            m_combatSystem->addDamageEvent(tPos, dmg, true);
+                            m_combatSystem->addDamageEvent(tPos, dmg, true, false, false, pos);
                     }
                     if (target.hasComponent<PhysicsBody>()) {
                         target.getComponent<PhysicsBody>().velocity.y = -300.0f * falloff;

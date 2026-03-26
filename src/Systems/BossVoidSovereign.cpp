@@ -89,7 +89,7 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, Ent
                                 if (!hp.isInvincible()) {
                                     hp.takeDamage(35.0f);
                                     if (m_combatSystem)
-                                        m_combatSystem->addDamageEvent(tPos, 35.0f, true);
+                                        m_combatSystem->addDamageEvent(tPos, 35.0f, true, false, false, pos);
                                 }
                             }
                             if (target.hasComponent<PhysicsBody>()) {

@@ -1066,3 +1066,84 @@ void PlayState::renderKillStreak(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_RenderFillRect(renderer, &line);
     }
 }
+
+// --- Directional Damage Indicators ---
+
+void PlayState::updateDamageIndicators(float dt) {
+    for (auto it = m_damageIndicators.begin(); it != m_damageIndicators.end(); ) {
+        it->timer -= dt;
+        if (it->timer <= 0) {
+            it = m_damageIndicators.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void PlayState::renderDamageIndicators(SDL_Renderer* renderer) {
+    if (m_damageIndicators.empty()) return;
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    constexpr int kEdgeThickness = 32;   // How thick the edge bar is
+    constexpr int kEdgeFadeInner = 20;   // Extra gradient fade toward center
+
+    for (auto& ind : m_damageIndicators) {
+        float alpha = ind.timer / ind.maxTimer; // 1.0 -> 0.0
+        // Quick fade-in, slow fade-out
+        float displayAlpha = (alpha > 0.8f) ? (1.0f - alpha) / 0.2f : alpha / 0.8f;
+        displayAlpha = std::min(1.0f, displayAlpha);
+
+        // Determine which screen edge(s) to light up based on angle
+        // angle: 0=right, PI=left, PI/2=down, -PI/2=up
+        float ax = std::cos(ind.angle); // positive = right
+        float ay = std::sin(ind.angle); // positive = down
+
+        // Weight for each edge (smooth blending between edges)
+        float rightW = std::max(0.0f, ax);
+        float leftW  = std::max(0.0f, -ax);
+        float downW  = std::max(0.0f, ay);
+        float upW    = std::max(0.0f, -ay);
+
+        // Normalize so the strongest direction = 1.0
+        float maxW = std::max({rightW, leftW, downW, upW, 0.001f});
+        rightW /= maxW;
+        leftW  /= maxW;
+        downW  /= maxW;
+        upW    /= maxW;
+
+        // Only draw edges with significant weight
+        auto drawEdge = [&](float weight, int x, int y, int w, int h,
+                            int fadeX, int fadeY, int fadeW, int fadeH) {
+            if (weight < 0.1f) return;
+            Uint8 a = static_cast<Uint8>(std::min(255.0f, weight * displayAlpha * 180.0f));
+            if (a < 2) return;
+            // Solid edge bar
+            SDL_SetRenderDrawColor(renderer, 220, 30, 20, a);
+            SDL_Rect bar = {x, y, w, h};
+            SDL_RenderFillRect(renderer, &bar);
+            // Inner gradient fade
+            Uint8 fadeA = static_cast<Uint8>(a * 0.4f);
+            SDL_SetRenderDrawColor(renderer, 200, 20, 15, fadeA);
+            SDL_Rect fade = {fadeX, fadeY, fadeW, fadeH};
+            SDL_RenderFillRect(renderer, &fade);
+        };
+
+        // Left edge
+        drawEdge(leftW,
+                 0, 0, kEdgeThickness, SCREEN_HEIGHT,
+                 kEdgeThickness, 0, kEdgeFadeInner, SCREEN_HEIGHT);
+        // Right edge
+        drawEdge(rightW,
+                 SCREEN_WIDTH - kEdgeThickness, 0, kEdgeThickness, SCREEN_HEIGHT,
+                 SCREEN_WIDTH - kEdgeThickness - kEdgeFadeInner, 0, kEdgeFadeInner, SCREEN_HEIGHT);
+        // Top edge
+        drawEdge(upW,
+                 0, 0, SCREEN_WIDTH, kEdgeThickness,
+                 0, kEdgeThickness, SCREEN_WIDTH, kEdgeFadeInner);
+        // Bottom edge
+        drawEdge(downW,
+                 0, SCREEN_HEIGHT - kEdgeThickness, SCREEN_WIDTH, kEdgeThickness,
+                 0, SCREEN_HEIGHT - kEdgeThickness - kEdgeFadeInner, SCREEN_WIDTH, kEdgeFadeInner);
+    }
+}

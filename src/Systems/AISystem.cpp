@@ -809,7 +809,7 @@ void AISystem::explode(Entity& entity, EntityManager& entities) {
                 hp.takeDamage(dmg);
                 if (m_combatSystem) {
                     bool isPlayer = (target.getTag() == "player");
-                    m_combatSystem->addDamageEvent(targetPos, dmg, isPlayer);
+                    m_combatSystem->addDamageEvent(targetPos, dmg, isPlayer, false, false, center);
                 }
             }
 
@@ -1198,7 +1198,9 @@ void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityMana
                                 hp.takeDamage(damage);
                                 if (cs && other->hasComponent<TransformComponent>()) {
                                     bool isPlayer = (other->getTag() == "player");
-                                    cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), damage, isPlayer);
+                                    Vec2 srcPos = self->hasComponent<TransformComponent>()
+                                        ? self->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
+                                    cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), damage, isPlayer, false, false, srcPos);
                                 }
                             }
                         }
@@ -1497,7 +1499,7 @@ void AISystem::updateLeech(Entity& entity, float dt, Vec2 playerPos) {
 
                         // Damage event for floating numbers (feedbackHandled to avoid extra shake)
                         if (m_combatSystem) {
-                            m_combatSystem->addDamageEvent(playerPos, drainAmount, true, false, true);
+                            m_combatSystem->addDamageEvent(playerPos, drainAmount, true, false, true, pos);
                         }
                     }
                 }

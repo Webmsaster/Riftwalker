@@ -208,6 +208,16 @@ private:
     void updateDamageNumbers(float dt);
     void renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font);
 
+    // Directional damage indicators (red edge flash showing damage source direction)
+    struct DamageIndicator {
+        float angle;  // radians, 0=right, PI/2=down, PI=left, -PI/2=up
+        float timer;
+        float maxTimer;
+    };
+    std::vector<DamageIndicator> m_damageIndicators;
+    void updateDamageIndicators(float dt);
+    void renderDamageIndicators(SDL_Renderer* renderer);
+
     // Spawn wave system
     std::vector<std::vector<Level::SpawnPoint>> m_spawnWaves;
     int m_currentWave = 0;

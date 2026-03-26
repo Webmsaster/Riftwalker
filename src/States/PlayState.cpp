@@ -483,6 +483,16 @@ void PlayState::update(float dt) {
                 AudioManager::instance().play(SFX::PlayerHurt);
                 game->getInputMutable().rumble(0.6f, 150);
             }
+            // Directional damage indicator: show red edge flash toward damage source
+            if (m_player && (evt.sourcePos.x != 0 || evt.sourcePos.y != 0)) {
+                Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                float dx = evt.sourcePos.x - pPos.x;
+                float dy = evt.sourcePos.y - pPos.y;
+                if (dx * dx + dy * dy > 1.0f) { // Avoid zero-length direction
+                    float angle = std::atan2(dy, dx);
+                    m_damageIndicators.push_back({angle, 0.8f, 0.8f});
+                }
+            }
         }
     }
 
@@ -526,6 +536,7 @@ void PlayState::update(float dt) {
     }
 
     updateDamageNumbers(dt);
+    updateDamageIndicators(dt);
 
     // Combo milestone check (3x, 5x, 7x, 10x)
     if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {

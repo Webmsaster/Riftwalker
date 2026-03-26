@@ -110,7 +110,9 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
                                 hp.takeDamage(damage);
                                 if (cs && other->hasComponent<TransformComponent>()) {
                                     bool isPlayer = (other->getTag() == "player");
-                                    cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), damage, isPlayer);
+                                    Vec2 srcPos = self->hasComponent<TransformComponent>()
+                                        ? self->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
+                                    cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), damage, isPlayer, false, false, srcPos);
                                 }
                             }
                         }
@@ -146,7 +148,9 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerP
                                         hp.takeDamage(stormDmg);
                                         if (cs && other->hasComponent<TransformComponent>()) {
                                             bool isPlayer = (other->getTag() == "player");
-                                            cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), stormDmg, isPlayer);
+                                            Vec2 srcPos = self->hasComponent<TransformComponent>()
+                                                ? self->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
+                                            cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), stormDmg, isPlayer, false, false, srcPos);
                                         }
                                     }
                                 }
