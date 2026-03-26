@@ -620,17 +620,23 @@ void Player::handleWallSlide(float dt) {
         phys.velocity.y = wallSlideSpeed;
         jumpsRemaining = 1; // Allow wall jump
 
-        // Wall slide particles
+        // Wall slide friction sparks
         if (particles) {
-            auto& t = m_entity->getComponent<TransformComponent>();
-            float px = phys.onWallLeft ? t.position.x : t.position.x + t.width;
-            if (SDL_GetTicks() % 5 == 0) {
-                particles->burst({px, t.position.y + t.height * 0.5f}, 2,
-                                {200, 200, 200, 150}, 30.0f, 2.0f);
+            wallSlideParticleTimer -= dt;
+            if (wallSlideParticleTimer <= 0) {
+                wallSlideParticleTimer = 0.08f;
+                auto& t = m_entity->getComponent<TransformComponent>();
+                float px = phys.onWallLeft ? t.position.x : t.position.x + t.width;
+                Vec2 sparkPos{px, t.position.y + t.height * 0.4f};
+                // Sparks fly downward and slightly outward from wall
+                float outDir = phys.onWallLeft ? 210.0f : 330.0f;
+                particles->directionalBurst(sparkPos, 2, {255, 200, 100, 180},
+                                            outDir, 40.0f, 50.0f, 2.0f);
             }
         }
     } else {
         isWallSliding = false;
+        wallSlideParticleTimer = 0;
     }
 }
 
