@@ -152,16 +152,18 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
 
         // Spawn animation: skip AI and keep invulnerable while spawning in
         if (ai.spawnTimer > 0) {
+            float prevTimer = ai.spawnTimer;
             ai.spawnTimer -= dt;
             if (e->hasComponent<HealthComponent>()) {
                 e->getComponent<HealthComponent>().invincibilityTimer = 0.1f;
             }
-            // Spawn particles (brief flash at start)
-            if (ai.spawnTimer > 0 && m_particles) {
+            // Spawn complete: particle burst in enemy color
+            if (ai.spawnTimer <= 0 && m_particles) {
                 auto& t = e->getComponent<TransformComponent>();
-                if (static_cast<int>(ai.spawnTimer * 20) % 3 == 0) {
-                    m_particles->burst(t.getCenter(), 2, {255, 255, 255, 150}, 40.0f, 1.5f);
-                }
+                SDL_Color col = e->hasComponent<SpriteComponent>()
+                    ? e->getComponent<SpriteComponent>().color
+                    : SDL_Color{255, 255, 255, 255};
+                m_particles->burst(t.getCenter(), 6, col, 80.0f, 2.5f);
             }
             continue;
         }

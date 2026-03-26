@@ -151,16 +151,24 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         }
     }
 
-    // Spawn-in flicker: enemies fade in with rapid flashing during spawn animation
+    // Spawn-in effect: scale-up + white tint + fade-in when enemies materialize
+    bool spawning = false;
+    float spawnProgress = 1.0f;
     if (tag.find("enemy") != std::string::npos && entity.hasComponent<AIComponent>()) {
-        float spawnT = entity.getComponent<AIComponent>().spawnTimer;
-        if (spawnT > 0) {
-            // Rapid flicker (on/off) that stabilizes as timer approaches 0
-            float flickerRate = 10.0f + spawnT * 30.0f; // faster flicker at start
-            bool visible = static_cast<int>(spawnT * flickerRate) % 2 == 0;
-            if (!visible) return; // skip rendering this frame (flicker off)
-            alpha *= (1.0f - spawnT * 1.5f); // fade in (0.4s -> starts at ~0.4 alpha)
-            alpha = std::max(alpha, 0.15f);   // never fully invisible
+        auto& ai = entity.getComponent<AIComponent>();
+        if (ai.spawnTimer > 0 && ai.spawnTimerInitial > 0) {
+            spawning = true;
+            spawnProgress = 1.0f - (ai.spawnTimer / ai.spawnTimerInitial); // 0→1
+            // Scale: grow from 50% to 100%
+            float scale = 0.5f + 0.5f * spawnProgress;
+            int sw = static_cast<int>(screenRect.w * scale);
+            int sh = static_cast<int>(screenRect.h * scale);
+            screenRect.x += (screenRect.w - sw) / 2; // center horizontally
+            screenRect.y += (screenRect.h - sh);      // grow from bottom
+            screenRect.w = sw;
+            screenRect.h = sh;
+            // Fade in alpha
+            alpha *= (0.3f + 0.7f * spawnProgress);
         }
     }
 
@@ -288,6 +296,13 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
             fillRect(renderer, screenRect.x, screenRect.y, screenRect.w, screenRect.h,
                      flashR, flashG, flashB, fa);
         }
+    }
+
+    // Spawn glow: white overlay that fades as enemy materializes
+    if (spawning) {
+        Uint8 glowA = static_cast<Uint8>(200 * (1.0f - spawnProgress) * alpha);
+        fillRect(renderer, screenRect.x, screenRect.y, screenRect.w, screenRect.h,
+                 255, 255, 255, glowA);
     }
 
     // Freeze tint: blue overlay while enemy is slowed by ice weapon

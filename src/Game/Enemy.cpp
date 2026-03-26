@@ -101,6 +101,7 @@ Entity& Enemy::createByType(EntityManager& entities, int type, Vec2 pos, int dim
         auto& ai = e->getComponent<AIComponent>();
         bool isBoss = (static_cast<EnemyType>(type) == EnemyType::Boss);
         ai.spawnTimer = isBoss ? 0.8f : 0.4f;
+        ai.spawnTimerInitial = ai.spawnTimer;
     }
     return *e;
 }

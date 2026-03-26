@@ -222,8 +222,9 @@ struct AIComponent : public Component {
     // Environmental hazard damage cooldown (per-enemy)
     float hazardDmgCooldown = 0;
 
-    // Spawn animation: brief invulnerability + flicker when enemy appears
-    float spawnTimer = 0;       // >0 = still spawning in (no AI, invulnerable, flickering)
+    // Spawn animation: brief invulnerability + scale-up + glow when enemy appears
+    float spawnTimer = 0;       // >0 = still spawning in (no AI, invulnerable)
+    float spawnTimerInitial = 0; // initial value of spawnTimer (for computing progress)
 
     // Dimension behavior modifiers (computed by AISystem each frame for dim-0 enemies)
     float dimSpeedMod = 1.0f;   // Movement speed multiplier

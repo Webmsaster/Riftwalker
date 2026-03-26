@@ -130,6 +130,7 @@ void PlayState::triggerDynamicEvent() {
                 // Set spawn animation timer
                 if (e.hasComponent<AIComponent>()) {
                     e.getComponent<AIComponent>().spawnTimer = 0.4f;
+                    e.getComponent<AIComponent>().spawnTimerInitial = 0.4f;
                 }
 
                 // Flash particles at spawn location
