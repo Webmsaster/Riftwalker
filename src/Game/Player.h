@@ -122,6 +122,7 @@ public:
 
     ParticleSystem* particles = nullptr;
     bool wasInAir = false;
+    float footstepDustTimer = 0;  // Spawn walking dust every 0.15s
 
     // Temporary buffs
     float speedBoostTimer = 0;

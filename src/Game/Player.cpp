@@ -254,6 +254,20 @@ void Player::update(float dt, const InputManager& input) {
     }
     wasInAir = !phys.onGround;
 
+    // Footstep dust: subtle ground particles while walking
+    if (phys.onGround && std::abs(phys.velocity.x) > 10.0f && particles) {
+        footstepDustTimer -= dt;
+        if (footstepDustTimer <= 0) {
+            footstepDustTimer = 0.15f;
+            auto& t = m_entity->getComponent<TransformComponent>();
+            Vec2 feetPos = {t.getCenter().x, t.position.y + static_cast<float>(t.height)};
+            float behindDir = facingRight ? 210.0f : 330.0f; // slightly behind player
+            particles->directionalBurst(feetPos, 1, {160, 145, 120, 140}, behindDir, 40.0f, 30.0f, 2.5f);
+        }
+    } else {
+        footstepDustTimer = 0;
+    }
+
     // Reset wall slide on ground
     if (phys.onGround) {
         isWallSliding = false;
