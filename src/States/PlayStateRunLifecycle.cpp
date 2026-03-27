@@ -883,6 +883,10 @@ void PlayState::finalizeRun(bool abandoned) {
         }
         if (auto* lore = game->getLoreSystem()) {
             lore->discover(LoreID::FinalRevelation);
+            // Class Legacy: unlocked when completing the game (all classes aspire to this)
+            if (lore->discoveredCount() >= 15) {
+                lore->discover(LoreID::ClassLegacy);
+            }
             lore->save("riftwalker_lore.dat");
         }
         // Set ending stats

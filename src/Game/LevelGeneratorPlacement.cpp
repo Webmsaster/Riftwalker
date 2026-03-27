@@ -690,6 +690,20 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
             {static_cast<float>(ex * 32), static_cast<float>(ey * 32)},
             type, spawnDim
         );
+
+        // Swarmers spawn in groups of 3 for overwhelming pack attacks
+        if (type == 13) { // EnemyType::Swarmer
+            for (int s = 0; s < 2; s++) {
+                int sx = ex + (m_rng() % 3) - 1; // ±1 tile offset
+                int sy = ey;
+                if (!level.isSolid(sx, sy, dim) && level.isSolid(sx, sy + 1, dim)) {
+                    level.addEnemySpawn(
+                        {static_cast<float>(sx * 32), static_cast<float>(sy * 32)},
+                        type, spawnDim
+                    );
+                }
+            }
+        }
     }
 }
 

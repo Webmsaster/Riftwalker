@@ -889,6 +889,20 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
+            // Gravity Gauntlet: pull effect particles + camera feel
+            if (isPlayer && !shieldBlocked &&
+                combat.currentMelee == WeaponID::GravityGauntlet &&
+                (combat.currentAttack == AttackType::Melee ||
+                 combat.currentAttack == AttackType::Charged)) {
+                // Purple gravity-pull particles from target toward player
+                if (m_particles) {
+                    Vec2 playerPos = transform.getCenter();
+                    m_particles->burst(targetCenter, 8, {140, 80, 220, 200}, 80.0f, 1.5f);
+                    m_particles->burst(playerPos, 4, {180, 120, 255, 180}, 40.0f, 1.0f);
+                }
+                if (m_camera) m_camera->shake(5.0f, 0.12f);
+            }
+
             // Run buff: Element weapon effects (player hitting enemy)
             if (isPlayer && m_elementWeapon > 0 && targetIsEnemy && !shieldBlocked) {
                 if (m_elementWeapon == 1 && target.hasComponent<AIComponent>()) {

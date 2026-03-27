@@ -73,6 +73,15 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
                 m_particles->burst(pos, 10, {180, 120, 255, 220}, 100.0f, 2.5f);
                 m_particles->burst(pos, 6, {100, 200, 255, 180}, 60.0f, 2.0f);
             }
+        } else if (isPlayer && combat.currentRanged == WeaponID::RiftCrossbow) {
+            // Rift Crossbow: piercing bolt that passes through enemies
+            createProjectile(entities, pos, combat.attackDirection,
+                            projDamage, 450.0f, attacker.dimension, true, isPlayer);
+            AudioManager::instance().play(SFX::RangedShot);
+            // Cyan piercing trail particles
+            if (m_particles) {
+                m_particles->burst(pos, 6, {80, 220, 255, 200}, 80.0f, 2.0f);
+            }
         } else {
             // RapidShards: ShardPistol + QuickHands → +30% proj speed, 25% double-shot
             float projSpeed = 400.0f;
