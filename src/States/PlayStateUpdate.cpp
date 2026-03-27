@@ -1198,6 +1198,21 @@ void PlayState::updatePostCombat(float dt) {
         }
     }
 
+    // Lore: Rift Ecology — discover 5+ secret rooms
+    if (m_level) {
+        int discoveredSecrets = 0;
+        for (const auto& sr : m_level->getSecretRooms())
+            if (sr.discovered) discoveredSecrets++;
+        if (discoveredSecrets >= 5) {
+            if (auto* lore = game->getLoreSystem()) {
+                if (!lore->isDiscovered(LoreID::RiftEcology)) {
+                    lore->discover(LoreID::RiftEcology);
+                    AudioManager::instance().play(SFX::LoreDiscover);
+                }
+            }
+        }
+    }
+
     if (m_combatSystem.killedMiniBoss) {
         game->getAchievements().unlock("mini_boss_hunter");
         m_combatSystem.killedMiniBoss = false;

@@ -88,6 +88,47 @@ void LoreSystem::init() {
         "You are the Rift. Every dimension switch, every enemy slain, every cycle "
         "completed - you were not exploring the wound in reality. You were the wound, "
         "learning to heal itself. The Rift ends where you began.");
+
+    add(LoreID::SwarmNature, "The Swarm's Nature",
+        "Rift Swarmers are not individuals but fragments of a single hive-mind that "
+        "shattered when the dimensions split. Each amber insect carries a sliver of "
+        "collective memory. In great enough numbers, they almost remember what they were.");
+
+    add(LoreID::GravityAnomaly, "Gravity Anomalies",
+        "Where the dimensional fabric is thinnest, gravity wells form spontaneously — "
+        "living singularities that feed on spatial distortion. Ancient rift scholars "
+        "called them 'the void's hunger given form.' They do not chase. They wait.");
+
+    add(LoreID::MimicDeception, "The Art of Deception",
+        "Mimics were once ordinary matter, reshaped by prolonged exposure to unstable "
+        "rift energy. They learned to fold their forms into familiar shapes — crates, "
+        "chests, rubble. The perfect camouflage for a dimension where nothing is certain.");
+
+    add(LoreID::EntropyIncarnate, "Entropy Made Flesh",
+        "Entropy Incarnate is not a creature but a concept given form — the inevitable "
+        "heat death of all dimensions condensed into a single entity. Defeating it does "
+        "not destroy entropy. It merely delays the end, buying reality one more cycle.");
+
+    add(LoreID::DimensionTheory, "Dimensional Theory",
+        "The Fortune Tellers of the Rift possess a rare gift: they can perceive all "
+        "dimensional layers simultaneously. What appears as prophecy is simply seeing "
+        "what already exists in adjacent realities. The future is just another dimension.");
+
+    add(LoreID::RiftEcology, "Rift Ecology",
+        "The Rift is not merely a wound — it is an ecosystem. Walkers graze on "
+        "dimensional energy. Flyers hunt Walkers. Bosses regulate population. Even "
+        "the shards you collect are nutrients in this alien food chain. You are apex predator.");
+
+    add(LoreID::VoidCommerce, "Void Commerce",
+        "The Void Merchants travel between all known rifts, trading relics gathered "
+        "from fallen travelers. Their economy runs on dimensional shards — crystallized "
+        "reality that serves as universal currency across every fractured world.");
+
+    add(LoreID::ClassLegacy, "Legacy of the Four",
+        "Voidwalker, Berserker, Phantom, Technomancer — four paths through the Rift, "
+        "each born from a different philosophy of survival. The Voidwalker embraces "
+        "the between. The Berserker defies it. The Phantom slips through. The Technomancer "
+        "rewrites it. Together, they are the Rift's full vocabulary.");
 }
 
 void LoreSystem::discover(LoreID id) {

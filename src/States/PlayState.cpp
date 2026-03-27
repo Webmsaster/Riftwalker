@@ -718,6 +718,7 @@ void PlayState::update(float dt) {
                         else if (bossTypeForLore == 1) lore->discover(LoreID::BossMemory2);
                         else if (bossTypeForLore == 2) lore->discover(LoreID::BossMemory3);
                         else if (bossTypeForLore == 3) lore->discover(LoreID::BossMemory4);
+                        else if (bossTypeForLore == 5) lore->discover(LoreID::EntropyIncarnate);
                     }
                 }
             }

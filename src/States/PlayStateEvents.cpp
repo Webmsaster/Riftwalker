@@ -774,6 +774,132 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
             break;
         }
 
+        case NPCType::FortuneTeller: {
+            // Lore: Dimensional Theory on first interaction
+            if (auto* lore = game->getLoreSystem()) {
+                if (!lore->isDiscovered(LoreID::DimensionTheory)) {
+                    lore->discover(LoreID::DimensionTheory);
+                    AudioManager::instance().play(SFX::LoreDiscover);
+                }
+            }
+            if (stage >= 2) {
+                if (choice == 0) {
+                    // Reveal all secrets (free) — mark all secret rooms visible
+                    if (m_level) {
+                        auto& rooms = m_level->getSecretRooms();
+                        for (auto& sr : rooms) sr.discovered = true;
+                    }
+                    AudioManager::instance().play(SFX::SecretRoomDiscover);
+                    m_camera.shake(6.0f, 0.25f);
+                    m_particles.burst(npc.position, 25, {200, 180, 255, 255}, 200.0f, 4.0f);
+                } else if (choice == 1) {
+                    // Boss foresight: +20% damage vs boss for rest of level
+                    m_player->damageBoostTimer = 99999.0f;
+                    m_player->damageBoostMultiplier = 1.2f;
+                    AudioManager::instance().play(SFX::ShrineBlessing);
+                    m_particles.burst(npc.position, 20, {255, 200, 255, 255}, 180.0f, 3.0f);
+                }
+            } else if (stage >= 1) {
+                if (choice == 0) {
+                    // Reveal hidden rooms (20 shards)
+                    if (shardsCollected >= 20) {
+                        shardsCollected -= 20;
+                        if (m_level) {
+                            auto& rooms = m_level->getSecretRooms();
+                            for (auto& sr : rooms) sr.discovered = true;
+                        }
+                        AudioManager::instance().play(SFX::SecretRoomDiscover);
+                        m_particles.burst(npc.position, 18, {180, 150, 255, 255}, 150.0f, 3.0f);
+                    } else {
+                        AudioManager::instance().play(SFX::RiftFail);
+                    }
+                } else if (choice == 1) {
+                    // Reveal ambushes (15 shards) — speed boost to avoid danger
+                    if (shardsCollected >= 15) {
+                        shardsCollected -= 15;
+                        m_player->speedBoostTimer = 30.0f;
+                        m_player->speedBoostMultiplier = 1.25f;
+                        AudioManager::instance().play(SFX::Pickup);
+                        m_particles.burst(npc.position, 15, {150, 120, 255, 255}, 120.0f, 2.5f);
+                    } else {
+                        AudioManager::instance().play(SFX::RiftFail);
+                    }
+                }
+            } else {
+                if (choice == 0) {
+                    // Reveal secrets (30 shards)
+                    if (shardsCollected >= 30) {
+                        shardsCollected -= 30;
+                        if (m_level) {
+                            auto& rooms = m_level->getSecretRooms();
+                            for (auto& sr : rooms) sr.discovered = true;
+                        }
+                        AudioManager::instance().play(SFX::SecretRoomDiscover);
+                        m_particles.burst(npc.position, 18, {180, 150, 255, 255}, 150.0f, 3.0f);
+                    } else {
+                        AudioManager::instance().play(SFX::RiftFail);
+                    }
+                } else if (choice == 1) {
+                    // Read fortune — free lore + small shard bonus
+                    AudioManager::instance().play(SFX::LoreDiscover);
+                    game->getUpgradeSystem().addRiftShards(10);
+                    shardsCollected += 10;
+                    m_particles.burst(npc.position, 12, {200, 160, 255, 255}, 100.0f, 2.0f);
+                }
+            }
+            npc.interacted = true;
+            m_showNPCDialog = false;
+            break;
+        }
+
+        case NPCType::VoidMerchant: {
+            // Lore: Void Commerce on first interaction
+            if (auto* lore = game->getLoreSystem()) {
+                if (!lore->isDiscovered(LoreID::VoidCommerce)) {
+                    lore->discover(LoreID::VoidCommerce);
+                    AudioManager::instance().play(SFX::LoreDiscover);
+                }
+            }
+            auto canAfford = [&](int cost) { return shardsCollected >= cost; };
+            auto buyRelic = [&](int cost) {
+                if (!canAfford(cost)) {
+                    AudioManager::instance().play(SFX::RiftFail);
+                    return;
+                }
+                shardsCollected -= cost;
+                if (m_player->getEntity()->hasComponent<RelicComponent>()) {
+                    auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+                    RelicID gift = RelicSystem::generateDrop(m_currentDifficulty, relics.relics);
+                    relics.addRelic(gift);
+                    RelicSystem::applyStatEffects(relics, *m_player, hp, combat);
+                    AudioManager::instance().play(SFX::ShrineBlessing);
+                    m_camera.shake(6.0f, 0.25f);
+                    m_particles.burst(npc.position, 25, {180, 120, 255, 255}, 200.0f, 4.0f);
+                    m_particles.burst(npc.position, 10, {255, 200, 60, 255}, 120.0f, 2.0f);
+                }
+            };
+
+            if (stage >= 2) {
+                if (choice == 0) buyRelic(80);       // Legendary relic
+                else if (choice == 1) buyRelic(40);  // Random relic
+            } else if (stage >= 1) {
+                if (choice == 0) buyRelic(60);
+                else if (choice == 1) buyRelic(35);
+            } else {
+                if (choice == 0) buyRelic(50);
+                else if (choice == 1) {
+                    // Browse wares — just a flavor dialog, small shard bonus
+                    AudioManager::instance().play(SFX::MerchantGreet);
+                    game->getUpgradeSystem().addRiftShards(5);
+                    shardsCollected += 5;
+                    m_particles.burst(npc.position, 8, {180, 120, 255, 255}, 80.0f, 1.5f);
+                }
+            }
+            npc.interacted = true;
+            m_showNPCDialog = false;
+            break;
+        }
+
         default:
             m_showNPCDialog = false;
             break;

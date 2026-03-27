@@ -31,6 +31,11 @@ void WeaponSystem::init() {
         6.0f, 0.25f, 72.0f, 100.0f, 0.15f, 0, true, false
     };
 
+    s_weapons[static_cast<int>(WeaponID::GravityGauntlet)] = {
+        WeaponID::GravityGauntlet, "Gravity Gauntlet", "Pulls enemies toward you on hit",
+        12.0f, 0.4f, 44.0f, -150.0f, 0.25f, 0, true, false  // Negative knockback = pull
+    };
+
     // Ranged weapons
     s_weapons[static_cast<int>(WeaponID::ShardPistol)] = {
         WeaponID::ShardPistol, "Shard Pistol", "Standard projectile",
@@ -51,6 +56,10 @@ void WeaponSystem::init() {
     s_weapons[static_cast<int>(WeaponID::DimLauncher)] = {
         WeaponID::DimLauncher, "Dimensional Launcher", "Slow projectile hits both dimensions",
         30.0f, 1.2f, 350.0f, 120.0f, 0.25f, 0, false, false
+    };
+    s_weapons[static_cast<int>(WeaponID::RiftCrossbow)] = {
+        WeaponID::RiftCrossbow, "Rift Crossbow", "Piercing bolts through multiple enemies",
+        22.0f, 0.8f, 280.0f, 100.0f, 0.2f, 0, false, false
     };
 }
 
@@ -127,6 +136,8 @@ const char* WeaponSystem::getUnlockRequirement(WeaponID id) {
         case WeaponID::EntropyScythe: return "Survive 3 minutes with entropy above 60%";
         case WeaponID::ChainWhip:     return "Get a 15-hit combo";
         case WeaponID::DimLauncher:   return "Repair 50 rifts total";
+        case WeaponID::GravityGauntlet: return "Kill 3 GravityWell enemies";
+        case WeaponID::RiftCrossbow:    return "Kill 5 enemies with one ranged shot";
         default: return "Unknown";
     }
 }

@@ -16,6 +16,14 @@ enum class LoreID {
     BossMemory4,        // Kill Temporal Weaver
     SovereignTruth,     // Kill Void Sovereign
     FinalRevelation,    // Complete ending
+    SwarmNature,        // Encounter Swarmers
+    GravityAnomaly,     // Encounter GravityWell
+    MimicDeception,     // Kill a Mimic
+    EntropyIncarnate,   // Kill Entropy Incarnate boss
+    DimensionTheory,    // Use Fortune Teller
+    RiftEcology,        // Discover 5+ secret rooms
+    VoidCommerce,       // Use Void Merchant
+    ClassLegacy,        // Win with all 4 classes
     COUNT
 };
 
