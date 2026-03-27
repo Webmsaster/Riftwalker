@@ -49,7 +49,10 @@ struct HealthComponent : public Component {
         }
     }
 
+    bool healingDisabled = false; // GlassCannon challenge: no healing
+
     void heal(float amount) {
+        if (healingDisabled) return;
         float old = currentHP;
         currentHP = std::min(currentHP + amount, maxHP);
         if (onHeal) onHeal(currentHP - old);

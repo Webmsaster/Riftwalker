@@ -5,6 +5,7 @@
 DimensionManager::DimensionManager() {}
 
 bool DimensionManager::switchDimension(bool force) {
+    if (locked && !force) return false; // DimensionLock challenge
     if (m_switching) return false;
     if (!force && m_cooldownTimer > 0) return false;
 

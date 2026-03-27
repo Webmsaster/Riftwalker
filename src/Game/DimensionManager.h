@@ -32,6 +32,7 @@ public:
 
     float switchCooldown = 0.5f;
     float switchDuration = 0.3f;
+    bool locked = false;  // DimensionLock challenge: no switching
     ParticleSystem* particles = nullptr;
     Vec2 playerPos;
 

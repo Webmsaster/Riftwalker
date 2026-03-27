@@ -754,6 +754,52 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             break;
         }
 
+        case WeaponID::GravityGauntlet: {
+            // "Gravity Vortex": Pull ALL enemies within 150px toward player, deal 2x damage
+            float counterDmg = meleeBaseDmg * 2.0f * dmgMult;
+            float vortexRange = 150.0f;
+
+            entities.forEach([&](Entity& target) {
+                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
+                if (target.dimension != 0 && target.dimension != currentDim) return;
+                auto& tt = target.getComponent<TransformComponent>();
+                Vec2 tc = tt.getCenter();
+                float dx = tc.x - playerCenter.x;
+                float dy = tc.y - playerCenter.y;
+                float dist = std::sqrt(dx * dx + dy * dy);
+                if (dist > vortexRange) return;
+
+                target.getComponent<HealthComponent>().takeDamage(counterDmg);
+                m_damageEvents.push_back({tc, counterDmg, false, false});
+
+                // Pull toward player
+                if (target.hasComponent<PhysicsBody>()) {
+                    auto& phys = target.getComponent<PhysicsBody>();
+                    float pullStr = 400.0f * (1.0f - dist / vortexRange);
+                    phys.velocity.x += (-dx / std::max(dist, 1.0f)) * pullStr;
+                    phys.velocity.y += (-dy / std::max(dist, 1.0f)) * pullStr;
+                }
+                if (target.hasComponent<AIComponent>()) {
+                    target.getComponent<AIComponent>().stun(0.4f);
+                }
+            });
+
+            if (m_camera) m_camera->shake(14.0f, 0.3f);
+            m_pendingHitFreeze += 0.12f;
+            if (m_particles) {
+                // Purple gravity vortex ring
+                for (int i = 0; i < 12; i++) {
+                    float angle = i * 30.0f;
+                    m_particles->directionalBurst(playerCenter, 4,
+                        {140, 80, 220, 255}, angle, 30.0f, 180.0f, 3.0f);
+                }
+                m_particles->burst(playerCenter, 20, {180, 100, 255, 220}, 200.0f, 4.0f);
+            }
+            AudioManager::instance().play(SFX::GroundSlam);
+            break;
+        }
+
         default:
             // Ranged weapons: switch on ranged weapon type
             break;
@@ -873,6 +919,31 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
                 m_particles->directionalBurst(playerCenter, 20, {200, 120, 255, 255},
                     dirDeg, 15.0f, 500.0f, 4.0f);
                 m_particles->burst(playerCenter, 10, {160, 80, 255, 200}, 150.0f, 3.0f);
+            }
+            AudioManager::instance().play(SFX::RangedShot);
+            break;
+        }
+
+        case WeaponID::RiftCrossbow: {
+            // "Rift Barrage": Rapid 5 piercing bolts in tight spread, 2x damage each
+            float projDmg = rangedBaseDmg * 2.0f * dmgMult;
+            Vec2 dir = combat.attackDirection;
+            float baseAngle = std::atan2(dir.y, dir.x);
+
+            for (int i = 0; i < 5; i++) {
+                float offset = (i - 2) * 0.08f; // Tight spread ±0.16 radians
+                Vec2 boltDir = {std::cos(baseAngle + offset), std::sin(baseAngle + offset)};
+                createProjectile(entities, playerCenter, boltDir,
+                                projDmg, 550.0f, currentDim, true, true);
+            }
+
+            if (m_camera) m_camera->shake(10.0f, 0.25f);
+            m_pendingHitFreeze += 0.08f;
+            if (m_particles) {
+                float dirDeg = baseAngle * 180.0f / 3.14159f;
+                m_particles->directionalBurst(playerCenter, 25, {80, 200, 255, 255},
+                    dirDeg, 20.0f, 400.0f, 3.5f);
+                m_particles->burst(playerCenter, 8, {120, 220, 255, 200}, 100.0f, 2.0f);
             }
             AudioManager::instance().play(SFX::RangedShot);
             break;

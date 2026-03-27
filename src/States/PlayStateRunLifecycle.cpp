@@ -964,11 +964,51 @@ void PlayState::applyChallengeModifiers() {
         m_challengeTimer = cd.timeLimit;
     }
 
-    // Apply mutators at run start
-    for (int i = 0; i < 2; i++) {
-        if (g_activeMutators[i] == MutatorID::LowGravity) {
-            // Reduce gravity for all entities (handled in physics)
-        }
+    // GlassCannon: 3x player damage + disable healing
+    if (cd.playerDMGMult > 1.0f && m_player) {
+        m_player->damageBoostTimer = 99999.0f;
+        m_player->damageBoostMultiplier = cd.playerDMGMult;
+    }
+    if (cd.noHealing && m_player) {
+        auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
+        hp.healingDisabled = true;
+    }
+
+    // DimensionLock: disable dimension switching
+    if (cd.noDimSwitch) {
+        m_dimManager.locked = true;
+    }
+
+    // BossRush: skip to first boss floor
+    if (cd.bossOnly) {
+        m_currentDifficulty = 6; // First boss floor (Zone 1 boss)
+    }
+
+    // EndlessRift: flag for infinite floors
+    if (cd.endless) {
+        m_endlessMode = true;
+    }
+
+    // Enemy stat modifiers (HP, DMG, Speed)
+    if (cd.enemyHPMult != 1.0f || cd.enemyDMGMult != 1.0f || cd.enemySpeedMult != 1.0f) {
+        m_entities.forEach([&](Entity& e) {
+            if (!e.hasComponent<AIComponent>()) return;
+            if (cd.enemyHPMult != 1.0f && e.hasComponent<HealthComponent>()) {
+                auto& hp = e.getComponent<HealthComponent>();
+                hp.maxHP *= cd.enemyHPMult;
+                hp.currentHP = hp.maxHP;
+            }
+            if (cd.enemyDMGMult != 1.0f && e.hasComponent<CombatComponent>()) {
+                auto& combat = e.getComponent<CombatComponent>();
+                combat.meleeAttack.damage *= cd.enemyDMGMult;
+                combat.rangedAttack.damage *= cd.enemyDMGMult;
+            }
+            if (cd.enemySpeedMult != 1.0f) {
+                auto& ai = e.getComponent<AIComponent>();
+                ai.chaseSpeed *= cd.enemySpeedMult;
+                ai.patrolSpeed *= cd.enemySpeedMult;
+            }
+        });
     }
 }
 

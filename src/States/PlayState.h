@@ -331,6 +331,7 @@ private:
 
     // Challenge mode
     float m_challengeTimer = 0;       // Speedrun countdown
+    bool m_endlessMode = false;       // EndlessRift challenge: infinite floors
     int m_endlessScore = 0;           // Endless mode score
     float m_mutatorFluxTimer = 0;     // DimensionFlux auto-switch timer
     bool m_challengeNoHealing = false;   // Cached from ChallengeData::noHealing

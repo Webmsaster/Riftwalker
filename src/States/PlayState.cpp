@@ -948,12 +948,20 @@ void PlayState::update(float dt) {
         if (m_levelCompleteTimer >= transitionTime) {
             roomsCleared++;
 
-            if (m_voidSovereignDefeated) {
+            if (m_voidSovereignDefeated && !m_endlessMode) {
                 endRun();
                 return;
             }
 
             m_currentDifficulty++;
+
+            // BossRush: skip non-boss floors (advance to next boss/mid-boss)
+            if (g_activeChallenge == ChallengeID::BossRush) {
+                while (!isBossFloor(m_currentDifficulty) && !isMidBossFloor(m_currentDifficulty)) {
+                    m_currentDifficulty++;
+                    if (m_currentDifficulty > 200) break; // Safety cap
+                }
+            }
             m_runSeed += 100;
 
             // Pick new theme pair when entering a new zone or every 3 floors within a zone
