@@ -904,3 +904,132 @@ void RenderSystem::renderLeech(SDL_Renderer* renderer, SDL_Rect rect, Entity& en
         fillRect(renderer, mouthX, mouthY + 1, 5, 2, 160, 40, 40, a);
     }
 }
+
+void RenderSystem::renderSwarmer(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    int cx = x + w / 2, cy = y + h / 2;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    float time = SDL_GetTicks() * 0.01f;
+
+    // Drop shadow
+    fillRect(renderer, x + 2, y + h, w - 4, 2, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
+    // Small diamond body (rotated square shape)
+    int bodySize = std::min(w, h) / 2;
+    // Animated wing flutter
+    float flutter = std::sin(time * 8.0f) * 2.0f;
+    int wingW = bodySize + static_cast<int>(flutter);
+
+    // Body (amber)
+    fillRect(renderer, cx - bodySize / 2, cy - bodySize / 2, bodySize, bodySize, 255, 180, 50, a);
+    // Core
+    fillRect(renderer, cx - bodySize / 4, cy - bodySize / 4, bodySize / 2, bodySize / 2, 255, 220, 100, a);
+    // Wings
+    fillRect(renderer, cx - wingW, cy - 1, wingW - bodySize / 2, 3, 255, 160, 30, static_cast<Uint8>(a * 0.8f));
+    fillRect(renderer, cx + bodySize / 2, cy - 1, wingW - bodySize / 2, 3, 255, 160, 30, static_cast<Uint8>(a * 0.8f));
+    // Eyes (small red dots)
+    bool flipped = sprite.flipX;
+    int eyeX = flipped ? cx - bodySize / 3 : cx + bodySize / 4;
+    fillRect(renderer, eyeX, cy - 2, 2, 2, 200, 30, 30, a);
+}
+
+void RenderSystem::renderGravityWell(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    int cx = x + w / 2, cy = y + h / 2;
+    float time = SDL_GetTicks() * 0.003f;
+
+    // Outer gravity ring (pulsing)
+    float pulse = std::sin(time * 2.0f) * 0.3f + 0.7f;
+    Uint8 ringA = static_cast<Uint8>(60 * pulse * alpha);
+    int ringR = w / 2 + 4;
+    // Approximate circle with rects
+    for (int angle = 0; angle < 12; angle++) {
+        float rad = angle * 3.14159f / 6.0f + time;
+        int px = cx + static_cast<int>(std::cos(rad) * ringR);
+        int py = cy + static_cast<int>(std::sin(rad) * ringR);
+        fillRect(renderer, px - 1, py - 1, 3, 3, 150, 80, 220, ringA);
+    }
+
+    // Body (dark purple orb)
+    fillRect(renderer, x + 2, y + 2, w - 4, h - 4, 60, 30, 120, a);
+    fillRect(renderer, x + 4, y + 4, w - 8, h - 8, 100, 50, 180, a);
+
+    // Bright core
+    int coreSize = w / 4;
+    Uint8 coreA = static_cast<Uint8>(180 + 75 * pulse);
+    fillRect(renderer, cx - coreSize, cy - coreSize, coreSize * 2, coreSize * 2,
+             180, 100, 255, coreA);
+    // Inner white hot
+    fillRect(renderer, cx - coreSize / 2, cy - coreSize / 2, coreSize, coreSize,
+             220, 200, 255, coreA);
+
+    // Orbiting particles
+    for (int i = 0; i < 4; i++) {
+        float angle = time * 3.0f + i * 1.57f;
+        float dist = w * 0.35f + std::sin(time * 2.0f + i) * 3.0f;
+        int px = cx + static_cast<int>(std::cos(angle) * dist);
+        int py = cy + static_cast<int>(std::sin(angle) * dist);
+        fillRect(renderer, px - 1, py - 1, 2, 2, 200, 140, 255, a);
+    }
+}
+
+void RenderSystem::renderMimic(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+
+    bool revealed = false;
+    if (entity.hasComponent<AIComponent>()) {
+        revealed = entity.getComponent<AIComponent>().mimicRevealed;
+    }
+
+    if (!revealed) {
+        // Disguised as a crate (matches enemy_crate style)
+        fillRect(renderer, x, y, w, h, 110, 70, 30, a);
+        fillRect(renderer, x + 1, y + 1, w - 2, h - 2, 140, 95, 45, a);
+        // Plank lines
+        fillRect(renderer, x + 2, y + h / 3, w - 4, 1, 100, 65, 25, a);
+        fillRect(renderer, x + 2, y + h * 2 / 3, w - 4, 1, 100, 65, 25, a);
+        fillRect(renderer, x + w / 2, y + 2, 1, h - 4, 100, 65, 25, a);
+        // Slight shimmer to hint (subtle)
+        float shimmer = std::sin(SDL_GetTicks() * 0.002f) * 0.05f;
+        if (shimmer > 0.02f) {
+            fillRect(renderer, x + w / 2 - 2, y + h / 2 - 2, 4, 4, 200, 50, 50,
+                     static_cast<Uint8>(30 * shimmer * 20.0f));
+        }
+    } else {
+        // Revealed: angry red creature bursting out of crate
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        bool flipped = sprite.flipX;
+        float time = SDL_GetTicks() * 0.008f;
+
+        // Drop shadow
+        fillRect(renderer, x + 2, y + h, w - 4, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
+        // Body (angry red)
+        fillRect(renderer, x, y + 4, w, h - 4, 180, 40, 40, a);
+        fillRect(renderer, x + 2, y + 6, w - 4, h - 8, 220, 60, 50, a);
+
+        // Jagged teeth on top
+        for (int i = 0; i < w; i += 4) {
+            int toothH = 3 + (i % 8 == 0 ? 2 : 0);
+            fillRect(renderer, x + i, y, 2, toothH, 255, 255, 220, a);
+        }
+
+        // Angry eyes
+        int eyeY = y + h / 3;
+        int eyeL = flipped ? x + w * 2 / 3 : x + w / 6;
+        int eyeR = flipped ? x + w / 3 : x + w / 2;
+        fillRect(renderer, eyeL, eyeY, 4, 3, 255, 255, 60, a);
+        fillRect(renderer, eyeR, eyeY, 4, 3, 255, 255, 60, a);
+        // Pupils
+        fillRect(renderer, eyeL + 1, eyeY + 1, 2, 1, 40, 10, 10, a);
+        fillRect(renderer, eyeR + 1, eyeY + 1, 2, 1, 40, 10, 10, a);
+
+        // Pulsing red anger aura
+        float rage = std::sin(time * 4.0f) * 0.3f + 0.5f;
+        fillRect(renderer, x - 1, y - 1, w + 2, h + 2, 255, 40, 40,
+                 static_cast<Uint8>(30 * rage));
+    }
+}

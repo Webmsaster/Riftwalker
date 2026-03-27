@@ -9,6 +9,8 @@ enum class NPCType {
     LostEngineer,       // Repair/upgrade weapon temporarily
     EchoOfSelf,         // Mirror fight: defeat your copy for reward
     Blacksmith,         // Upgrade weapons for shards (per-run)
+    FortuneTeller,      // Reveals map secrets and hidden rooms
+    VoidMerchant,       // Sells relics for shards
     COUNT
 };
 

@@ -18,6 +18,9 @@ public:
     static Entity& createTeleporter(EntityManager& entities, Vec2 pos, int dimension);
     static Entity& createReflector(EntityManager& entities, Vec2 pos, int dimension);
     static Entity& createLeech(EntityManager& entities, Vec2 pos, int dimension);
+    static Entity& createSwarmer(EntityManager& entities, Vec2 pos, int dimension);
+    static Entity& createGravityWell(EntityManager& entities, Vec2 pos, int dimension);
+    static Entity& createMimic(EntityManager& entities, Vec2 pos, int dimension);
     static Entity& createMinion(EntityManager& entities, Vec2 pos, int dimension);
     static Entity& createBoss(EntityManager& entities, Vec2 pos, int dimension, int difficulty);
     static Entity& createVoidWyrm(EntityManager& entities, Vec2 pos, int dimension, int difficulty);

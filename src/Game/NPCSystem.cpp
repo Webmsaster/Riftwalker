@@ -33,6 +33,16 @@ NPCData NPCSystem::createNPC(NPCType type, Vec2 pos, int dimension) {
             npc.greeting = "Bring me shards and I'll forge your weapons anew.";
             npc.dialogLine = "Rift-tempered steel cuts deeper.";
             break;
+        case NPCType::FortuneTeller:
+            npc.name = "Fortune Teller";
+            npc.greeting = "The rifts whisper to me... I see what lies ahead.";
+            npc.dialogLine = "For a small offering, I can reveal hidden paths.";
+            break;
+        case NPCType::VoidMerchant:
+            npc.name = "Void Merchant";
+            npc.greeting = "Rare artifacts from between dimensions... interested?";
+            npc.dialogLine = "Each relic carries the echo of a fallen traveler.";
+            break;
         default: break;
     }
     return npc;
@@ -45,6 +55,8 @@ const char* NPCSystem::getName(NPCType type) {
         case NPCType::LostEngineer: return "Lost Engineer";
         case NPCType::EchoOfSelf: return "Echo of Self";
         case NPCType::Blacksmith: return "Blacksmith";
+        case NPCType::FortuneTeller: return "Fortune Teller";
+        case NPCType::VoidMerchant: return "Void Merchant";
         default: return "Unknown";
     }
 }
@@ -71,6 +83,14 @@ const char* NPCSystem::getGreeting(NPCType type, int storyStage) {
             if (storyStage >= 2) return "For you, my finest work. Free of charge.";
             if (storyStage >= 1) return "Your weapons have seen battle. I can do more now.";
             return "Shards fuel my forge. Let me improve your gear.";
+        case NPCType::FortuneTeller:
+            if (storyStage >= 2) return "The rifts have shown me everything. My final gift...";
+            if (storyStage >= 1) return "The patterns grow clearer. I see more now.";
+            return "Cross my palm with shards, and I'll show you secrets.";
+        case NPCType::VoidMerchant:
+            if (storyStage >= 2) return "For a valued customer, my rarest stock.";
+            if (storyStage >= 1) return "Ah, you return! I've acquired new inventory.";
+            return "Dimensional artifacts, fresh from the void.";
         default: return "";
     }
 }
@@ -105,6 +125,18 @@ const char* NPCSystem::getStoryLine(NPCType type, int storyStage) {
             if (storyStage >= 1)
                 return "With more rift energy, I can now upgrade range\nand attack speed too. Better prices for a returning customer.";
             return "My forge burns with rift energy. I can sharpen your\nmelee or reinforce your ranged weapon — for a price.";
+        case NPCType::FortuneTeller:
+            if (storyStage >= 2)
+                return "My visions have never been clearer. I can reveal every\nsecret on this floor — and grant you foresight against the boss.";
+            if (storyStage >= 1)
+                return "The dimensional threads are easier to read now.\nI can show you hidden rooms and warn of ambushes ahead.";
+            return "I sense hidden chambers nearby. For a small offering,\nI'll reveal their locations on your map.";
+        case NPCType::VoidMerchant:
+            if (storyStage >= 2)
+                return "My finest acquisition: a relic from the Sovereign's own\nvault. Normally priceless — but for you, a special rate.";
+            if (storyStage >= 1)
+                return "I've expanded my collection. These relics carry\nstronger dimensional resonance — worth every shard.";
+            return "Each of these relics was pried from the void between\ndimensions. They carry great power — at a fair price.";
         default: return "";
     }
 }
@@ -146,6 +178,18 @@ std::vector<const char*> NPCSystem::getDialogOptions(NPCType type, int storyStag
                 return {"[Sharpen melee +25% DMG (35 shards)]", "[Reinforce ranged +25% DMG (35 shards)]",
                         "[Hone speed +15% ATK SPD (45 shards)]", "[Leave]"};
             return {"[Sharpen melee +20% DMG (40 shards)]", "[Reinforce ranged +20% DMG (40 shards)]", "[Leave]"};
+        case NPCType::FortuneTeller:
+            if (storyStage >= 2)
+                return {"[Reveal all secrets (free)]", "[Boss foresight (+20% DMG vs boss)]", "[Leave]"};
+            if (storyStage >= 1)
+                return {"[Reveal hidden rooms (20 shards)]", "[Reveal ambushes (15 shards)]", "[Leave]"};
+            return {"[Reveal secrets (30 shards)]", "[Read my fortune]", "[Leave]"};
+        case NPCType::VoidMerchant:
+            if (storyStage >= 2)
+                return {"[Buy legendary relic (80 shards)]", "[Buy random relic (40 shards)]", "[Leave]"};
+            if (storyStage >= 1)
+                return {"[Buy relic (60 shards)]", "[Buy random relic (35 shards)]", "[Leave]"};
+            return {"[Buy relic (50 shards)]", "[Browse wares]", "[Leave]"};
         default:
             return {"[Leave]"};
     }
@@ -157,6 +201,8 @@ const char* NPCSystem::getQuestOffer(NPCType type) {
             return "I need data on the rift creatures. Defeat 10 enemies\nand I'll reward you with rift shards.";
         case NPCType::LostEngineer:
             return "Help me calibrate the rift sensors. Repair 3 rifts\non this floor and I'll pay you — plus stabilize your suit.";
+        case NPCType::FortuneTeller:
+            return "The void hides many secrets. Find 2 secret rooms\non this floor, and I'll share a powerful vision.";
         default: return "";
     }
 }
@@ -167,6 +213,8 @@ const char* NPCSystem::getQuestProgress(NPCType type) {
             return "Keep hunting those creatures. I can sense more data flowing in...";
         case NPCType::LostEngineer:
             return "The sensors are picking up your repairs. Keep going!";
+        case NPCType::FortuneTeller:
+            return "I sense you've found some hidden places... keep searching.";
         default: return "";
     }
 }
@@ -177,6 +225,8 @@ const char* NPCSystem::getQuestComplete(NPCType type) {
             return "Excellent work! The data you gathered is invaluable.\nHere are your shards, as promised.";
         case NPCType::LostEngineer:
             return "Sensors fully calibrated! Your suit readings look better too.\nTake this payment — you've earned it.";
+        case NPCType::FortuneTeller:
+            return "Your discoveries have amplified my visions tenfold!\nAs promised — a glimpse of what awaits on the next floor.";
         default: return "";
     }
 }

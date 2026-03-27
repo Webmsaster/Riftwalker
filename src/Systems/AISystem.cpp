@@ -445,7 +445,10 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
             case EnemyType::Sniper:     updateSniper(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}, entities); break;
             case EnemyType::Teleporter: updateTeleporter(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
             case EnemyType::Reflector:  updateReflector(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
-            case EnemyType::Leech:      updateLeech(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
+            case EnemyType::Leech:       updateLeech(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
+            case EnemyType::Swarmer:     updateSwarmer(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
+            case EnemyType::GravityWell: updateGravityWell(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
+            case EnemyType::Mimic:       updateMimic(*e, dt, sameDim ? playerPos : Vec2{-9999, -9999}); break;
             case EnemyType::Boss: {
                 int bt = e->getComponent<AIComponent>().bossType;
                 if (bt == 5)
@@ -1587,6 +1590,216 @@ void AISystem::updateLeech(Entity& entity, float dt, Vec2 playerPos) {
         } else {
             sprite.color = {50, 140, 60, 255};
         }
+    }
+}
+
+void AISystem::updateSwarmer(Entity& entity, float dt, Vec2 playerPos) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& transform = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    Vec2 pos = transform.getCenter();
+    float dist = distanceTo(pos, playerPos);
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
+
+    // Zigzag movement for unpredictability
+    ai.swarmerZigzagPhase += dt * 8.0f;
+
+    switch (ai.state) {
+        case AIState::Patrol: {
+            Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
+            float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
+            ai.facingRight = dirX > 0;
+
+            if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
+            if (dist < effectiveDetect) ai.state = AIState::Chase;
+            break;
+        }
+        case AIState::Chase: {
+            float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+            // Zigzag: adds vertical oscillation during chase
+            float zigzag = std::sin(ai.swarmerZigzagPhase) * 60.0f;
+            phys.velocity.x = dirX * effectiveChase + zigzag * 0.3f;
+            ai.facingRight = dirX > 0;
+
+            // Jump if below player
+            if (playerPos.y < pos.y - 40.0f && phys.onGround) {
+                phys.velocity.y = -350.0f;
+            }
+
+            if (dist < ai.attackRange) ai.state = AIState::Attack;
+            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            break;
+        }
+        case AIState::Attack: {
+            ai.attackTimer -= dt;
+            if (ai.attackTimer <= 0) {
+                ai.attackTimer = ai.attackCooldown;
+                ai.state = AIState::Chase;
+            }
+            break;
+        }
+        default: break;
+    }
+
+    if (entity.hasComponent<SpriteComponent>()) {
+        entity.getComponent<SpriteComponent>().flipX = !ai.facingRight;
+    }
+}
+
+void AISystem::updateGravityWell(Entity& entity, float dt, Vec2 playerPos) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& transform = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    Vec2 pos = transform.getCenter();
+    float dist = distanceTo(pos, playerPos);
+    float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+
+    // Hover animation
+    ai.gravHoverY += dt * 2.0f;
+    float hoverOffset = std::sin(ai.gravHoverY) * 8.0f;
+    phys.velocity.y = hoverOffset * 30.0f;
+
+    // Pulse timer for visual effect
+    ai.gravPulseTimer += dt;
+
+    switch (ai.state) {
+        case AIState::Patrol: {
+            // Slow drift
+            Vec2 target = ai.patrolForward ? ai.patrolEnd : ai.patrolStart;
+            float dirX = (target.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * ai.patrolSpeed * ai.dimSpeedMod;
+            ai.facingRight = dirX > 0;
+
+            if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
+            if (dist < effectiveDetect) ai.state = AIState::Chase;
+            break;
+        }
+        case AIState::Chase: {
+            // Slowly approach player but maintain distance
+            float desiredDist = ai.gravPullRadius * 0.8f;
+            if (dist > desiredDist + 20.0f) {
+                float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+                phys.velocity.x = dirX * ai.chaseSpeed * ai.dimSpeedMod;
+                ai.facingRight = dirX > 0;
+            } else {
+                phys.velocity.x *= 0.9f;
+            }
+
+            // Apply gravity pull to player when in range
+            if (dist < ai.gravPullRadius && dist > 10.0f && m_player) {
+                auto* playerEntity = m_player->getEntity();
+                if (playerEntity && playerEntity->hasComponent<PhysicsBody>()) {
+                    auto& playerPhys = playerEntity->getComponent<PhysicsBody>();
+                    float pullStrength = ai.gravPullForce * (1.0f - dist / ai.gravPullRadius) * dt;
+                    float dx = pos.x - playerPos.x;
+                    float dy = pos.y - playerPos.y;
+                    float mag = std::sqrt(dx * dx + dy * dy);
+                    if (mag > 0.01f) {
+                        playerPhys.velocity.x += (dx / mag) * pullStrength;
+                        playerPhys.velocity.y += (dy / mag) * pullStrength * 0.5f;
+                    }
+                }
+
+                // Pull particles
+                if (m_particles && ai.gravPulseTimer > 0.3f) {
+                    ai.gravPulseTimer = 0;
+                    m_particles->burst(pos, 4, {120, 60, 200, 150}, ai.gravPullRadius * 0.5f, 0.5f);
+                }
+            }
+
+            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            break;
+        }
+        default: break;
+    }
+
+    // Pulsing purple glow
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        float pulse = std::sin(SDL_GetTicks() * 0.005f) * 0.3f + 0.7f;
+        sprite.color.r = static_cast<Uint8>(100 * pulse);
+        sprite.color.g = static_cast<Uint8>(50 * pulse);
+        sprite.color.b = static_cast<Uint8>(180 * pulse);
+    }
+}
+
+void AISystem::updateMimic(Entity& entity, float dt, Vec2 playerPos) {
+    auto& ai = entity.getComponent<AIComponent>();
+    auto& transform = entity.getComponent<TransformComponent>();
+    auto& phys = entity.getComponent<PhysicsBody>();
+    Vec2 pos = transform.getCenter();
+    float dist = distanceTo(pos, playerPos);
+
+    if (!ai.mimicRevealed) {
+        // Disguised as crate — completely still
+        phys.velocity.x = 0;
+        phys.velocity.y = 0;
+
+        // Reveal when player gets close
+        if (dist < ai.mimicRevealRange) {
+            ai.mimicRevealed = true;
+            ai.state = AIState::Chase;
+
+            // Surprise burst particles
+            if (m_particles) {
+                m_particles->burst(pos, 12, {200, 60, 60, 255}, 50.0f, 0.6f);
+            }
+
+            // Change color to red to signal danger
+            if (entity.hasComponent<SpriteComponent>()) {
+                auto& sprite = entity.getComponent<SpriteComponent>();
+                sprite.setColor(220, 50, 50);
+                sprite.renderLayer = 2; // Move to enemy layer
+            }
+
+            // Initial lunge at player
+            float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * 250.0f;
+            phys.velocity.y = -200.0f;
+            phys.friction = 600.0f; // Now movable
+        }
+        return;
+    }
+
+    // Once revealed, behaves like aggressive walker with lunge attacks
+    float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
+    ai.mimicLungeTimer -= dt;
+
+    switch (ai.state) {
+        case AIState::Chase: {
+            float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
+            phys.velocity.x = dirX * effectiveChase;
+            ai.facingRight = dirX > 0;
+
+            // Periodic lunge attack
+            if (dist < 80.0f && ai.mimicLungeTimer <= 0 && phys.onGround) {
+                ai.mimicLungeTimer = 2.0f;
+                phys.velocity.x = dirX * 300.0f;
+                phys.velocity.y = -180.0f;
+            }
+
+            if (dist < ai.attackRange) ai.state = AIState::Attack;
+            if (dist > ai.loseRange * 1.5f) ai.state = AIState::Chase; // Never goes back to idle
+            break;
+        }
+        case AIState::Attack: {
+            ai.attackTimer -= dt;
+            if (ai.attackTimer <= 0) {
+                ai.attackTimer = ai.attackCooldown;
+                ai.state = AIState::Chase;
+            }
+            break;
+        }
+        default:
+            if (ai.mimicRevealed) ai.state = AIState::Chase;
+            break;
+    }
+
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        sprite.flipX = !ai.facingRight;
     }
 }
 

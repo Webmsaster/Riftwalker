@@ -658,25 +658,26 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
         if (m_rng() % 2 == 0) {
             type = themeConfig.preferredTypes[m_rng() % 3];
         } else {
-            type = m_rng() % 13; // 0-12: all non-boss enemy types
+            type = m_rng() % 16; // 0-15: all non-boss enemy types
         }
 
         // Zone-based enemy type gating (gradual unlock over 30 floors)
         int zone = std::clamp((difficulty - 1) / 6, 0, 4);
         int fiz = ((difficulty - 1) % 6) + 1;
-        if (zone == 0 && fiz <= 2) type = std::min(type, 2);       // Zone1 F1-2: Walker, Flyer, Turret
-        else if (zone == 0 && fiz <= 4) type = std::min(type, 4);  // Zone1 F3-4: +Charger, Phaser
-        else if (zone == 0) type = std::min(type, 6);              // Zone1 F5-6: +Exploder, Shielder
-        else if (zone == 1 && fiz <= 3) type = std::min(type, 9);  // Zone2 F1-3: +Crawler, Summoner, Sniper
-        // Zone2 F4+ and Zone3+: all types including Teleporter, Reflector, Leech
+        if (zone == 0 && fiz <= 2) type = std::min(type, 2);        // Zone1 F1-2: Walker, Flyer, Turret
+        else if (zone == 0 && fiz <= 4) type = std::min(type, 4);   // Zone1 F3-4: +Charger, Phaser
+        else if (zone == 0) type = std::min(type, 6);               // Zone1 F5-6: +Exploder, Shielder
+        else if (zone == 1 && fiz <= 3) type = std::min(type, 13);  // Zone2 F1-3: +Crawler..Leech, Swarmer
+        else if (zone == 1) type = std::min(type, 15);              // Zone2 F4+: +GravityWell, Mimic
+        // Zone3+: all 16 types available
 
         // Crawler should spawn near ceiling for best effect
         if (type == 7) { // Crawler
             ey = startY + 2;
         }
 
-        // Ground-based enemies need solid tile below (skip for Flyer=1 and Crawler=7)
-        if (type != 1 && type != 7 && !level.isSolid(ex, ey + 1, dim)) continue;
+        // Ground-based enemies need solid tile below (skip for Flyer=1, Crawler=7, GravityWell=14)
+        if (type != 1 && type != 7 && type != 14 && !level.isSolid(ex, ey + 1, dim)) continue;
 
         // Zone-based dimension-exclusive chance: ramps from 0% to 50%
         int spawnDim = 0; // default: visible in both
@@ -704,7 +705,9 @@ void LevelGenerator::placeNPCs(Level& level, const std::vector<LGRoom>& rooms, i
         NPCType::DimRefugee,
         NPCType::LostEngineer,
         NPCType::EchoOfSelf,
-        NPCType::Blacksmith
+        NPCType::Blacksmith,
+        NPCType::FortuneTeller,
+        NPCType::VoidMerchant
     };
 
     // Pick rooms (skip first 2 and last)

@@ -1040,6 +1040,9 @@ void PlayState::update(float dt) {
         float shardMult = game->getRunBuffSystem().getShardMultiplier() * m_achievementShardMult;
         if (m_player->getEntity()->hasComponent<RelicComponent>())
             shardMult *= RelicSystem::getShardDropMultiplier(m_player->getEntity()->getComponent<RelicComponent>());
+        // ShardStorm mutator: 3x shard drops
+        if (g_activeMutators[0] == MutatorID::ShardStorm || g_activeMutators[1] == MutatorID::ShardStorm)
+            shardMult *= 3.0f;
         int finalShards = static_cast<int>(shards * shardMult);
         shardsCollected += finalShards;
         game->getUpgradeSystem().addRiftShards(finalShards);

@@ -41,9 +41,11 @@ build/Release/Riftwalker.exe --screenshot
 ```
 Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victory) in ~1300s.
 
-**Visual Regression Testing** (new):
-- `python tools/visual-regression.ps1` — Capture reference screenshots, detect regressions
+**Visual Regression Testing** (implemented):
 - `python tools/visual_report.py` — Generate HTML diff reports (Reference / Actual / Diff)
+- Playtest-Bot auto-captures floor screenshots (1, 5, 10, 15, 20, 25, 30)
+- 7 Visual Checkpoints: Menu, ClassSelect, Gameplay, Debug, Pause, Upgrades, Achievements
+- pixelmatch-cpp17 für Pixel-Diffs, CI-Pipeline mit GitHub Actions
 
 ## Architecture (Riftwalker)
 

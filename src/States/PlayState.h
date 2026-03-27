@@ -91,6 +91,7 @@ private:
     void checkRiftInteraction();
     void checkExitReached();
     void applyUpgrades();
+    void applyMutators();
     void renderBackground(SDL_Renderer* renderer);
 
     // Render helper methods extracted from render()

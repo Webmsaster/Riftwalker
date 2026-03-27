@@ -332,6 +332,9 @@ void PlayState::generateLevel() {
         spawnChainEvent();
     }
 
+    // Apply active mutators to the generated level
+    applyMutators();
+
     // Brief settling shake — like landing in a new dimension
     m_camera.shake(3.0f, 0.25f);
 
@@ -1025,4 +1028,63 @@ void PlayState::applyAscensionModifiers() {
             ai.patrolSpeed *= asc.enemySpeedMult;
         }
     });
+}
+
+void PlayState::applyMutators() {
+    auto hasMutator = [](MutatorID id) {
+        return g_activeMutators[0] == id || g_activeMutators[1] == id;
+    };
+
+    // BigHeadMode: enlarge all enemy hitboxes by 50%
+    if (hasMutator(MutatorID::BigHeadMode)) {
+        m_entities.forEach([](Entity& e) {
+            if (!e.hasComponent<AIComponent>()) return;
+            if (e.hasComponent<ColliderComponent>()) {
+                auto& col = e.getComponent<ColliderComponent>();
+                col.width = col.width * 3 / 2;
+                col.height = col.height * 3 / 2;
+            }
+            if (e.hasComponent<TransformComponent>()) {
+                auto& t = e.getComponent<TransformComponent>();
+                t.width = t.width * 3 / 2;
+                t.height = t.height * 3 / 2;
+            }
+        });
+    }
+
+    // LowGravity: halve gravity for player and all enemies
+    if (hasMutator(MutatorID::LowGravity)) {
+        if (m_player && m_player->getEntity()->hasComponent<PhysicsBody>()) {
+            m_player->getEntity()->getComponent<PhysicsBody>().gravity *= 0.5f;
+        }
+        m_entities.forEach([](Entity& e) {
+            if (!e.hasComponent<AIComponent>()) return;
+            if (e.hasComponent<PhysicsBody>()) {
+                e.getComponent<PhysicsBody>().gravity *= 0.5f;
+            }
+        });
+    }
+
+    // BulletHell: give all enemies ranged attacks
+    if (hasMutator(MutatorID::BulletHell)) {
+        m_entities.forEach([](Entity& e) {
+            if (!e.hasComponent<AIComponent>()) return;
+            if (e.hasComponent<CombatComponent>()) {
+                auto& combat = e.getComponent<CombatComponent>();
+                if (combat.rangedAttack.type != AttackType::Ranged) {
+                    combat.rangedAttack.type = AttackType::Ranged;
+                    combat.rangedAttack.damage = combat.meleeAttack.damage * 0.6f;
+                    combat.rangedAttack.range = 200.0f;
+                    combat.rangedAttack.cooldown = 2.5f;
+                    combat.rangedAttack.knockback = 60.0f;
+                }
+            }
+        });
+    }
+
+    // ShardStorm: 3x shard drops (handled in PlayState::update shard pickup code)
+
+    // FragileWorld & DimensionFlux are handled elsewhere:
+    // - FragileWorld: tile breakability checked in collision system
+    // - DimensionFlux: auto-switch timer in PlayState::update()
 }

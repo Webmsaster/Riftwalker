@@ -92,7 +92,10 @@ Entity& Enemy::createByType(EntityManager& entities, int type, Vec2 pos, int dim
         case EnemyType::Sniper:     e = &createSniper(entities, pos, dimension); break;
         case EnemyType::Teleporter: e = &createTeleporter(entities, pos, dimension); break;
         case EnemyType::Reflector:  e = &createReflector(entities, pos, dimension); break;
-        case EnemyType::Leech:      e = &createLeech(entities, pos, dimension); break;
+        case EnemyType::Leech:       e = &createLeech(entities, pos, dimension); break;
+        case EnemyType::Swarmer:     e = &createSwarmer(entities, pos, dimension); break;
+        case EnemyType::GravityWell: e = &createGravityWell(entities, pos, dimension); break;
+        case EnemyType::Mimic:       e = &createMimic(entities, pos, dimension); break;
         case EnemyType::Boss: e = &createBoss(entities, pos, dimension, 1); break;
         default: e = &createWalker(entities, pos, dimension); break;
     }
@@ -720,6 +723,144 @@ Entity& Enemy::createLeech(EntityManager& entities, Vec2 pos, int dimension) {
 
     auto& anim = e.addComponent<AnimationComponent>();
     SpriteConfig::setupEnemy(anim, sprite, EnemyType::Leech);
+
+    return e;
+}
+
+Entity& Enemy::createSwarmer(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_swarmer");
+    e.dimension = dimension;
+
+    e.addComponent<TransformComponent>(pos.x, pos.y, 16, 16);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(255, 180, 50); // Bright amber
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 400.0f;
+    phys.bounciness = 0.4f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 14;
+    col.height = 14;
+    col.offset = {1, 1};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 15.0f;
+    hp.currentHP = 15.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 6.0f;
+    combat.meleeAttack.knockback = 120.0f;
+    combat.meleeAttack.cooldown = 0.6f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Swarmer;
+    ai.detectRange = 220.0f;
+    ai.attackRange = 25.0f;
+    ai.chaseSpeed = 160.0f;
+    ai.patrolSpeed = 100.0f;
+    ai.swarmerZigzagPhase = static_cast<float>(std::rand() % 100) / 10.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 120.0f, pos.y};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Swarmer);
+
+    return e;
+}
+
+Entity& Enemy::createGravityWell(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_gravitywell");
+    e.dimension = dimension;
+
+    e.addComponent<TransformComponent>(pos.x, pos.y, 32, 32);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(100, 50, 180); // Deep purple
+    sprite.renderLayer = 2;
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.useGravity = false;
+    phys.airResistance = 500.0f;
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 28;
+    col.height = 28;
+    col.offset = {2, 2};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 50.0f;
+    hp.currentHP = 50.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 8.0f;
+    combat.meleeAttack.knockback = 50.0f;
+    combat.meleeAttack.cooldown = 1.5f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::GravityWell;
+    ai.detectRange = 200.0f;
+    ai.attackRange = 120.0f;
+    ai.chaseSpeed = 40.0f;
+    ai.patrolSpeed = 25.0f;
+    ai.gravPullRadius = 120.0f;
+    ai.gravPullForce = 200.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = {pos.x + 60.0f, pos.y};
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::GravityWell);
+
+    return e;
+}
+
+Entity& Enemy::createMimic(EntityManager& entities, Vec2 pos, int dimension) {
+    auto& e = entities.addEntity("enemy_mimic");
+    e.dimension = dimension;
+
+    e.addComponent<TransformComponent>(pos.x, pos.y, 28, 28);
+    auto& sprite = e.addComponent<SpriteComponent>();
+    sprite.setColor(139, 90, 43); // Brown (looks like a crate)
+    sprite.renderLayer = 1; // Same layer as crates
+
+    auto& phys = e.addComponent<PhysicsBody>();
+    phys.gravity = 980.0f;
+    phys.friction = 2000.0f; // Stays still until revealed
+
+    auto& col = e.addComponent<ColliderComponent>();
+    col.width = 26;
+    col.height = 26;
+    col.offset = {1, 1};
+    col.layer = LAYER_ENEMY;
+    col.mask = LAYER_TILE | LAYER_PLAYER | LAYER_PROJECTILE;
+
+    auto& hp = e.addComponent<HealthComponent>();
+    hp.maxHP = 55.0f;
+    hp.currentHP = 55.0f;
+
+    auto& combat = e.addComponent<CombatComponent>();
+    combat.meleeAttack.damage = 18.0f;
+    combat.meleeAttack.knockback = 300.0f;
+    combat.meleeAttack.cooldown = 1.2f;
+
+    auto& ai = e.addComponent<AIComponent>();
+    ai.enemyType = EnemyType::Mimic;
+    ai.detectRange = 60.0f;  // Only reveals when very close
+    ai.attackRange = 35.0f;
+    ai.chaseSpeed = 140.0f;
+    ai.patrolSpeed = 0.0f;   // Doesn't move until revealed
+    ai.mimicRevealed = false;
+    ai.mimicRevealRange = 60.0f;
+    ai.patrolStart = pos;
+    ai.patrolEnd = pos; // No patrol when disguised
+
+    auto& anim = e.addComponent<AnimationComponent>();
+    SpriteConfig::setupEnemy(anim, sprite, EnemyType::Mimic);
 
     return e;
 }

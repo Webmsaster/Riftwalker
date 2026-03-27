@@ -29,6 +29,9 @@ private:
     void renderTeleporter(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderReflector(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderLeech(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderSwarmer(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderGravityWell(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
+    void renderMimic(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderBoss(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderVoidWyrm(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);
     void renderDimensionalArchitect(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha);

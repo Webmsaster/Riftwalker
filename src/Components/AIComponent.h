@@ -27,6 +27,9 @@ enum class EnemyType {
     Teleporter, // Blinks behind player for surprise attacks
     Reflector,  // Frontal shield that reflects projectiles, cycles on/off
     Leech,      // Slow drainer, steals HP from player to heal self
+    Swarmer,    // Tiny, fast, spawns in groups of 3 — overwhelms via numbers
+    GravityWell,// Floating enemy, pulls player toward it with gravity field
+    Mimic,      // Disguised as crate until player approaches, then ambushes
     Boss,       // Level boss with multiple phases
     COUNT
 };
@@ -281,6 +284,21 @@ struct AIComponent : public Component {
     // Leech specific
     float leechDrainRate = 2.0f;
     float leechDrainTimer = 0;
+
+    // Swarmer specific
+    float swarmerFlockTimer = 0;      // regroup cooldown
+    float swarmerZigzagPhase = 0;     // zigzag movement offset
+
+    // GravityWell specific
+    float gravPullRadius = 120.0f;    // pull range
+    float gravPullForce = 200.0f;     // pull strength
+    float gravPulseTimer = 0;         // visual pulse
+    float gravHoverY = 0;             // hover offset
+
+    // Mimic specific
+    bool mimicRevealed = false;       // true once player is close enough
+    float mimicRevealRange = 60.0f;   // range to trigger reveal
+    float mimicLungeTimer = 0;        // cooldown for lunge attack
 
     // Element weapon debuffs (applied by player's weapon buffs)
     float burnTimer = 0;       // fire weapon DoT remaining

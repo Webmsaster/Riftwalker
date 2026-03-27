@@ -215,6 +215,12 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         renderReflector(renderer, screenRect, entity, alpha);
     } else if (tag == "enemy_leech") {
         renderLeech(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_swarmer") {
+        renderSwarmer(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_gravitywell") {
+        renderGravityWell(renderer, screenRect, entity, alpha);
+    } else if (tag == "enemy_mimic") {
+        renderMimic(renderer, screenRect, entity, alpha);
     } else if (tag == "enemy_minion") {
         // Minions use walker renderer but smaller
         renderWalker(renderer, screenRect, entity, alpha);

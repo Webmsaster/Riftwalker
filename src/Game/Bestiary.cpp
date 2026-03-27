@@ -144,6 +144,37 @@ void Bestiary::init() {
         "Drains 2HP/0.5s at close range, heals equal amount. Faster below 50% HP",
         "Burst damage to kill fast. Keep distance."};
 
+    e[static_cast<int>(EnemyType::Swarmer)] = {EnemyType::Swarmer, "Rift Swarmer",
+        "Rift Swarmers are tiny interdimensional insects that travel in aggressive packs. "
+        "Individually fragile, they overwhelm prey through sheer numbers and relentless "
+        "zigzag pursuit patterns. Their amber exoskeletons vibrate at frequencies that "
+        "disrupt spatial awareness, making them difficult to track in groups.",
+        15, 6, 160, EnemyElement::None,
+        "Low HP, easy to one-shot individually",
+        "Fast zigzag movement, spawns in groups, jumps at player",
+        "AoE attacks or wide melee sweeps. Don't let them surround you."};
+
+    e[static_cast<int>(EnemyType::GravityWell)] = {EnemyType::GravityWell, "Gravity Well",
+        "Gravity Wells are anomalous entities formed at points where dimensional boundaries "
+        "are weakest. They exist as living singularities, drawing all matter toward their "
+        "cores with an irresistible pull. Ancient texts describe them as 'the void's hunger "
+        "given form' — patient predators that need only wait for prey to be dragged in.",
+        50, 8, 40, EnemyElement::None,
+        "Slow movement, can be outranged",
+        "Gravitational pull drags player within 120px, floating, pulsing aura",
+        "Ranged attacks from outside pull radius. Dash away when pulled in."};
+
+    e[static_cast<int>(EnemyType::Mimic)] = {EnemyType::Mimic, "Mimic",
+        "Mimics are shapeshifting predators that disguise themselves as mundane objects — "
+        "most commonly supply crates. They wait with infinite patience for unsuspecting "
+        "travelers to approach, then burst open with devastating lunge attacks. Some rift "
+        "scholars theorize they were once normal creatures corrupted by prolonged exposure "
+        "to unstable dimensional energies.",
+        55, 18, 140, EnemyElement::None,
+        "Predictable once revealed, high damage but slow attacks",
+        "Disguised as crate, ambush lunge (18 DMG, 300 knockback), aggressive chase",
+        "Approach crates carefully. Once revealed, parry the lunge."};
+
     s_bossEntries.resize(6);
     // Boss entries: {type, name, lore, HP, DMG, speed, element, weakness, abilities, effectiveWeapons}
     s_bossEntries[0] = {EnemyType::Walker, "Rift Guardian",
