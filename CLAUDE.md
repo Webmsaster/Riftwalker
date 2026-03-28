@@ -5,12 +5,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-03-28):**
+**Recent Updates (2026-03-28/29):**
 - Added 6 new enemy types: Teleporter, Reflector, Leech, Swarmer, GravityWell, Mimic
 - Regenerated all 17 enemy sprites programmatically (spritesheet: 960x480px, 12px per frame)
 - Regenerated all 6 boss sprites + new Entropy Incarnate variant
+- Added dedicated Entropy Incarnate boss renderer (was using Rift Guardian fallback)
+- Added bestiary preview renderers + silhouettes for all 6 new enemies
+- Added placeholder texture definitions for new enemy types
+- Implemented missing achievement bonuses (class mastery, relics, combat, exploration)
 - Updated `palette.py` & `config.py` to include all new types
-- ComfyUI concept art generation in progress (23 high-quality pixel-art reference images)
+- ComfyUI concept art generation started (5 reference images in assets/comfyui_concepts/)
 
 ## Build Commands (Riftwalker)
 ```bash
@@ -67,13 +71,13 @@ Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victo
 - `Game` (persistent across runs) owns: UpgradeSystem, AchievementSystem, RunBuffSystem, LoreSystem, state machine, font, window
 - `PlayState` (per-run) owns: all ECS systems, EntityManager, Player, Level, Camera, DimensionManager, RelicSystem, and all per-run mechanics
 
-**State Machine** — `Game` owns a `map<StateID, unique_ptr<GameState>>` plus a state stack. `changeState()` replaces the current state; `pushState()`/`popState()` for overlay states (e.g. Pause over Play). Screen transitions use fade in/out. 19 states defined in `StateID` enum (`src/States/GameState.h`).
+**State Machine** — `Game` owns a `map<StateID, unique_ptr<GameState>>` plus a state stack. `changeState()` replaces the current state; `pushState()`/`popState()` for overlay states (e.g. Pause over Play). Screen transitions use fade in/out. 21 states defined in `StateID` enum (`src/States/GameState.h`).
 
 **Game Loop** — Fixed timestep physics in `Game::run()`. Timer controls step rate; InputManager buffers press/release events, cleared via `clearPressedBuffers()` after each fixed step.
 
 **Rendering** — Dual system: sprite-based rendering via `SpriteComponent`/`AnimationComponent` with PNG assets in `assets/textures/`, plus procedural fallback via `SDL_RenderFillRect`/`DrawLine` when textures aren't loaded. `SpriteConfig` (`src/Game/SpriteConfig.h`) sets up sprites and animations per entity type. Audio is fully procedural via `SoundGenerator` (sine waves, noise, sweeps).
 
-**Enemy Factory** — `Enemy` class (`src/Game/Enemy.h`) uses static factory methods: `createWalker()`, `createFlyer()`, `createBoss()`, etc. Stats hardcoded in `Enemy.cpp`. Supports elemental variants, elite modifiers, and mini-boss promotion.
+**Enemy Factory** — `Enemy` class (`src/Game/Enemy.h`) uses static factory methods: `createWalker()`, `createFlyer()`, `createBoss()`, etc. 16 regular enemy types + Boss type. Stats hardcoded in `Enemy.cpp`. Supports elemental variants, elite modifiers, and mini-boss promotion.
 
 **Dimension System** — Entities have a `dimension` field: 0=both dimensions, 1=dimension A, 2=dimension B. `DimensionManager` handles switching; only entities matching the active dimension (or 0) are updated/rendered.
 
@@ -83,11 +87,11 @@ Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victo
 - `LevelGenerator` — Procedural level generation with spawn waves, 30-floor zone system
 - `SuitEntropy` — Core mechanic (suit degradation affecting gameplay)
 - `UpgradeSystem` — Persistent upgrades, serialized to `riftwalker_save.dat`
-- `RelicSystem` / `RelicSynergy` — 38 relics with 19 synergy combos
-- `WeaponSystem` — 3 melee + 4 ranged weapons with mastery tiers
+- `RelicSystem` / `RelicSynergy` — 38 relics with 22 synergy combos (13 relic-only + 9 weapon-relic)
+- `WeaponSystem` — 6 melee + 6 ranged weapons with mastery tiers
 - `ClassSystem` — 4 classes: Voidwalker, Berserker, Phantom, Technomancer
-- `AscensionSystem` — NG+ tiers 1-5 with progressive difficulty
-- `LoreSystem` — 12 discoverable lore fragments with in-game triggers
+- `AscensionSystem` — NG+ tiers 0-10 with progressive difficulty
+- `LoreSystem` — 20 discoverable lore fragments with in-game triggers
 - `DimensionShiftBalance.h` — Per-floor rift counts, enemy scaling, zone multipliers
 - `ChallengeMode`, `NPCSystem`, `Bestiary`, `DailyRun`
 
