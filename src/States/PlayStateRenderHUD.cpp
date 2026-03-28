@@ -609,8 +609,8 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     if (font) {
         int bt = 0;
         if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
-        const char* bossName = (bt == 4) ? "VOID SOVEREIGN" : (bt == 3) ? "TEMPORAL WEAVER" : (bt == 2) ? "DIMENSIONAL ARCHITECT" : (bt == 1) ? "VOID WYRM" : "RIFT GUARDIAN";
-        SDL_Color tc = (bt == 4) ? SDL_Color{180, 80, 255, 220} : (bt == 3) ? SDL_Color{220, 190, 100, 220} : (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
+        const char* bossName = (bt == 5) ? "ENTROPY INCARNATE" : (bt == 4) ? "VOID SOVEREIGN" : (bt == 3) ? "TEMPORAL WEAVER" : (bt == 2) ? "DIMENSIONAL ARCHITECT" : (bt == 1) ? "VOID WYRM" : "RIFT GUARDIAN";
+        SDL_Color tc = (bt == 5) ? SDL_Color{80, 220, 80, 220} : (bt == 4) ? SDL_Color{180, 80, 255, 220} : (bt == 3) ? SDL_Color{220, 190, 100, 220} : (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
         SDL_Surface* ts = TTF_RenderText_Blended(font, bossName, tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
