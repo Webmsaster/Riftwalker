@@ -227,7 +227,8 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     } else if (tag == "enemy_boss") {
         int bt = 0;
         if (entity.hasComponent<AIComponent>()) bt = entity.getComponent<AIComponent>().bossType;
-        if (bt == 4) renderVoidSovereign(renderer, screenRect, entity, alpha);
+        if (bt == 5) renderEntropyIncarnate(renderer, screenRect, entity, alpha);
+        else if (bt == 4) renderVoidSovereign(renderer, screenRect, entity, alpha);
         else if (bt == 3) renderTemporalWeaver(renderer, screenRect, entity, alpha);
         else if (bt == 2) renderDimensionalArchitect(renderer, screenRect, entity, alpha);
         else if (bt == 1) renderVoidWyrm(renderer, screenRect, entity, alpha);

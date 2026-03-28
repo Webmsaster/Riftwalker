@@ -728,3 +728,108 @@ void RenderSystem::renderVoidSovereign(SDL_Renderer* renderer, SDL_Rect rect, En
     // HP bar with phase markers
     renderEnemyHPBar(renderer, x, y, w, entity, alpha, true);
 }
+
+void RenderSystem::renderEntropyIncarnate(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    Uint8 a = static_cast<Uint8>(255 * alpha);
+    int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+    int cx = x + w / 2, cy = y + h / 2;
+    auto& sprite = entity.getComponent<SpriteComponent>();
+    float time = SDL_GetTicks() * 0.004f;
+
+    auto& ai = entity.getComponent<AIComponent>();
+    int phase = ai.bossPhase;
+    float pulse = ai.eiCorePulse;
+
+    // Drop shadow
+    fillRect(renderer, x + 4, y + h, w - 8, 4, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
+
+    // Entropy aura (sickly green, grows with phase)
+    int auraSize = 6 + phase * 4;
+    float auraPulse = 0.6f + 0.4f * std::sin(pulse * 2.0f);
+    Uint8 auraA = static_cast<Uint8>(a * 0.15f * (1 + phase) * auraPulse);
+    fillRect(renderer, x - auraSize, y - auraSize,
+             w + auraSize * 2, h + auraSize * 2,
+             60, 200, 60, auraA);
+
+    // Outer shell (dark green-purple, decaying look)
+    fillRect(renderer, x, y, w, h, 30, 60, 30, a);
+    fillRect(renderer, x + 2, y + 2, w - 4, h - 4, 50, 100, 40, a);
+
+    // Inner body (shifts from green to sickly purple with phase)
+    Uint8 bodyR = static_cast<Uint8>(40 + phase * 30);
+    Uint8 bodyG = static_cast<Uint8>(120 - phase * 15);
+    Uint8 bodyB = static_cast<Uint8>(40 + phase * 25);
+    fillRect(renderer, x + 4, y + 4, w - 8, h - 8, bodyR, bodyG, bodyB, a);
+
+    // Pulsing entropy core (bright green → purple with damage)
+    int coreR = static_cast<int>(8 + std::sin(pulse * 3.0f) * 4.0f);
+    Uint8 coreRed = static_cast<Uint8>(80 + phase * 40);
+    Uint8 coreGreen = static_cast<Uint8>(220 - phase * 30);
+    Uint8 corePurp = static_cast<Uint8>(60 + phase * 50);
+    Uint8 coreA = static_cast<Uint8>(a * (0.6f + std::sin(pulse * 4.0f) * 0.3f));
+    fillRect(renderer, cx - coreR, cy - coreR, coreR * 2, coreR * 2, coreRed, coreGreen, corePurp, coreA);
+    // Inner white-green hot spot
+    fillRect(renderer, cx - coreR / 2, cy - coreR / 2, coreR, coreR, 200, 255, 180, coreA);
+
+    // Eyes (grow more menacing with phase)
+    if (phase <= 1) {
+        // Two green eyes
+        fillRect(renderer, cx - w / 4 - 2, y + h / 4, 5, 3, 80, 255, 80, a);
+        fillRect(renderer, cx + w / 4 - 3, y + h / 4, 5, 3, 80, 255, 80, a);
+    } else if (phase == 2) {
+        // Wider, angrier eyes
+        fillRect(renderer, cx - w / 4 - 3, y + h / 4 - 1, 7, 4, 140, 255, 60, a);
+        fillRect(renderer, cx + w / 4 - 4, y + h / 4 - 1, 7, 4, 140, 255, 60, a);
+        // Extra small eyes below
+        fillRect(renderer, cx - w / 6, y + h / 3 + 4, 3, 2, 180, 200, 40, a);
+        fillRect(renderer, cx + w / 6 - 3, y + h / 3 + 4, 3, 2, 180, 200, 40, a);
+    } else {
+        // Single large entropy eye
+        int eyeR = static_cast<int>(6 + std::sin(pulse * 5.0f) * 2.0f);
+        fillRect(renderer, cx - eyeR, y + h / 4 - eyeR / 2, eyeR * 2, eyeR, 60, 255, 60, a);
+        fillRect(renderer, cx - 2, y + h / 4 - 1, 4, 3, 0, 80, 0, a); // pupil
+    }
+
+    // Entropy decay tendrils (radiating outward, more in later phases)
+    int numTendrils = 4 + phase * 2;
+    for (int t = 0; t < numTendrils; t++) {
+        float tAngle = (t / (float)numTendrils) * 6.283185f + time * 0.3f;
+        float tendrilLen = 15.0f + phase * 5.0f + std::sin(time * 2.0f + t * 1.1f) * 6.0f;
+        int baseX = cx + static_cast<int>(std::cos(tAngle) * (w / 2 - 4));
+        int baseY = cy + static_cast<int>(std::sin(tAngle) * (h / 2 - 4));
+        int tipX = baseX + static_cast<int>(std::cos(tAngle) * tendrilLen);
+        int tipY = baseY + static_cast<int>(std::sin(tAngle) * tendrilLen);
+        Uint8 tA = static_cast<Uint8>(a * 0.6f);
+        drawLine(renderer, baseX, baseY, tipX, tipY, 80, 200, 40, tA);
+        // Tendril tip drip
+        fillRect(renderer, tipX - 1, tipY - 1, 3, 3, 100, 255, 60, static_cast<Uint8>(tA * 0.7f));
+    }
+
+    // Entropy pulse visual (expanding ring when pulse fires)
+    if (ai.eiPulseFired || ai.eiPulseTimer > 5.5f) {
+        float ringPhase = ai.eiPulseTimer > 5.5f ? (6.0f - ai.eiPulseTimer) * 2.0f : 0;
+        int ringSize = static_cast<int>(w * 0.5f + ringPhase * 80.0f);
+        Uint8 ringA = static_cast<Uint8>(a * std::max(0.0f, 0.6f - ringPhase * 0.3f));
+        SDL_SetRenderDrawColor(renderer, 60, 255, 60, ringA);
+        SDL_Rect ring = {cx - ringSize, cy - ringSize, ringSize * 2, ringSize * 2};
+        SDL_RenderDrawRect(renderer, &ring);
+    }
+
+    // Dimension lock visual (red overlay)
+    if (ai.eiDimLockActive > 0.0f) {
+        Uint8 lockA = static_cast<Uint8>(a * 0.25f * std::min(1.0f, ai.eiDimLockActive));
+        fillRect(renderer, x - 8, y - 8, w + 16, h + 16, 255, 0, 60, lockA);
+    }
+
+    // Phase 3+: Screen edge corruption
+    if (phase >= 3) {
+        Uint8 edgeA = static_cast<Uint8>(a * (0.12f + std::sin(pulse * 6.0f) * 0.08f));
+        fillRect(renderer, x - 16, y - 16, w + 32, 3, 60, 180, 30, edgeA);
+        fillRect(renderer, x - 16, y + h + 13, w + 32, 3, 60, 180, 30, edgeA);
+        fillRect(renderer, x - 16, y - 16, 3, h + 32, 60, 180, 30, edgeA);
+        fillRect(renderer, x + w + 13, y - 16, 3, h + 32, 60, 180, 30, edgeA);
+    }
+
+    // HP bar with phase markers
+    renderEnemyHPBar(renderer, x, y, w, entity, alpha, true);
+}
