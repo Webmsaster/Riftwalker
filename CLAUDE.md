@@ -5,6 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
+**Recent Updates (2026-03-28):**
+- Added 6 new enemy types: Teleporter, Reflector, Leech, Swarmer, GravityWell, Mimic
+- Regenerated all 17 enemy sprites programmatically (spritesheet: 960x480px, 12px per frame)
+- Regenerated all 6 boss sprites + new Entropy Incarnate variant
+- Updated `palette.py` & `config.py` to include all new types
+- ComfyUI concept art generation in progress (23 high-quality pixel-art reference images)
+
 ## Build Commands (Riftwalker)
 ```bash
 cd Riftwalker/build

@@ -629,6 +629,12 @@ void BestiaryState::renderEnemyPreview(SDL_Renderer* renderer, int cx, int cy, i
         case 7: renderCrawlerPreview(renderer, cx, cy, hover); break;
         case 8: renderSummonerPreview(renderer, cx, cy, hover); break;
         case 9: renderSniperPreview(renderer, cx, cy, hover); break;
+        case 10: renderTeleporterPreview(renderer, cx, cy, hover); break;
+        case 11: renderReflectorPreview(renderer, cx, cy, hover); break;
+        case 12: renderLeechPreview(renderer, cx, cy, hover); break;
+        case 13: renderSwarmerPreview(renderer, cx, cy + static_cast<int>(hover), hover); break;
+        case 14: renderGravityWellPreview(renderer, cx, cy, hover); break;
+        case 15: renderMimicPreview(renderer, cx, cy, hover); break;
         default: break;
     }
 }
@@ -654,7 +660,13 @@ void BestiaryState::renderSilhouette(SDL_Renderer* renderer, int cx, int cy, int
             case 6: w = 32; h = 36; break;  // Shielder: tall
             case 7: w = 26; h = 18; break;  // Crawler: flat
             case 8: w = 30; h = 38; break;  // Summoner: tall
-            case 9: w = 24; h = 34; break;  // Sniper: thin
+            case 9: w = 24; h = 34; break;   // Sniper: thin
+            case 10: w = 28; h = 38; break;  // Teleporter: robed
+            case 11: w = 34; h = 32; break;  // Reflector: broad + shield
+            case 12: w = 30; h = 20; break;  // Leech: wide blob
+            case 13: w = 16; h = 16; break;  // Swarmer: tiny
+            case 14: w = 32; h = 32; break;  // GravityWell: orb
+            case 15: w = 28; h = 28; break;  // Mimic: crate-shaped
             default: break;
         }
     }
@@ -877,6 +889,220 @@ void BestiaryState::renderSniperPreview(SDL_Renderer* renderer, int cx, int cy, 
     SDL_Rect dot = {laserX - 2, laserY - 2, 4, 4};
     SDL_RenderFillRect(renderer, &dot);
     drawEyes(renderer, cx, cy, bh, bw, 255, 200, 40);
+}
+
+void BestiaryState::renderTeleporterPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 28, bh = 38;
+    // Hooded robe body (trapezoid)
+    SDL_SetRenderDrawColor(renderer, 90, 40, 140, 220);
+    SDL_Rect body = {cx - bw/2, cy - bh/2 + 8, bw, bh - 8};
+    SDL_RenderFillRect(renderer, &body);
+    // Hood
+    SDL_SetRenderDrawColor(renderer, 60, 30, 100, 240);
+    SDL_Rect hood = {cx - bw/3, cy - bh/2, bw*2/3, bh/3};
+    SDL_RenderFillRect(renderer, &hood);
+    // Pulsing cyan-purple eyes
+    float eyePulse = 0.5f + 0.5f * std::sin(m_time * 3.0f);
+    Uint8 eyeG = static_cast<Uint8>(180 * eyePulse);
+    Uint8 eyeB = static_cast<Uint8>(200 + 55 * eyePulse);
+    SDL_SetRenderDrawColor(renderer, 80, eyeG, eyeB, 255);
+    SDL_Rect eyeL = {cx - 5, cy - bh/2 + bh/6 + 2, 3, 3};
+    SDL_Rect eyeR = {cx + 2, cy - bh/2 + bh/6 + 2, 3, 3};
+    SDL_RenderFillRect(renderer, &eyeL);
+    SDL_RenderFillRect(renderer, &eyeR);
+    // Dimensional crack lines
+    for (int i = 0; i < 4; i++) {
+        float angle = m_time * 1.5f + i * 1.5708f;
+        int lx = cx + static_cast<int>(std::cos(angle) * (bw/2 + 3));
+        int ly = cy + static_cast<int>(std::sin(angle) * (bh/2 + 3));
+        int lx2 = lx + static_cast<int>(std::cos(angle + 0.5f) * 8);
+        int ly2 = ly + static_cast<int>(std::sin(angle + 0.5f) * 8);
+        SDL_SetRenderDrawColor(renderer, 160, 80, 220, static_cast<Uint8>(120 * eyePulse));
+        SDL_RenderDrawLine(renderer, lx, ly, lx2, ly2);
+    }
+}
+
+void BestiaryState::renderReflectorPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 32, bh = 32;
+    // Broad silver-blue body
+    SDL_SetRenderDrawColor(renderer, 140, 160, 190, 220);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    // Head
+    SDL_SetRenderDrawColor(renderer, 160, 170, 200, 240);
+    SDL_Rect head = {cx - bw/3, cy - bh/2 - 6, bw*2/3, 8};
+    SDL_RenderFillRect(renderer, &head);
+    // Eye slit
+    SDL_SetRenderDrawColor(renderer, 200, 220, 255, 255);
+    SDL_RenderDrawLine(renderer, cx - bw/4, cy - bh/2 - 2, cx + bw/4, cy - bh/2 - 2);
+    // Rotating mirror-shield diamond
+    float shieldRot = m_time * 2.0f;
+    int shieldX = cx + bw/2 + 10;
+    int shieldSize = 10;
+    float shieldPulse = 0.6f + 0.4f * std::sin(m_time * 4.0f);
+    Uint8 shieldA = static_cast<Uint8>(200 * shieldPulse);
+    SDL_SetRenderDrawColor(renderer, 200, 220, 255, shieldA);
+    int dx1 = static_cast<int>(std::cos(shieldRot) * shieldSize);
+    int dy1 = static_cast<int>(std::sin(shieldRot) * shieldSize);
+    int dx2 = static_cast<int>(std::cos(shieldRot + 1.5708f) * shieldSize);
+    int dy2 = static_cast<int>(std::sin(shieldRot + 1.5708f) * shieldSize);
+    SDL_RenderDrawLine(renderer, shieldX+dx1, cy+dy1, shieldX+dx2, cy+dy2);
+    SDL_RenderDrawLine(renderer, shieldX+dx2, cy+dy2, shieldX-dx1, cy-dy1);
+    SDL_RenderDrawLine(renderer, shieldX-dx1, cy-dy1, shieldX-dx2, cy-dy2);
+    SDL_RenderDrawLine(renderer, shieldX-dx2, cy-dy2, shieldX+dx1, cy+dy1);
+    // Legs
+    SDL_SetRenderDrawColor(renderer, 120, 140, 170, 200);
+    SDL_Rect legL = {cx - bw/3, cy + bh/2, 4, 8};
+    SDL_Rect legR = {cx + bw/3 - 4, cy + bh/2, 4, 8};
+    SDL_RenderFillRect(renderer, &legL);
+    SDL_RenderFillRect(renderer, &legR);
+}
+
+void BestiaryState::renderLeechPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 30, bh = 20;
+    // Wide green blob body
+    SDL_SetRenderDrawColor(renderer, 50, 100, 40, 220);
+    SDL_Rect body = {cx - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &body);
+    // Lighter rounded top
+    SDL_SetRenderDrawColor(renderer, 60, 120, 50, 240);
+    SDL_Rect top = {cx - bw/2 + 2, cy - bh/2, bw - 4, bh/2};
+    SDL_RenderFillRect(renderer, &top);
+    // Pulsing green core
+    float corePulse = 0.4f + 0.6f * std::sin(m_time * 2.5f);
+    Uint8 coreG = static_cast<Uint8>(180 + 75 * corePulse);
+    SDL_SetRenderDrawColor(renderer, 30, coreG, 40, 240);
+    int coreSize = bw/4;
+    SDL_Rect core = {cx - coreSize/2, cy - coreSize/2, coreSize, coreSize};
+    SDL_RenderFillRect(renderer, &core);
+    // Dripping green dots
+    for (int i = 0; i < 3; i++) {
+        float dripPhase = std::fmod(m_time * 1.5f + i * 1.3f, 2.0f);
+        int dripX = cx - bw/4 + i * (bw/4);
+        int dripY = cy + bh/2 + static_cast<int>(dripPhase * 8.0f);
+        Uint8 dripA = static_cast<Uint8>(220 * (1.0f - dripPhase / 2.0f));
+        SDL_SetRenderDrawColor(renderer, 80, 200, 60, dripA);
+        SDL_Rect drip = {dripX, dripY, 2, 2};
+        SDL_RenderFillRect(renderer, &drip);
+    }
+    // Mouth
+    SDL_SetRenderDrawColor(renderer, 200, 40, 40, 200);
+    SDL_Rect mouth = {cx + bw/2 - 6, cy - 1, 5, 2};
+    SDL_RenderFillRect(renderer, &mouth);
+}
+
+void BestiaryState::renderSwarmerPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    // Draw a small cluster of 3 swarmers to show the swarm nature
+    for (int s = 0; s < 3; s++) {
+        float offset = s * 2.094f; // 2*PI/3
+        int sx = cx + static_cast<int>(std::cos(m_time * 2.0f + offset) * 16);
+        int sy = cy + static_cast<int>(std::sin(m_time * 2.0f + offset) * 8);
+        int bodySize = 8;
+        // Amber body
+        SDL_SetRenderDrawColor(renderer, 255, 180, 50, 220);
+        SDL_Rect body = {sx - bodySize/2, sy - bodySize/2, bodySize, bodySize};
+        SDL_RenderFillRect(renderer, &body);
+        // Core
+        SDL_SetRenderDrawColor(renderer, 255, 220, 100, 240);
+        SDL_Rect core = {sx - 2, sy - 2, 4, 4};
+        SDL_RenderFillRect(renderer, &core);
+        // Wings (flutter)
+        float flutter = std::sin(m_time * 8.0f + s) * 2.0f;
+        int wingW = bodySize/2 + static_cast<int>(flutter);
+        SDL_SetRenderDrawColor(renderer, 255, 160, 30, 180);
+        SDL_Rect wingL = {sx - wingW - bodySize/2, sy - 1, wingW, 3};
+        SDL_Rect wingR = {sx + bodySize/2, sy - 1, wingW, 3};
+        SDL_RenderFillRect(renderer, &wingL);
+        SDL_RenderFillRect(renderer, &wingR);
+        // Eye
+        SDL_SetRenderDrawColor(renderer, 200, 30, 30, 255);
+        SDL_Rect eye = {sx + 2, sy - 2, 2, 2};
+        SDL_RenderFillRect(renderer, &eye);
+    }
+}
+
+void BestiaryState::renderGravityWellPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 32;
+    // Outer gravity ring (pulsing dots)
+    float pulse = std::sin(m_time * 2.0f) * 0.3f + 0.7f;
+    Uint8 ringA = static_cast<Uint8>(80 * pulse);
+    int ringR = bw/2 + 6;
+    SDL_SetRenderDrawColor(renderer, 150, 80, 220, ringA);
+    for (int i = 0; i < 12; i++) {
+        float rad = i * 3.14159f / 6.0f + m_time;
+        int px = cx + static_cast<int>(std::cos(rad) * ringR);
+        int py = cy + static_cast<int>(std::sin(rad) * ringR);
+        SDL_Rect dot = {px - 1, py - 1, 3, 3};
+        SDL_RenderFillRect(renderer, &dot);
+    }
+    // Dark purple orb body
+    SDL_SetRenderDrawColor(renderer, 100, 50, 180, 220);
+    SDL_Rect body = {cx - bw/2 + 2, cy - bw/2 + 2, bw - 4, bw - 4};
+    SDL_RenderFillRect(renderer, &body);
+    // Bright core
+    int coreSize = bw/4;
+    Uint8 coreA = static_cast<Uint8>(180 + 75 * pulse);
+    SDL_SetRenderDrawColor(renderer, 180, 100, 255, coreA);
+    SDL_Rect coreRect = {cx - coreSize, cy - coreSize, coreSize*2, coreSize*2};
+    SDL_RenderFillRect(renderer, &coreRect);
+    // Inner white hot
+    SDL_SetRenderDrawColor(renderer, 220, 200, 255, coreA);
+    SDL_Rect inner = {cx - coreSize/2, cy - coreSize/2, coreSize, coreSize};
+    SDL_RenderFillRect(renderer, &inner);
+    // Orbiting particles
+    for (int i = 0; i < 4; i++) {
+        float angle = m_time * 3.0f + i * 1.57f;
+        float dist = bw * 0.35f + std::sin(m_time * 2.0f + i) * 3.0f;
+        int px = cx + static_cast<int>(std::cos(angle) * dist);
+        int py = cy + static_cast<int>(std::sin(angle) * dist);
+        SDL_SetRenderDrawColor(renderer, 200, 140, 255, 220);
+        SDL_Rect part = {px - 1, py - 1, 2, 2};
+        SDL_RenderFillRect(renderer, &part);
+    }
+}
+
+void BestiaryState::renderMimicPreview(SDL_Renderer* renderer, int cx, int cy, float /*hover*/) {
+    int bw = 28, bh = 28;
+    // Crate disguise on left half
+    int crateX = cx - 24;
+    SDL_SetRenderDrawColor(renderer, 140, 95, 45, 220);
+    SDL_Rect crate = {crateX - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &crate);
+    // Plank lines
+    SDL_SetRenderDrawColor(renderer, 100, 65, 25, 200);
+    SDL_RenderDrawLine(renderer, crateX - bw/2 + 2, cy - bh/6, crateX + bw/2 - 2, cy - bh/6);
+    SDL_RenderDrawLine(renderer, crateX - bw/2 + 2, cy + bh/6, crateX + bw/2 - 2, cy + bh/6);
+    SDL_RenderDrawLine(renderer, crateX, cy - bh/2 + 2, crateX, cy + bh/2 - 2);
+
+    // Arrow showing transformation
+    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 120);
+    SDL_RenderDrawLine(renderer, cx - 4, cy, cx + 4, cy);
+    SDL_RenderDrawLine(renderer, cx + 2, cy - 3, cx + 5, cy);
+    SDL_RenderDrawLine(renderer, cx + 2, cy + 3, cx + 5, cy);
+
+    // Revealed form on right half (angry red creature)
+    int revX = cx + 24;
+    SDL_SetRenderDrawColor(renderer, 220, 60, 50, 220);
+    SDL_Rect revBody = {revX - bw/2, cy - bh/2, bw, bh};
+    SDL_RenderFillRect(renderer, &revBody);
+    // Jagged teeth
+    SDL_SetRenderDrawColor(renderer, 255, 255, 220, 240);
+    for (int i = 0; i < bw; i += 4) {
+        int toothH = 3 + (i % 8 == 0 ? 2 : 0);
+        SDL_Rect tooth = {revX - bw/2 + i, cy - bh/2, 2, toothH};
+        SDL_RenderFillRect(renderer, &tooth);
+    }
+    // Angry eyes
+    SDL_SetRenderDrawColor(renderer, 255, 255, 60, 255);
+    SDL_Rect eyeL = {revX - 6, cy - 4, 4, 3};
+    SDL_Rect eyeR = {revX + 2, cy - 4, 4, 3};
+    SDL_RenderFillRect(renderer, &eyeL);
+    SDL_RenderFillRect(renderer, &eyeR);
+    // Pulsing red rage aura
+    float rage = std::sin(m_time * 4.0f) * 0.3f + 0.5f;
+    SDL_SetRenderDrawColor(renderer, 255, 40, 40, static_cast<Uint8>(40 * rage));
+    SDL_Rect aura = {revX - bw/2 - 2, cy - bh/2 - 2, bw + 4, bh + 4};
+    SDL_RenderFillRect(renderer, &aura);
 }
 
 void BestiaryState::renderBossPreview(SDL_Renderer* renderer, int cx, int cy, int bossType) {

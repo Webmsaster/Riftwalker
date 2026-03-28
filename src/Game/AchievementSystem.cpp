@@ -173,6 +173,25 @@ AchievementBonuses AchievementSystem::getUnlockedBonuses() const {
         else if (a.id == "speed_demon")      b.moveSpeedMult *= 1.05f;
         else if (a.id == "weapon_collector") b.allDamageMult *= 1.03f;
         else if (a.id == "dimension_dancer") b.switchCooldownMult *= 0.95f;
+        // Class mastery achievements
+        else if (a.id == "void_mastery")     b.allDamageMult *= 1.05f;
+        else if (a.id == "berserk_mastery")  b.meleeDamageMult *= 1.05f;
+        else if (a.id == "phantom_mastery")  b.moveSpeedMult *= 1.03f;
+        else if (a.id == "tech_mastery")     b.rangedDamageMult *= 1.05f;
+        else if (a.id == "all_classes")      b.maxHPBonus += 10.0f;
+        // Relic achievements
+        else if (a.id == "relic_collector")  b.shardDropMult *= 1.05f;
+        else if (a.id == "synergy_hunter")   b.allDamageMult *= 1.03f;
+        else if (a.id == "cursed_survivor")  b.allDamageMult *= 1.05f;
+        // Combat achievements
+        else if (a.id == "parry_master")     b.meleeDamageMult *= 1.05f;
+        else if (a.id == "no_damage_boss")   b.maxHPBonus += 5.0f;
+        else if (a.id == "kill_streak_50")   b.allDamageMult *= 1.03f;
+        else if (a.id == "ranged_only")      b.rangedDamageMult *= 1.05f;
+        // Exploration achievements
+        else if (a.id == "lore_hunter")      b.shardDropMult *= 1.10f;
+        else if (a.id == "ascension_1")      b.maxHPBonus += 5.0f;
+        else if (a.id == "ascension_5")      b.allDamageMult *= 1.10f;
     }
     return b;
 }

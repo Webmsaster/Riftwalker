@@ -33,6 +33,12 @@ private:
     void renderCrawlerPreview(SDL_Renderer* renderer, int cx, int cy, float hover);
     void renderSummonerPreview(SDL_Renderer* renderer, int cx, int cy, float hover);
     void renderSniperPreview(SDL_Renderer* renderer, int cx, int cy, float hover);
+    void renderTeleporterPreview(SDL_Renderer* renderer, int cx, int cy, float hover);
+    void renderReflectorPreview(SDL_Renderer* renderer, int cx, int cy, float hover);
+    void renderLeechPreview(SDL_Renderer* renderer, int cx, int cy, float hover);
+    void renderSwarmerPreview(SDL_Renderer* renderer, int cx, int cy, float hover);
+    void renderGravityWellPreview(SDL_Renderer* renderer, int cx, int cy, float hover);
+    void renderMimicPreview(SDL_Renderer* renderer, int cx, int cy, float hover);
     void renderBossPreview(SDL_Renderer* renderer, int cx, int cy, int bossType);
 
     int   m_selected     = 0;

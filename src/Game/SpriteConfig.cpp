@@ -178,7 +178,13 @@ bool SpriteConfig::applyEnemyPlaceholder(SpriteComponent& sprite, EnemyType type
         case EnemyType::Shielder: file = "shielder.png"; break;
         case EnemyType::Crawler:  file = "crawler.png";  h = 24; break;
         case EnemyType::Summoner: file = "summoner.png"; break;
-        case EnemyType::Sniper:   file = "sniper.png";   break;
+        case EnemyType::Sniper:      file = "sniper.png";      break;
+        case EnemyType::Teleporter:  file = "teleporter.png";  break;
+        case EnemyType::Reflector:   file = "reflector.png";   break;
+        case EnemyType::Leech:       file = "leech.png";       h = 24; break;
+        case EnemyType::Swarmer:     file = "swarmer.png";     w = 16; h = 16; break;
+        case EnemyType::GravityWell: file = "gravitywell.png"; break;
+        case EnemyType::Mimic:       file = "mimic.png";       break;
         default: break;
     }
     auto* tex = loadPlaceholder(file);
