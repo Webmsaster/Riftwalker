@@ -555,7 +555,15 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     int bt = 0;
     if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
     Uint8 r, g, b;
-    if (bt == 4) {
+    if (bt == 5) {
+        // Entropy Incarnate: sickly green/purple tones
+        switch (bossPhase) {
+            case 1: r = 60; g = 180; b = 60; break;
+            case 2: r = 100; g = 200; b = 40; break;
+            case 3: r = 140; g = 60; b = 180; break;
+            default: r = 60; g = 180; b = 60; break;
+        }
+    } else if (bt == 4) {
         // Void Sovereign: dark purple/magenta tones
         switch (bossPhase) {
             case 1: r = 120; g = 0; b = 180; break;
