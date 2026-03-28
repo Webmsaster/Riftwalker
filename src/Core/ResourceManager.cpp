@@ -158,6 +158,12 @@ void ResourceManager::ensurePlaceholderTextures(const std::string& baseDir) {
         { "crawler.png",        32, 24, 100, 180,  60,  70, 130,  40 }, // green crawler
         { "summoner.png",       32, 32, 160,  60, 160, 110,  40, 110 }, // magenta summoner
         { "sniper.png",         32, 32,  60, 100, 180,  40,  70, 130 }, // blue-grey sniper
+        { "teleporter.png",     32, 32,  90,  40, 140,  60,  25, 100 }, // purple teleporter
+        { "reflector.png",      32, 32, 140, 160, 190, 100, 120, 150 }, // silver reflector
+        { "leech.png",          32, 24,  50, 100,  40,  30,  70,  25 }, // dark green leech
+        { "swarmer.png",        16, 16, 255, 180,  50, 200, 130,  30 }, // amber swarmer
+        { "gravitywell.png",    32, 32, 100,  50, 180,  60,  30, 120 }, // purple gravity well
+        { "mimic.png",          32, 32, 140,  95,  45, 100,  65,  25 }, // brown mimic
         // Boss placeholders (64x64)
         { "rift_guardian.png",  64, 64, 160,  60, 220, 100,  30, 160 }, // violet boss
         { "void_wyrm.png",      64, 64,  40, 160, 120,  20, 100,  80 }, // teal boss
