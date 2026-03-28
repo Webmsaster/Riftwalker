@@ -29,6 +29,7 @@ riftwalker_settings.cfg
 
 # AI-generated assets (too large for git)
 assets/ai/
+assets/comfyui_concepts/
 
 # Git worktrees
 Riftwalker-bugfix/
