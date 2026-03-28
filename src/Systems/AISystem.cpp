@@ -1427,6 +1427,7 @@ void AISystem::updateReflector(Entity& entity, float dt, Vec2 playerPos) {
         if (ai.reflectorShieldTimer >= ai.reflectorShieldCooldown) {
             ai.reflectorShieldUp = false;
             ai.reflectorShieldTimer = 0;
+            AudioManager::instance().play(SFX::RiftShieldBurst);
             // Shield drops — visual feedback
             if (m_particles) {
                 m_particles->burst(pos, 6, {180, 190, 220, 200}, 60.0f, 1.5f);
@@ -1436,6 +1437,7 @@ void AISystem::updateReflector(Entity& entity, float dt, Vec2 playerPos) {
         if (ai.reflectorShieldTimer >= ai.reflectorShieldDownTime) {
             ai.reflectorShieldUp = true;
             ai.reflectorShieldTimer = 0;
+            AudioManager::instance().play(SFX::RiftShieldActivate);
             // Shield raises — visual feedback
             if (m_particles) {
                 m_particles->burst(pos, 8, {200, 210, 240, 230}, 80.0f, 2.0f);
@@ -1702,9 +1704,10 @@ void AISystem::updateGravityWell(Entity& entity, float dt, Vec2 playerPos) {
                     }
                 }
 
-                // Pull particles
+                // Pull particles + audio feedback
                 if (m_particles && ai.gravPulseTimer > 0.3f) {
                     ai.gravPulseTimer = 0;
+                    AudioManager::instance().play(SFX::EntropyTendril);
                     m_particles->burst(pos, 4, {120, 60, 200, 150}, ai.gravPullRadius * 0.5f, 0.5f);
                 }
             }
@@ -1741,6 +1744,7 @@ void AISystem::updateMimic(Entity& entity, float dt, Vec2 playerPos) {
         if (dist < ai.mimicRevealRange) {
             ai.mimicRevealed = true;
             ai.state = AIState::Chase;
+            AudioManager::instance().play(SFX::AnomalySpawn);
 
             // Surprise burst particles
             if (m_particles) {
