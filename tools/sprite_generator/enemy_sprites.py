@@ -1041,11 +1041,478 @@ def generate_minion():
 
 
 # ---------------------------------------------------------------------------
+# 12. TELEPORTER - Blue glowing entity, blinks in/out, portal rings
+# ---------------------------------------------------------------------------
+
+def generate_teleporter():
+    def draw_idle(img, c, f):
+        bob = [0, -1, -1, 0][f]
+        # Warp ring around body
+        ring_alpha = [200, 160, 200, 240][f]
+        draw_outline_circle(img, 15, 16 + bob, 10, c['warp'], c['dark'])
+        # Body (slim, ethereal)
+        draw_body_with_shading(img, 11, 10 + bob, 10, 14, c)
+        # Eye (glowing cyan)
+        draw_eye(img, 14, 14 + bob, 3, c['eye'])
+        # Portal sparks
+        sx = [8, 22, 6, 24][f]
+        sy = [12, 18, 20, 10][f]
+        draw_pixel(img, sx, sy + bob, c['warp'])
+        draw_pixel(img, sx + 1, sy + 1 + bob, c['highlight'])
+
+    def draw_walk(img, c, f):
+        bob = [0, -2, -1, 1, 0, -2][f]
+        # Warp trail
+        trail_x = [0, -1, -2, -1, 0, 1][f]
+        draw_circle(img, 15 + trail_x, 20 + bob, 3, c['warp'])
+        # Body
+        draw_body_with_shading(img, 11 + trail_x, 10 + bob, 10, 14, c)
+        # Eye
+        draw_eye(img, 14 + trail_x, 14 + bob, 3, c['eye'])
+        # Trailing afterimage
+        if abs(trail_x) > 0:
+            draw_rect(img, 11 - trail_x, 12 + bob, 10, 10, (*c['mid'][:3], 80))
+
+    def draw_attack(img, c, f):
+        # Teleport attack: fade out, reappear
+        if f == 0:
+            draw_body_with_shading(img, 11, 10, 10, 14, c)
+            draw_eye(img, 14, 14, 3, c['eye'])
+        elif f == 1:
+            # Fading - smaller, translucent
+            draw_rect(img, 13, 12, 6, 8, c['warp'])
+            draw_circle(img, 15, 16, 8, c['highlight'])
+        elif f == 2:
+            # Gone - just portal ring
+            draw_outline_circle(img, 15, 16, 10, c['warp'], c['dark'])
+            draw_outline_circle(img, 15, 16, 6, c['highlight'], c['mid'])
+        else:
+            # Reappear with burst
+            draw_circle(img, 15, 16, 9, c['warp'])
+            draw_body_with_shading(img, 11, 10, 10, 14, c)
+            draw_eye(img, 14, 14, 4, c['eye'])
+
+    def draw_hurt(img, c, f):
+        recoil = [2, 4][f]
+        flash = c['highlight'] if f == 0 else c['mid']
+        draw_body_with_shading(img, 11 - recoil, 10, 10, 14,
+                               {'dark': c['dark'], 'mid': flash,
+                                'light': c['highlight'], 'highlight': c['highlight']})
+        draw_eye(img, 14 - recoil, 14, 2, c['eye'])
+        # Disrupted warp sparks
+        draw_pixel(img, 8 - recoil, 12, c['warp'])
+        draw_pixel(img, 24 - recoil, 18, c['warp'])
+
+    def draw_dead(img, c, f):
+        squash = [0, 3, 6, 8][f]
+        body_h = max(2, 14 - squash)
+        alpha_f = [1.0, 0.7, 0.4, 0.2][f]
+        col = shade(c['mid'], alpha_f)
+        draw_rect(img, 11, 10 + squash, 10, body_h, col)
+        # Portal collapse
+        r = max(1, 8 - f * 2)
+        draw_outline_circle(img, 15, 16, r, shade(c['warp'], alpha_f), shade(c['dark'], alpha_f))
+        if f >= 2:
+            draw_pixel(img, 8, 26, c['dark'])
+            draw_pixel(img, 22, 25, c['dark'])
+
+    _build_sheet('teleporter', draw_idle, draw_walk, draw_attack, draw_hurt, draw_dead)
+
+
+# ---------------------------------------------------------------------------
+# 13. REFLECTOR - Silver/chrome armored, mirror shield, deflects projectiles
+# ---------------------------------------------------------------------------
+
+def generate_reflector():
+    def _draw_shield(img, x, y, h, c, f):
+        """Draw a mirror shield with shimmer."""
+        shimmer = [0, 1, 2, 1, 0, -1][f % 6]
+        draw_rect(img, x, y, 3, h, c['mirror'])
+        draw_rect(img, x, y + shimmer + 2, 3, 2, c['highlight'])
+        draw_rect(img, x, y, 1, h, c['light'])
+
+    def draw_idle(img, c, f):
+        bob = [0, 0, -1, -1][f]
+        # Body (stocky)
+        draw_body_with_shading(img, 10, 10 + bob, 10, 14, c)
+        # Shield (left side)
+        _draw_shield(img, 6, 10 + bob, 14, c, f)
+        # Eye
+        draw_eye(img, 15, 14 + bob, 3, c['eye'])
+        # Legs
+        draw_rect(img, 12, 24 + bob, 3, 5, c['dark'])
+        draw_rect(img, 17, 24 + bob, 3, 5, c['dark'])
+
+    def draw_walk(img, c, f):
+        bob = [0, -1, 0, 1, 0, -1][f]
+        leg_off = [0, 2, 3, 2, 0, -1][f]
+        # Body
+        draw_body_with_shading(img, 10, 10 + bob, 10, 14, c)
+        # Shield bobs with walk
+        _draw_shield(img, 6, 10 + bob, 14, c, f)
+        # Eye
+        draw_eye(img, 15, 14 + bob, 3, c['eye'])
+        # Legs
+        draw_rect(img, 12, 24 + bob + leg_off, 3, 5, c['dark'])
+        draw_rect(img, 17, 24 + bob - leg_off, 3, 5, c['dark'])
+
+    def draw_attack(img, c, f):
+        # Shield bash forward
+        shield_x = [6, 4, 2, 5][f]
+        lean = [0, 1, 3, 1][f]
+        draw_body_with_shading(img, 10 + lean, 10, 10, 14, c)
+        _draw_shield(img, shield_x + lean, 10, 14, c, f)
+        draw_eye(img, 15 + lean, 14, 3, c['eye'])
+        # Impact flash on frame 2
+        if f == 2:
+            draw_circle(img, 4, 16, 3, c['highlight'])
+        draw_rect(img, 12, 24, 3, 5, c['dark'])
+        draw_rect(img, 17, 24, 3, 5, c['dark'])
+
+    def draw_hurt(img, c, f):
+        recoil = [2, 4][f]
+        flash = c['highlight'] if f == 0 else c['mid']
+        draw_body_with_shading(img, 10 + recoil, 10, 10, 14,
+                               {'dark': c['dark'], 'mid': flash,
+                                'light': c['highlight'], 'highlight': c['highlight']})
+        # Shield knocked aside
+        _draw_shield(img, 6 + recoil + 2, 12, 10, c, f)
+        draw_eye(img, 15 + recoil, 14, 2, c['eye'])
+        draw_rect(img, 12, 24, 3, 5, c['dark'])
+        draw_rect(img, 17, 24, 3, 5, c['dark'])
+
+    def draw_dead(img, c, f):
+        squash = [0, 2, 5, 7][f]
+        body_h = max(2, 14 - squash)
+        alpha_f = [1.0, 0.7, 0.4, 0.2][f]
+        col = shade(c['mid'], alpha_f)
+        draw_rect(img, 10, 10 + squash, 10, body_h, col)
+        # Shield falls apart
+        if f < 3:
+            draw_rect(img, 6, 12 + squash, 3, max(2, 10 - squash * 2), shade(c['mirror'], alpha_f))
+        if f >= 2:
+            draw_pixel(img, 5, 26, shade(c['mirror'], 0.5))
+            draw_pixel(img, 22, 24, c['dark'])
+
+    _build_sheet('reflector', draw_idle, draw_walk, draw_attack, draw_hurt, draw_dead)
+
+
+# ---------------------------------------------------------------------------
+# 14. LEECH - Dark red worm-like, attaches to drain health, small and fast
+# ---------------------------------------------------------------------------
+
+def generate_leech():
+    def _draw_body_segments(img, x, y, c, wave=0):
+        """Draw segmented worm body."""
+        for i in range(4):
+            seg_y = y + i * 3 + [0, 1, 0, -1][((i + wave) % 4)]
+            w = [6, 8, 7, 5][i]
+            sx = x + (8 - w) // 2
+            draw_rect(img, sx, seg_y, w, 3, c['mid'] if i % 2 == 0 else c['light'])
+            draw_rect(img, sx, seg_y, w, 1, c['light'] if i % 2 == 0 else c['highlight'])
+
+    def draw_idle(img, c, f):
+        wave = [0, 1, 2, 1][f]
+        _draw_body_segments(img, 12, 8, c, wave)
+        # Head with mouth
+        draw_outline_circle(img, 15, 8, 4, c['mid'], c['dark'])
+        draw_eye(img, 14, 7, 2, c['eye'])
+        draw_rect(img, 13, 11, 4, 2, c['mouth'])
+        # Tail
+        draw_rect(img, 14, 22 + wave, 3, 3, c['dark'])
+
+    def draw_walk(img, c, f):
+        wave = f
+        dx = [0, 1, 0, -1, 0, 1][f]
+        _draw_body_segments(img, 12 + dx, 8, c, wave)
+        # Head
+        draw_outline_circle(img, 15 + dx, 8, 4, c['mid'], c['dark'])
+        draw_eye(img, 14 + dx, 7, 2, c['eye'])
+        draw_rect(img, 13 + dx, 11, 4, 2, c['mouth'])
+        draw_rect(img, 14 + dx, 22 + (wave % 2), 3, 3, c['dark'])
+
+    def draw_attack(img, c, f):
+        # Lunge forward to latch on
+        lunge = [0, 3, 6, 4][f]
+        _draw_body_segments(img, 12, 8, c, f)
+        # Head lunges
+        draw_outline_circle(img, 15, 8 - lunge, 4, c['mid'], c['dark'])
+        draw_eye(img, 14, 7 - lunge, 2, c['eye'])
+        # Mouth opens wider during attack
+        mouth_h = [2, 3, 4, 3][f]
+        draw_rect(img, 12, 11 - lunge, 6, mouth_h, c['mouth'])
+        # Drain effect on hit frame
+        if f == 2:
+            draw_pixel(img, 15, 2, (255, 60, 60))
+            draw_pixel(img, 14, 1, (255, 60, 60))
+
+    def draw_hurt(img, c, f):
+        recoil = [0, 3][f]
+        flash = c['highlight'] if f == 0 else c['mid']
+        _draw_body_segments(img, 12, 8 + recoil, {'dark': c['dark'], 'mid': flash,
+                            'light': c['highlight'], 'highlight': c['highlight']}, 0)
+        draw_outline_circle(img, 15, 8 + recoil, 4, flash, c['dark'])
+        draw_eye(img, 14, 7 + recoil, 2, c['eye'])
+
+    def draw_dead(img, c, f):
+        squash = [0, 1, 3, 5][f]
+        alpha_f = [1.0, 0.7, 0.4, 0.2][f]
+        col = shade(c['mid'], alpha_f)
+        # Body collapses into a pile
+        draw_rect(img, 12, 14 + squash, 8, max(2, 10 - squash * 2), col)
+        if f < 2:
+            draw_eye(img, 14, 14 + squash, 2, c['eye'])
+        if f >= 2:
+            draw_pixel(img, 10, 24, shade(c['dark'], 0.5))
+            draw_pixel(img, 20, 23, shade(c['dark'], 0.5))
+
+    _build_sheet('leech', draw_idle, draw_walk, draw_attack, draw_hurt, draw_dead)
+
+
+# ---------------------------------------------------------------------------
+# 15. SWARMER - Small yellow insect, appears in groups, tiny wings
+# ---------------------------------------------------------------------------
+
+def generate_swarmer():
+    def _draw_wings(img, x, y, c, spread):
+        """Draw tiny insect wings."""
+        # Left wing
+        draw_rect(img, x - spread - 2, y - 1, 3, 2, c['wing'])
+        draw_pixel(img, x - spread - 2, y - 1, c['highlight'])
+        # Right wing
+        draw_rect(img, x + spread + 3, y - 1, 3, 2, c['wing'])
+        draw_pixel(img, x + spread + 4, y - 1, c['highlight'])
+
+    def draw_idle(img, c, f):
+        bob = [0, -1, -2, -1][f]
+        wing_spread = [1, 2, 1, 0][f]
+        # Small body
+        draw_body_with_shading(img, 13, 14 + bob, 6, 6, c)
+        # Wings
+        _draw_wings(img, 13, 14 + bob, c, wing_spread)
+        # Eye (single dot)
+        draw_eye(img, 15, 15 + bob, 2, c['eye'])
+        # Stinger
+        draw_pixel(img, 15, 20 + bob, c['dark'])
+        draw_pixel(img, 15, 21 + bob, c['dark'])
+
+    def draw_walk(img, c, f):
+        bob = [0, -2, -1, 1, 0, -2][f]
+        dx = [0, 1, 2, 1, 0, -1][f]
+        wing_spread = [1, 3, 2, 0, 1, 3][f]
+        # Body
+        draw_body_with_shading(img, 13 + dx, 14 + bob, 6, 6, c)
+        _draw_wings(img, 13 + dx, 14 + bob, c, wing_spread)
+        draw_eye(img, 15 + dx, 15 + bob, 2, c['eye'])
+        draw_pixel(img, 15 + dx, 20 + bob, c['dark'])
+
+    def draw_attack(img, c, f):
+        # Dive bomb with stinger
+        dive = [0, 2, 5, 3][f]
+        draw_body_with_shading(img, 13, 14 - dive, 6, 6, c)
+        _draw_wings(img, 13, 14 - dive, c, 3)
+        draw_eye(img, 15, 15 - dive, 2, c['eye'])
+        # Extended stinger
+        for i in range(3 + f):
+            draw_pixel(img, 15, 20 - dive + i, c['dark'])
+        # Impact sparks
+        if f == 2:
+            draw_pixel(img, 14, 24, c['highlight'])
+            draw_pixel(img, 16, 25, c['highlight'])
+
+    def draw_hurt(img, c, f):
+        recoil = [1, 3][f]
+        flash = c['highlight'] if f == 0 else c['mid']
+        draw_body_with_shading(img, 13, 14 + recoil, 6, 6,
+                               {'dark': c['dark'], 'mid': flash,
+                                'light': c['highlight'], 'highlight': c['highlight']})
+        _draw_wings(img, 13, 14 + recoil, c, 0)
+        draw_eye(img, 15, 15 + recoil, 1, c['eye'])
+
+    def draw_dead(img, c, f):
+        fall = [0, 3, 6, 8][f]
+        alpha_f = [1.0, 0.7, 0.4, 0.2][f]
+        col = shade(c['mid'], alpha_f)
+        draw_rect(img, 13, 14 + fall, 6, max(2, 6 - f), col)
+        # Wings crumple
+        if f < 3:
+            draw_rect(img, 10, 14 + fall, 3, 1, shade(c['wing'], alpha_f))
+            draw_rect(img, 19, 14 + fall, 3, 1, shade(c['wing'], alpha_f))
+
+    _build_sheet('swarmer', draw_idle, draw_walk, draw_attack, draw_hurt, draw_dead)
+
+
+# ---------------------------------------------------------------------------
+# 16. GRAVITYWELL - Dark purple orb, pulls entities toward it, pulsating
+# ---------------------------------------------------------------------------
+
+def generate_gravitywell():
+    def draw_idle(img, c, f):
+        pulse = [0, 1, 2, 1][f]
+        r = 8 + pulse
+        # Gravity field (outer glow)
+        draw_circle(img, 15, 15, r + 3, c['dark'])
+        # Core body
+        draw_outline_circle(img, 15, 15, r, c['mid'], c['dark'])
+        # Inner glow
+        draw_circle(img, 15, 15, max(2, r - 3), c['light'])
+        # Core eye
+        draw_circle(img, 15, 15, 2, c['core'])
+        draw_pixel(img, 15, 15, c['highlight'])
+        # Orbiting particles
+        import math
+        angle = f * 1.57  # 90 degree increments
+        ox = int(15 + (r + 2) * math.cos(angle))
+        oy = int(15 + (r + 2) * math.sin(angle))
+        draw_pixel(img, ox, oy, c['highlight'])
+
+    def draw_walk(img, c, f):
+        # GravityWell drifts slowly
+        dx = [0, 0, 1, 1, 0, -1][f]
+        dy = [0, -1, 0, 1, 0, 0][f]
+        pulse = [0, 1, 1, 0, 1, 2][f]
+        r = 8 + pulse
+        draw_circle(img, 15 + dx, 15 + dy, r + 3, c['dark'])
+        draw_outline_circle(img, 15 + dx, 15 + dy, r, c['mid'], c['dark'])
+        draw_circle(img, 15 + dx, 15 + dy, max(2, r - 3), c['light'])
+        draw_circle(img, 15 + dx, 15 + dy, 2, c['core'])
+        draw_pixel(img, 15 + dx, 15 + dy, c['highlight'])
+
+    def draw_attack(img, c, f):
+        # Gravity pull - expands field dramatically
+        r = [8, 10, 13, 11][f]
+        draw_circle(img, 15, 15, r + 4, c['dark'])
+        draw_outline_circle(img, 15, 15, r + 2, c['core'], c['dark'])
+        draw_outline_circle(img, 15, 15, r, c['light'], c['mid'])
+        draw_circle(img, 15, 15, max(2, r - 4), c['highlight'])
+        draw_circle(img, 15, 15, 2, c['core'])
+        # Pull lines
+        if f >= 1:
+            for angle_i in range(4):
+                import math
+                a = angle_i * 1.57 + f * 0.3
+                ex = int(15 + (r + 3) * math.cos(a))
+                ey = int(15 + (r + 3) * math.sin(a))
+                draw_pixel(img, ex, ey, c['highlight'])
+
+    def draw_hurt(img, c, f):
+        flash = c['highlight'] if f == 0 else c['mid']
+        r = [7, 5][f]
+        draw_circle(img, 15, 15, r + 3, c['dark'])
+        draw_outline_circle(img, 15, 15, r, flash, c['dark'])
+        draw_circle(img, 15, 15, 2, c['core'])
+
+    def draw_dead(img, c, f):
+        r = [8, 6, 3, 1][f]
+        alpha_f = [1.0, 0.7, 0.4, 0.15][f]
+        col = shade(c['mid'], alpha_f)
+        draw_circle(img, 15, 15, r + 2, shade(c['dark'], alpha_f))
+        draw_circle(img, 15, 15, r, col)
+        if r > 2:
+            draw_circle(img, 15, 15, max(1, r - 2), shade(c['light'], alpha_f))
+        # Gravity sparks disperse
+        if f >= 2:
+            draw_pixel(img, 8, 8, shade(c['core'], 0.3))
+            draw_pixel(img, 22, 22, shade(c['core'], 0.3))
+            draw_pixel(img, 22, 8, shade(c['core'], 0.3))
+
+    _build_sheet('gravitywell', draw_idle, draw_walk, draw_attack, draw_hurt, draw_dead)
+
+
+# ---------------------------------------------------------------------------
+# 17. MIMIC - Looks like a treasure chest, springs open to attack
+# ---------------------------------------------------------------------------
+
+def generate_mimic():
+    def _draw_chest_closed(img, x, y, c):
+        """Draw closed treasure chest."""
+        # Chest body
+        draw_body_with_shading(img, x, y, 14, 10, c)
+        # Lid (slightly darker)
+        draw_rect(img, x, y, 14, 4, c['dark'])
+        draw_rect(img, x + 1, y + 1, 12, 2, c['mid'])
+        # Lock
+        draw_rect(img, x + 5, y + 3, 4, 3, c['highlight'])
+        draw_pixel(img, x + 6, y + 4, c['dark'])
+
+    def _draw_chest_open(img, x, y, c, mouth_h):
+        """Draw open chest with teeth."""
+        # Lower jaw
+        draw_body_with_shading(img, x, y + mouth_h, 14, 10 - mouth_h // 2, c)
+        # Upper jaw (lid open)
+        draw_rect(img, x, y, 14, 3, c['dark'])
+        draw_rect(img, x + 1, y + 1, 12, 1, c['mid'])
+        # Teeth top
+        for i in range(5):
+            tx = x + 1 + i * 3
+            draw_rect(img, tx, y + 3, 2, mouth_h, c['teeth'])
+        # Teeth bottom
+        for i in range(5):
+            tx = x + 1 + i * 3
+            draw_rect(img, tx, y + mouth_h - 1, 2, 2, c['teeth'])
+        # Tongue
+        draw_rect(img, x + 5, y + mouth_h + 2, 4, 2, (200, 50, 80))
+
+    def draw_idle(img, c, f):
+        bob = [0, 0, 0, -1][f]
+        _draw_chest_closed(img, 9, 14 + bob, c)
+        # Hidden eye peeks on frame 3
+        if f == 3:
+            draw_pixel(img, 14, 17, c['eye'])
+
+    def draw_walk(img, c, f):
+        # Chest hops along
+        hop = [0, -2, -3, -2, 0, 1][f]
+        dx = [0, 1, 1, 0, -1, 0][f]
+        _draw_chest_closed(img, 9 + dx, 14 + hop, c)
+        # Little feet peeking out
+        draw_rect(img, 11 + dx, 24 + hop, 3, 2, c['dark'])
+        draw_rect(img, 18 + dx, 24 + hop, 3, 2, c['dark'])
+
+    def draw_attack(img, c, f):
+        # Springs open to bite
+        mouth = [0, 3, 6, 4][f]
+        if f == 0:
+            _draw_chest_closed(img, 9, 14, c)
+        else:
+            _draw_chest_open(img, 9, 12, c, mouth)
+        # Eyes revealed when open
+        if f >= 1:
+            draw_eye(img, 13, 12 + mouth, 2, c['eye'])
+            draw_eye(img, 19, 12 + mouth, 2, c['eye'])
+
+    def draw_hurt(img, c, f):
+        recoil = [1, 3][f]
+        flash = c['highlight'] if f == 0 else c['mid']
+        draw_body_with_shading(img, 9, 14 + recoil, 14, 10,
+                               {'dark': c['dark'], 'mid': flash,
+                                'light': c['highlight'], 'highlight': c['highlight']})
+        draw_rect(img, 9, 14 + recoil, 14, 4, shade(c['dark'], 1.2))
+        draw_eye(img, 14, 18 + recoil, 2, c['eye'])
+        draw_eye(img, 19, 18 + recoil, 2, c['eye'])
+
+    def draw_dead(img, c, f):
+        squash = [0, 2, 4, 6][f]
+        alpha_f = [1.0, 0.7, 0.4, 0.2][f]
+        col = shade(c['mid'], alpha_f)
+        body_h = max(2, 10 - squash)
+        draw_rect(img, 9, 14 + squash, 14, body_h, col)
+        draw_rect(img, 9, 14 + squash, 14, min(3, body_h), shade(c['dark'], alpha_f))
+        # Scattered teeth/loot
+        if f >= 2:
+            draw_pixel(img, 7, 26, c['teeth'])
+            draw_pixel(img, 24, 25, c['teeth'])
+            draw_pixel(img, 12, 27, c['highlight'])
+
+    _build_sheet('mimic', draw_idle, draw_walk, draw_attack, draw_hurt, draw_dead)
+
+
+# ---------------------------------------------------------------------------
 # Main generator
 # ---------------------------------------------------------------------------
 
 def generate_enemies():
-    """Generate spritesheets for all 11 enemy types."""
+    """Generate spritesheets for all 17 enemy types."""
     print("Generating enemy spritesheets...")
     generate_walker()
     generate_flyer()
@@ -1058,6 +1525,12 @@ def generate_enemies():
     generate_summoner()
     generate_sniper()
     generate_minion()
+    generate_teleporter()
+    generate_reflector()
+    generate_leech()
+    generate_swarmer()
+    generate_gravitywell()
+    generate_mimic()
     print("All enemy spritesheets generated!")
 
 

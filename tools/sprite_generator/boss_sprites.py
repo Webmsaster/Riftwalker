@@ -1223,16 +1223,231 @@ def _generate_void_sovereign():
     print("  Void Sovereign complete.")
 
 
+# ---------------------------------------------------------------------------
+# 6. ENTROPY INCARNATE — Crimson chaos entity, fragmented form, reality cracks
+# ---------------------------------------------------------------------------
+
+def _generate_entropy_incarnate():
+    c = BOSS_COLORS['entropy_incarnate']
+    fw, fh = BOSS_FRAME
+    max_c = _max_cols()
+    sheet = create_sheet(fw, fh, max_c, len(BOSS_ANIMS))
+
+    cx, cy = fw // 2, fh // 2
+
+    def _draw_chaos_body(frame, cx, cy, r, c, t, frag=0):
+        """Draw fragmented chaotic body with cracks."""
+        # Outer distortion field
+        draw_circle(frame, cx, cy, r + 4, c['dark'])
+        # Core body — irregular, shifts per frame
+        for angle_i in range(8):
+            a = angle_i * math.pi / 4 + t * 0.5
+            dr = r + int(3 * math.sin(a * 2 + t))
+            px = int(cx + dr * 0.7 * math.cos(a))
+            py = int(cy + dr * 0.7 * math.sin(a))
+            draw_circle(frame, px, py, max(2, r // 3 - frag), c['mid'])
+        # Central mass
+        draw_outline_circle(frame, cx, cy, max(2, r - frag), c['light'], c['dark'])
+        # Chaos cracks emanating
+        for i in range(4):
+            a = i * math.pi / 2 + t * 0.3
+            ex = int(cx + (r + 2) * math.cos(a))
+            ey = int(cy + (r + 2) * math.sin(a))
+            draw_line(frame, cx, cy, ex, ey, c['crack'])
+        # Eye
+        draw_circle(frame, cx, cy - 2, 3, c['eye'])
+        draw_pixel(frame, cx, cy - 2, c['dark'])
+
+    # Row 0: Idle (6 frames) — Pulsating chaos body
+    for f in range(_anim_frames(0)):
+        frame = create_frame(fw, fh)
+        t = f * 0.5
+        pulse = int(3 * math.sin(t * 2))
+        _draw_chaos_body(frame, cx, cy, 14 + pulse, c, t)
+        # Floating chaos particles
+        for i in range(3):
+            pa = t + i * 2.1
+            px = int(cx + 20 * math.cos(pa))
+            py = int(cy + 20 * math.sin(pa))
+            if 0 <= px < fw and 0 <= py < fh:
+                draw_pixel(frame, px, py, c['chaos'])
+        frame = apply_outline(frame)
+        paste_frame(sheet, frame, f, 0, fw, fh)
+
+    # Row 1: Move (6 frames) — Drifting with trail
+    for f in range(_anim_frames(1)):
+        frame = create_frame(fw, fh)
+        t = f * 0.4
+        dx = int(4 * math.sin(t * 3))
+        # Trail
+        if f > 0:
+            draw_circle(frame, cx - dx, cy, 6, shade(c['mid'], 0.3))
+        _draw_chaos_body(frame, cx + dx, cy, 14, c, t)
+        frame = apply_outline(frame)
+        paste_frame(sheet, frame, f, 1, fw, fh)
+
+    # Row 2: Attack1 (6 frames) — Entropy missiles burst
+    for f in range(_anim_frames(2)):
+        frame = create_frame(fw, fh)
+        t = f * 0.6
+        _draw_chaos_body(frame, cx, cy, 14, c, t)
+        # Missiles expanding outward
+        dist = f * 5
+        for i in range(6):
+            a = i * math.pi / 3 + t
+            mx = int(cx + dist * math.cos(a))
+            my = int(cy + dist * math.sin(a))
+            if 0 <= mx < fw - 2 and 0 <= my < fh - 2:
+                draw_circle(frame, mx, my, 2, c['chaos'])
+                draw_pixel(frame, mx, my, c['crack'])
+        frame = apply_outline(frame)
+        paste_frame(sheet, frame, f, 2, fw, fh)
+
+    # Row 3: Attack2 (6 frames) — Reality shatter pulse
+    for f in range(_anim_frames(3)):
+        frame = create_frame(fw, fh)
+        t = f * 0.5
+        charge = min(f, 3)
+        _draw_chaos_body(frame, cx, cy, 14 + charge * 2, c, t, frag=0)
+        # Shatter rings
+        if f >= 2:
+            ring_r = (f - 1) * 8
+            draw_outline_circle(frame, cx, cy, ring_r, c['chaos'], c['dark'])
+            draw_outline_circle(frame, cx, cy, ring_r + 3, c['crack'], TRANSPARENT)
+        frame = apply_outline(frame)
+        paste_frame(sheet, frame, f, 3, fw, fh)
+
+    # Row 4: Attack3 (6 frames) — Tendril lash
+    for f in range(_anim_frames(4)):
+        frame = create_frame(fw, fh)
+        t = f * 0.7
+        _draw_chaos_body(frame, cx, cy, 14, c, t)
+        # Tendrils reaching out
+        length = f * 6
+        for i in range(3):
+            a = i * math.pi * 2 / 3 + f * 0.4
+            for seg in range(min(length, 20)):
+                sx = int(cx + (10 + seg) * math.cos(a + seg * 0.05))
+                sy = int(cy + (10 + seg) * math.sin(a + seg * 0.05))
+                if 0 <= sx < fw and 0 <= sy < fh:
+                    draw_pixel(frame, sx, sy, c['chaos'] if seg % 2 == 0 else c['mid'])
+        frame = apply_outline(frame)
+        paste_frame(sheet, frame, f, 4, fw, fh)
+
+    # Row 5: Phase Transition (8 frames) — Shatters and reforms
+    for f in range(_anim_frames(5)):
+        frame = create_frame(fw, fh)
+        t = f * 0.4
+        if f < 3:
+            # Breaking apart
+            frag = f * 3
+            _draw_chaos_body(frame, cx, cy, 14, c, t, frag=frag)
+        elif f < 5:
+            # Scattered fragments
+            for i in range(10):
+                a = i * math.pi / 5 + t
+                dist = 15 + (f - 3) * 8
+                fx = int(cx + dist * math.cos(a))
+                fy = int(cy + dist * math.sin(a))
+                if 0 <= fx < fw - 3 and 0 <= fy < fh - 3:
+                    draw_rect(frame, fx, fy, 4, 4, c['mid'] if i % 2 == 0 else c['light'])
+            # Core remains
+            draw_circle(frame, cx, cy, 4, c['chaos'])
+        else:
+            # Reforming stronger
+            reform = 8 - f
+            _draw_chaos_body(frame, cx, cy, 14 + (f - 5) * 2, c, t, frag=max(0, reform * 2))
+            # Power-up flash
+            if f == 6:
+                draw_circle(frame, cx, cy, 20, shade(c['crack'], 0.5))
+        frame = apply_outline(frame)
+        paste_frame(sheet, frame, f, 5, fw, fh)
+
+    # Row 6: Hurt (3 frames) — Disrupted
+    for f in range(_anim_frames(6)):
+        frame = create_frame(fw, fh)
+        t = f * 0.3
+        flash = c['crack'] if f == 0 else c['light']
+        # Flickering body
+        frag = f * 2
+        draw_circle(frame, cx, cy, 18, c['dark'])
+        draw_outline_circle(frame, cx, cy, 14 - frag, flash, c['dark'])
+        draw_circle(frame, cx, cy, max(2, 8 - frag), c['highlight'])
+        draw_circle(frame, cx, cy - 2, 2, c['eye'])
+        # Sparks
+        for i in range(4):
+            a = i * math.pi / 2 + t
+            sx = int(cx + 16 * math.cos(a))
+            sy = int(cy + 16 * math.sin(a))
+            if 0 <= sx < fw and 0 <= sy < fh:
+                draw_pixel(frame, sx, sy, c['crack'])
+        frame = apply_outline(frame)
+        paste_frame(sheet, frame, f, 6, fw, fh)
+
+    # Row 7: Enrage (6 frames) — Chaos intensifies
+    for f in range(_anim_frames(7)):
+        frame = create_frame(fw, fh)
+        t = f * 0.5
+        grow = f * 2
+        _draw_chaos_body(frame, cx, cy, 14 + grow, c, t)
+        # Intensifying chaos field
+        for ring in range(f + 1):
+            r = 18 + ring * 4
+            draw_outline_circle(frame, cx, cy, r, shade(c['chaos'], 0.5), TRANSPARENT)
+        # Eye burns brighter
+        draw_circle(frame, cx, cy - 2, 3 + f // 2, c['eye'])
+        frame = apply_outline(frame)
+        paste_frame(sheet, frame, f, 7, fw, fh)
+
+    # Row 8: Dead (8 frames) — Reality collapse
+    for f in range(_anim_frames(8)):
+        frame = create_frame(fw, fh)
+        t = f * 0.3
+        if f < 3:
+            # Fragmenting
+            frag = f * 4
+            alpha_f = 1.0 - f * 0.15
+            _draw_chaos_body(frame, cx, cy, max(4, 14 - frag), c, t, frag=frag)
+        elif f < 6:
+            # Exploding fragments
+            for i in range(8):
+                a = i * math.pi / 4 + t
+                dist = (f - 2) * 10
+                fx = int(cx + dist * math.cos(a))
+                fy = int(cy + dist * math.sin(a))
+                sz = max(1, 4 - (f - 3))
+                if 0 <= fx < fw - sz and 0 <= fy < fh - sz:
+                    draw_rect(frame, fx, fy, sz, sz, shade(c['mid'], 1.0 - f * 0.1))
+            # Fading core
+            cr = max(1, 8 - (f - 2) * 2)
+            draw_circle(frame, cx, cy, cr, shade(c['chaos'], 0.5))
+        elif f == 6:
+            # Final flash
+            draw_circle(frame, cx, cy, 3, shade(c['crack'], 0.3))
+            draw_pixel(frame, cx - 10, cy + 15, shade(c['dark'], 0.3))
+            draw_pixel(frame, cx + 12, cy - 8, shade(c['dark'], 0.3))
+        else:
+            # Void scar remnant
+            draw_pixel(frame, cx, cy, shade(c['chaos'], 0.15))
+            draw_pixel(frame, cx - 1, cy, shade(c['dark'], 0.15))
+        frame = apply_outline(frame)
+        paste_frame(sheet, frame, f, 8, fw, fh)
+
+    save_sheet(sheet, OUTPUT['bosses'], 'entropy_incarnate.png')
+    print("  Entropy Incarnate complete.")
+
+
 # ----------------------------------------------------------- main entry ------
 
 def generate_bosses():
-    """Generate spritesheets for all 5 boss types."""
+    """Generate spritesheets for all 6 boss types."""
     print("Generating boss spritesheets...")
     _generate_rift_guardian()
     _generate_void_wyrm()
     _generate_dimensional_architect()
     _generate_temporal_weaver()
     _generate_void_sovereign()
+    _generate_entropy_incarnate()
     print("All boss spritesheets generated!")
 
 

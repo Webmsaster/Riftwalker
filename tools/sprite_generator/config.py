@@ -67,6 +67,7 @@ BOSS_ANIMS = [
 ENEMY_TYPES = [
     'walker', 'flyer', 'turret', 'charger', 'phaser',
     'exploder', 'shielder', 'crawler', 'summoner', 'sniper', 'minion',
+    'teleporter', 'reflector', 'leech', 'swarmer', 'gravitywell', 'mimic',
 ]
 
 # Boss types with their sizes
@@ -76,6 +77,7 @@ BOSS_TYPES = {
     'dimensional_architect': BOSS_FRAME,
     'temporal_weaver':       BOSS_FRAME,
     'void_sovereign':        BOSS_LARGE_FRAME,
+    'entropy_incarnate':     BOSS_FRAME,
 }
 
 # Tile types for the universal tileset
