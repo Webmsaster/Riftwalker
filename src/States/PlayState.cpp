@@ -710,6 +710,7 @@ void PlayState::update(float dt) {
                         // Entropy Incarnate killed (zone 4 boss at floor 24)
                         Bestiary::onBossKill(5);
                         Bestiary::save("bestiary_save.dat");
+                        lore->discover(LoreID::EntropyIncarnate);
                         AudioManager::instance().play(SFX::LoreDiscover);
                     } else {
                         Bestiary::onBossKill(bossTypeForLore);
@@ -718,7 +719,6 @@ void PlayState::update(float dt) {
                         else if (bossTypeForLore == 1) lore->discover(LoreID::BossMemory2);
                         else if (bossTypeForLore == 2) lore->discover(LoreID::BossMemory3);
                         else if (bossTypeForLore == 3) lore->discover(LoreID::BossMemory4);
-                        else if (bossTypeForLore == 5) lore->discover(LoreID::EntropyIncarnate);
                     }
                 }
             }
