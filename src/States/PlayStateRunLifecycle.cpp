@@ -262,6 +262,7 @@ void PlayState::generateLevel() {
     m_player->applyClassStats();
     applyUpgrades();
     applyAscensionModifiers();
+    applyChallengeModifiers();
 
     // Register heal callback for floating green numbers
     {
