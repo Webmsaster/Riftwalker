@@ -661,16 +661,16 @@ void PlayState::spawnBoss() {
     } else if (zone == 4 && isMidBoss) {
         // Floor 27 mid-boss: Entropy Incarnate as penultimate challenge
         Enemy::createEntropyIncarnate(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-        m_screenEffects.triggerBossIntro("ENTROPY INCARNATE", "A shadow of greater power");
+        m_screenEffects.triggerBossIntro("ENTROPY INCARNATE", "The suit hungers for decay");
     } else if (isMidBoss) {
         // Mid-boss floors: rotate lighter bosses (Guardian, Wyrm) scaled to zone
         int midBossType = zone % 2;
         if (midBossType == 1) {
             Enemy::createVoidWyrm(m_entities, {spawnPos.x, spawnPos.y - 40.0f}, dim, bossDiff);
-            m_screenEffects.triggerBossIntro("VOID WYRM", "A shadow of greater power");
+            m_screenEffects.triggerBossIntro("VOID WYRM", "It slithers between dimensions");
         } else {
             Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
-            m_screenEffects.triggerBossIntro("RIFT GUARDIAN", "A shadow of greater power");
+            m_screenEffects.triggerBossIntro("RIFT GUARDIAN", "The rift remembers your face");
         }
     } else {
         // Zone boss floors (6, 12, 18, 24): each zone has a signature boss
