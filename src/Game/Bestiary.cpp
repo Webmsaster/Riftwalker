@@ -1,6 +1,7 @@
 #include "Bestiary.h"
 #include <vector>
 #include <fstream>
+#include <SDL2/SDL.h>
 
 static std::vector<BestiaryEntry> s_entries;
 static std::vector<BestiaryEntry> s_bossEntries;
@@ -292,6 +293,14 @@ int Bestiary::getTotalCount() {
 
 void Bestiary::save(const std::string& filepath) {
     init();
+    // Backup existing save before overwriting
+    {
+        std::ifstream src(filepath, std::ios::binary);
+        if (src) {
+            std::ofstream dst(filepath + ".bak", std::ios::binary);
+            if (dst) dst << src.rdbuf();
+        }
+    }
     std::ofstream f(filepath);
     if (!f) return;
     for (auto& e : s_entries) {
@@ -306,6 +315,11 @@ void Bestiary::save(const std::string& filepath) {
 void Bestiary::load(const std::string& filepath) {
     init();
     std::ifstream f(filepath);
+    if (!f.is_open() || f.peek() == std::ifstream::traits_type::eof()) {
+        f.close();
+        f.open(filepath + ".bak");
+        if (f.is_open()) SDL_Log("Using backup bestiary save: %s.bak", filepath.c_str());
+    }
     if (!f) return;
     std::string line;
     bool readingBoss = false;

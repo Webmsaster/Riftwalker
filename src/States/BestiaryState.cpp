@@ -290,7 +290,13 @@ void BestiaryState::render(SDL_Renderer* renderer) {
                     case 6: swatchColor = { 80, 180, 220, 220}; break;  // Shielder
                     case 7: swatchColor = { 60, 160,  80, 220}; break;  // Crawler
                     case 8: swatchColor = {180,  50, 220, 220}; break;  // Summoner
-                    case 9: swatchColor = {200, 180,  40, 220}; break;  // Sniper
+                    case 9: swatchColor = {200, 180,  40, 220}; break;   // Sniper
+                    case 10: swatchColor = { 90,  40, 140, 220}; break;  // Teleporter
+                    case 11: swatchColor = {140, 160, 190, 220}; break;  // Reflector
+                    case 12: swatchColor = { 50, 100,  40, 220}; break;  // Leech
+                    case 13: swatchColor = {255, 180,  50, 220}; break;  // Swarmer
+                    case 14: swatchColor = {100,  50, 180, 220}; break;  // GravityWell
+                    case 15: swatchColor = {140,  95,  45, 220}; break;  // Mimic
                 }
             }
             SDL_SetRenderDrawColor(renderer, swatchColor.r, swatchColor.g, swatchColor.b, swatchColor.a);
