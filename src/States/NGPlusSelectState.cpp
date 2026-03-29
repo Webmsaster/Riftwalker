@@ -9,20 +9,22 @@
 // Per-tier descriptor strings
 static const char* s_tierNames[] = {
     "N O R M A L",
-    "N G + 1",
-    "N G + 2",
-    "N G + 3",
-    "N G + 4",
-    "N G + 5"
+    "N G + 1",  "N G + 2",  "N G + 3",  "N G + 4",  "N G + 5",
+    "N G + 6",  "N G + 7",  "N G + 8",  "N G + 9",  "N G + 10"
 };
 
 static const char* s_tierDescs[] = {
     "Standard difficulty",
-    "+25% enemy HP, +15% DMG, slower entropy decay",
-    "All above + double elite rate, boss phases faster",
-    "All above + +50% total HP, hazard damage +50%",
-    "All above + forced dim-switch every 30s, mini-bosses everywhere",
-    "All above + +100% total HP, PERMADEATH (no revives)"
+    "+10% enemy HP, slower entropy decay",
+    "+15% enemy DMG, +1 relic choice at boss",
+    "+20% elite spawn, keep weapon upgrades",
+    "Boss +20% HP, extra shop slot",
+    "Harder patterns, start with common relic",
+    "+15% shard gain, traps +30%",
+    "Abilities: 50% CD start, boss extra phase",
+    "Start with 2 relics, elites get 2 modifiers",
+    "Shop -20% prices, enemies +30% speed",
+    "Start with legendary relic — CHAOS MODE"
 };
 
 static SDL_Color s_tierColors[] = {
@@ -31,7 +33,12 @@ static SDL_Color s_tierColors[] = {
     {80,  200, 220, 255},
     {200, 140,  80, 255},
     {220,  80,  80, 255},
-    {200,  60, 255, 255}
+    {200,  60, 255, 255},
+    {60,  200,  60, 255},
+    {200, 200,  60, 255},
+    {255, 120,  60, 255},
+    {255,  60,  60, 255},
+    {255,  40, 200, 255}
 };
 
 // Reward line shown per tier
@@ -41,13 +48,18 @@ static const char* s_tierRewards[] = {
     "Reward: +40% shard bonus",
     "Reward: +60% shard bonus",
     "Reward: +80% shard bonus",
-    "Reward: +100% shard bonus  |  Exclusive NG+5 title"
+    "Reward: +100% shard bonus",
+    "Reward: +120% shard bonus",
+    "Reward: +150% shard bonus",
+    "Reward: +180% shard bonus",
+    "Reward: +200% shard bonus",
+    "Reward: +250% shard bonus  |  CHAOS MASTER title"
 };
 
 void NGPlusSelectState::enter() {
     m_maxTier = game->getUpgradeSystem().getMaxUnlockedNGPlus();
-    // Clamp selection to the next unlockable tier (maxTier + 1, capped at 5)
-    m_selected = std::min(m_maxTier + 1, 5); // default to next challenge
+    // Clamp selection to the next unlockable tier (maxTier + 1, capped at 10)
+    m_selected = std::min(m_maxTier + 1, 10); // default to next challenge
     if (m_selected > m_maxTier + 1) m_selected = m_maxTier + 1;
     m_time = 0;
 }
@@ -85,11 +97,11 @@ void NGPlusSelectState::handleEvent(const SDL_Event& event) {
     }
 
     // Card layout mirrors render() calculations exactly
+    int totalOptions = std::min(m_maxTier + 2, 11);
     int cardW        = 700;
-    int cardH        = 78;
+    int cardH        = (totalOptions > 6) ? 50 : 78;
     int cardX        = 640 - cardW / 2;
     int startY       = 155;
-    int totalOptions = std::min(m_maxTier + 2, 6);
 
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x, my = event.motion.y;
@@ -202,11 +214,11 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
     int cardX = 640 - cardW / 2;
     int startY = 155;
     int totalOptions = m_maxTier + 2; // Normal + all unlocked + one locked (next)
-    if (totalOptions > 6) totalOptions = 6;
+    if (totalOptions > 11) totalOptions = 11;
 
     for (int i = 0; i < totalOptions; i++) {
-        bool unlocked = (i <= m_maxTier + 1) && (i <= 5);
-        bool isNextChallenge = (i == m_maxTier + 1) && (i <= 5);
+        bool unlocked = (i <= m_maxTier + 1) && (i <= 10);
+        bool isNextChallenge = (i == m_maxTier + 1) && (i <= 10);
         bool selected = (i == m_selected);
         int y = startY + i * (cardH + 8);
 
