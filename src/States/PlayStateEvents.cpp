@@ -1171,7 +1171,42 @@ void PlayState::checkUnlockConditions() {
         pushUnlockNotification("Rift Shotgun", true);
     }
 
-    // Arsenal Master: all 10 weapons unlocked
+    // EntropyScythe: reach floor 10
+    if (!WeaponSystem::isUnlocked(WeaponID::EntropyScythe) &&
+        m_currentDifficulty >= 10) {
+        WeaponSystem::unlock(WeaponID::EntropyScythe);
+        pushUnlockNotification("Entropy Scythe", true);
+    }
+
+    // ChainWhip: kill 100 enemies total
+    if (!WeaponSystem::isUnlocked(WeaponID::ChainWhip) &&
+        game->getUpgradeSystem().totalEnemiesKilled >= 100) {
+        WeaponSystem::unlock(WeaponID::ChainWhip);
+        pushUnlockNotification("Chain Whip", true);
+    }
+
+    // GravityGauntlet: defeat the Dimensional Architect (reach floor 13+)
+    if (!WeaponSystem::isUnlocked(WeaponID::GravityGauntlet) &&
+        m_currentDifficulty >= 13) {
+        WeaponSystem::unlock(WeaponID::GravityGauntlet);
+        pushUnlockNotification("Gravity Gauntlet", true);
+    }
+
+    // DimLauncher: switch dimensions 20 times in one run
+    if (!WeaponSystem::isUnlocked(WeaponID::DimLauncher) &&
+        m_dimensionSwitches >= 20) {
+        WeaponSystem::unlock(WeaponID::DimLauncher);
+        pushUnlockNotification("Dim Launcher", true);
+    }
+
+    // RiftCrossbow: reach floor 15
+    if (!WeaponSystem::isUnlocked(WeaponID::RiftCrossbow) &&
+        m_currentDifficulty >= 15) {
+        WeaponSystem::unlock(WeaponID::RiftCrossbow);
+        pushUnlockNotification("Rift Crossbow", true);
+    }
+
+    // Arsenal Master: all weapons unlocked
     if (!game->getAchievements().isUnlocked("weapon_collector")) {
         int unlockedCount = 0;
         for (int w = 0; w < static_cast<int>(WeaponID::COUNT); w++) {

@@ -854,6 +854,26 @@ void PlayState::finalizeRun(bool abandoned) {
     if (!WeaponSystem::isUnlocked(WeaponID::GrapplingHook) && m_dashKillsThisRun >= 5) {
         WeaponSystem::unlock(WeaponID::GrapplingHook);
     }
+    // EntropyScythe: reach floor 10
+    if (!WeaponSystem::isUnlocked(WeaponID::EntropyScythe) && m_currentDifficulty >= 10) {
+        WeaponSystem::unlock(WeaponID::EntropyScythe);
+    }
+    // ChainWhip: 100 total kills
+    if (!WeaponSystem::isUnlocked(WeaponID::ChainWhip) && upgrades.totalEnemiesKilled >= 100) {
+        WeaponSystem::unlock(WeaponID::ChainWhip);
+    }
+    // GravityGauntlet: past floor 12 (beat Dimensional Architect)
+    if (!WeaponSystem::isUnlocked(WeaponID::GravityGauntlet) && m_currentDifficulty >= 13) {
+        WeaponSystem::unlock(WeaponID::GravityGauntlet);
+    }
+    // DimLauncher: 20+ dimension switches in one run
+    if (!WeaponSystem::isUnlocked(WeaponID::DimLauncher) && m_dimensionSwitches >= 20) {
+        WeaponSystem::unlock(WeaponID::DimLauncher);
+    }
+    // RiftCrossbow: reach floor 15
+    if (!WeaponSystem::isUnlocked(WeaponID::RiftCrossbow) && m_currentDifficulty >= 15) {
+        WeaponSystem::unlock(WeaponID::RiftCrossbow);
+    }
 
     // Check milestone rewards
     auto milestone = upgrades.checkMilestones();
