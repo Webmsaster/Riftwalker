@@ -41,6 +41,15 @@ public:
     void renderFlash(SDL_Renderer* renderer, int screenW, int screenH);
 
 private:
+    // Sub-renderers extracted from render() for readability
+    void renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
+                          const Player* player, const DimensionManager* dimMgr,
+                          int screenW, int screenH, int startY);
+    void renderCombatOverlay(SDL_Renderer* renderer, TTF_Font* font,
+                             const Player* player, int screenW, int screenH);
+    void renderWeaponPanel(SDL_Renderer* renderer, TTF_Font* font,
+                           const Player* player, int screenW, int screenH);
+
     void renderBar(SDL_Renderer* renderer, int x, int y, int w, int h,
                    float percent, SDL_Color fillColor, SDL_Color bgColor);
     void renderText(SDL_Renderer* renderer, TTF_Font* font,

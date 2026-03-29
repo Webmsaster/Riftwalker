@@ -617,361 +617,9 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
-    // Ability bar with cooldown indicators
-    if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>()) {
-        auto& combat = player->getEntity()->getComponent<CombatComponent>();
-        int abY = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + xpExtraH;
-        int iconSize = static_cast<int>(22 * g_hudScale);
-        int iconGap  = static_cast<int>(6 * g_hudScale);
-
-        struct AbilityInfo {
-            float cooldownPct; // 0=on cooldown, 1=ready
-            SDL_Color readyColor;
-            const char* label;
-        };
-
-        // Calculate cooldown percentages
-        float meleePct = (combat.cooldownTimer <= 0) ? 1.0f
-            : 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.meleeAttack.cooldown));
-        float rangedPct = (combat.cooldownTimer <= 0) ? 1.0f
-            : 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.rangedAttack.cooldown));
-        float dashPct = 1.0f - (player->dashCooldownTimer / std::max(0.01f, player->dashCooldown));
-        if (dashPct > 1.0f) dashPct = 1.0f;
-        float dimPct = dimMgr ? 1.0f - (dimMgr->getCooldownTimer() / std::max(0.01f, dimMgr->switchCooldown)) : 1.0f;
-        if (dimPct > 1.0f) dimPct = 1.0f;
-
-        AbilityInfo abilities[4] = {
-            {std::max(0.0f, meleePct), {255, 220, 100, 255}, "J"},
-            {std::max(0.0f, rangedPct), {100, 200, 255, 255}, "K"},
-            {std::max(0.0f, dashPct), {100, 255, 200, 255}, "SH"},
-            {std::max(0.0f, dimPct), {200, 150, 255, 255}, "E"}
-        };
-
-        for (int i = 0; i < 4; i++) {
-            int ix = margin + i * (iconSize + iconGap);
-            bool ready = abilities[i].cooldownPct >= 1.0f;
-
-            // Detect cooldown-to-ready transition → trigger flash
-            if (ready && m_abilityWasOnCooldown[i]) {
-                m_abilityReadyFlash[i] = 0.35f;
-            }
-            m_abilityWasOnCooldown[i] = !ready;
-
-            SDL_Color c = ready ? abilities[i].readyColor : SDL_Color{50, 50, 60, 200};
-
-            // Icon background
-            SDL_SetRenderDrawColor(renderer, 15, 15, 25, 180);
-            SDL_Rect bg = {ix, abY, iconSize, iconSize};
-            SDL_RenderFillRect(renderer, &bg);
-
-            // Draw procedural icon
-            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
-            int cx = ix + iconSize / 2;
-            int cy = abY + iconSize / 2;
-
-            switch (i) {
-                case 0: // Melee: sword (diagonal line + crossguard)
-                    SDL_RenderDrawLine(renderer, cx - 5, cy + 5, cx + 5, cy - 5);
-                    SDL_RenderDrawLine(renderer, cx - 5, cy + 4, cx + 5, cy - 6);
-                    SDL_RenderDrawLine(renderer, cx - 3, cy - 1, cx + 3, cy + 1);
-                    break;
-                case 1: // Ranged: circle projectile with trail
-                    SDL_RenderDrawLine(renderer, cx - 6, cy, cx - 2, cy);
-                    SDL_RenderDrawLine(renderer, cx - 5, cy - 1, cx - 2, cy - 1);
-                    {
-                        SDL_Rect dot = {cx, cy - 3, 6, 6};
-                        SDL_RenderFillRect(renderer, &dot);
-                    }
-                    break;
-                case 2: // Dash: arrow
-                    SDL_RenderDrawLine(renderer, cx - 6, cy, cx + 4, cy);
-                    SDL_RenderDrawLine(renderer, cx + 4, cy, cx, cy - 4);
-                    SDL_RenderDrawLine(renderer, cx + 4, cy, cx, cy + 4);
-                    SDL_RenderDrawLine(renderer, cx - 6, cy - 1, cx + 4, cy - 1);
-                    break;
-                case 3: // Dim switch: two overlapping squares
-                    {
-                        SDL_Rect sq1 = {cx - 5, cy - 5, 7, 7};
-                        SDL_Rect sq2 = {cx - 1, cy - 1, 7, 7};
-                        SDL_RenderDrawRect(renderer, &sq1);
-                        SDL_RenderDrawRect(renderer, &sq2);
-                    }
-                    break;
-            }
-
-            // Cooldown overlay (dark sweep from top) + remaining seconds
-            if (!ready) {
-                int coverH = static_cast<int>(iconSize * (1.0f - abilities[i].cooldownPct));
-                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
-                SDL_Rect cover = {ix, abY, iconSize, coverH};
-                SDL_RenderFillRect(renderer, &cover);
-                // Remaining seconds text centered on icon
-                if (font) {
-                    float remain = 0;
-                    if (i == 0) remain = combat.cooldownTimer;
-                    else if (i == 1) remain = combat.cooldownTimer;
-                    else if (i == 2) remain = player->dashCooldownTimer;
-                    else if (i == 3 && dimMgr) remain = dimMgr->getCooldownTimer();
-                    if (remain > 0.05f) {
-                        char cdTxt[8];
-                        std::snprintf(cdTxt, sizeof(cdTxt), "%.1f", remain);
-                        renderText(renderer, font, cdTxt, ix + 2, abY + iconSize / 2 - 5, {255, 255, 255, 220});
-                    }
-                }
-            }
-
-            // Border (brighter when ready, pulse when ready)
-            if (ready) {
-                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.006f);
-                Uint8 borderA = static_cast<Uint8>(140 + 60 * pulse);
-                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, borderA);
-            } else {
-                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 60);
-            }
-            SDL_RenderDrawRect(renderer, &bg);
-
-            // Ready flash: bright glow that fades out when ability comes off cooldown
-            if (m_abilityReadyFlash[i] > 0) {
-                float flashT = m_abilityReadyFlash[i] / 0.35f;
-                Uint8 flashA = static_cast<Uint8>(180 * flashT);
-                auto& rc = abilities[i].readyColor;
-                SDL_SetRenderDrawColor(renderer, rc.r, rc.g, rc.b, flashA);
-                SDL_Rect flashRect = {ix - 2, abY - 2, iconSize + 4, iconSize + 4};
-                SDL_RenderFillRect(renderer, &flashRect);
-            }
-
-            // Key label below
-            if (font) {
-                renderText(renderer, font, abilities[i].label, ix + 4, abY + iconSize + 1,
-                           {c.r, c.g, c.b, static_cast<Uint8>(ready ? 200 : 80)});
-            }
-        }
-    }
-
-    // Active buff/debuff indicators (below ability bar)
-    if (player) {
-        int buffY = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + static_cast<int>(36 * g_hudScale) + xpExtraH;
-        int buffX = margin;
-        int buffSize = static_cast<int>(12 * g_hudScale);
-        int buffGap  = static_cast<int>(3 * g_hudScale);
-        int timerBarH = static_cast<int>(3 * g_hudScale); // timer bar height below icon
-
-        auto drawBuff = [&](const char* label, float timer, float maxTime, SDL_Color color) {
-            if (timer <= 0) return;
-            float pct = timer / std::max(0.01f, maxTime);
-            // Fade alpha when < 2s remaining
-            Uint8 fadeAlpha = (timer < 2.0f) ? static_cast<Uint8>(80 + 175 * (timer / 2.0f)) : 255;
-
-            // Icon background
-            SDL_SetRenderDrawColor(renderer, 10, 10, 20, static_cast<Uint8>(fadeAlpha * 0.7f));
-            SDL_Rect bg = {buffX, buffY, buffSize, buffSize};
-            SDL_RenderFillRect(renderer, &bg);
-            // Color fill
-            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, static_cast<Uint8>(fadeAlpha * 0.7f));
-            SDL_RenderFillRect(renderer, &bg);
-            // Label centered in icon
-            if (font) {
-                renderText(renderer, font, label, buffX + 1, buffY,
-                           {255, 255, 255, fadeAlpha});
-            }
-            // Border
-            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, static_cast<Uint8>(fadeAlpha * 0.8f));
-            SDL_RenderDrawRect(renderer, &bg);
-            // Timer bar below icon (shrinks left-to-right)
-            int timerW = static_cast<int>(buffSize * pct);
-            SDL_SetRenderDrawColor(renderer, 20, 20, 30, static_cast<Uint8>(fadeAlpha * 0.6f));
-            SDL_Rect timerBg = {buffX, buffY + buffSize + 1, buffSize, timerBarH};
-            SDL_RenderFillRect(renderer, &timerBg);
-            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, fadeAlpha);
-            SDL_Rect timerFill = {buffX, buffY + buffSize + 1, timerW, timerBarH};
-            SDL_RenderFillRect(renderer, &timerFill);
-
-            buffX += buffSize + buffGap;
-        };
-
-        // Buffs
-        drawBuff("S", player->speedBoostTimer, 6.0f, {255, 255, 80, 255});
-        drawBuff("D", player->damageBoostTimer, 8.0f, {255, 80, 80, 255});
-        if (player->hasShield)
-            drawBuff("W", player->shieldTimer, 8.0f, {100, 180, 255, 255});
-        if (player->isRiftChargeActive())
-            drawBuff("R", player->riftChargeTimer, player->riftChargeDuration, {80, 160, 255, 255});
-        if (player->hasMomentum())
-            drawBuff("M", player->momentumTimer, player->momentumDuration, {255, 140, 40, 255});
-        if (player->postDashInvisTimer > 0 && player->playerClass == PlayerClass::Phantom)
-            drawBuff("I", player->postDashInvisTimer, ClassSystem::getData(PlayerClass::Phantom).postDashInvisTime,
-                     {60, 220, 200, 255});
-
-        // Debuffs (status effects)
-        if (player->isBurning())
-            drawBuff("F", player->burnTimer, 3.0f, {255, 120, 30, 255});
-        if (player->isFrozen())
-            drawBuff("C", player->freezeTimer, 2.0f, {80, 180, 255, 255});
-        if (player->isPoisoned())
-            drawBuff("P", player->poisonTimer, 4.0f, {80, 220, 80, 255});
-    }
-
-    // Ability icons (below active buffs)
-    if (player && player->getEntity() && player->getEntity()->hasComponent<AbilityComponent>()) {
-        auto& abil = player->getEntity()->getComponent<AbilityComponent>();
-        int abStartY  = margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + static_cast<int>(58 * g_hudScale) + xpExtraH;
-        int abIconSize = static_cast<int>(26 * g_hudScale);
-        int abIconGap  = static_cast<int>(6 * g_hudScale);
-
-        struct AbilityIconInfo {
-            const char* label;
-            SDL_Color color;
-            float cdPct;
-            bool active;
-        };
-
-        AbilityIconInfo abIcons[3];
-        if (player->playerClass == PlayerClass::Technomancer) {
-            // Technomancer: turret (Q) + trap (E) + Phase Strike
-            float turretCdPct = (player->turretCooldownTimer <= 0) ? 1.0f
-                : 1.0f - player->turretCooldownTimer / std::max(0.01f, player->turretCooldown);
-            float trapCdPct = (player->trapCooldownTimer <= 0) ? 1.0f
-                : 1.0f - player->trapCooldownTimer / std::max(0.01f, player->trapCooldown);
-            abIcons[0] = {"Q", {230, 180, 50, 255}, turretCdPct,
-                          player->activeTurrets >= player->maxTurrets};
-            abIcons[1] = {"E", {255, 200, 50, 255}, trapCdPct,
-                          player->activeTraps >= player->maxTraps};
-            abIcons[2] = {"3", {180, 80, 255, 255}, abil.abilities[2].getCooldownPercent(), abil.abilities[2].active};
-        } else {
-            abIcons[0] = {"1", {255, 180, 60, 255}, abil.abilities[0].getCooldownPercent(), abil.abilities[0].active || abil.slamFalling};
-            abIcons[1] = {"2", {80, 220, 255, 255}, abil.abilities[1].getCooldownPercent(), abil.abilities[1].active};
-            abIcons[2] = {"3", {180, 80, 255, 255}, abil.abilities[2].getCooldownPercent(), abil.abilities[2].active};
-        }
-
-        for (int i = 0; i < 3; i++) {
-            int ix = margin + i * (abIconSize + abIconGap);
-            bool ready = abIcons[i].cdPct >= 1.0f;
-            bool active = abIcons[i].active;
-            SDL_Color c = active ? SDL_Color{255, 255, 255, 255} :
-                         (ready ? abIcons[i].color : SDL_Color{40, 40, 50, 200});
-
-            // Background
-            SDL_SetRenderDrawColor(renderer, 10, 10, 20, 200);
-            SDL_Rect bg = {ix, abStartY, abIconSize, abIconSize};
-            SDL_RenderFillRect(renderer, &bg);
-
-            // Procedural ability icon
-            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
-            int acx = ix + abIconSize / 2;
-            int acy = abStartY + abIconSize / 2;
-
-            if (player->playerClass == PlayerClass::Technomancer) {
-                switch (i) {
-                    case 0: // Deploy Turret: small turret icon (box + barrel)
-                        SDL_RenderDrawLine(renderer, acx - 5, acy + 4, acx + 5, acy + 4); // base
-                        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
-                        { SDL_Rect tb = {acx - 4, acy - 2, 8, 6}; SDL_RenderDrawRect(renderer, &tb); }
-                        SDL_RenderDrawLine(renderer, acx + 4, acy, acx + 8, acy); // barrel
-                        SDL_RenderDrawLine(renderer, acx + 4, acy + 1, acx + 8, acy + 1);
-                        break;
-                    case 1: // Shock Trap: diamond with spark
-                        SDL_RenderDrawLine(renderer, acx, acy - 6, acx + 6, acy);
-                        SDL_RenderDrawLine(renderer, acx + 6, acy, acx, acy + 6);
-                        SDL_RenderDrawLine(renderer, acx, acy + 6, acx - 6, acy);
-                        SDL_RenderDrawLine(renderer, acx - 6, acy, acx, acy - 6);
-                        // Electric spark
-                        SDL_RenderDrawLine(renderer, acx - 1, acy - 2, acx + 1, acy + 2);
-                        break;
-                    case 2: // Phase Strike: same as other classes
-                        SDL_RenderDrawLine(renderer, acx - 2, acy - 7, acx + 2, acy - 2);
-                        SDL_RenderDrawLine(renderer, acx + 2, acy - 2, acx - 3, acy - 1);
-                        SDL_RenderDrawLine(renderer, acx - 3, acy - 1, acx + 2, acy + 7);
-                        break;
-                }
-            } else {
-                switch (i) {
-                    case 0: // Ground Slam: down arrow with impact lines
-                        SDL_RenderDrawLine(renderer, acx, acy - 6, acx, acy + 4);
-                        SDL_RenderDrawLine(renderer, acx, acy + 4, acx - 4, acy);
-                        SDL_RenderDrawLine(renderer, acx, acy + 4, acx + 4, acy);
-                        SDL_RenderDrawLine(renderer, acx - 6, acy + 6, acx - 3, acy + 4);
-                        SDL_RenderDrawLine(renderer, acx + 6, acy + 6, acx + 3, acy + 4);
-                        break;
-                    case 1: // Rift Shield: hexagon
-                        for (int h = 0; h < 6; h++) {
-                            float a1 = h * 6.283185f / 6.0f - 1.5708f;
-                            float a2 = (h + 1) * 6.283185f / 6.0f - 1.5708f;
-                            SDL_RenderDrawLine(renderer,
-                                acx + static_cast<int>(std::cos(a1) * 8),
-                                acy + static_cast<int>(std::sin(a1) * 8),
-                                acx + static_cast<int>(std::cos(a2) * 8),
-                                acy + static_cast<int>(std::sin(a2) * 8));
-                        }
-                        break;
-                    case 2: // Phase Strike: lightning bolt / teleport
-                        SDL_RenderDrawLine(renderer, acx - 2, acy - 7, acx + 2, acy - 2);
-                        SDL_RenderDrawLine(renderer, acx + 2, acy - 2, acx - 3, acy - 1);
-                        SDL_RenderDrawLine(renderer, acx - 3, acy - 1, acx + 2, acy + 7);
-                        break;
-                }
-            }
-
-            // Cooldown sweep overlay + remaining seconds text
-            if (!ready && !active) {
-                int coverH = static_cast<int>(abIconSize * (1.0f - abIcons[i].cdPct));
-                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 160);
-                SDL_Rect cover = {ix, abStartY, abIconSize, coverH};
-                SDL_RenderFillRect(renderer, &cover);
-                // Show remaining cooldown seconds
-                if (font) {
-                    float remain = 0;
-                    if (player->playerClass == PlayerClass::Technomancer) {
-                        if (i == 0) remain = player->turretCooldownTimer;
-                        else if (i == 1) remain = player->trapCooldownTimer;
-                        else remain = abil.abilities[2].cooldownTimer;
-                    } else {
-                        remain = abil.abilities[i].cooldownTimer;
-                    }
-                    if (remain > 0.05f) {
-                        char cdTxt[8];
-                        std::snprintf(cdTxt, sizeof(cdTxt), "%.1f", remain);
-                        renderText(renderer, font, cdTxt, ix + 3, abStartY + abIconSize / 2 - 5,
-                                   {255, 255, 255, 220});
-                    }
-                }
-            }
-
-            // Active glow
-            if (active) {
-                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.01f);
-                Uint8 gA = static_cast<Uint8>(100 + 80 * pulse);
-                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, gA);
-                SDL_Rect glow = {ix - 2, abStartY - 2, abIconSize + 4, abIconSize + 4};
-                SDL_RenderDrawRect(renderer, &glow);
-            }
-
-            // Border (pulse when ready)
-            if (ready && !active) {
-                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.006f);
-                Uint8 borderA = static_cast<Uint8>(150 + 50 * pulse);
-                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, borderA);
-            } else {
-                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(active ? 200 : 60));
-            }
-            SDL_RenderDrawRect(renderer, &bg);
-
-            // Key label
-            if (font) {
-                renderText(renderer, font, abIcons[i].label, ix + 9, abStartY + abIconSize + 1,
-                           {c.r, c.g, c.b, static_cast<Uint8>(ready ? 200 : 80)});
-            }
-        }
-    }
-
-    // Weapon names (bottom-left, always visible)
-    if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>() && font) {
-        auto& combat = player->getEntity()->getComponent<CombatComponent>();
-        const auto& meleeData = WeaponSystem::getWeaponData(combat.currentMelee);
-        const auto& rangedData = WeaponSystem::getWeaponData(combat.currentRanged);
-        char weaponText[64];
-        std::snprintf(weaponText, sizeof(weaponText), "[Q] %s  [R] %s", meleeData.name, rangedData.name);
-        renderText(renderer, font, weaponText, margin, screenH - 22, {180, 180, 200, 180});
-    }
+    renderAbilityBar(renderer, font, player, dimMgr, screenW, screenH,
+                     margin + (barH + static_cast<int>(6 * g_hudScale)) * 3 + xpExtraH);
+    renderCombatOverlay(renderer, font, player, screenW, screenH);
 
     // Combo counter (center top, only when combo > 1)
     if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>() && font) {
@@ -1171,164 +819,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
-    // Weapon display (bottom center)
-    if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>()) {
-        auto& combat = player->getEntity()->getComponent<CombatComponent>();
-        int wpnY = screenH - 66;
-        int wpnX = screenW / 2 - 100;
-
-        // Background (taller to fit mastery progress bar)
-        SDL_Rect wpnBg = {wpnX, wpnY, 200, 52};
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);
-        SDL_RenderFillRect(renderer, &wpnBg);
-        SDL_SetRenderDrawColor(renderer, 80, 80, 100, 80);
-        SDL_RenderDrawRect(renderer, &wpnBg);
-
-        // Melee weapon (left side)
-        SDL_Rect meleeBg = {wpnX + 2, wpnY + 2, 96, 48};
-        SDL_SetRenderDrawColor(renderer, 180, 60, 60, 60);
-        SDL_RenderFillRect(renderer, &meleeBg);
-        // Sword icon
-        SDL_SetRenderDrawColor(renderer, 220, 180, 100, 200);
-        SDL_RenderDrawLine(renderer, wpnX + 8, wpnY + 26, wpnX + 22, wpnY + 8);
-        SDL_RenderDrawLine(renderer, wpnX + 18, wpnY + 14, wpnX + 26, wpnY + 14);
-
-        // Ranged weapon (right side)
-        SDL_Rect rangedBg = {wpnX + 102, wpnY + 2, 96, 48};
-        SDL_SetRenderDrawColor(renderer, 60, 60, 180, 60);
-        SDL_RenderFillRect(renderer, &rangedBg);
-        // Gun icon
-        SDL_SetRenderDrawColor(renderer, 100, 180, 220, 200);
-        SDL_Rect gunBody = {wpnX + 110, wpnY + 12, 14, 8};
-        SDL_RenderFillRect(renderer, &gunBody);
-        SDL_RenderDrawLine(renderer, wpnX + 124, wpnY + 15, wpnX + 130, wpnY + 15);
-
-        if (font) {
-            const char* mName = WeaponSystem::getWeaponName(combat.currentMelee);
-            const char* rName = WeaponSystem::getWeaponName(combat.currentRanged);
-            renderText(renderer, font, mName, wpnX + 30, wpnY + 8, {220, 180, 100, 220});
-            renderText(renderer, font, rName, wpnX + 134, wpnY + 8, {100, 180, 220, 220});
-            renderText(renderer, font, "[Q]", wpnX + 2, wpnY - 14, {150, 150, 160, 120});
-            renderText(renderer, font, "[R]", wpnX + 172, wpnY - 14, {150, 150, 160, 120});
-
-            // Weapon Mastery indicators with progress bars
-            if (m_combatSystem) {
-                int mIdx = static_cast<int>(combat.currentMelee);
-                int rIdx = static_cast<int>(combat.currentRanged);
-                int mKills = m_combatSystem->weaponKills[mIdx];
-                int rKills = m_combatSystem->weaponKills[rIdx];
-                MasteryTier mTier = WeaponSystem::getMasteryTier(mKills);
-                MasteryTier rTier = WeaponSystem::getMasteryTier(rKills);
-
-                auto tierColor = [](MasteryTier t) -> SDL_Color {
-                    switch (t) {
-                        case MasteryTier::Mastered:   return {255, 220, 80, 255};
-                        case MasteryTier::Proficient: return {180, 100, 255, 255};
-                        case MasteryTier::Familiar:   return {80, 200, 180, 255};
-                        default: return {80, 80, 90, 120};
-                    }
-                };
-
-                // Detect tier-up for gold flash
-                MasteryTier tiers[2] = {mTier, rTier};
-                for (int w = 0; w < 2; w++) {
-                    if (tiers[w] != MasteryTier::None && tiers[w] != m_prevMasteryTier[w]) {
-                        m_masteryFlash[w] = 0.6f;
-                    }
-                    m_prevMasteryTier[w] = tiers[w];
-                }
-
-                // Helper: compute progress fraction toward next tier
-                auto masteryProgress = [](int kills) -> float {
-                    int next = WeaponSystem::getNextTierThreshold(kills);
-                    if (next == 0) return 1.0f; // Fully mastered
-                    // Previous tier threshold
-                    int prev = 0;
-                    if (next == 25) prev = 10;
-                    else if (next == 50) prev = 25;
-                    float range = static_cast<float>(next - prev);
-                    return (range > 0) ? static_cast<float>(kills - prev) / range : 1.0f;
-                };
-
-                // Helper: render mastery for one weapon slot
-                auto renderMastery = [&](int kills, MasteryTier tier, int baseX, int barY,
-                                         int slotIdx, SDL_Color barColor) {
-                    const int barW = 40;
-                    const int barH = 4;
-
-                    // Tier name or kill count text
-                    int next = WeaponSystem::getNextTierThreshold(kills);
-                    if (tier != MasteryTier::None) {
-                        const char* tName = WeaponSystem::getMasteryTierName(tier);
-                        SDL_Color col = tierColor(tier);
-                        // Gold flash overlay on tier-up
-                        if (m_masteryFlash[slotIdx] > 0) {
-                            float t = m_masteryFlash[slotIdx] / 0.6f;
-                            Uint8 flashA = static_cast<Uint8>(200 * t);
-                            col = {255, 220, 80, flashA};
-                        }
-                        renderText(renderer, font, tName, baseX, barY - 14, col);
-                        // Show progress to next tier (or "MAX" if mastered)
-                        if (next > 0) {
-                            char prog[16];
-                            std::snprintf(prog, sizeof(prog), "%d/%d", kills, next);
-                            renderText(renderer, font, prog, baseX + 44, barY - 14, {100, 100, 110, 140});
-                        }
-                    } else {
-                        char prog[16];
-                        std::snprintf(prog, sizeof(prog), "%d/%d", kills, next);
-                        renderText(renderer, font, prog, baseX, barY - 14, {100, 100, 110, 140});
-                    }
-
-                    // Progress bar (40x4 px)
-                    float pct = masteryProgress(kills);
-                    SDL_Color bgCol = {30, 30, 40, 160};
-                    renderBar(renderer, baseX, barY, barW, barH, pct, barColor, bgCol);
-
-                    // Thin border around bar
-                    SDL_SetRenderDrawColor(renderer, 60, 60, 80, 100);
-                    SDL_Rect barRect = {baseX, barY, barW, barH};
-                    SDL_RenderDrawRect(renderer, &barRect);
-
-                    // Gold flash glow around bar on tier-up
-                    if (m_masteryFlash[slotIdx] > 0) {
-                        float t = m_masteryFlash[slotIdx] / 0.6f;
-                        Uint8 flashA = static_cast<Uint8>(120 * t);
-                        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-                        SDL_SetRenderDrawColor(renderer, 255, 220, 80, flashA);
-                        SDL_Rect glow = {baseX - 1, barY - 1, barW + 2, barH + 2};
-                        SDL_RenderDrawRect(renderer, &glow);
-                    }
-                };
-
-                // Melee mastery (under weapon name)
-                renderMastery(mKills, mTier, wpnX + 30, wpnY + 38, 0,
-                              tierColor(mTier));
-
-                // Ranged mastery (under weapon name)
-                renderMastery(rKills, rTier, wpnX + 134, wpnY + 38, 1,
-                              tierColor(rTier));
-            }
-
-            // Weapon-Relic Synergy indicator (show active synergy name below weapon panel)
-            if (player->getEntity()->hasComponent<RelicComponent>()) {
-                auto& relics = player->getEntity()->getComponent<RelicComponent>();
-                int synergyY = wpnY + 54;
-                for (int i = 0; i < static_cast<int>(SynergyID::COUNT); i++) {
-                    auto sid = static_cast<SynergyID>(i);
-                    if (RelicSynergy::isWeaponSynergyActive(relics, sid,
-                            combat.currentMelee, combat.currentRanged)) {
-                        const auto& sData = RelicSynergy::getData(sid);
-                        renderText(renderer, font, sData.name, wpnX + 10, synergyY,
-                                   {255, 200, 80, 220});
-                        renderText(renderer, font, sData.description, wpnX + 10, synergyY + 14,
-                                   {200, 180, 120, 160});
-                        synergyY += 28;
-                    }
-                }
-            }
-        }
-    }
+    renderWeaponPanel(renderer, font, player, screenW, screenH);
 
     // FPS counter (bottom right corner)
     if (font) {
@@ -1385,6 +876,242 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         SDL_SetTextureAlphaMod(m_hudTarget, alpha);
         SDL_Rect dst = {0, 0, screenW, screenH};
         SDL_RenderCopy(renderer, m_hudTarget, nullptr, &dst);
+    }
+}
+
+// ============================================================
+// Extracted sub-renderers from HUD::render()
+// ============================================================
+
+void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
+                           const Player* player, const DimensionManager* dimMgr,
+                           int screenW, int screenH, int startY) {
+    int margin = static_cast<int>(15 * g_hudScale);
+    int barH   = static_cast<int>(18 * g_hudScale);
+
+    // Ability bar with cooldown indicators
+    if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>()) {
+        auto& combat = player->getEntity()->getComponent<CombatComponent>();
+        int abY = startY;
+        int iconSize = static_cast<int>(22 * g_hudScale);
+        int iconGap  = static_cast<int>(6 * g_hudScale);
+
+        struct AbilityInfo { float cooldownPct; SDL_Color readyColor; const char* label; };
+
+        float meleePct = (combat.cooldownTimer <= 0) ? 1.0f
+            : 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.meleeAttack.cooldown));
+        float rangedPct = (combat.cooldownTimer <= 0) ? 1.0f
+            : 1.0f - (combat.cooldownTimer / std::max(0.01f, combat.rangedAttack.cooldown));
+        float dashPct = 1.0f - (player->dashCooldownTimer / std::max(0.01f, player->dashCooldown));
+        if (dashPct > 1.0f) dashPct = 1.0f;
+        float dimPct = dimMgr ? 1.0f - (dimMgr->getCooldownTimer() / std::max(0.01f, dimMgr->switchCooldown)) : 1.0f;
+        if (dimPct > 1.0f) dimPct = 1.0f;
+
+        AbilityInfo abilities[4] = {
+            {std::max(0.0f, meleePct), {255, 220, 100, 255}, "J"},
+            {std::max(0.0f, rangedPct), {100, 200, 255, 255}, "K"},
+            {std::max(0.0f, dashPct), {100, 255, 200, 255}, "SH"},
+            {std::max(0.0f, dimPct), {200, 150, 255, 255}, "E"}
+        };
+
+        for (int i = 0; i < 4; i++) {
+            int ix = margin + i * (iconSize + iconGap);
+            bool ready = abilities[i].cooldownPct >= 1.0f;
+            if (ready && m_abilityWasOnCooldown[i]) m_abilityReadyFlash[i] = 0.35f;
+            m_abilityWasOnCooldown[i] = !ready;
+            SDL_Color c = ready ? abilities[i].readyColor : SDL_Color{50, 50, 60, 200};
+
+            SDL_SetRenderDrawColor(renderer, 15, 15, 25, 180);
+            SDL_Rect bg = {ix, abY, iconSize, iconSize};
+            SDL_RenderFillRect(renderer, &bg);
+            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+            int cx = ix + iconSize / 2, cy = abY + iconSize / 2;
+            switch (i) {
+                case 0: SDL_RenderDrawLine(renderer, cx-5,cy+5,cx+5,cy-5); SDL_RenderDrawLine(renderer, cx-5,cy+4,cx+5,cy-6); SDL_RenderDrawLine(renderer, cx-3,cy-1,cx+3,cy+1); break;
+                case 1: SDL_RenderDrawLine(renderer, cx-6,cy,cx-2,cy); SDL_RenderDrawLine(renderer, cx-5,cy-1,cx-2,cy-1); { SDL_Rect dot={cx,cy-3,6,6}; SDL_RenderFillRect(renderer,&dot); } break;
+                case 2: SDL_RenderDrawLine(renderer, cx-6,cy,cx+4,cy); SDL_RenderDrawLine(renderer, cx+4,cy,cx,cy-4); SDL_RenderDrawLine(renderer, cx+4,cy,cx,cy+4); SDL_RenderDrawLine(renderer, cx-6,cy-1,cx+4,cy-1); break;
+                case 3: { SDL_Rect sq1={cx-5,cy-5,7,7}, sq2={cx-1,cy-1,7,7}; SDL_RenderDrawRect(renderer,&sq1); SDL_RenderDrawRect(renderer,&sq2); } break;
+            }
+            if (!ready) {
+                int coverH = static_cast<int>(iconSize * (1.0f - abilities[i].cooldownPct));
+                SDL_SetRenderDrawColor(renderer, 0,0,0,150);
+                SDL_Rect cover = {ix, abY, iconSize, coverH};
+                SDL_RenderFillRect(renderer, &cover);
+                if (font) {
+                    float remain = 0;
+                    if (i==0) remain=combat.cooldownTimer; else if (i==1) remain=combat.cooldownTimer;
+                    else if (i==2) remain=player->dashCooldownTimer; else if (i==3&&dimMgr) remain=dimMgr->getCooldownTimer();
+                    if (remain>0.05f) { char cdTxt[8]; std::snprintf(cdTxt,sizeof(cdTxt),"%.1f",remain); renderText(renderer,font,cdTxt,ix+2,abY+iconSize/2-5,{255,255,255,220}); }
+                }
+            }
+            if (ready) { float pulse=0.5f+0.5f*std::sin(SDL_GetTicks()*0.006f); SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,static_cast<Uint8>(140+60*pulse)); }
+            else SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,60);
+            SDL_RenderDrawRect(renderer, &bg);
+            if (m_abilityReadyFlash[i]>0) { float flashT=m_abilityReadyFlash[i]/0.35f; Uint8 flashA=static_cast<Uint8>(180*flashT); auto& rc=abilities[i].readyColor; SDL_SetRenderDrawColor(renderer,rc.r,rc.g,rc.b,flashA); SDL_Rect flashRect={ix-2,abY-2,iconSize+4,iconSize+4}; SDL_RenderFillRect(renderer,&flashRect); }
+            if (font) renderText(renderer,font,abilities[i].label,ix+4,abY+iconSize+1,{c.r,c.g,c.b,static_cast<Uint8>(ready?200:80)});
+        }
+    }
+
+    // Active buff/debuff indicators
+    if (player) {
+        int buffY = startY + static_cast<int>(36 * g_hudScale);
+        int buffX = margin;
+        int buffSize = static_cast<int>(12 * g_hudScale);
+        int buffGap  = static_cast<int>(3 * g_hudScale);
+        int timerBarH2 = static_cast<int>(3 * g_hudScale);
+
+        auto drawBuff = [&](const char* label, float timer, float maxTime, SDL_Color color) {
+            if (timer<=0) return;
+            float pct=timer/std::max(0.01f,maxTime);
+            Uint8 fadeAlpha=(timer<2.0f)?static_cast<Uint8>(80+175*(timer/2.0f)):255;
+            SDL_SetRenderDrawColor(renderer,10,10,20,static_cast<Uint8>(fadeAlpha*0.7f));
+            SDL_Rect bg={buffX,buffY,buffSize,buffSize}; SDL_RenderFillRect(renderer,&bg);
+            SDL_SetRenderDrawColor(renderer,color.r,color.g,color.b,static_cast<Uint8>(fadeAlpha*0.7f));
+            SDL_RenderFillRect(renderer,&bg);
+            if (font) renderText(renderer,font,label,buffX+1,buffY,{255,255,255,fadeAlpha});
+            SDL_SetRenderDrawColor(renderer,color.r,color.g,color.b,static_cast<Uint8>(fadeAlpha*0.8f));
+            SDL_RenderDrawRect(renderer,&bg);
+            int timerW=static_cast<int>(buffSize*pct);
+            SDL_SetRenderDrawColor(renderer,20,20,30,static_cast<Uint8>(fadeAlpha*0.6f));
+            SDL_Rect timerBg2={buffX,buffY+buffSize+1,buffSize,timerBarH2}; SDL_RenderFillRect(renderer,&timerBg2);
+            SDL_SetRenderDrawColor(renderer,color.r,color.g,color.b,fadeAlpha);
+            SDL_Rect timerFill2={buffX,buffY+buffSize+1,timerW,timerBarH2}; SDL_RenderFillRect(renderer,&timerFill2);
+            buffX+=buffSize+buffGap;
+        };
+        drawBuff("S",player->speedBoostTimer,6.0f,{255,255,80,255});
+        drawBuff("D",player->damageBoostTimer,8.0f,{255,80,80,255});
+        if (player->hasShield) drawBuff("W",player->shieldTimer,8.0f,{100,180,255,255});
+        if (player->isRiftChargeActive()) drawBuff("R",player->riftChargeTimer,player->riftChargeDuration,{80,160,255,255});
+        if (player->hasMomentum()) drawBuff("M",player->momentumTimer,player->momentumDuration,{255,140,40,255});
+        if (player->postDashInvisTimer>0 && player->playerClass==PlayerClass::Phantom)
+            drawBuff("I",player->postDashInvisTimer,ClassSystem::getData(PlayerClass::Phantom).postDashInvisTime,{60,220,200,255});
+        if (player->isBurning()) drawBuff("F",player->burnTimer,3.0f,{255,120,30,255});
+        if (player->isFrozen()) drawBuff("C",player->freezeTimer,2.0f,{80,180,255,255});
+        if (player->isPoisoned()) drawBuff("P",player->poisonTimer,4.0f,{80,220,80,255});
+    }
+
+    // Ability icons (below active buffs)
+    if (player && player->getEntity() && player->getEntity()->hasComponent<AbilityComponent>()) {
+        auto& abil = player->getEntity()->getComponent<AbilityComponent>();
+        int abStartY = startY + static_cast<int>(58 * g_hudScale);
+        int abIconSize = static_cast<int>(26 * g_hudScale);
+        int abIconGap  = static_cast<int>(6 * g_hudScale);
+
+        struct AbilityIconInfo { const char* label; SDL_Color color; float cdPct; bool active; };
+        AbilityIconInfo abIcons[3];
+        if (player->playerClass == PlayerClass::Technomancer) {
+            float turretCdPct=(player->turretCooldownTimer<=0)?1.0f:1.0f-player->turretCooldownTimer/std::max(0.01f,player->turretCooldown);
+            float trapCdPct=(player->trapCooldownTimer<=0)?1.0f:1.0f-player->trapCooldownTimer/std::max(0.01f,player->trapCooldown);
+            abIcons[0]={"Q",{230,180,50,255},turretCdPct,player->activeTurrets>=player->maxTurrets};
+            abIcons[1]={"E",{255,200,50,255},trapCdPct,player->activeTraps>=player->maxTraps};
+            abIcons[2]={"3",{180,80,255,255},abil.abilities[2].getCooldownPercent(),abil.abilities[2].active};
+        } else {
+            abIcons[0]={"1",{255,180,60,255},abil.abilities[0].getCooldownPercent(),abil.abilities[0].active||abil.slamFalling};
+            abIcons[1]={"2",{80,220,255,255},abil.abilities[1].getCooldownPercent(),abil.abilities[1].active};
+            abIcons[2]={"3",{180,80,255,255},abil.abilities[2].getCooldownPercent(),abil.abilities[2].active};
+        }
+        for (int i=0;i<3;i++) {
+            int ix=margin+i*(abIconSize+abIconGap);
+            bool ready=abIcons[i].cdPct>=1.0f;
+            bool active=abIcons[i].active;
+            SDL_Color c=active?SDL_Color{255,255,255,255}:(ready?abIcons[i].color:SDL_Color{40,40,50,200});
+            SDL_SetRenderDrawColor(renderer,10,10,20,200);
+            SDL_Rect bg={ix,abStartY,abIconSize,abIconSize}; SDL_RenderFillRect(renderer,&bg);
+            SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,c.a);
+            int acx=ix+abIconSize/2, acy=abStartY+abIconSize/2;
+            if (player->playerClass==PlayerClass::Technomancer) {
+                switch(i){case 0:SDL_RenderDrawLine(renderer,acx-5,acy+4,acx+5,acy+4);{SDL_Rect tb={acx-4,acy-2,8,6};SDL_RenderDrawRect(renderer,&tb);}SDL_RenderDrawLine(renderer,acx+4,acy,acx+8,acy);SDL_RenderDrawLine(renderer,acx+4,acy+1,acx+8,acy+1);break;case 1:SDL_RenderDrawLine(renderer,acx,acy-6,acx+6,acy);SDL_RenderDrawLine(renderer,acx+6,acy,acx,acy+6);SDL_RenderDrawLine(renderer,acx,acy+6,acx-6,acy);SDL_RenderDrawLine(renderer,acx-6,acy,acx,acy-6);SDL_RenderDrawLine(renderer,acx-1,acy-2,acx+1,acy+2);break;case 2:SDL_RenderDrawLine(renderer,acx-2,acy-7,acx+2,acy-2);SDL_RenderDrawLine(renderer,acx+2,acy-2,acx-3,acy-1);SDL_RenderDrawLine(renderer,acx-3,acy-1,acx+2,acy+7);break;}
+            } else {
+                switch(i){case 0:SDL_RenderDrawLine(renderer,acx,acy-6,acx,acy+4);SDL_RenderDrawLine(renderer,acx,acy+4,acx-4,acy);SDL_RenderDrawLine(renderer,acx,acy+4,acx+4,acy);SDL_RenderDrawLine(renderer,acx-6,acy+6,acx-3,acy+4);SDL_RenderDrawLine(renderer,acx+6,acy+6,acx+3,acy+4);break;case 1:for(int h=0;h<6;h++){float a1=h*6.283185f/6.0f-1.5708f;float a2=(h+1)*6.283185f/6.0f-1.5708f;SDL_RenderDrawLine(renderer,acx+static_cast<int>(std::cos(a1)*8),acy+static_cast<int>(std::sin(a1)*8),acx+static_cast<int>(std::cos(a2)*8),acy+static_cast<int>(std::sin(a2)*8));}break;case 2:SDL_RenderDrawLine(renderer,acx-2,acy-7,acx+2,acy-2);SDL_RenderDrawLine(renderer,acx+2,acy-2,acx-3,acy-1);SDL_RenderDrawLine(renderer,acx-3,acy-1,acx+2,acy+7);break;}
+            }
+            if (!ready&&!active) {
+                int coverH=static_cast<int>(abIconSize*(1.0f-abIcons[i].cdPct));
+                SDL_SetRenderDrawColor(renderer,0,0,0,160); SDL_Rect cover={ix,abStartY,abIconSize,coverH}; SDL_RenderFillRect(renderer,&cover);
+                if (font) { float remain=0; if(player->playerClass==PlayerClass::Technomancer){if(i==0)remain=player->turretCooldownTimer;else if(i==1)remain=player->trapCooldownTimer;else remain=abil.abilities[2].cooldownTimer;}else{remain=abil.abilities[i].cooldownTimer;} if(remain>0.05f){char cdTxt[8];std::snprintf(cdTxt,sizeof(cdTxt),"%.1f",remain);renderText(renderer,font,cdTxt,ix+3,abStartY+abIconSize/2-5,{255,255,255,220});} }
+            }
+            if (active) { float pulse=0.5f+0.5f*std::sin(SDL_GetTicks()*0.01f); Uint8 gA=static_cast<Uint8>(100+80*pulse); SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,gA); SDL_Rect glow={ix-2,abStartY-2,abIconSize+4,abIconSize+4}; SDL_RenderDrawRect(renderer,&glow); }
+            if (ready&&!active){float pulse=0.5f+0.5f*std::sin(SDL_GetTicks()*0.006f);SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,static_cast<Uint8>(150+50*pulse));}else{SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,static_cast<Uint8>(active?200:60));}
+            SDL_RenderDrawRect(renderer,&bg);
+            if (font) renderText(renderer,font,abIcons[i].label,ix+9,abStartY+abIconSize+1,{c.r,c.g,c.b,static_cast<Uint8>(ready?200:80)});
+        }
+    }
+}
+
+void HUD::renderCombatOverlay(SDL_Renderer* renderer, TTF_Font* font,
+                              const Player* player, int screenW, int screenH) {
+    int margin = static_cast<int>(15 * g_hudScale);
+
+    // Weapon names (bottom-left, always visible)
+    if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>() && font) {
+        auto& combat = player->getEntity()->getComponent<CombatComponent>();
+        const auto& meleeData = WeaponSystem::getWeaponData(combat.currentMelee);
+        const auto& rangedData = WeaponSystem::getWeaponData(combat.currentRanged);
+        char weaponText[64];
+        std::snprintf(weaponText, sizeof(weaponText), "[Q] %s  [R] %s", meleeData.name, rangedData.name);
+        renderText(renderer, font, weaponText, margin, screenH - 22, {180, 180, 200, 180});
+    }
+}
+
+void HUD::renderWeaponPanel(SDL_Renderer* renderer, TTF_Font* font,
+                            const Player* player, int screenW, int screenH) {
+    if (!player || !player->getEntity() || !player->getEntity()->hasComponent<CombatComponent>()) return;
+    auto& combat = player->getEntity()->getComponent<CombatComponent>();
+    int wpnY = screenH - 66;
+    int wpnX = screenW / 2 - 100;
+
+    SDL_Rect wpnBg = {wpnX, wpnY, 200, 52};
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);
+    SDL_RenderFillRect(renderer, &wpnBg);
+    SDL_SetRenderDrawColor(renderer, 80, 80, 100, 80);
+    SDL_RenderDrawRect(renderer, &wpnBg);
+
+    SDL_Rect meleeBg = {wpnX+2,wpnY+2,96,48}; SDL_SetRenderDrawColor(renderer,180,60,60,60); SDL_RenderFillRect(renderer,&meleeBg);
+    SDL_SetRenderDrawColor(renderer,220,180,100,200); SDL_RenderDrawLine(renderer,wpnX+8,wpnY+26,wpnX+22,wpnY+8); SDL_RenderDrawLine(renderer,wpnX+18,wpnY+14,wpnX+26,wpnY+14);
+    SDL_Rect rangedBg = {wpnX+102,wpnY+2,96,48}; SDL_SetRenderDrawColor(renderer,60,60,180,60); SDL_RenderFillRect(renderer,&rangedBg);
+    SDL_SetRenderDrawColor(renderer,100,180,220,200); SDL_Rect gunBody={wpnX+110,wpnY+12,14,8}; SDL_RenderFillRect(renderer,&gunBody); SDL_RenderDrawLine(renderer,wpnX+124,wpnY+15,wpnX+130,wpnY+15);
+
+    if (font) {
+        const char* mName = WeaponSystem::getWeaponName(combat.currentMelee);
+        const char* rName = WeaponSystem::getWeaponName(combat.currentRanged);
+        renderText(renderer, font, mName, wpnX+30, wpnY+8, {220,180,100,220});
+        renderText(renderer, font, rName, wpnX+134, wpnY+8, {100,180,220,220});
+        renderText(renderer, font, "[Q]", wpnX+2, wpnY-14, {150,150,160,120});
+        renderText(renderer, font, "[R]", wpnX+172, wpnY-14, {150,150,160,120});
+
+        if (m_combatSystem) {
+            int mIdx=static_cast<int>(combat.currentMelee), rIdx=static_cast<int>(combat.currentRanged);
+            int mKills=m_combatSystem->weaponKills[mIdx], rKills=m_combatSystem->weaponKills[rIdx];
+            MasteryTier mTier=WeaponSystem::getMasteryTier(mKills), rTier=WeaponSystem::getMasteryTier(rKills);
+            auto tierColor=[](MasteryTier t)->SDL_Color{switch(t){case MasteryTier::Mastered:return{255,220,80,255};case MasteryTier::Proficient:return{180,100,255,255};case MasteryTier::Familiar:return{80,200,180,255};default:return{80,80,90,120};}};
+            MasteryTier tiers[2]={mTier,rTier};
+            for(int w=0;w<2;w++){if(tiers[w]!=MasteryTier::None&&tiers[w]!=m_prevMasteryTier[w])m_masteryFlash[w]=0.6f;m_prevMasteryTier[w]=tiers[w];}
+            auto masteryProgress=[](int kills)->float{int next=WeaponSystem::getNextTierThreshold(kills);if(next==0)return 1.0f;int prev=0;if(next==25)prev=10;else if(next==50)prev=25;float range=static_cast<float>(next-prev);return(range>0)?static_cast<float>(kills-prev)/range:1.0f;};
+            auto renderMastery=[&](int kills,MasteryTier tier,int baseX,int barY,int slotIdx,SDL_Color barColor){
+                const int bW=40,bH=4;
+                int next=WeaponSystem::getNextTierThreshold(kills);
+                if(tier!=MasteryTier::None){const char*tName=WeaponSystem::getMasteryTierName(tier);SDL_Color col=tierColor(tier);if(m_masteryFlash[slotIdx]>0){float t2=m_masteryFlash[slotIdx]/0.6f;col={255,220,80,static_cast<Uint8>(200*t2)};}renderText(renderer,font,tName,baseX,barY-14,col);if(next>0){char prog[16];std::snprintf(prog,sizeof(prog),"%d/%d",kills,next);renderText(renderer,font,prog,baseX+44,barY-14,{100,100,110,140});}}
+                else{char prog[16];std::snprintf(prog,sizeof(prog),"%d/%d",kills,next);renderText(renderer,font,prog,baseX,barY-14,{100,100,110,140});}
+                renderBar(renderer,baseX,barY,bW,bH,masteryProgress(kills),barColor,{30,30,40,160});
+                SDL_SetRenderDrawColor(renderer,60,60,80,100);SDL_Rect barRect={baseX,barY,bW,bH};SDL_RenderDrawRect(renderer,&barRect);
+                if(m_masteryFlash[slotIdx]>0){float t2=m_masteryFlash[slotIdx]/0.6f;SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);SDL_SetRenderDrawColor(renderer,255,220,80,static_cast<Uint8>(120*t2));SDL_Rect glow={baseX-1,barY-1,bW+2,bH+2};SDL_RenderDrawRect(renderer,&glow);}
+            };
+            renderMastery(mKills,mTier,wpnX+30,wpnY+38,0,tierColor(mTier));
+            renderMastery(rKills,rTier,wpnX+134,wpnY+38,1,tierColor(rTier));
+        }
+
+        if (player->getEntity()->hasComponent<RelicComponent>()) {
+            auto& relics=player->getEntity()->getComponent<RelicComponent>();
+            int synergyY=wpnY+54;
+            for(int i=0;i<static_cast<int>(SynergyID::COUNT);i++){
+                auto sid=static_cast<SynergyID>(i);
+                if(RelicSynergy::isWeaponSynergyActive(relics,sid,combat.currentMelee,combat.currentRanged)){
+                    const auto&sData=RelicSynergy::getData(sid);
+                    renderText(renderer,font,sData.name,wpnX+10,synergyY,{255,200,80,220});
+                    renderText(renderer,font,sData.description,wpnX+10,synergyY+14,{200,180,120,160});
+                    synergyY+=28;
+                }
+            }
+        }
     }
 }
 
