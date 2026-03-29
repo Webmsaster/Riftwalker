@@ -45,14 +45,14 @@ public:
     void render(SDL_Renderer* renderer, const Camera& camera);
 
     void addEmitter(const ParticleEmitter& emitter);
-    void burst(Vec2 pos, int count, SDL_Color color, float speed = 150.0f, float size = 3.0f);
-    void directionalBurst(Vec2 pos, int count, SDL_Color color, float dirDeg, float spreadDeg = 90.0f, float speed = 180.0f, float size = 3.0f);
-    void dimensionSwitch(Vec2 pos, SDL_Color colorA, SDL_Color colorB);
-    void damageEffect(Vec2 pos, SDL_Color color);
-    void weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, float intensity = 1.0f);
-    void chargeGather(Vec2 center, int count, SDL_Color color, float radius, float inwardSpeed, float size = 2.5f);
-    void ambientDust(Vec2 pos, SDL_Color color, float radius = 200.0f);
-    void ambientThemeParticle(Vec2 pos, SDL_Color color, float dirDeg = 270.0f,
+    void burst(const Vec2& pos, int count, SDL_Color color, float speed = 150.0f, float size = 3.0f);
+    void directionalBurst(const Vec2& pos, int count, SDL_Color color, float dirDeg, float spreadDeg = 90.0f, float speed = 180.0f, float size = 3.0f);
+    void dimensionSwitch(const Vec2& pos, SDL_Color colorA, SDL_Color colorB);
+    void damageEffect(const Vec2& pos, SDL_Color color);
+    void weaponTrail(const Vec2& origin, const Vec2& tipPos, SDL_Color color, float intensity = 1.0f);
+    void chargeGather(const Vec2& center, int count, SDL_Color color, float radius, float inwardSpeed, float size = 2.5f);
+    void ambientDust(const Vec2& pos, SDL_Color color, float radius = 200.0f);
+    void ambientThemeParticle(const Vec2& pos, SDL_Color color, float dirDeg = 270.0f,
                               float speed = 15.0f, float size = 2.0f,
                               float lifetime = 3.0f, float gravity = 0.0f,
                               float radius = 300.0f);

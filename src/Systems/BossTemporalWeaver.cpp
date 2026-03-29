@@ -1,6 +1,6 @@
 #include "BossAI.h"
 
-void AISystem::updateTemporalWeaver(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities) {
+void AISystem::updateTemporalWeaver(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& t = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();

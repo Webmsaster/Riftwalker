@@ -34,11 +34,11 @@ struct PhysicsBody : public Component {
     float coyoteTimer = 0.0f;
     bool canCoyoteJump() const { return coyoteTimer > 0.0f; }
 
-    void applyForce(Vec2 force) {
+    void applyForce(const Vec2& force) {
         acceleration += force;
     }
 
-    void applyImpulse(Vec2 impulse) {
+    void applyImpulse(const Vec2& impulse) {
         velocity += impulse;
     }
 };

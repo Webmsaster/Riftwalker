@@ -108,7 +108,7 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
 void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityManager& entities,
                                       int currentDim, bool isPlayer, bool isDashAttack,
                                       bool isChargedAttack, CombatComponent& combat,
-                                      Vec2 targetCenter, float damage) {
+                                      const Vec2& targetCenter, float damage) {
     auto& hp = target.getComponent<HealthComponent>();
     AudioManager::instance().play(isPlayer ? SFX::PlayerDeath : SFX::EnemyDeath);
 
@@ -420,7 +420,7 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
     if (targetType >= 0) emitEnemyTypeDeathFX(targetCenter, targetType, deathColor);
 }
 
-void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
+void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, const Vec2& dir,
                                       float damage, float speed, int dimension,
                                       bool piercing, bool isPlayerOwned) {
     auto& proj = entities.addEntity("projectile");
@@ -498,7 +498,7 @@ void CombatSystem::createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
     }
 }
 
-void CombatSystem::emitEnemyTypeDeathFX(Vec2 pos, int enemyType, SDL_Color color) {
+void CombatSystem::emitEnemyTypeDeathFX(const Vec2& pos, int enemyType, SDL_Color color) {
     if (!m_particles) return;
     switch (static_cast<EnemyType>(enemyType)) {
         case EnemyType::Walker: // Crumble: pieces falling down
@@ -557,7 +557,7 @@ void CombatSystem::emitEnemyTypeDeathFX(Vec2 pos, int enemyType, SDL_Color color
     }
 }
 
-void CombatSystem::emitElementDeathFX(Vec2 pos, int element) {
+void CombatSystem::emitElementDeathFX(const Vec2& pos, int element) {
     if (!m_particles || element == 0) return;
     switch (element) {
         case 1: // Fire: rising flame particles

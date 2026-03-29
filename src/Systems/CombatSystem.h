@@ -67,7 +67,7 @@ public:
     // Hit-freeze: returns accumulated freeze time and resets
     float consumeHitFreeze();
     void addHitFreeze(float amount) { m_pendingHitFreeze += amount; }
-    void addDamageEvent(Vec2 pos, float dmg, bool isPlayerDmg, bool isCrit = false, bool fbHandled = false, Vec2 srcPos = {0, 0}) {
+    void addDamageEvent(const Vec2& pos, float dmg, bool isPlayerDmg, bool isCrit = false, bool fbHandled = false, const Vec2& srcPos = {0, 0}) {
         m_damageEvents.push_back({pos, dmg, isPlayerDmg, isCrit, fbHandled, srcPos});
     }
 
@@ -78,7 +78,7 @@ public:
         return events;
     }
 
-    void createProjectile(EntityManager& entities, Vec2 pos, Vec2 dir,
+    void createProjectile(EntityManager& entities, const Vec2& pos, const Vec2& dir,
                           float damage, float speed, int dimension,
                           bool piercing = false, bool isPlayerOwned = false);
 
@@ -100,8 +100,8 @@ public:
 
 private:
     void processAttack(Entity& attacker, EntityManager& entities, int currentDim);
-    void emitElementDeathFX(Vec2 pos, int element); // element: 0=none, 1=fire, 2=ice, 3=electric
-    void emitEnemyTypeDeathFX(Vec2 pos, int enemyType, SDL_Color color);
+    void emitElementDeathFX(const Vec2& pos, int element); // element: 0=none, 1=fire, 2=ice, 3=electric
+    void emitEnemyTypeDeathFX(const Vec2& pos, int enemyType, SDL_Color color);
 
     // Update/combat sub-steps (CombatSystemUpdate.cpp, CombatSystemEffects.cpp)
     void processGroundSlam(EntityManager& entities, int currentDim);
@@ -115,7 +115,7 @@ private:
     void handleEnemyDeath(Entity& attacker, Entity& target, EntityManager& entities,
                           int currentDim, bool isPlayer, bool isDashAttack,
                           bool isChargedAttack, CombatComponent& combat,
-                          Vec2 targetCenter, float damage);
+                          const Vec2& targetCenter, float damage);
 
     ParticleSystem* m_particles = nullptr;
     Camera* m_camera = nullptr;

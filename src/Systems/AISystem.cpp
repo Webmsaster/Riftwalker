@@ -88,13 +88,13 @@ void AISystem::updateEnemyAnimation(Entity& entity) {
     anim.play(animName);
 }
 
-float AISystem::distanceTo(Vec2 a, Vec2 b) const {
+float AISystem::distanceTo(const Vec2& a, const Vec2& b) const {
     float dx = a.x - b.x;
     float dy = a.y - b.y;
     return std::sqrt(dx * dx + dy * dy);
 }
 
-void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int playerDimension) {
+void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, int playerDimension) {
     ZoneScopedN("AIUpdate");
     auto ents = entities.getEntitiesWithComponent<AIComponent>();
 
@@ -491,7 +491,7 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
     }
 }
 
-void AISystem::updateWalker(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateWalker(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -563,7 +563,7 @@ void AISystem::updateWalker(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updateFlyer(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateFlyer(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -625,7 +625,7 @@ void AISystem::updateFlyer(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updateTurret(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateTurret(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     Vec2 pos = transform.getCenter();
@@ -648,7 +648,7 @@ void AISystem::updateTurret(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updateCharger(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateCharger(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -736,7 +736,7 @@ void AISystem::updateCharger(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updatePhaser(Entity& entity, float dt, Vec2 playerPos, int playerDim) {
+void AISystem::updatePhaser(Entity& entity, float dt, const Vec2& playerPos, int playerDim) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -806,7 +806,7 @@ void AISystem::updatePhaser(Entity& entity, float dt, Vec2 playerPos, int player
     }
 }
 
-void AISystem::updateExploder(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities) {
+void AISystem::updateExploder(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -918,7 +918,7 @@ void AISystem::explode(Entity& entity, EntityManager& entities) {
     entity.destroy();
 }
 
-void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateShielder(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -1017,7 +1017,7 @@ void AISystem::updateShielder(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updateCrawler(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateCrawler(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -1098,7 +1098,7 @@ void AISystem::updateCrawler(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updateSummoner(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities) {
+void AISystem::updateSummoner(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -1199,7 +1199,7 @@ void AISystem::updateSummoner(Entity& entity, float dt, Vec2 playerPos, EntityMa
     }
 }
 
-void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities) {
+void AISystem::updateSniper(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -1318,7 +1318,7 @@ void AISystem::updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityMana
     }
 }
 
-void AISystem::updateTeleporter(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateTeleporter(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -1425,7 +1425,7 @@ void AISystem::updateTeleporter(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updateReflector(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateReflector(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -1523,7 +1523,7 @@ void AISystem::updateReflector(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updateLeech(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateLeech(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -1608,7 +1608,7 @@ void AISystem::updateLeech(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updateSwarmer(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateSwarmer(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -1663,7 +1663,7 @@ void AISystem::updateSwarmer(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updateGravityWell(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateGravityWell(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
@@ -1741,7 +1741,7 @@ void AISystem::updateGravityWell(Entity& entity, float dt, Vec2 playerPos) {
     }
 }
 
-void AISystem::updateMimic(Entity& entity, float dt, Vec2 playerPos) {
+void AISystem::updateMimic(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();

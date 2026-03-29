@@ -16,7 +16,7 @@ Vec2 Vec2::normalized() const {
 Camera::Camera(int screenW, int screenH)
     : m_screenW(screenW), m_screenH(screenH) {}
 
-void Camera::follow(Vec2 target, float dt, Vec2 velocity, bool grounded) {
+void Camera::follow(const Vec2& target, float dt, const Vec2& velocity, bool grounded) {
     // Calculate look-ahead offset based on movement direction
     Vec2 targetLookAhead = {0, 0};
     float speed = velocity.length();
@@ -108,7 +108,7 @@ void Camera::update(float dt) {
     }
 }
 
-Vec2 Camera::worldToScreen(Vec2 worldPos) const {
+Vec2 Camera::worldToScreen(const Vec2& worldPos) const {
     Vec2 screen;
     screen.x = (worldPos.x - m_position.x) * zoom + m_screenW / 2.0f + m_shakeOffset.x;
     screen.y = (worldPos.y - m_position.y) * zoom + m_screenH / 2.0f + m_shakeOffset.y;

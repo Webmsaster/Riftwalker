@@ -138,7 +138,7 @@ void ParticleSystem::spawnParticle(const ParticleEmitter& emitter) {
     ++m_activeCount;
 }
 
-void ParticleSystem::burst(Vec2 pos, int count, SDL_Color color, float speed, float size) {
+void ParticleSystem::burst(const Vec2& pos, int count, SDL_Color color, float speed, float size) {
     ParticleEmitter e;
     e.position = pos;
     e.colorStart = color;
@@ -152,7 +152,7 @@ void ParticleSystem::burst(Vec2 pos, int count, SDL_Color color, float speed, fl
     addEmitter(e);
 }
 
-void ParticleSystem::directionalBurst(Vec2 pos, int count, SDL_Color color, float dirDeg, float spreadDeg, float speed, float size) {
+void ParticleSystem::directionalBurst(const Vec2& pos, int count, SDL_Color color, float dirDeg, float spreadDeg, float speed, float size) {
     ParticleEmitter e;
     e.position = pos;
     e.colorStart = color;
@@ -169,16 +169,16 @@ void ParticleSystem::directionalBurst(Vec2 pos, int count, SDL_Color color, floa
     addEmitter(e);
 }
 
-void ParticleSystem::dimensionSwitch(Vec2 pos, SDL_Color colorA, SDL_Color colorB) {
+void ParticleSystem::dimensionSwitch(const Vec2& pos, SDL_Color colorA, SDL_Color colorB) {
     burst(pos, 30, colorA, 200.0f, 5.0f);
     burst(pos, 30, colorB, 200.0f, 5.0f);
 }
 
-void ParticleSystem::damageEffect(Vec2 pos, SDL_Color color) {
+void ParticleSystem::damageEffect(const Vec2& pos, SDL_Color color) {
     burst(pos, 15, color, 120.0f, 3.0f);
 }
 
-void ParticleSystem::weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, float intensity) {
+void ParticleSystem::weaponTrail(const Vec2& origin, const Vec2& tipPos, SDL_Color color, float intensity) {
     // Spawn trail particles along the weapon line (origin -> tip)
     int count = static_cast<int>(2 + intensity * 2); // 2-4 particles per frame
     for (int i = 0; i < count; i++) {
@@ -212,7 +212,7 @@ void ParticleSystem::weaponTrail(Vec2 origin, Vec2 tipPos, SDL_Color color, floa
     }
 }
 
-void ParticleSystem::chargeGather(Vec2 center, int count, SDL_Color color, float radius, float inwardSpeed, float size) {
+void ParticleSystem::chargeGather(const Vec2& center, int count, SDL_Color color, float radius, float inwardSpeed, float size) {
     for (int i = 0; i < count; i++) {
         int slot = findFreeSlot();
         if (slot < 0) return;
@@ -233,7 +233,7 @@ void ParticleSystem::chargeGather(Vec2 center, int count, SDL_Color color, float
     }
 }
 
-void ParticleSystem::ambientDust(Vec2 pos, SDL_Color color, float radius) {
+void ParticleSystem::ambientDust(const Vec2& pos, SDL_Color color, float radius) {
     ParticleEmitter e;
     e.position = {pos.x + randFloat(-radius, radius), pos.y + randFloat(-radius, radius)};
     e.colorStart = color;
@@ -250,7 +250,7 @@ void ParticleSystem::ambientDust(Vec2 pos, SDL_Color color, float radius) {
     addEmitter(e);
 }
 
-void ParticleSystem::ambientThemeParticle(Vec2 pos, SDL_Color color, float dirDeg,
+void ParticleSystem::ambientThemeParticle(const Vec2& pos, SDL_Color color, float dirDeg,
                                           float speed, float size, float lifetime,
                                           float gravity, float radius) {
     ParticleEmitter e;

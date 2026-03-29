@@ -9,7 +9,7 @@ class Player;
 
 class AISystem {
 public:
-    void update(EntityManager& entities, float dt, Vec2 playerPos, int playerDimension);
+    void update(EntityManager& entities, float dt, const Vec2& playerPos, int playerDimension);
 
     void setParticleSystem(ParticleSystem* ps) { m_particles = ps; }
     void setCamera(Camera* cam) { m_camera = cam; }
@@ -18,34 +18,34 @@ public:
     void setPlayer(Player* p) { m_player = p; }
 
 private:
-    void updateWalker(Entity& entity, float dt, Vec2 playerPos);
-    void updateFlyer(Entity& entity, float dt, Vec2 playerPos);
-    void updateTurret(Entity& entity, float dt, Vec2 playerPos);
-    void updateCharger(Entity& entity, float dt, Vec2 playerPos);
-    void updatePhaser(Entity& entity, float dt, Vec2 playerPos, int playerDim);
-    void updateExploder(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
-    void updateShielder(Entity& entity, float dt, Vec2 playerPos);
-    void updateCrawler(Entity& entity, float dt, Vec2 playerPos);
-    void updateSummoner(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
-    void updateSniper(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
-    void updateTeleporter(Entity& entity, float dt, Vec2 playerPos);
-    void updateReflector(Entity& entity, float dt, Vec2 playerPos);
-    void updateLeech(Entity& entity, float dt, Vec2 playerPos);
-    void updateSwarmer(Entity& entity, float dt, Vec2 playerPos);
-    void updateGravityWell(Entity& entity, float dt, Vec2 playerPos);
-    void updateMimic(Entity& entity, float dt, Vec2 playerPos);
-    void updateBoss(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
-    void updateVoidWyrm(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
-    void updateDimensionalArchitect(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
-    void updateTemporalWeaver(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
-    void updateVoidSovereign(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
-    void updateEntropyIncarnate(Entity& entity, float dt, Vec2 playerPos, EntityManager& entities);
+    void updateWalker(Entity& entity, float dt, const Vec2& playerPos);
+    void updateFlyer(Entity& entity, float dt, const Vec2& playerPos);
+    void updateTurret(Entity& entity, float dt, const Vec2& playerPos);
+    void updateCharger(Entity& entity, float dt, const Vec2& playerPos);
+    void updatePhaser(Entity& entity, float dt, const Vec2& playerPos, int playerDim);
+    void updateExploder(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities);
+    void updateShielder(Entity& entity, float dt, const Vec2& playerPos);
+    void updateCrawler(Entity& entity, float dt, const Vec2& playerPos);
+    void updateSummoner(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities);
+    void updateSniper(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities);
+    void updateTeleporter(Entity& entity, float dt, const Vec2& playerPos);
+    void updateReflector(Entity& entity, float dt, const Vec2& playerPos);
+    void updateLeech(Entity& entity, float dt, const Vec2& playerPos);
+    void updateSwarmer(Entity& entity, float dt, const Vec2& playerPos);
+    void updateGravityWell(Entity& entity, float dt, const Vec2& playerPos);
+    void updateMimic(Entity& entity, float dt, const Vec2& playerPos);
+    void updateBoss(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities);
+    void updateVoidWyrm(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities);
+    void updateDimensionalArchitect(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities);
+    void updateTemporalWeaver(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities);
+    void updateVoidSovereign(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities);
+    void updateEntropyIncarnate(Entity& entity, float dt, const Vec2& playerPos, EntityManager& entities);
 
     void explode(Entity& entity, EntityManager& entities);
     void updateEnemyAnimation(Entity& entity);
     void attackWindupEffect(Entity& entity, float timer, float windupTime);
 
-    float distanceTo(Vec2 a, Vec2 b) const;
+    float distanceTo(const Vec2& a, const Vec2& b) const;
 
     ParticleSystem* m_particles = nullptr;
     Camera* m_camera = nullptr;
