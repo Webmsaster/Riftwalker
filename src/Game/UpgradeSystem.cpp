@@ -225,6 +225,6 @@ void UpgradeSystem::deserialize(const std::string& data) {
     // NG+ progress (optional for backward compatibility with old saves)
     int ngp = 0;
     if (ss >> ngp) {
-        highestNGPlusCompleted = std::max(0, std::min(ngp, 5));
+        highestNGPlusCompleted = std::max(0, std::min(ngp, 10));
     }
 }

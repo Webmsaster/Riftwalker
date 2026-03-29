@@ -103,10 +103,10 @@ public:
     int milestonesUnlocked = 0; // persisted milestone count
 
     // NG+ tracking (persisted)
-    int highestNGPlusCompleted = 0;  // Highest NG+ tier beaten (0 = never won, 1-5 = beaten that tier)
+    int highestNGPlusCompleted = 0;  // Highest NG+ tier beaten (0 = never won, 1-10 = beaten that tier)
     int getMaxUnlockedNGPlus() const { return highestNGPlusCompleted; }
     void unlockNGPlus(int tier) {
-        if (tier > highestNGPlusCompleted && tier <= 5) highestNGPlusCompleted = tier;
+        if (tier > highestNGPlusCompleted && tier <= 10) highestNGPlusCompleted = tier;
     }
 
     // Run history (leaderboard)
