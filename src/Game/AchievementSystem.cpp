@@ -48,7 +48,7 @@ void AchievementSystem::init() {
         {"entropy_master",  "Entropy Master",     "Complete a floor using only Entropy Scythe",     "+3% Entropy Decay"},
         {"quest_helper",    "Helpful Traveler",   "Complete 5 NPC quests",                          "+5% Shard Drop"},
         {"speed_demon",     "Speed Demon",        "Complete the game in under 10 minutes",          "+5% Move Speed"},
-        {"weapon_collector","Arsenal Master",     "Unlock all 10 weapons",                          "+3% All DMG"},
+        {"weapon_collector","Arsenal Master",     "Unlock all 12 weapons",                          "+3% All DMG"},
         {"dimension_dancer","Dimension Dancer",   "Switch dimensions 50 times in one run",          "-5% Switch CD"},
         // Class mastery achievements
         {"void_mastery",    "Void Master",        "Win a run as Voidwalker",                        "+5% Phase DMG"},
@@ -66,7 +66,7 @@ void AchievementSystem::init() {
         {"kill_streak_50",  "Massacre",           "Kill 50 enemies in a single floor",              "+3% All DMG"},
         {"ranged_only",     "Sharpshooter",       "Complete 5 floors using only ranged weapons",    "+5% Ranged DMG"},
         // Exploration achievements
-        {"lore_hunter",     "Lore Keeper",        "Discover all 12 lore fragments",                 "+10% Shard Drop"},
+        {"lore_hunter",     "Lore Keeper",        "Discover 12 lore fragments",                     "+10% Shard Drop"},
         {"ascension_1",     "New Game Plus",      "Complete Ascension Tier 1",                      "+5 Max HP"},
         {"ascension_5",     "True Riftwalker",    "Complete Ascension Tier 5",                      "+10% All DMG"},
     };
