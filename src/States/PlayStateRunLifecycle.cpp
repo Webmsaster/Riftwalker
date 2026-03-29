@@ -896,7 +896,7 @@ void PlayState::finalizeRun(bool abandoned) {
 
     // Void Sovereign defeated -> NG+ and Ending sequence
     if (m_voidSovereignDefeated) {
-        g_newGamePlusLevel++;
+        if (g_newGamePlusLevel < 10) g_newGamePlusLevel++;
         // NG+ unlock: beating Normal unlocks NG+1, beating NG+X unlocks NG+X+1 (up to NG+10)
         int nextTier = m_ngPlusTier + 1;
         if (nextTier <= 10) {
