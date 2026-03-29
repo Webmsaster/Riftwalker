@@ -174,9 +174,12 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         if (ngPlusTier > 0) {
             static const char* s_ngpTitles[] = {
                 "", "NG+1 CHALLENGER", "NG+2 VETERAN", "NG+3 HARDENED",
-                "NG+4 VOID TOUCHED", "NG+5 RIFT SOVEREIGN"
+                "NG+4 VOID TOUCHED", "NG+5 RIFT SOVEREIGN",
+                "NG+6 ENTROPY WALKER", "NG+7 DIMENSION LORD",
+                "NG+8 REALITY BREAKER", "NG+9 VOID ASCENDANT",
+                "NG+10 CHAOS MASTER"
             };
-            const char* title = (ngPlusTier >= 1 && ngPlusTier <= 5) ? s_ngpTitles[ngPlusTier] : "";
+            const char* title = (ngPlusTier >= 1 && ngPlusTier <= 10) ? s_ngpTitles[ngPlusTier] : "";
             float pulse = 0.8f + 0.2f * std::sin(m_time * 4.0f);
             Uint8 ngA = static_cast<Uint8>(alpha * pulse);
             SDL_Color ngC = {255, 210, 40, ngA};
