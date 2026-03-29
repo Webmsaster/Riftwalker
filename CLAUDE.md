@@ -5,7 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-03-28/29):**
+**Recent Updates (2026-03-29 overnight session):**
+- ChallengeMode persistence: best scores per challenge saved to riftwalker_challenges.dat
+- AscensionSystem backup: .bak fallback on load, backup before save
+- AISystem synergy pass optimized from O(n²) to O(n*s) with stack-allocated collection
+- Vec2 passed by const ref in ~40 hot-path functions (AISystem, Camera, ParticleSystem, CombatSystem, PhysicsBody)
+- Vector pre-allocation in RenderSystem (reserve 128) and CombatSystem (reserve 64/32)
+- HUD::render() split into renderAbilityBar(), renderCombatOverlay(), renderWeaponPanel() (1053→540 lines)
+- GameBalance.h: centralized reference for all 80+ tuned balance constants
+- Parry counter + achievement tracking fields (parry_master, no_damage_boss, ranged_only)
+
+**Previous Updates (2026-03-28/29):**
 - Added 6 new enemy types: Teleporter, Reflector, Leech, Swarmer, GravityWell, Mimic
 - Regenerated all sprites (17 enemies, 6 bosses, player, pickups, tiles)
 - Added dedicated Entropy Incarnate boss renderer + HUD name/colors
@@ -96,7 +106,9 @@ Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victo
 - `AscensionSystem` — NG+ tiers 0-10 with progressive difficulty
 - `LoreSystem` — 20 discoverable lore fragments with in-game triggers
 - `DimensionShiftBalance.h` — Per-floor rift counts, enemy scaling, zone multipliers
-- `ChallengeMode`, `NPCSystem`, `Bestiary`, `DailyRun`
+- `ChallengeMode` — 5 challenges + 6 mutators, persistent best scores (riftwalker_challenges.dat)
+- `NPCSystem`, `Bestiary`, `DailyRun`
+- `GameBalance.h` — Centralized reference for all 80+ tuned balance constants
 
 **Narrative Presentation** (added in `PlayState`):
 - Boss intro title cards (2.5s cinematic freeze with name + subtitle)
@@ -111,7 +123,8 @@ Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victo
 - `riftwalker_bindings.cfg` — Custom keybindings
 - `riftwalker_settings.cfg` — Audio/visual settings
 - `bestiary_save.dat` — Enemy discovery & kill counts
-- `ascension_save.dat` — NG+ tier and Rift Cores
+- `ascension_save.dat` — NG+ tier and Rift Cores (with .bak backup)
+- `riftwalker_challenges.dat` — Challenge mode best scores (with .bak backup)
 
 ## Rules
 - New features always via ECS pattern (Component for data + System for logic)
