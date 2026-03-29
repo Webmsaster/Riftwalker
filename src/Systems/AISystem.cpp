@@ -99,48 +99,61 @@ void AISystem::update(EntityManager& entities, float dt, Vec2 playerPos, int pla
     auto ents = entities.getEntitiesWithComponent<AIComponent>();
 
     // --- Synergy pre-pass: Summoner buffs allies, Shielder protects Snipers/Turrets ---
+    // O(n) collection pass + O(n*s) application (s = summoner/shielder count, typically 0-3)
+    struct SynergySource { Vec2 pos; Entity* entity; };
+    SynergySource summoners[8];   // Stack-allocated, max tracked
+    SynergySource shielders[8];
+    SynergySource sniperTurrets[16];
+    int nSummoners = 0, nShielders = 0, nSniperTurrets = 0;
+
     for (auto* e : ents) {
         if (!e->hasComponent<TransformComponent>() || !e->hasComponent<AIComponent>()) continue;
         if (!e->isAlive()) continue;
         auto& ai = e->getComponent<AIComponent>();
         auto& t = e->getComponent<TransformComponent>();
-        Vec2 pos = t.getCenter();
+        if (ai.enemyType == EnemyType::Summoner && ai.state == AIState::Chase && nSummoners < 8)
+            summoners[nSummoners++] = {t.getCenter(), e};
+        if (ai.enemyType == EnemyType::Shielder && ai.state != AIState::Patrol && nShielders < 8)
+            shielders[nShielders++] = {t.getCenter(), e};
+        if ((ai.enemyType == EnemyType::Sniper || ai.enemyType == EnemyType::Turret) && nSniperTurrets < 16)
+            sniperTurrets[nSniperTurrets++] = {t.getCenter(), e};
+    }
 
-        // Summoner in Chase: buff allies within 120px (+20% speed, +15% damage)
-        if (ai.enemyType == EnemyType::Summoner && ai.state == AIState::Chase) {
-            for (auto* other : ents) {
-                if (other == e || !other->isAlive()) continue;
-                if (!other->hasComponent<TransformComponent>() || !other->hasComponent<AIComponent>()) continue;
-                auto& ot = other->getComponent<TransformComponent>();
-                float dist = std::abs(ot.getCenter().x - pos.x) + std::abs(ot.getCenter().y - pos.y);
+    // Summoner buff: apply to all allies within 120px of any summoner
+    if (nSummoners > 0) {
+        for (auto* e : ents) {
+            if (!e->isAlive() || !e->hasComponent<TransformComponent>() || !e->hasComponent<AIComponent>()) continue;
+            auto& t = e->getComponent<TransformComponent>();
+            Vec2 pos = t.getCenter();
+            for (int i = 0; i < nSummoners; i++) {
+                if (summoners[i].entity == e) continue;
+                float dist = std::abs(pos.x - summoners[i].pos.x) + std::abs(pos.y - summoners[i].pos.y);
                 if (dist < 120.0f) {
-                    auto& oai = other->getComponent<AIComponent>();
+                    auto& oai = e->getComponent<AIComponent>();
                     oai.synergySummonerBuff = true;
                     oai.summonerBuffSpeedMult = 1.2f;
                     oai.summonerBuffDamageMult = 1.15f;
+                    break; // One buff is enough
                 }
             }
         }
+    }
 
-        // Shielder not patrolling: find nearest Sniper/Turret within 150px to protect
-        if (ai.enemyType == EnemyType::Shielder && ai.state != AIState::Patrol) {
-            float bestDist = 999999.0f;
-            Entity* bestTarget = nullptr;
-            for (auto* other : ents) {
-                if (other == e || !other->isAlive()) continue;
-                if (!other->hasComponent<TransformComponent>() || !other->hasComponent<AIComponent>()) continue;
-                auto& oai = other->getComponent<AIComponent>();
-                if (oai.enemyType != EnemyType::Sniper && oai.enemyType != EnemyType::Turret) continue;
-                auto& ot = other->getComponent<TransformComponent>();
-                float dist = std::abs(ot.getCenter().x - pos.x) + std::abs(ot.getCenter().y - pos.y);
-                if (dist < 150.0f && dist < bestDist) {
-                    bestDist = dist;
-                    bestTarget = other;
-                }
+    // Shielder protect: each shielder finds nearest sniper/turret within 150px
+    for (int s = 0; s < nShielders; s++) {
+        float bestDist = 999999.0f;
+        Entity* bestTarget = nullptr;
+        for (int t = 0; t < nSniperTurrets; t++) {
+            if (!sniperTurrets[t].entity->isAlive()) continue;
+            float dist = std::abs(sniperTurrets[t].pos.x - shielders[s].pos.x)
+                       + std::abs(sniperTurrets[t].pos.y - shielders[s].pos.y);
+            if (dist < 150.0f && dist < bestDist) {
+                bestDist = dist;
+                bestTarget = sniperTurrets[t].entity;
             }
-            if (bestTarget) {
-                ai.synergyProtectTarget = bestTarget;
-            }
+        }
+        if (bestTarget) {
+            shielders[s].entity->getComponent<AIComponent>().synergyProtectTarget = bestTarget;
         }
     }
 
