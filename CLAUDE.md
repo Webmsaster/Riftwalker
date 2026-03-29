@@ -7,14 +7,17 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 
 **Recent Updates (2026-03-28/29):**
 - Added 6 new enemy types: Teleporter, Reflector, Leech, Swarmer, GravityWell, Mimic
-- Regenerated all 17 enemy sprites programmatically (spritesheet: 960x480px, 12px per frame)
-- Regenerated all 6 boss sprites + new Entropy Incarnate variant
-- Added dedicated Entropy Incarnate boss renderer (was using Rift Guardian fallback)
-- Added bestiary preview renderers + silhouettes for all 6 new enemies
-- Added placeholder texture definitions for new enemy types
-- Implemented missing achievement bonuses (class mastery, relics, combat, exploration)
-- Updated `palette.py` & `config.py` to include all new types
-- ComfyUI concept art generation started (5 reference images in assets/comfyui_concepts/)
+- Regenerated all sprites (17 enemies, 6 bosses, player, pickups, tiles)
+- Added dedicated Entropy Incarnate boss renderer + HUD name/colors
+- Added bestiary preview renderers + silhouettes for all new enemies
+- Fixed: Challenge modifiers were never applied (all challenges/mutators broken)
+- Fixed: 5 weapons permanently locked (no unlock conditions)
+- Fixed: NG+ progress capped at tier 5 (now supports all 10 tiers)
+- Fixed: Ascension achievements used floor number instead of NG+ tier
+- Added weapon unlock conditions: EntropyScythe, ChainWhip, GravityGauntlet, DimLauncher, RiftCrossbow
+- Extended NG+ Select screen UI to show all 11 ascension tiers
+- Added frustum culling for entity rendering
+- Audio feedback for Reflector shield, GravityWell pull, Mimic reveal
 
 ## Build Commands (Riftwalker)
 ```bash
