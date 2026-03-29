@@ -1148,9 +1148,31 @@ void PlayState::applyMutators() {
         });
     }
 
-    // ShardStorm: 3x shard drops (handled in PlayState::update shard pickup code)
+    // ShardStorm: 3x shard drops (handled in PlayState::update) + 2x enemies
+    if (hasMutator(MutatorID::ShardStorm) && m_level) {
+        // Double the enemy count by duplicating existing spawn points with slight offset
+        auto spawns = m_level->getEnemySpawns();
+        for (auto& sp : spawns) {
+            Vec2 offset = {static_cast<float>((std::rand() % 64) - 32), 0};
+            m_level->addEnemySpawn(sp.position + offset, sp.enemyType, sp.dimension);
+        }
+    }
 
-    // FragileWorld & DimensionFlux are handled elsewhere:
-    // - FragileWorld: tile breakability checked in collision system
-    // - DimensionFlux: auto-switch timer in PlayState::update()
+    // FragileWorld: convert inner solid tiles to breakable
+    if (hasMutator(MutatorID::FragileWorld) && m_level) {
+        int w = m_level->getWidth();
+        int h = m_level->getHeight();
+        for (int dim = 1; dim <= 2; dim++) {
+            for (int y = 2; y < h - 1; y++) {       // skip top/bottom borders
+                for (int x = 1; x < w - 1; x++) {   // skip left/right borders
+                    auto& tile = m_level->getTile(x, y, dim);
+                    if (tile.type == TileType::Solid) {
+                        tile.type = TileType::Breakable;
+                    }
+                }
+            }
+        }
+    }
+
+    // DimensionFlux: auto-switch timer handled in PlayState::update()
 }
