@@ -105,10 +105,13 @@ Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victo
 - Credits screen (`CreditsState`)
 
 **Save Files** (text-based, in working directory):
-- `riftwalker_save.dat` — Persistent upgrades
-- `riftwalker_achievements.dat` — Achievement progress
-- `riftwalker_lore.dat` — Discovered lore
+- `riftwalker_save.dat` — Persistent upgrades, weapon unlocks, class unlocks, run history
+- `riftwalker_achievements.dat` — Achievement progress (42 achievements)
+- `riftwalker_lore.dat` — Discovered lore (20 fragments)
 - `riftwalker_bindings.cfg` — Custom keybindings
+- `riftwalker_settings.cfg` — Audio/visual settings
+- `bestiary_save.dat` — Enemy discovery & kill counts
+- `ascension_save.dat` — NG+ tier and Rift Cores
 
 ## Rules
 - New features always via ECS pattern (Component for data + System for logic)

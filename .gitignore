@@ -7,6 +7,8 @@ riftwalker_save.dat
 riftwalker_bindings.cfg
 riftwalker_achievements.dat
 riftwalker_lore.dat
+bestiary_save.dat
+ascension_save.dat
 
 # Debug/test output
 *.log
