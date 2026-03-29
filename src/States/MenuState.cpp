@@ -14,6 +14,7 @@ void MenuState::enter() {
     // Load persistent data
     AscensionSystem::load("ascension_save.dat");
     Bestiary::load("bestiary_save.dat");
+    ChallengeMode::load("riftwalker_challenges.dat");
 
     int cx = SCREEN_WIDTH / 2;
     int btnW = 260;

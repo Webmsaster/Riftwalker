@@ -9,6 +9,7 @@ riftwalker_achievements.dat
 riftwalker_lore.dat
 bestiary_save.dat
 ascension_save.dat
+riftwalker_challenges.dat
 
 # Debug/test output
 *.log

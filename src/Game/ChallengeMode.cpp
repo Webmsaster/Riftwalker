@@ -1,5 +1,8 @@
 #include "ChallengeMode.h"
 #include <vector>
+#include <fstream>
+#include <cstdio>
+#include <SDL.h>
 
 static std::vector<ChallengeData> s_challenges;
 static std::vector<MutatorData> s_mutators;
@@ -58,3 +61,62 @@ const MutatorData& ChallengeMode::getMutatorData(MutatorID id) {
 
 int ChallengeMode::getChallengeCount() { return static_cast<int>(ChallengeID::COUNT); }
 int ChallengeMode::getMutatorCount() { return static_cast<int>(MutatorID::COUNT); }
+
+ChallengeBest ChallengeMode::bestScores[static_cast<int>(ChallengeID::COUNT)] = {};
+
+void ChallengeMode::recordResult(ChallengeID id, int score, float time, int floor, int kills) {
+    int idx = static_cast<int>(id);
+    if (idx <= 0 || idx >= static_cast<int>(ChallengeID::COUNT)) return;
+    auto& b = bestScores[idx];
+    b.completed = true;
+    if (score > b.bestScore) b.bestScore = score;
+    if (time > 0 && (b.bestTime <= 0 || time < b.bestTime)) b.bestTime = time;
+    if (floor > b.bestFloor) b.bestFloor = floor;
+    if (kills > b.bestKills) b.bestKills = kills;
+}
+
+void ChallengeMode::save(const std::string& filepath) {
+    // Backup existing file
+    {
+        std::ifstream src(filepath, std::ios::binary);
+        if (src) {
+            std::ofstream dst(filepath + ".bak", std::ios::binary);
+            if (dst) dst << src.rdbuf();
+        }
+    }
+    std::ofstream f(filepath);
+    if (!f) return;
+    f << "CHALLENGE_SCORES_V1\n";
+    for (int i = 1; i < static_cast<int>(ChallengeID::COUNT); i++) {
+        auto& b = bestScores[i];
+        f << i << " " << (b.completed ? 1 : 0) << " "
+          << b.bestScore << " " << b.bestTime << " "
+          << b.bestFloor << " " << b.bestKills << "\n";
+    }
+}
+
+void ChallengeMode::load(const std::string& filepath) {
+    init();
+    std::ifstream f(filepath);
+    if (!f.is_open() || f.peek() == std::ifstream::traits_type::eof()) {
+        f.close();
+        f.open(filepath + ".bak");
+        if (f.is_open()) SDL_Log("Using backup challenge save: %s.bak", filepath.c_str());
+    }
+    if (!f) return;
+    std::string header;
+    std::getline(f, header);
+    if (header != "CHALLENGE_SCORES_V1") return;
+    int id, comp, score, floor, kills;
+    float time;
+    while (f >> id >> comp >> score >> time >> floor >> kills) {
+        if (id > 0 && id < static_cast<int>(ChallengeID::COUNT)) {
+            auto& b = bestScores[id];
+            b.completed = (comp != 0);
+            b.bestScore = score;
+            b.bestTime = time;
+            b.bestFloor = floor;
+            b.bestKills = kills;
+        }
+    }
+}

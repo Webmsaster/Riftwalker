@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 enum class ChallengeID {
     None = 0,
@@ -43,6 +44,15 @@ struct MutatorData {
     const char* description = "";
 };
 
+// Best score record for a challenge
+struct ChallengeBest {
+    bool completed = false;
+    int bestScore = 0;      // Floors reached (Endless), time left (Speedrun), kills (others)
+    float bestTime = 0;     // Best completion time in seconds
+    int bestFloor = 0;      // Highest floor reached
+    int bestKills = 0;      // Most kills in a single run
+};
+
 class ChallengeMode {
 public:
     static void init();
@@ -50,6 +60,12 @@ public:
     static const MutatorData& getMutatorData(MutatorID id);
     static int getChallengeCount();
     static int getMutatorCount();
+
+    // Persistent best scores per challenge
+    static ChallengeBest bestScores[static_cast<int>(ChallengeID::COUNT)];
+    static void recordResult(ChallengeID id, int score, float time, int floor, int kills);
+    static void save(const std::string& filepath);
+    static void load(const std::string& filepath);
 };
 
 // Global active challenge + mutators for current run

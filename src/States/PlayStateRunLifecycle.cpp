@@ -18,6 +18,7 @@
 #include "Game/LoreSystem.h"
 #include "Game/DailyRun.h"
 #include "Game/Bestiary.h"
+#include "Game/ChallengeMode.h"
 #include "Game/DimensionShiftBalance.h"
 #include "States/EndingState.h"
 #include "States/RunSummaryState.h"
@@ -893,6 +894,16 @@ void PlayState::finalizeRun(bool abandoned) {
     int cores = m_currentDifficulty * (1 + AscensionSystem::currentLevel);
     AscensionSystem::riftCores += cores;
     AscensionSystem::save("ascension_save.dat");
+
+    // Save challenge best scores
+    if (g_activeChallenge != ChallengeID::None) {
+        int score = (g_activeChallenge == ChallengeID::EndlessRift) ? m_endlessScore :
+                    (g_activeChallenge == ChallengeID::Speedrun) ? static_cast<int>(m_challengeTimer) :
+                    enemiesKilled;
+        ChallengeMode::recordResult(g_activeChallenge, score, m_runTime,
+                                     m_currentDifficulty, enemiesKilled);
+        ChallengeMode::save("riftwalker_challenges.dat");
+    }
 
     // Void Sovereign defeated -> NG+ and Ending sequence
     if (m_voidSovereignDefeated) {
