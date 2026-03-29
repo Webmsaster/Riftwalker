@@ -79,6 +79,11 @@ void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
         if (!e.visible || !e.hasComponent<SpriteComponent>() || !e.hasComponent<TransformComponent>())
             return;
 
+        // Frustum culling: skip entities far off-screen
+        auto& tf = e.getComponent<TransformComponent>();
+        if (!camera.isInView(tf.position.x, tf.position.y, tf.width, tf.height))
+            return;
+
         auto& sprite = e.getComponent<SpriteComponent>();
         float alpha = 1.0f;
 

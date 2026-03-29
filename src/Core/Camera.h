@@ -37,6 +37,14 @@ public:
     int getViewWidth() const { return m_screenW; }
     int getViewHeight() const { return m_screenH; }
 
+    // Frustum test: returns true if a world-space rect is potentially visible (with margin)
+    bool isInView(float wx, float wy, float ww, float wh) const {
+        Vec2 scr = worldToScreen(Vec2(wx, wy));
+        float margin = 64.0f; // extra margin for particles/auras extending beyond hitbox
+        return scr.x + ww * zoom + margin > 0 && scr.x - margin < m_screenW
+            && scr.y + wh * zoom + margin > 0 && scr.y - margin < m_screenH;
+    }
+
     // Screen shake intensity multiplier (0.0 = off, 1.0 = full)
     float shakeMultiplier = 1.0f;
 
