@@ -74,6 +74,7 @@ void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
         float alpha;
     };
     std::vector<RenderEntry> entries;
+    entries.reserve(128);
 
     entities.forEach([&](Entity& e) {
         if (!e.visible || !e.hasComponent<SpriteComponent>() || !e.hasComponent<TransformComponent>())

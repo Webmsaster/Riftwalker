@@ -61,7 +61,9 @@ public:
         m_elementWeapon = 0;
         m_dashRefreshOnKill = false;
         m_damageEvents.clear();
+        m_damageEvents.reserve(64);
         parryEvents.clear();
+        killEvents.reserve(32);
     }
 
     // Hit-freeze: returns accumulated freeze time and resets
