@@ -42,9 +42,9 @@ void EndingState::enter() {
             ach.isUnlocked("phantom_mastery") && ach.isUnlocked("tech_mastery")) {
             ach.unlock("all_classes");
         }
-        // Ascension achievements (based on maxDifficulty which tracks NG+ tier completion)
-        if (maxDifficulty >= 31) ach.unlock("ascension_1");  // Beat Floor 31 = NG+1
-        if (maxDifficulty >= 35) ach.unlock("ascension_5");  // NG+5 territory
+        // Ascension achievements (based on the NG+ tier of this winning run)
+        if (ngPlusTier >= 1) ach.unlock("ascension_1");
+        if (ngPlusTier >= 5) ach.unlock("ascension_5");
     }
 }
 

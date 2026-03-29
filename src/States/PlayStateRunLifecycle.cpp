@@ -915,6 +915,7 @@ void PlayState::finalizeRun(bool abandoned) {
             ending->finalScore = enemiesKilled * 10 + roomsCleared * 50 + riftsRepaired * 100;
             ending->totalKills = enemiesKilled;
             ending->maxDifficulty = m_currentDifficulty;
+            ending->ngPlusTier = m_ngPlusTier;
             int relicCount = 0;
             if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
                 relicCount = static_cast<int>(m_player->getEntity()->getComponent<RelicComponent>().relics.size());

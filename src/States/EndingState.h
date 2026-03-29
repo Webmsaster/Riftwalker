@@ -14,6 +14,7 @@ public:
     int finalScore = 0;
     int totalKills = 0;
     int maxDifficulty = 0;
+    int ngPlusTier = 0;    // Ascension tier of this winning run
     int relicsCollected = 0;
     float totalTime = 0.0f;
 
