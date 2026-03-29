@@ -274,6 +274,10 @@ private:
     int m_dashKillsThisRun = 0;
     int m_chargedKillsThisRun = 0;
     bool m_tookDamageThisLevel = false;
+    int m_parryCountThisRun = 0;        // Achievement: parry_master (20 parries)
+    bool m_tookDamageThisBoss = false;  // Achievement: no_damage_boss
+    int m_rangedOnlyFloors = 0;         // Achievement: ranged_only (5 floors ranged-only)
+    bool m_usedMeleeThisFloor = false;  // Tracking for ranged_only
 
     // Achievement tracking: entropy_master (only Entropy Scythe used on floor)
     bool m_usedNonScytheMelee = false;  // Set true if any non-Scythe melee attack fires

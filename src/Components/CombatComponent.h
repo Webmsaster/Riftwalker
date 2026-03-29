@@ -68,10 +68,12 @@ struct CombatComponent : public Component {
         parryCooldown = 0.5f;
     }
 
+    int totalParries = 0;  // Per-run parry counter for achievements
     void onParrySuccess() {
         parrySuccessTimer = 3.0f; // 3 seconds to land guaranteed crit
         counterWindow = 0.5f;     // 0.5s to trigger weapon-specific counter
         counterReady = true;
+        totalParries++;
     }
 
     void startCounterAttack(float duration) {
