@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-03-29 overnight session):**
+**Recent Updates (2026-03-29/30 refactoring sessions):**
 - ChallengeMode persistence: best scores per challenge saved to riftwalker_challenges.dat
 - AscensionSystem backup: .bak fallback on load, backup before save
 - AISystem synergy pass optimized from O(n²) to O(n*s) with stack-allocated collection
@@ -13,7 +13,12 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - Vector pre-allocation in RenderSystem (reserve 128) and CombatSystem (reserve 64/32)
 - HUD::render() split into renderAbilityBar(), renderCombatOverlay(), renderWeaponPanel() (1053→540 lines)
 - GameBalance.h: centralized reference for all 80+ tuned balance constants
-- Parry counter + achievement tracking fields (parry_master, no_damage_boss, ranged_only)
+- Uint8 overflow safety: clampU8() helper for HUD alpha/color calculations
+- Fixed missing TransformComponent check in ChainThorns synergy (crash fix)
+- PlayStateRenderOverlays split: combat UI + notifications extracted to PlayStateRenderCombatUI.cpp (882+446 lines)
+- AISystem.cpp split: advanced enemies (Shielder-Mimic) extracted to AIEnemyAdvanced.cpp (920+923 lines)
+- renderBackground() split: midground layers extracted to renderBackgroundMidground() (290+150 lines)
+- Achievement tracking wired up: parry_master (20 parries), no_damage_boss, ranged_only (5 melee-free floors)
 
 **Previous Updates (2026-03-28/29):**
 - Added 6 new enemy types: Teleporter, Reflector, Leech, Swarmer, GravityWell, Mimic
