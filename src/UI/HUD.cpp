@@ -18,6 +18,11 @@
 #include <cmath>
 #include <algorithm>
 
+// Safe float-to-Uint8 conversion clamped to [0,255]
+static inline Uint8 clampU8(float v) {
+    return static_cast<Uint8>(std::clamp(v, 0.0f, 255.0f));
+}
+
 void HUD::updateFlash(float dt) {
     if (m_damageFlash > 0) m_damageFlash -= dt;
     for (int i = 0; i < 4; i++) {
@@ -32,7 +37,7 @@ void HUD::updateFlash(float dt) {
 void HUD::renderFlash(SDL_Renderer* renderer, int screenW, int screenH) {
     if (m_damageFlash <= 0) return;
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    Uint8 alpha = static_cast<Uint8>(m_damageFlash / 0.3f * 80);
+    Uint8 alpha = clampU8(m_damageFlash / 0.3f * 80);
     // Red vignette flash
     for (int i = 0; i < 3; i++) {
         SDL_SetRenderDrawColor(renderer, 255, 20, 0, static_cast<Uint8>(alpha / (i + 1)));
@@ -192,10 +197,10 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
                 // Collapse active: urgent pulsing green diamond
                 // Fast pulse (0.015 rad/ms) to draw attention
                 float ePulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.015f);
-                Uint8 eAlpha = static_cast<Uint8>(180 + 75 * ePulse);
+                Uint8 eAlpha = clampU8(180 + 75 * ePulse);
 
                 // Outer glow ring (fades in/out with pulse)
-                Uint8 glowAlpha = static_cast<Uint8>(60 + 80 * ePulse);
+                Uint8 glowAlpha = clampU8(60 + 80 * ePulse);
                 SDL_SetRenderDrawColor(renderer, 50, 255, 80, glowAlpha);
                 SDL_Rect g1 = {ex - 1, ey - 5, 2, 1};  // top
                 SDL_Rect g2 = {ex - 5, ey - 1, 1, 2};  // left
@@ -255,7 +260,7 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
             if (e.getTag() == "enemy_boss") {
                 // Boss: larger pulsing orange dot
                 float bPulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.008f);
-                SDL_SetRenderDrawColor(renderer, 255, 140, 40, static_cast<Uint8>(200 + 55 * bPulse));
+                SDL_SetRenderDrawColor(renderer, 255, 140, 40, clampU8(200 + 55 * bPulse));
                 SDL_Rect er = {emx - 3, emy - 3, 6, 6};
                 SDL_RenderFillRect(renderer, &er);
                 // Bright center
@@ -408,7 +413,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 SDL_Rect pip = {px, mY, 4, 4};
                 if (s < player->momentumStacks) {
                     // Filled: orange-red scaling with intensity
-                    Uint8 g = static_cast<Uint8>(140 - 80 * intensity);
+                    Uint8 g = clampU8(140 - 80 * intensity);
                     SDL_SetRenderDrawColor(renderer, 255, g, 40, 230);
                     SDL_RenderFillRect(renderer, &pip);
                 } else {
@@ -436,7 +441,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             if (font) {
                 char momText[16];
                 std::snprintf(momText, sizeof(momText), "x%d", player->momentumStacks);
-                SDL_Color momColor = {255, static_cast<Uint8>(180 - 100 * intensity), 40, 220};
+                SDL_Color momColor = {255, clampU8(180 - 100 * intensity), 40, 220};
                 renderText(renderer, font, momText, iconX + 26, mY - 1, momColor);
             }
         }
@@ -602,7 +607,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             // Pulsing glow at high tiers
             if (tier >= 2) {
                 float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
-                resColor.a = static_cast<Uint8>(200 + 55 * pulse);
+                resColor.a = clampU8(200 + 55 * pulse);
             }
 
             renderBar(renderer, margin, resY, resBarW, resBarH, resonance, resColor, {15, 15, 25, 200});
@@ -725,7 +730,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
         // Pulsing alpha
         float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.01f);
-        fColor.a = static_cast<Uint8>(180 + 75 * pulse);
+        fColor.a = clampU8(180 + 75 * pulse);
 
         // Pulsing scale
         float fScale = 1.0f + 0.1f * std::sin(SDL_GetTicks() * 0.012f);
