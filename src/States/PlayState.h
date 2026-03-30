@@ -93,6 +93,8 @@ private:
     void applyUpgrades();
     void applyMutators();
     void renderBackground(SDL_Renderer* renderer);
+    void renderBackgroundMidground(SDL_Renderer* renderer, const Vec2& camPos,
+                                    Uint32 ticks, const SDL_Color& bgColor);
 
     // Render helper methods extracted from render()
     void renderCollapseWarning(SDL_Renderer* renderer);

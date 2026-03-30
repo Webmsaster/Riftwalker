@@ -359,156 +359,7 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
         }
     }
 
-    // Layer 3: Far mountain/structure silhouettes (10% parallax — large, dark)
-    {
-        float farParallax = 0.1f;
-        int farOffX = static_cast<int>(camPos.x * farParallax);
-        int farOffY = static_cast<int>(camPos.y * farParallax * 0.3f);
-        Uint8 farR = static_cast<Uint8>(std::min(255, bgColor.r + 10));
-        Uint8 farG = static_cast<Uint8>(std::min(255, bgColor.g + 10));
-        Uint8 farB = static_cast<Uint8>(std::min(255, bgColor.b + 10));
-        SDL_SetRenderDrawColor(renderer, farR, farG, farB, 45);
-
-        for (int i = 0; i < 6; i++) {
-            int baseX = ((i * 11731 + 48271) % 2400) - 400;
-            int sx = ((baseX - farOffX) % 2200 + 2200) % 2200 - 400;
-            int peakH = 120 + (i * 37) % 100; // 120-220 px tall
-            int baseW = 160 + (i * 53) % 140;  // 160-300 px wide
-            int groundY = SCREEN_HEIGHT + farOffY / 4;
-
-            // Main mass (wide rectangle at bottom)
-            SDL_Rect mass = {sx, groundY - peakH, baseW, peakH};
-            SDL_RenderFillRect(renderer, &mass);
-
-            // Tapered top (narrower rect on top for a ridge shape)
-            int topW = baseW / 3 + (i * 19) % (baseW / 3);
-            int topH = peakH / 3;
-            int topX = sx + (baseW - topW) / 2 + ((i * 7) % 20 - 10);
-            SDL_Rect ridge = {topX, groundY - peakH - topH, topW, topH};
-            SDL_RenderFillRect(renderer, &ridge);
-
-            // Small secondary peak next to main
-            int secH = peakH / 2 + (i * 11) % 30;
-            int secW = baseW / 4;
-            int secX = sx + baseW - secW / 2;
-            SDL_Rect secondary = {secX, groundY - secH, secW, secH};
-            SDL_RenderFillRect(renderer, &secondary);
-        }
-    }
-
-    // Layer 4: Mid-ground floating structures (30% parallax — medium, semi-transparent)
-    {
-        float midParallax = 0.3f;
-        int midOffX = static_cast<int>(camPos.x * midParallax);
-        int midOffY = static_cast<int>(camPos.y * midParallax * 0.5f);
-        auto& accent = (m_dimManager.getCurrentDimension() == 1) ?
-            m_themeA.colors.accent : m_themeB.colors.accent;
-        Uint8 midR = static_cast<Uint8>(std::min(255, (bgColor.r * 2 + accent.r) / 3 + 8));
-        Uint8 midG = static_cast<Uint8>(std::min(255, (bgColor.g * 2 + accent.g) / 3 + 8));
-        Uint8 midB = static_cast<Uint8>(std::min(255, (bgColor.b * 2 + accent.b) / 3 + 8));
-
-        for (int i = 0; i < 10; i++) {
-            int baseX = ((i * 6599 + 31247) % 2000) - 300;
-            int baseY = 180 + ((i * 4211) % 300);
-            int sx = ((baseX - midOffX) % 1800 + 1800) % 1800 - 300;
-            int sy = baseY - (midOffY % 400);
-            // Gentle vertical bob
-            sy += static_cast<int>(std::sin(ticks * 0.0006f + i * 1.9f) * 5.0f);
-
-            Uint8 ma = static_cast<Uint8>(25 + 8 * std::sin(ticks * 0.0008f + i * 0.7f));
-            SDL_SetRenderDrawColor(renderer, midR, midG, midB, ma);
-
-            if (i % 3 == 0) {
-                // Floating platform shape (wide, thin)
-                int pw = 60 + (i * 23) % 50;
-                int ph = 8 + (i * 7) % 6;
-                SDL_Rect plat = {sx, sy, pw, ph};
-                SDL_RenderFillRect(renderer, &plat);
-                // Underside shadow
-                SDL_SetRenderDrawColor(renderer, midR, midG, midB, static_cast<Uint8>(ma / 2));
-                SDL_Rect shadow = {sx + 4, sy + ph, pw - 8, 3};
-                SDL_RenderFillRect(renderer, &shadow);
-            } else if (i % 3 == 1) {
-                // Tall pillar/column
-                int pw = 10 + (i * 3) % 8;
-                int ph = 40 + (i * 17) % 50;
-                SDL_Rect pillar = {sx, sy - ph, pw, ph};
-                SDL_RenderFillRect(renderer, &pillar);
-                // Capital on top
-                SDL_Rect cap = {sx - 3, sy - ph - 4, pw + 6, 4};
-                SDL_RenderFillRect(renderer, &cap);
-            } else {
-                // Debris cluster (3 small rects)
-                for (int d = 0; d < 3; d++) {
-                    int dx = sx + d * 12 + ((i + d) * 5) % 8;
-                    int dy = sy + ((i + d) * 7) % 10;
-                    int ds = 5 + (i + d) % 5;
-                    SDL_Rect debris = {dx, dy, ds, ds};
-                    SDL_RenderFillRect(renderer, &debris);
-                }
-            }
-        }
-    }
-
-    // Layer 5: Near foreground details (60% parallax — close, prominent)
-    {
-        float nearParallax = 0.6f;
-        int nearOffX = static_cast<int>(camPos.x * nearParallax);
-        int nearOffY = static_cast<int>(camPos.y * nearParallax * 0.4f);
-        Uint8 nearR = static_cast<Uint8>(std::min(255, bgColor.r + 20));
-        Uint8 nearG = static_cast<Uint8>(std::min(255, bgColor.g + 20));
-        Uint8 nearB = static_cast<Uint8>(std::min(255, bgColor.b + 20));
-
-        for (int i = 0; i < 8; i++) {
-            int baseX = ((i * 9281 + 17389) % 2600) - 400;
-            int sx = ((baseX - nearOffX) % 2400 + 2400) % 2400 - 400;
-
-            Uint8 na = static_cast<Uint8>(18 + 6 * std::sin(ticks * 0.001f + i * 1.3f));
-            SDL_SetRenderDrawColor(renderer, nearR, nearG, nearB, na);
-
-            if (i % 4 == 0) {
-                // Tall foreground column (bottom-anchored)
-                int colH = 90 + (i * 29) % 70;
-                int colW = 14 + (i * 3) % 8;
-                int cy = SCREEN_HEIGHT + nearOffY / 3;
-                SDL_Rect col = {sx, cy - colH, colW, colH};
-                SDL_RenderFillRect(renderer, &col);
-                // Broken top (angled line)
-                SDL_RenderDrawLine(renderer, sx, cy - colH, sx + colW + 4, cy - colH + 8);
-            } else if (i % 4 == 1) {
-                // Hanging stalactite / chain (top-anchored)
-                int chainLen = 50 + (i * 13) % 40;
-                int topY = -nearOffY / 4;
-                int cx = sx + 4;
-                SDL_Rect chain = {cx, topY, 4, chainLen};
-                SDL_RenderFillRect(renderer, &chain);
-                // Weight at bottom
-                SDL_Rect weight = {cx - 3, topY + chainLen, 10, 8};
-                SDL_RenderFillRect(renderer, &weight);
-            } else if (i % 4 == 2) {
-                // Railing / fence segment
-                int railW = 70 + (i * 19) % 50;
-                int railY = SCREEN_HEIGHT - 40 + (nearOffY / 5);
-                SDL_Rect topRail = {sx, railY, railW, 3};
-                SDL_RenderFillRect(renderer, &topRail);
-                // Vertical posts
-                for (int p = 0; p < railW; p += 16) {
-                    SDL_Rect post = {sx + p, railY, 3, 20};
-                    SDL_RenderFillRect(renderer, &post);
-                }
-            } else {
-                // Scattered rubble at ground level
-                int gy = SCREEN_HEIGHT - 10 + nearOffY / 5;
-                for (int r = 0; r < 4; r++) {
-                    int rx = sx + r * 18 + ((i + r) * 11) % 10;
-                    int rw = 6 + (i + r) % 6;
-                    int rh = 4 + (i + r) % 4;
-                    SDL_Rect rub = {rx, gy - rh, rw, rh};
-                    SDL_RenderFillRect(renderer, &rub);
-                }
-            }
-        }
-    }
+    renderBackgroundMidground(renderer, camPos, ticks, bgColor);
 
     // Layer 6: Floating dimension particles (close parallax)
     auto& dimColor = (m_dimManager.getCurrentDimension() == 1) ?
@@ -531,6 +382,144 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
         SDL_SetRenderDrawColor(renderer, dimColor.r, dimColor.g, dimColor.b, pa);
         SDL_Rect particle = {screenX, screenY, size, size};
         SDL_RenderFillRect(renderer, &particle);
+    }
+}
+
+void PlayState::renderBackgroundMidground(SDL_Renderer* renderer, const Vec2& camPos,
+                                           Uint32 ticks, const SDL_Color& bgColor) {
+    // Layer 3: Far mountain/structure silhouettes (10% parallax — large, dark)
+    {
+        float farParallax = 0.1f;
+        int farOffX = static_cast<int>(camPos.x * farParallax);
+        int farOffY = static_cast<int>(camPos.y * farParallax * 0.3f);
+        Uint8 farR = static_cast<Uint8>(std::min(255, bgColor.r + 10));
+        Uint8 farG = static_cast<Uint8>(std::min(255, bgColor.g + 10));
+        Uint8 farB = static_cast<Uint8>(std::min(255, bgColor.b + 10));
+        SDL_SetRenderDrawColor(renderer, farR, farG, farB, 45);
+
+        for (int i = 0; i < 6; i++) {
+            int baseX = ((i * 11731 + 48271) % 2400) - 400;
+            int sx = ((baseX - farOffX) % 2200 + 2200) % 2200 - 400;
+            int peakH = 120 + (i * 37) % 100;
+            int baseW = 160 + (i * 53) % 140;
+            int groundY = SCREEN_HEIGHT + farOffY / 4;
+
+            SDL_Rect mass = {sx, groundY - peakH, baseW, peakH};
+            SDL_RenderFillRect(renderer, &mass);
+
+            int topW = baseW / 3 + (i * 19) % (baseW / 3);
+            int topH = peakH / 3;
+            int topX = sx + (baseW - topW) / 2 + ((i * 7) % 20 - 10);
+            SDL_Rect ridge = {topX, groundY - peakH - topH, topW, topH};
+            SDL_RenderFillRect(renderer, &ridge);
+
+            int secH = peakH / 2 + (i * 11) % 30;
+            int secW = baseW / 4;
+            int secX = sx + baseW - secW / 2;
+            SDL_Rect secondary = {secX, groundY - secH, secW, secH};
+            SDL_RenderFillRect(renderer, &secondary);
+        }
+    }
+
+    // Layer 4: Mid-ground floating structures (30% parallax)
+    {
+        float midParallax = 0.3f;
+        int midOffX = static_cast<int>(camPos.x * midParallax);
+        int midOffY = static_cast<int>(camPos.y * midParallax * 0.5f);
+        auto& accent = (m_dimManager.getCurrentDimension() == 1) ?
+            m_themeA.colors.accent : m_themeB.colors.accent;
+        Uint8 midR = static_cast<Uint8>(std::min(255, (bgColor.r * 2 + accent.r) / 3 + 8));
+        Uint8 midG = static_cast<Uint8>(std::min(255, (bgColor.g * 2 + accent.g) / 3 + 8));
+        Uint8 midB = static_cast<Uint8>(std::min(255, (bgColor.b * 2 + accent.b) / 3 + 8));
+
+        for (int i = 0; i < 10; i++) {
+            int baseX = ((i * 6599 + 31247) % 2000) - 300;
+            int baseY = 180 + ((i * 4211) % 300);
+            int sx = ((baseX - midOffX) % 1800 + 1800) % 1800 - 300;
+            int sy = baseY - (midOffY % 400);
+            sy += static_cast<int>(std::sin(ticks * 0.0006f + i * 1.9f) * 5.0f);
+
+            Uint8 ma = static_cast<Uint8>(25 + 8 * std::sin(ticks * 0.0008f + i * 0.7f));
+            SDL_SetRenderDrawColor(renderer, midR, midG, midB, ma);
+
+            if (i % 3 == 0) {
+                int pw = 60 + (i * 23) % 50;
+                int ph = 8 + (i * 7) % 6;
+                SDL_Rect plat = {sx, sy, pw, ph};
+                SDL_RenderFillRect(renderer, &plat);
+                SDL_SetRenderDrawColor(renderer, midR, midG, midB, static_cast<Uint8>(ma / 2));
+                SDL_Rect shadow = {sx + 4, sy + ph, pw - 8, 3};
+                SDL_RenderFillRect(renderer, &shadow);
+            } else if (i % 3 == 1) {
+                int pw = 10 + (i * 3) % 8;
+                int ph = 40 + (i * 17) % 50;
+                SDL_Rect pillar = {sx, sy - ph, pw, ph};
+                SDL_RenderFillRect(renderer, &pillar);
+                SDL_Rect cap = {sx - 3, sy - ph - 4, pw + 6, 4};
+                SDL_RenderFillRect(renderer, &cap);
+            } else {
+                for (int d = 0; d < 3; d++) {
+                    int dx = sx + d * 12 + ((i + d) * 5) % 8;
+                    int dy = sy + ((i + d) * 7) % 10;
+                    int ds = 5 + (i + d) % 5;
+                    SDL_Rect debris = {dx, dy, ds, ds};
+                    SDL_RenderFillRect(renderer, &debris);
+                }
+            }
+        }
+    }
+
+    // Layer 5: Near foreground details (60% parallax)
+    {
+        float nearParallax = 0.6f;
+        int nearOffX = static_cast<int>(camPos.x * nearParallax);
+        int nearOffY = static_cast<int>(camPos.y * nearParallax * 0.4f);
+        Uint8 nearR = static_cast<Uint8>(std::min(255, bgColor.r + 20));
+        Uint8 nearG = static_cast<Uint8>(std::min(255, bgColor.g + 20));
+        Uint8 nearB = static_cast<Uint8>(std::min(255, bgColor.b + 20));
+
+        for (int i = 0; i < 8; i++) {
+            int baseX = ((i * 9281 + 17389) % 2600) - 400;
+            int sx = ((baseX - nearOffX) % 2400 + 2400) % 2400 - 400;
+
+            Uint8 na = static_cast<Uint8>(18 + 6 * std::sin(ticks * 0.001f + i * 1.3f));
+            SDL_SetRenderDrawColor(renderer, nearR, nearG, nearB, na);
+
+            if (i % 4 == 0) {
+                int colH = 90 + (i * 29) % 70;
+                int colW = 14 + (i * 3) % 8;
+                int cy = SCREEN_HEIGHT + nearOffY / 3;
+                SDL_Rect col = {sx, cy - colH, colW, colH};
+                SDL_RenderFillRect(renderer, &col);
+                SDL_RenderDrawLine(renderer, sx, cy - colH, sx + colW + 4, cy - colH + 8);
+            } else if (i % 4 == 1) {
+                int chainLen = 50 + (i * 13) % 40;
+                int topY = -nearOffY / 4;
+                int cx = sx + 4;
+                SDL_Rect chain = {cx, topY, 4, chainLen};
+                SDL_RenderFillRect(renderer, &chain);
+                SDL_Rect weight = {cx - 3, topY + chainLen, 10, 8};
+                SDL_RenderFillRect(renderer, &weight);
+            } else if (i % 4 == 2) {
+                int railW = 70 + (i * 19) % 50;
+                int railY = SCREEN_HEIGHT - 40 + (nearOffY / 5);
+                SDL_Rect topRail = {sx, railY, railW, 3};
+                SDL_RenderFillRect(renderer, &topRail);
+                for (int p = 0; p < railW; p += 16) {
+                    SDL_Rect post = {sx + p, railY, 3, 20};
+                    SDL_RenderFillRect(renderer, &post);
+                }
+            } else {
+                int gy = SCREEN_HEIGHT - 10 + nearOffY / 5;
+                for (int r = 0; r < 4; r++) {
+                    int rx = sx + r * 18 + ((i + r) * 11) % 10;
+                    int rw = 6 + (i + r) % 6;
+                    int rh = 4 + (i + r) % 4;
+                    SDL_Rect rub = {rx, gy - rh, rw, rh};
+                    SDL_RenderFillRect(renderer, &rub);
+                }
+            }
+        }
     }
 }
 
