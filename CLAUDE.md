@@ -19,6 +19,11 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - AISystem.cpp split: advanced enemies (Shielder-Mimic) extracted to AIEnemyAdvanced.cpp (920+923 lines)
 - renderBackground() split: midground layers extracted to renderBackgroundMidground() (290+150 lines)
 - Achievement tracking wired up: parry_master (20 parries), no_damage_boss, ranged_only (5 melee-free floors)
+- PlayStateUpdate.cpp split: combat helpers extracted to PlayStateUpdateCombat.cpp (561+895 lines)
+- Enemy.cpp split: boss/elite factories extracted to EnemyBoss.cpp (912+457 lines)
+- 3 new elite modifiers: Phasing (intangible cycle), Regenerating (2 HP/s), Magnetic (projectile deflection)
+- 3 new boss attack patterns: Rift Guardian shockwave, Void Wyrm venom spread, Temporal Weaver time bomb
+- Credits screen expanded with comprehensive system listing (all 15+ major systems)
 
 **Previous Updates (2026-03-28/29):**
 - Added 6 new enemy types: Teleporter, Reflector, Leech, Swarmer, GravityWell, Mimic
