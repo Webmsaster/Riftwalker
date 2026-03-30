@@ -113,6 +113,20 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, const Vec2& playerPos, E
                             }
                         }
                     });
+                    // Phase 2+: spawn 3 smaller venom pool projectiles at random offsets
+                    if (ai.bossPhase >= 2 && m_combatSystem) {
+                        for (int v = 0; v < 3; v++) {
+                            float ox = (float)(rand() % 121 - 60); // ±60px
+                            float oy = (float)(rand() % 121 - 60);
+                            Vec2 spawnPos = {targetPos.x + ox, targetPos.y + oy};
+                            Vec2 outDir = Vec2{ox, oy};
+                            float len = std::sqrt(outDir.x * outDir.x + outDir.y * outDir.y);
+                            if (len > 0) outDir = outDir * (1.0f / len);
+                            else outDir = {0.0f, -1.0f};
+                            m_combatSystem->createProjectile(entities, spawnPos, outDir, 6.0f, 80.0f, entity.dimension);
+                        }
+                        if (m_particles) m_particles->burst(targetPos, 8, {80, 200, 60, 200}, 80.0f, 3.0f);
+                    }
                     break;
                 }
                 case 4: {

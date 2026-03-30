@@ -180,6 +180,17 @@ void AISystem::updateTemporalWeaver(Entity& entity, float dt, const Vec2& player
         }
     }
 
+    // Phase 2+: Time Bomb — slow homing projectile every 8 seconds
+    if (ai.bossPhase >= 2 && ai.bossAttackTimer >= 8.0f && m_combatSystem) {
+        ai.bossAttackTimer = 0.0f;
+        Vec2 dir = (playerPos - center);
+        float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+        if (len > 0) dir = dir * (1.0f / len);
+        m_combatSystem->createProjectile(entities, center, dir, 15.0f, 100.0f, entity.dimension);
+        if (m_particles) m_particles->burst(center, 6, {160, 100, 255, 255}, 120.0f, 3.0f);
+        AudioManager::instance().play(SFX::SniperTelegraph);
+    }
+
     // Phase 3: Time Stop (telegraphed)
     if (ai.bossPhase >= 3) {
         ai.twStopTimer -= dt;

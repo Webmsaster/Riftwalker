@@ -98,6 +98,7 @@ void AISystem::updateBoss(Entity& entity, float dt, const Vec2& playerPos, Entit
                 case 4: sprite.setColor(255, (int)(flash * 100), 200); break;
                 case 5: sprite.setColor(100 + (int)(flash * 155), 200 + (int)(flash * 55), 255); break;
                 case 6: sprite.setColor(150 + (int)(flash * 105), 50, 200 + (int)(flash * 55)); break;
+                case 7: sprite.setColor(255, 160 + (int)(flash * 60), (int)(flash * 80)); break; // shockwave: orange
                 default: break;
             }
         }
@@ -109,6 +110,7 @@ void AISystem::updateBoss(Entity& entity, float dt, const Vec2& playerPos, Entit
                 case 4: warnColor = {255, 80, 200, 200}; break;
                 case 5: warnColor = {100, 200, 255, 200}; break;
                 case 6: warnColor = {180, 50, 255, 200}; break;
+                case 7: warnColor = {255, 160, 40, 200}; break;
                 default: warnColor = {255, 255, 255, 200};
             }
             for (int i = 0; i < 2; i++) {
@@ -186,6 +188,21 @@ void AISystem::updateBoss(Entity& entity, float dt, const Vec2& playerPos, Entit
                     if (m_camera) m_camera->shake(6.0f, 0.2f);
                     if (m_combatSystem) m_combatSystem->addHitFreeze(0.05f);
                     AudioManager::instance().play(SFX::BossTeleport);
+                    break;
+                }
+                case 7: {
+                    // Shockwave - execute: 8 radial projectiles
+                    if (m_combatSystem) {
+                        for (int i = 0; i < 8; i++) {
+                            float angle = i * 6.283185f / 8.0f;
+                            Vec2 dir = {std::cos(angle), std::sin(angle)};
+                            m_combatSystem->createProjectile(entities, pos, dir, 12.0f, 200.0f, entity.dimension);
+                        }
+                    }
+                    if (m_camera) m_camera->shake(6.0f, 0.2f);
+                    if (m_particles) m_particles->burst(pos, 12, {255, 160, 40, 255}, 200.0f, 3.0f);
+                    AudioManager::instance().play(SFX::BossMultiShot);
+                    ai.bossAttackTimer = 2.0f * phaseCooldownMult;
                     break;
                 }
                 default: break;
@@ -282,6 +299,18 @@ void AISystem::updateBoss(Entity& entity, float dt, const Vec2& playerPos, Entit
                             combat.startAttack(AttackType::Melee, dir);
                         }
                         ai.bossAttackTimer = 0.6f * phaseCooldownMult;
+                    }
+                    break;
+                }
+                case 7: {
+                    // Shockwave (Phase 2+) - TELEGRAPH
+                    if (ai.bossPhase >= 2 && m_combatSystem) {
+                        ai.bossTelegraphTimer = 0.6f;
+                        ai.bossTelegraphAttack = 7;
+                        ai.bossAttackTimer = 0.3f;
+                        AudioManager::instance().play(SFX::CollapseWarning);
+                    } else {
+                        ai.bossAttackTimer = 0.5f;
                     }
                     break;
                 }
