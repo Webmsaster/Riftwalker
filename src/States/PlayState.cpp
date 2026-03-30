@@ -495,6 +495,7 @@ void PlayState::update(float dt) {
         if (evt.isPlayerDamage) {
             m_tookDamageThisLevel = true;
             m_tookDamageThisWave = true;
+            if (m_isBossLevel) m_tookDamageThisBoss = true;
             m_totalDamageTaken += static_cast<int>(evt.damage);
             // Screen shake + damage flash + hurt SFX on enemy combat hits
             // Skip if source already handled feedback (hazards, DoT)
@@ -517,8 +518,12 @@ void PlayState::update(float dt) {
         }
     }
 
-    // Consume parry events for "PARRY!" floating text
+    // Consume parry events for "PARRY!" floating text + achievement tracking
     for (auto& pe : m_combatSystem.parryEvents) {
+        m_parryCountThisRun++;
+        if (m_parryCountThisRun >= 20) {
+            game->getAchievements().unlock("parry_master");
+        }
         FloatingDamageNumber num;
         num.position = {pe.position.x, pe.position.y - 20.0f};
         num.value = 0;
@@ -692,6 +697,9 @@ void PlayState::update(float dt) {
 
             // Boss achievements
             game->getAchievements().unlock("boss_slayer");
+            if (!m_tookDamageThisBoss) {
+                game->getAchievements().unlock("no_damage_boss");
+            }
             int bossIdx = m_currentDifficulty / 3;
             if (bossIdx % 2 == 1) game->getAchievements().unlock("wyrm_hunter");
 

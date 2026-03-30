@@ -810,6 +810,7 @@ void PlayState::updateStatusEffects(float dt) {
             // Track non-Scythe melee for entropy_master achievement
             if (combat.currentAttack == AttackType::Melee ||
                 combat.currentAttack == AttackType::Charged) {
+                m_usedMeleeThisFloor = true;
                 if (combat.currentMelee != WeaponID::EntropyScythe) {
                     m_usedNonScytheMelee = true;
                 }

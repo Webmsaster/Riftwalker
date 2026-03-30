@@ -206,6 +206,13 @@ void PlayState::checkExitReached() {
         if (m_hasAttackedThisRun && !m_usedNonScytheMelee) {
             game->getAchievements().unlock("entropy_master");
         }
+        // Ranged Only: complete 5 floors without using melee attacks
+        if (!m_usedMeleeThisFloor) {
+            m_rangedOnlyFloors++;
+            if (m_rangedOnlyFloors >= 5) {
+                game->getAchievements().unlock("ranged_only");
+            }
+        }
         if (m_smokeTest) {
             smokeLog("[SMOKE] LEVEL %d COMPLETE! (%.1fs)", m_currentDifficulty, m_smokeRunTime);
             if (g_smokeRegression) {

@@ -301,6 +301,7 @@ void PlayState::generateLevel() {
     // Boss every 6 floors (zone boss) or every 3rd floor in zone (mid-boss)
     m_isBossLevel = isBossFloor(m_currentDifficulty) || isMidBossFloor(m_currentDifficulty);
     m_bossDefeated = false;
+    m_tookDamageThisBoss = false;
     if (m_isBossLevel) {
         spawnBoss();
     }
@@ -320,6 +321,7 @@ void PlayState::generateLevel() {
     m_teleportCooldown = 0;
     m_tookDamageThisLevel = false;
     m_usedNonScytheMelee = false; // Reset per-floor for entropy_master achievement
+    m_usedMeleeThisFloor = false; // Reset per-floor for ranged_only achievement
 
     // Dynamic level events: disable on boss levels, reset cooldown
     m_dynamicEventsEnabled = !m_isBossLevel;
