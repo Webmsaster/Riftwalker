@@ -197,6 +197,21 @@ void Enemy::makeElite(Entity& e, EliteModifier mod) {
             sprite.color.g = static_cast<Uint8>(std::min(255, sprite.color.g + 80));
             sprite.color.b = static_cast<Uint8>(std::min(255, sprite.color.b + 150));
             break;
+        case EliteModifier::Phasing:
+            sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + 80));
+            sprite.color.g = static_cast<Uint8>(std::min(255, sprite.color.g + 80));
+            sprite.color.b = 255;
+            break;
+        case EliteModifier::Regenerating:
+            sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.4f);
+            sprite.color.g = static_cast<Uint8>(std::min(255, sprite.color.g + 100));
+            sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.5f);
+            break;
+        case EliteModifier::Magnetic:
+            sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + 100));
+            sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.3f);
+            sprite.color.b = static_cast<Uint8>(std::min(255, sprite.color.b + 140));
+            break;
         default: break;
     }
     sprite.baseColor = sprite.color; // update base for wind-up restore

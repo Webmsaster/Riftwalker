@@ -51,7 +51,10 @@ enum class EliteModifier {
     Explosive,   // Orange: Explodes on death (40 DMG, 80px radius)
     FireAura,    // Flame aura: deals burn DoT to player in 100px proximity
     HealAura,    // Green aura: heals nearby enemies 3 HP/s within 120px
-    ShieldAura   // Cyan aura: nearby enemies within 100px take 30% less damage
+    ShieldAura,  // Cyan aura: nearby enemies within 100px take 30% less damage
+    Phasing,     // White: periodically goes intangible (no damage taken) for 1.5s every 4s
+    Regenerating,// Green pulse: regenerates 2 HP/s
+    Magnetic     // Magenta: deflects player projectiles within 80px radius
 };
 
 struct AIComponent : public Component {
@@ -69,6 +72,8 @@ struct AIComponent : public Component {
     float eliteTeleportTimer = 0;  // Teleporter: teleport cooldown
     float eliteVampHealAccum = 0;  // Vampiric: accumulated heal
     float healAuraTimer = 0;       // HealAura: cooldown to avoid per-frame O(n) scan
+    float elitePhasingTimer = 0;   // Phasing: cycle timer (0-5.5s, intangible at 4-5.5s)
+    bool elitePhasing = false;     // Phasing: currently intangible
 
     // Detection
     float detectRange = 200.0f;

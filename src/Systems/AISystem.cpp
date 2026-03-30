@@ -305,6 +305,59 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
                 m_particles->burst({t.getCenter().x + ox, t.getCenter().y + oy}, 1,
                                     {60, 200, 255, 140}, 35.0f, 1.5f);
             }
+
+            // Phasing: cycle between tangible (4s) and intangible (1.5s)
+            if (ai.eliteMod == EliteModifier::Phasing) {
+                ai.elitePhasingTimer += dt;
+                if (ai.elitePhasingTimer >= 5.5f) ai.elitePhasingTimer = 0;
+                bool wasPhasing = ai.elitePhasing;
+                ai.elitePhasing = (ai.elitePhasingTimer >= 4.0f);
+                // Make invincible while phasing
+                if (ai.elitePhasing && e->hasComponent<HealthComponent>()) {
+                    e->getComponent<HealthComponent>().invincibilityTimer = 0.1f;
+                }
+                // Visual: ghost particles while phasing
+                if (ai.elitePhasing && m_particles && e->hasComponent<TransformComponent>()) {
+                    auto& t = e->getComponent<TransformComponent>();
+                    m_particles->burst(t.getCenter(), 1, {220, 220, 255, 100}, 30.0f, 2.0f);
+                }
+                // Flash on phase transition
+                if (ai.elitePhasing != wasPhasing && m_particles && e->hasComponent<TransformComponent>()) {
+                    auto& t = e->getComponent<TransformComponent>();
+                    m_particles->burst(t.getCenter(), 8, {255, 255, 255, 180}, 100.0f, 2.5f);
+                }
+                // Dim sprite when phasing
+                if (e->hasComponent<SpriteComponent>()) {
+                    auto& sprite = e->getComponent<SpriteComponent>();
+                    sprite.color.a = ai.elitePhasing ? 80 : 255;
+                }
+            }
+
+            // Regenerating: heal 2 HP/s
+            if (ai.eliteMod == EliteModifier::Regenerating && e->hasComponent<HealthComponent>()) {
+                auto& hp = e->getComponent<HealthComponent>();
+                if (hp.currentHP > 0 && hp.currentHP < hp.maxHP) {
+                    hp.currentHP = std::min(hp.maxHP, hp.currentHP + 2.0f * dt);
+                    // Green pulse particles every ~0.5s
+                    if (m_particles && e->hasComponent<TransformComponent>()) {
+                        if (static_cast<int>(ai.eliteGlowTimer * 2) != static_cast<int>((ai.eliteGlowTimer - dt) * 2)) {
+                            auto& t = e->getComponent<TransformComponent>();
+                            m_particles->burst(t.getCenter(), 3, {50, 255, 80, 160}, 50.0f, 2.0f);
+                        }
+                    }
+                }
+            }
+
+            // Magnetic: handled in CombatSystem (projectile deflection)
+            // Visual: magenta ring particles
+            if (ai.eliteMod == EliteModifier::Magnetic && m_particles && e->hasComponent<TransformComponent>()) {
+                auto& t = e->getComponent<TransformComponent>();
+                float auraPhase = std::fmod(ai.eliteGlowTimer * 4.0f, 6.28f);
+                float ox = std::cos(auraPhase) * 25.0f;
+                float oy = std::sin(auraPhase) * 15.0f;
+                m_particles->burst({t.getCenter().x + ox, t.getCenter().y + oy}, 1,
+                                    {220, 80, 255, 130}, 25.0f, 1.5f);
+            }
         }
 
         // --- Elemental aura particles (Fire/Ice/Electric variants) ---
