@@ -724,7 +724,8 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         entities.forEach([&](Entity& e) {
                             if (chainsLeft <= 0) return;
                             if (!e.isAlive() || &e == &attacker) return;
-                            if (!e.hasComponent<AIComponent>() || !e.hasComponent<HealthComponent>()) return;
+                            if (!e.hasComponent<AIComponent>() || !e.hasComponent<HealthComponent>()
+                                || !e.hasComponent<TransformComponent>()) return;
                             Vec2 ePos = e.getComponent<TransformComponent>().getCenter();
                             float dist = std::sqrt((ePos.x - attackerPos.x) * (ePos.x - attackerPos.x) +
                                                    (ePos.y - attackerPos.y) * (ePos.y - attackerPos.y));
