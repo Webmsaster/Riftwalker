@@ -73,6 +73,8 @@ SDL_Texture* ResourceManager::getTexture(const std::string& path) {
         SDL_Log("Failed to load texture %s: %s", path.c_str(), IMG_GetError());
         return nullptr;
     }
+    // Force linear filtering per texture for smooth scaling (hint alone is unreliable)
+    SDL_SetTextureScaleMode(tex, SDL_ScaleModeLinear);
     m_textures[path] = tex;
     return tex;
 }

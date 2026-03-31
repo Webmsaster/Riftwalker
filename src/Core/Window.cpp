@@ -98,7 +98,7 @@ Window::Window(const std::string& title, int width, int height, bool fullscreen)
         throw std::runtime_error("Failed to create renderer: " + std::string(SDL_GetError()));
     }
 
-    SDL_RenderSetLogicalSize(m_renderer, width, height);
+    // Logical size set by Game::init() — not here (window size != logical size)
     SDL_SetWindowMinimumSize(m_window, 640, 360);
 }
 

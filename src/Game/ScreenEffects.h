@@ -2,11 +2,16 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <string>
+#include <array>
 
 class ScreenEffects {
 public:
     void update(float dt);
     void render(SDL_Renderer* renderer, int screenW, int screenH, TTF_Font* font = nullptr);
+
+    // Post-processing pass (call after world render, before HUD)
+    void renderPostProcessing(SDL_Renderer* renderer, int screenW, int screenH,
+                              int currentDimension, float dimBlendAlpha);
 
     // Triggers
     void triggerKillFlash();
@@ -21,6 +26,16 @@ public:
     void setHP(float hpPercent) { m_hpPercent = hpPercent; }
     void setEntropy(float entropy) { m_entropy = entropy; }
     void setVoidStorm(bool active) { m_voidStormActive = active; }
+
+    // Post-processing toggles
+    bool vignetteEnabled = true;
+    bool colorGradingEnabled = true;
+    bool ambientParticlesEnabled = true;
+    bool bloomEnabled = true;
+
+    // Bloom: register bright spots for glow overlay (screen-space coordinates)
+    void registerGlowPoint(float screenX, float screenY, float radius, Uint8 r, Uint8 g, Uint8 b, Uint8 intensity);
+    void clearGlowPoints();
 
 private:
     float m_time = 0.0f;
@@ -46,4 +61,43 @@ private:
 
     // Void Storm
     bool m_voidStormActive = false;
+
+    // --- Post-processing state ---
+
+    // Ambient particles (floating dust motes / dimensional particles)
+    struct AmbientParticle {
+        float x, y;           // Screen position
+        float vx, vy;         // Velocity
+        float size;            // 1-3 px
+        float alpha;           // Current alpha (20-60)
+        float alphaTarget;     // Target alpha for smooth fade
+        float lifetime;        // Time until respawn
+        Uint8 r, g, b;
+    };
+    static constexpr int kMaxAmbientParticles = 30;
+    std::array<AmbientParticle, kMaxAmbientParticles> m_ambientParticles{};
+    bool m_ambientParticlesInitialized = false;
+    void initAmbientParticles(int screenW, int screenH);
+    void updateAmbientParticles(float dt, int screenW, int screenH, int currentDimension);
+    void renderAmbientParticles(SDL_Renderer* renderer);
+
+    // Cinematic vignette (post-processing version — separate from the HP vignette in render())
+    void renderVignette(SDL_Renderer* renderer, int screenW, int screenH);
+
+    // Color grading (dimension-based mood tint)
+    void renderColorGrading(SDL_Renderer* renderer, int screenW, int screenH,
+                            int currentDimension, float dimBlendAlpha);
+
+    // Bloom/glow simulation (soft additive-blend at registered bright points)
+    struct GlowPoint {
+        float x, y, radius;
+        Uint8 r, g, b, intensity;
+    };
+    static constexpr int kMaxGlowPoints = 32;
+    int m_glowPointCount = 0;
+    std::array<GlowPoint, kMaxGlowPoints> m_glowPoints{};
+    void renderBloom(SDL_Renderer* renderer);
+
+    // Track current dimension for ambient particle colors
+    int m_currentDimension = 1;
 };

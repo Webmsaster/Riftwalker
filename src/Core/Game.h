@@ -57,8 +57,11 @@ public:
     SDL_Renderer* getRenderer() const { return m_window ? m_window->getSDLRenderer() : nullptr; }
     Window* getWindow() const { return m_window.get(); }
 
-    static constexpr int SCREEN_WIDTH = 1280;
+    static constexpr int SCREEN_WIDTH = 1280;   // Logical resolution (game coordinates)
     static constexpr int SCREEN_HEIGHT = 720;
+    // Physical window size — set at runtime from native display resolution
+    static int WINDOW_WIDTH;
+    static int WINDOW_HEIGHT;
 
 private:
     void handleEvents();

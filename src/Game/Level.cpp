@@ -5,7 +5,7 @@
 #include <cstdio>
 
 Level::Level(int width, int height, int tileSize)
-    : m_width(width), m_height(height), m_tileSize(tileSize)
+    : m_width(width), m_height(height), m_tileSize(tileSize), m_texTileSize(tileSize * 4)
 {
     m_tilesA.resize(width * height);
     m_tilesB.resize(width * height);
@@ -98,9 +98,9 @@ void Level::renderTilesetTile(SDL_Renderer* renderer, SDL_Rect destRect,
                                int tilesetRow, int tilesetCol, const Tile& tile) {
     if (!m_tileset) return;
     SDL_Rect srcRect = {
-        tilesetCol * m_tileSize,
-        tilesetRow * m_tileSize,
-        m_tileSize, m_tileSize
+        tilesetCol * m_texTileSize,
+        tilesetRow * m_texTileSize,
+        m_texTileSize, m_texTileSize
     };
 
     // Apply theme color tinting
@@ -311,7 +311,7 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
     if (m_tileset) {
         int autoIdx = getAutoTileIndex(tx, ty, dim);
         // Row 0 of tileset, column = auto-tile index (0-15)
-        SDL_Rect srcRect = { autoIdx * m_tileSize, 0, m_tileSize, m_tileSize };
+        SDL_Rect srcRect = { autoIdx * m_texTileSize, 0, m_texTileSize, m_texTileSize };
         // Lighten the color mod so tileset texture detail shows through
         // Blend tile color toward white (60% tile, 40% white) to preserve texture contrast
         Uint8 modR = static_cast<Uint8>(tile.color.r + (255 - tile.color.r) * 4 / 10);

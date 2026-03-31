@@ -368,12 +368,31 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     int barW   = static_cast<int>(220 * g_hudScale);
     int barH   = static_cast<int>(18 * g_hudScale);
 
-    // Semi-transparent HUD backing panel
+    // Professional HUD backing panel with gradient and border
     SDL_Rect hudBg = {margin - 5, margin - 5, barW + 20, barH * 4 + 70 + static_cast<int>(8 * g_hudScale) + 4};
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 80);
-    SDL_RenderFillRect(renderer, &hudBg);
-    SDL_SetRenderDrawColor(renderer, 80, 80, 100, 60);
+    // Multi-layer gradient: darker at top, lighter at bottom
+    int panelH = hudBg.h;
+    int bands = 4;
+    for (int b = 0; b < bands; b++) {
+        int bandY = hudBg.y + (panelH * b) / bands;
+        int bandH = panelH / bands + 1;
+        // Fade from alpha 100 (top) to 60 (bottom)
+        Uint8 ba = static_cast<Uint8>(100 - b * 10);
+        SDL_SetRenderDrawColor(renderer, 5 + b * 3, 5 + b * 2, 12 + b * 4, ba);
+        SDL_Rect bandR = {hudBg.x, bandY, hudBg.w, bandH};
+        SDL_RenderFillRect(renderer, &bandR);
+    }
+    // Subtle inner highlight at top edge
+    SDL_SetRenderDrawColor(renderer, 120, 110, 160, 30);
+    SDL_Rect topHighlight = {hudBg.x + 1, hudBg.y, hudBg.w - 2, 1};
+    SDL_RenderFillRect(renderer, &topHighlight);
+    // Outer border (subtle purple-gray)
+    SDL_SetRenderDrawColor(renderer, 70, 60, 100, 80);
     SDL_RenderDrawRect(renderer, &hudBg);
+    // Inner border for depth
+    SDL_Rect innerBorder = {hudBg.x + 1, hudBg.y + 1, hudBg.w - 2, hudBg.h - 2};
+    SDL_SetRenderDrawColor(renderer, 40, 35, 60, 50);
+    SDL_RenderDrawRect(renderer, &innerBorder);
 
     // Class icon (small colored square with class initial)
     if (player) {
@@ -1122,38 +1141,70 @@ void HUD::renderWeaponPanel(SDL_Renderer* renderer, TTF_Font* font,
 
 void HUD::renderBar(SDL_Renderer* renderer, int x, int y, int w, int h,
                      float percent, SDL_Color fillColor, SDL_Color bgColor) {
-    SDL_Rect bg = {x, y, w, h};
+    // Outer frame (dark beveled border)
+    SDL_SetRenderDrawColor(renderer, 15, 15, 20, bgColor.a);
+    SDL_Rect outerFrame = {x - 1, y - 1, w + 2, h + 2};
+    SDL_RenderFillRect(renderer, &outerFrame);
+
+    // Background with subtle gradient (darker at bottom)
+    SDL_Rect bgTop = {x, y, w, h / 2};
+    SDL_SetRenderDrawColor(renderer, bgColor.r + 8, bgColor.g + 8, bgColor.b + 10, bgColor.a);
+    SDL_RenderFillRect(renderer, &bgTop);
+    SDL_Rect bgBot = {x, y + h / 2, w, h - h / 2};
     SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
-    SDL_RenderFillRect(renderer, &bg);
+    SDL_RenderFillRect(renderer, &bgBot);
 
     int fillW = static_cast<int>(w * percent);
     if (fillW > 0) {
+        // Main fill with 3-band vertical gradient
+        int bandH = h / 3;
+        // Top band: bright
+        Uint8 hiR = clampU8(fillColor.r + 40);
+        Uint8 hiG = clampU8(fillColor.g + 40);
+        Uint8 hiB = clampU8(fillColor.b + 35);
+        SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, fillColor.a);
+        SDL_Rect topBand = {x, y, fillW, bandH};
+        SDL_RenderFillRect(renderer, &topBand);
+        // Mid band: base color
         SDL_SetRenderDrawColor(renderer, fillColor.r, fillColor.g, fillColor.b, fillColor.a);
-        SDL_Rect fill = {x, y, fillW, h};
-        SDL_RenderFillRect(renderer, &fill);
+        SDL_Rect midBand = {x, y + bandH, fillW, bandH};
+        SDL_RenderFillRect(renderer, &midBand);
+        // Bottom band: darker
+        Uint8 shR = fillColor.r > 50 ? static_cast<Uint8>(fillColor.r - 50) : 0;
+        Uint8 shG = fillColor.g > 50 ? static_cast<Uint8>(fillColor.g - 50) : 0;
+        Uint8 shB = fillColor.b > 50 ? static_cast<Uint8>(fillColor.b - 50) : 0;
+        SDL_SetRenderDrawColor(renderer, shR, shG, shB, fillColor.a);
+        SDL_Rect botBand = {x, y + bandH * 2, fillW, h - bandH * 2};
+        SDL_RenderFillRect(renderer, &botBand);
 
-        Uint8 hiR = static_cast<Uint8>(std::min(255, fillColor.r + 50));
-        Uint8 hiG = static_cast<Uint8>(std::min(255, fillColor.g + 50));
-        Uint8 hiB = static_cast<Uint8>(std::min(255, fillColor.b + 50));
-        SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, static_cast<Uint8>(fillColor.a * 0.6f));
-        SDL_Rect highlight = {x, y, fillW, h / 3};
-        SDL_RenderFillRect(renderer, &highlight);
+        // Glass-like specular highlight (1px bright line near top)
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 60);
+        SDL_Rect specular = {x + 1, y + 1, fillW - 2, 1};
+        SDL_RenderFillRect(renderer, &specular);
 
-        Uint8 shR = fillColor.r > 40 ? fillColor.r - 40 : 0;
-        Uint8 shG = fillColor.g > 40 ? fillColor.g - 40 : 0;
-        Uint8 shB = fillColor.b > 40 ? fillColor.b - 40 : 0;
-        SDL_SetRenderDrawColor(renderer, shR, shG, shB, static_cast<Uint8>(fillColor.a * 0.4f));
-        SDL_Rect shadow = {x, y + h - h / 4, fillW, h / 4};
-        SDL_RenderFillRect(renderer, &shadow);
+        // Animated shimmer (subtle moving highlight)
+        Uint32 ticks = SDL_GetTicks();
+        int shimmerX = x + static_cast<int>((ticks % 3000) * fillW / 3000.0f);
+        if (shimmerX < x + fillW - 8) {
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 25);
+            SDL_Rect shimmer = {shimmerX, y + 1, 8, h - 2};
+            SDL_RenderFillRect(renderer, &shimmer);
+        }
     }
 
-    SDL_SetRenderDrawColor(renderer, 120, 120, 140, 160);
-    SDL_RenderDrawRect(renderer, &bg);
+    // Inner border highlight (top-left bright, bottom-right dark)
+    SDL_SetRenderDrawColor(renderer, 160, 155, 180, 50);
+    SDL_RenderDrawLine(renderer, x, y, x + w - 1, y); // top
+    SDL_RenderDrawLine(renderer, x, y, x, y + h - 1); // left
+    SDL_SetRenderDrawColor(renderer, 30, 30, 40, 80);
+    SDL_RenderDrawLine(renderer, x, y + h - 1, x + w - 1, y + h - 1); // bottom
+    SDL_RenderDrawLine(renderer, x + w - 1, y, x + w - 1, y + h - 1); // right
 
-    SDL_SetRenderDrawColor(renderer, 100, 100, 120, 80);
+    // Quarter notch marks (subtle)
+    SDL_SetRenderDrawColor(renderer, 80, 80, 100, 40);
     for (int i = 1; i < 4; i++) {
         int nx = x + (w * i) / 4;
-        SDL_RenderDrawLine(renderer, nx, y, nx, y + h);
+        SDL_RenderDrawLine(renderer, nx, y + 1, nx, y + h - 1);
     }
 }
 

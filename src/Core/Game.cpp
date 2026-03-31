@@ -30,6 +30,10 @@
 
 bool g_screenshotRequested = false;
 
+// Runtime-initialized from display resolution
+int Game::WINDOW_WIDTH = 1920;
+int Game::WINDOW_HEIGHT = 1080;
+
 static void backupFile(const std::string& path) {
     std::ifstream src(path, std::ios::binary);
     if (!src) return;
@@ -58,6 +62,19 @@ bool Game::init() {
         return false;
     }
 
+    // Best-quality filtering for smooth sprite scaling (anisotropic)
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
+
+    // Detect native display resolution for maximum quality
+    SDL_DisplayMode displayMode;
+    if (SDL_GetDesktopDisplayMode(0, &displayMode) == 0) {
+        WINDOW_WIDTH = displayMode.w;
+        WINDOW_HEIGHT = displayMode.h;
+        SDL_Log("Native display: %dx%d @ %dHz", displayMode.w, displayMode.h, displayMode.refresh_rate);
+    } else {
+        SDL_Log("Could not detect display mode, using %dx%d", WINDOW_WIDTH, WINDOW_HEIGHT);
+    }
+
     if (IMG_Init(IMG_INIT_PNG) == 0) {
         SDL_Log("SDL_image init failed: %s", IMG_GetError());
     }
@@ -68,7 +85,10 @@ bool Game::init() {
 
     AudioManager::instance().init();
 
-    m_window = std::make_unique<Window>("Riftwalker", SCREEN_WIDTH, SCREEN_HEIGHT);
+    m_window = std::make_unique<Window>("Riftwalker", WINDOW_WIDTH, WINDOW_HEIGHT);
+    // Logical resolution stays at 1280x720 (all UI coordinates are hardcoded for this),
+    // physical window renders at native display resolution for maximum visual quality
+    SDL_RenderSetLogicalSize(m_window->getSDLRenderer(), SCREEN_WIDTH, SCREEN_HEIGHT);
     ResourceManager::instance().init(m_window->getSDLRenderer());
 
     // Generate placeholder sprites if missing — written to assets/textures/placeholders/
@@ -86,11 +106,14 @@ bool Game::init() {
     };
 
     for (auto path : fontPaths) {
-        m_font = TTF_OpenFont(path, 16);
+        m_font = TTF_OpenFont(path, 20);
         if (m_font) break;
     }
 
-    if (!m_font) {
+    if (m_font) {
+        // Enable light auto-hinting for crisp text at all sizes
+        TTF_SetFontHinting(m_font, TTF_HINTING_LIGHT);
+    } else {
         SDL_Log("Warning: No font loaded. Text will not be rendered.");
     }
 

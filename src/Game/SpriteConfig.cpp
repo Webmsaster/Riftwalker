@@ -38,7 +38,7 @@ bool SpriteConfig::setupPlayer(AnimationComponent& anim, SpriteComponent& sprite
     }
 
     sprite.texture = tex;
-    const int fw = 32, fh = 48;
+    const int fw = 128, fh = 192;  // 4x Real-ESRGAN upscaled from 32x48
 
     anim.addSheetAnimation(Anim::Idle,      0, 6, fw, fh, SLOW_DUR, true);
     anim.addSheetAnimation(Anim::Run,       1, 8, fw, fh, FRAME_DUR, true);
@@ -87,7 +87,7 @@ bool SpriteConfig::setupEnemy(AnimationComponent& anim, SpriteComponent& sprite,
     }
 
     sprite.texture = tex;
-    const int fw = 32, fh = 32;
+    const int fw = 128, fh = 128;  // 4x Real-ESRGAN upscaled from 32x32
 
     anim.addSheetAnimation(Anim::Idle,   0, 4, fw, fh, SLOW_DUR, true);
     anim.addSheetAnimation(Anim::Walk,   1, 6, fw, fh, FRAME_DUR, true);
@@ -102,7 +102,7 @@ bool SpriteConfig::setupEnemy(AnimationComponent& anim, SpriteComponent& sprite,
 bool SpriteConfig::setupBoss(AnimationComponent& anim, SpriteComponent& sprite, int bossType) {
     if (!kUseEntitySprites) return false; // Use procedural rendering
     std::string path;
-    int fw = 64, fh = 64;
+    int fw = 256, fh = 256;  // 4x Real-ESRGAN upscaled from 64x64
 
     switch (bossType) {
         case 0: path = "assets/textures/bosses/rift_guardian.png"; break;
@@ -111,11 +111,11 @@ bool SpriteConfig::setupBoss(AnimationComponent& anim, SpriteComponent& sprite, 
         case 3: path = "assets/textures/bosses/temporal_weaver.png"; break;
         case 4:
             path = "assets/textures/bosses/void_sovereign.png";
-            fw = 96; fh = 96;
+            fw = 384; fh = 384;  // 4x from 96x96
             break;
         case 5:
             path = "assets/textures/bosses/entropy_incarnate.png";
-            fw = 64; fh = 64;
+            fw = 256; fh = 256;
             break;
         default: path = "assets/textures/bosses/rift_guardian.png"; break;
     }

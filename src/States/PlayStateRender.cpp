@@ -610,6 +610,50 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Dimension border tint (subtle color cue for current dimension)
     renderDimensionBorder(renderer);
 
+    // Register glow points for bloom effect (screen-space positions)
+    {
+        Vec2 cam = m_camera.getPosition();
+
+        // Player glow (subtle aura around the player)
+        if (m_player && m_player->getEntity()) {
+            auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+            float sx = pt.getCenter().x - cam.x;
+            float sy = pt.getCenter().y - cam.y;
+            if (sx > -50 && sx < SCREEN_WIDTH + 50 && sy > -50 && sy < SCREEN_HEIGHT + 50) {
+                // Dimension-colored player glow
+                if (m_dimManager.getCurrentDimension() == 2) {
+                    m_screenEffects.registerGlowPoint(sx, sy, 40.0f, 200, 120, 40, 18);
+                } else {
+                    m_screenEffects.registerGlowPoint(sx, sy, 40.0f, 80, 100, 200, 18);
+                }
+            }
+        }
+
+        // Boss aura glow (larger, more intense when boss is alive)
+        if (m_isBossLevel && !m_bossDefeated) {
+            // Find boss entity and register strong glow
+            for (auto* e : m_entities.getEntitiesWithComponent<AIComponent>()) {
+                if (!e || !e->isAlive()) continue;
+                auto& ai = e->getComponent<AIComponent>();
+                if (ai.enemyType == EnemyType::Boss && e->hasComponent<TransformComponent>()) {
+                    auto& bt = e->getComponent<TransformComponent>();
+                    float bx = bt.getCenter().x - cam.x;
+                    float by = bt.getCenter().y - cam.y;
+                    if (bx > -100 && bx < SCREEN_WIDTH + 100 && by > -100 && by < SCREEN_HEIGHT + 100) {
+                        m_screenEffects.registerGlowPoint(bx, by, 80.0f, 200, 40, 60, 25);
+                    }
+                    break; // Only one boss
+                }
+            }
+        }
+    }
+
+    // Post-processing effects (vignette, color grading, ambient particles, bloom)
+    // Applied after world rendering but before HUD for cinematic look
+    m_screenEffects.renderPostProcessing(renderer, SCREEN_WIDTH, SCREEN_HEIGHT,
+                                          m_dimManager.getCurrentDimension(),
+                                          m_dimManager.getBlendAlpha());
+
     // Entropy visual effects
     m_entropy.applyVisualEffects(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 

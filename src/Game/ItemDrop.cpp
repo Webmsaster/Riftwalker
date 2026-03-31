@@ -21,7 +21,7 @@ static void applyPickupSprite(SpriteComponent& sprite, int col, int row) {
     auto* tex = ResourceManager::instance().getTexture("assets/textures/pickups/pickups.png");
     if (!tex) return;
     sprite.texture = tex;
-    sprite.srcRect = {col * 16, row * 16, 16, 16};
+    sprite.srcRect = {col * 64, row * 64, 64, 64};  // 4x upscaled from 16x16
 }
 
 Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimension, Player* player) {

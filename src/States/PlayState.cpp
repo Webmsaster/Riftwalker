@@ -287,8 +287,8 @@ void PlayState::update(float dt) {
 
         m_deathSequenceTimer -= dt; // Real-time countdown (not slowed)
 
-        // Camera zoom: smoothly zoom in to 1.35x centered on player
-        float targetZoom = 1.0f + 0.35f * std::min(1.0f, progress * 2.0f); // reach max zoom at 50%
+        // Camera zoom: smoothly zoom in during death (base zoom + 1.0)
+        float targetZoom = 2.5f + 1.0f * std::min(1.0f, progress * 2.0f);
         m_camera.zoom += (targetZoom - m_camera.zoom) * std::min(1.0f, dt * 4.0f);
 
         m_camera.update(slowDt);       // camera shake continues (slowed)
@@ -320,7 +320,7 @@ void PlayState::update(float dt) {
 
         if (m_deathSequenceTimer <= 0) {
             m_playerDying = false;
-            m_camera.zoom = 1.0f; // Reset zoom before transitioning
+            m_camera.zoom = 2.5f; // Reset zoom before transitioning
             if (m_playtest) {
                 playtestOnDeath();
             } else {

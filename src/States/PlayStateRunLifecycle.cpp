@@ -40,7 +40,7 @@ extern int g_smokeFailureCode;
 extern char g_smokeFailureReason[256];
 
 namespace {
-constexpr bool kUseAiFinalBackgroundArtTest = false;
+constexpr bool kUseAiFinalBackgroundArtTest = true;
 constexpr const char* kDimAFinalBackgroundPath =
     "assets/ai/finals/backgrounds/run01/rw_bg_dima_run01_s1103_fin.png";
 constexpr const char* kDimBFinalBackgroundPath =
@@ -122,7 +122,7 @@ void PlayState::startNewRun() {
     m_voidSovereignDefeated = false;
     m_trails.clear();
     m_moveTrailTimer = 0.0f;
-    m_camera.zoom = 1.0f; // Reset death zoom
+    m_camera.zoom = 2.5f; // Reset death zoom
     m_runTime = 0.0f;
     m_bestCombo = 0;
     m_nearNPCIndex = -1;

@@ -1,7 +1,18 @@
 #include "Game/ScreenEffects.h"
 #include <cmath>
 #include <cstdlib>
+#include <algorithm>
 #include <SDL2/SDL_ttf.h>
+
+// Clamp helper (avoids repeating std::min/max chains)
+static inline Uint8 clampAlpha(float v) {
+    return static_cast<Uint8>(std::max(0.0f, std::min(255.0f, v)));
+}
+
+// Simple pseudo-random float [0,1] for particle init (avoids std::rand overhead)
+static inline float randFloat() {
+    return static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+}
 
 void ScreenEffects::update(float dt) {
     m_time += dt;
@@ -10,6 +21,12 @@ void ScreenEffects::update(float dt) {
     if (m_rippleTimer > 0) m_rippleTimer -= dt;
     if (m_entropy > 80.0f) m_glitchTimer += dt;
     else m_glitchTimer = 0;
+
+    // Update ambient particles (use stored screen dimensions from last render call)
+    if (ambientParticlesEnabled && m_ambientParticlesInitialized) {
+        // Screen dimensions passed as 1280x720 (logical) — matches Game::SCREEN_WIDTH/HEIGHT
+        updateAmbientParticles(dt, 1280, 720, m_currentDimension);
+    }
 }
 
 void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF_Font* font) {
@@ -414,4 +431,340 @@ void ScreenEffects::triggerBossIntro(const char* bossName, const char* subtitle)
 
 void ScreenEffects::triggerDimensionRipple() {
     m_rippleTimer = 0.5f;
+}
+
+// =============================================================================
+// Post-Processing System
+// =============================================================================
+
+void ScreenEffects::renderPostProcessing(SDL_Renderer* renderer, int screenW, int screenH,
+                                          int currentDimension, float dimBlendAlpha) {
+    m_currentDimension = currentDimension;
+
+    // Update ambient particles each frame (driven by renderPostProcessing call rate)
+    // Use a fixed dt estimate of ~16ms (60fps) since we don't get dt here;
+    // the actual particle update is in update() for timing, but we do visual
+    // updates here too for dimension-color responsiveness.
+    if (ambientParticlesEnabled) {
+        if (!m_ambientParticlesInitialized) {
+            initAmbientParticles(screenW, screenH);
+        }
+    }
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // 1. Color grading (lowest layer — subtle dimension mood tint)
+    if (colorGradingEnabled) {
+        renderColorGrading(renderer, screenW, screenH, currentDimension, dimBlendAlpha);
+    }
+
+    // 2. Bloom/glow simulation (additive bright spots)
+    if (bloomEnabled && m_glowPointCount > 0) {
+        renderBloom(renderer);
+    }
+
+    // 3. Ambient particles (floating dust motes)
+    if (ambientParticlesEnabled) {
+        renderAmbientParticles(renderer);
+    }
+
+    // 4. Cinematic vignette (darkened edges — drawn on top for cinematic framing)
+    if (vignetteEnabled) {
+        renderVignette(renderer, screenW, screenH);
+    }
+
+    // Clear glow points for next frame
+    m_glowPointCount = 0;
+}
+
+// -----------------------------------------------------------------------------
+// Cinematic Vignette (post-processing version)
+// Separate from the HP-reactive vignette in render() — this is purely cinematic.
+// Uses concentric rectangular bands with quadratic falloff from ~60% inward to edges.
+// -----------------------------------------------------------------------------
+void ScreenEffects::renderVignette(SDL_Renderer* renderer, int screenW, int screenH) {
+    // Vignette coverage: darken outer ~40% of screen
+    // Max alpha at the very edge (corners get darkest)
+    constexpr Uint8 kMaxEdgeAlpha = 70;   // Subtle but noticeable
+    constexpr int kBands = 16;            // Number of gradient bands (performance-friendly)
+
+    // Calculate band dimensions — from edge inward
+    const float innerFractionW = 0.55f;  // Inner clear zone = 55% of width
+    const float innerFractionH = 0.50f;  // Inner clear zone = 50% of height
+    const int marginW = static_cast<int>(screenW * (1.0f - innerFractionW) * 0.5f);
+    const int marginH = static_cast<int>(screenH * (1.0f - innerFractionH) * 0.5f);
+
+    // Draw bands from outside in (outer = darkest, inner = lightest)
+    for (int i = 0; i < kBands; ++i) {
+        float t = static_cast<float>(i) / static_cast<float>(kBands); // 0=outermost, 1=innermost
+        float alphaFactor = (1.0f - t) * (1.0f - t); // Quadratic falloff
+        Uint8 a = static_cast<Uint8>(kMaxEdgeAlpha * alphaFactor);
+        if (a < 2) continue; // Skip invisible bands
+
+        // Inset from edge for this band
+        int insetW = static_cast<int>(t * marginW);
+        int insetH = static_cast<int>(t * marginH);
+
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, a);
+
+        // Top band
+        SDL_Rect top = {insetW, insetH, screenW - 2 * insetW, marginH / kBands + 1};
+        // Bottom band
+        SDL_Rect bottom = {insetW, screenH - insetH - marginH / kBands, screenW - 2 * insetW, marginH / kBands + 1};
+        // Left band
+        SDL_Rect left = {insetW, insetH, marginW / kBands + 1, screenH - 2 * insetH};
+        // Right band
+        SDL_Rect right = {screenW - insetW - marginW / kBands, insetH, marginW / kBands + 1, screenH - 2 * insetH};
+
+        SDL_RenderFillRect(renderer, &top);
+        SDL_RenderFillRect(renderer, &bottom);
+        SDL_RenderFillRect(renderer, &left);
+        SDL_RenderFillRect(renderer, &right);
+    }
+
+    // Corner extra darkening (elliptical, 4 corners with coarse blocks)
+    constexpr int kCornerBlock = 8;
+    const int cornerW = marginW;
+    const int cornerH = marginH;
+    const Uint8 cornerMaxA = static_cast<Uint8>(kMaxEdgeAlpha * 0.9f);
+
+    struct CornerPos { int x, y; };
+    const CornerPos corners[4] = {
+        {0, 0},
+        {screenW - cornerW, 0},
+        {0, screenH - cornerH},
+        {screenW - cornerW, screenH - cornerH}
+    };
+
+    for (const auto& cp : corners) {
+        for (int by = 0; by < cornerH; by += kCornerBlock) {
+            for (int bx = 0; bx < cornerW; bx += kCornerBlock) {
+                // Normalized distance from outer corner (0 = corner, 1 = inner edge)
+                float fx = static_cast<float>(cp.x == 0 ? bx : cornerW - bx) / static_cast<float>(cornerW);
+                float fy = static_cast<float>(cp.y == 0 ? by : cornerH - by) / static_cast<float>(cornerH);
+                float d = (1.0f - fx) * (1.0f - fy); // Product = strongest at corner
+                if (d > 0.08f) {
+                    Uint8 a = static_cast<Uint8>(cornerMaxA * d * d);
+                    if (a < 2) continue;
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, a);
+                    int w = std::min(kCornerBlock, cornerW - bx);
+                    int h = std::min(kCornerBlock, cornerH - by);
+                    SDL_Rect r = {cp.x + bx, cp.y + by, w, h};
+                    SDL_RenderFillRect(renderer, &r);
+                }
+            }
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Color Grading — subtle dimension-based mood tint
+// Dim A = cool blue/purple, Dim B = warm orange/amber
+// Very low alpha for a subtle cinematic look without washing out the game.
+// -----------------------------------------------------------------------------
+void ScreenEffects::renderColorGrading(SDL_Renderer* renderer, int screenW, int screenH,
+                                        int currentDimension, float dimBlendAlpha) {
+    // Dimension A: cool blue-purple tint
+    // Dimension B: warm orange-amber tint
+    // During transition (dimBlendAlpha != 0/1), blend between them
+
+    struct ColorTint { Uint8 r, g, b; Uint8 alpha; };
+
+    // Base tints — very subtle
+    constexpr ColorTint kDimATint = {40, 60, 140, 10};   // Cool blue
+    constexpr ColorTint kDimBTint = {160, 100, 30, 10};  // Warm orange
+
+    // Slight time-based pulse for life (amplitude ~2 alpha)
+    float pulse = 1.0f + 0.2f * std::sin(m_time * 0.8f);
+
+    // Determine blend factor (0 = full dim A, 1 = full dim B)
+    float dimBFactor = 0.0f;
+    if (currentDimension == 2) dimBFactor = 1.0f;
+    else if (currentDimension == 1) dimBFactor = 0.0f;
+    // If dimBlendAlpha is mid-transition, interpolate
+    if (dimBlendAlpha > 0.01f && dimBlendAlpha < 0.99f) {
+        dimBFactor = dimBlendAlpha;
+    }
+
+    // Lerp between the two tints
+    Uint8 r = static_cast<Uint8>(kDimATint.r + (kDimBTint.r - kDimATint.r) * dimBFactor);
+    Uint8 g = static_cast<Uint8>(kDimATint.g + (kDimBTint.g - kDimATint.g) * dimBFactor);
+    Uint8 b = static_cast<Uint8>(kDimATint.b + (kDimBTint.b - kDimATint.b) * dimBFactor);
+    Uint8 a = clampAlpha((kDimATint.alpha + (kDimBTint.alpha - kDimATint.alpha) * dimBFactor) * pulse);
+
+    SDL_SetRenderDrawColor(renderer, r, g, b, a);
+    SDL_Rect fullScreen = {0, 0, screenW, screenH};
+    SDL_RenderFillRect(renderer, &fullScreen);
+}
+
+// -----------------------------------------------------------------------------
+// Ambient Particles — floating dust motes / dimensional energy particles
+// 30 small particles drift slowly, with dimension-appropriate colors.
+// Very subtle: alpha 20-60, size 1-3px.
+// -----------------------------------------------------------------------------
+void ScreenEffects::initAmbientParticles(int screenW, int screenH) {
+    for (int i = 0; i < kMaxAmbientParticles; ++i) {
+        auto& p = m_ambientParticles[i];
+        p.x = randFloat() * screenW;
+        p.y = randFloat() * screenH;
+        p.vx = (randFloat() - 0.5f) * 12.0f;  // -6 to +6 px/s
+        p.vy = -2.0f - randFloat() * 8.0f;     // Slowly drift upward (-2 to -10 px/s)
+        p.size = 1.0f + randFloat() * 2.0f;    // 1-3 px
+        p.alpha = 20.0f + randFloat() * 40.0f;
+        p.alphaTarget = 20.0f + randFloat() * 40.0f;
+        p.lifetime = 2.0f + randFloat() * 8.0f;
+        // Default to dimension A colors (purple/blue)
+        if (randFloat() > 0.5f) {
+            p.r = static_cast<Uint8>(100 + randFloat() * 80);  // Purple
+            p.g = static_cast<Uint8>(60 + randFloat() * 60);
+            p.b = static_cast<Uint8>(180 + randFloat() * 75);
+        } else {
+            p.r = static_cast<Uint8>(60 + randFloat() * 60);   // Blue
+            p.g = static_cast<Uint8>(120 + randFloat() * 80);
+            p.b = static_cast<Uint8>(200 + randFloat() * 55);
+        }
+    }
+    m_ambientParticlesInitialized = true;
+}
+
+void ScreenEffects::updateAmbientParticles(float dt, int screenW, int screenH, int currentDimension) {
+    for (int i = 0; i < kMaxAmbientParticles; ++i) {
+        auto& p = m_ambientParticles[i];
+
+        // Move
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+
+        // Gentle sine wave horizontal drift
+        p.x += std::sin(m_time * 0.5f + i * 0.7f) * 0.3f;
+
+        // Smooth alpha breathing
+        float alphaDiff = p.alphaTarget - p.alpha;
+        p.alpha += alphaDiff * dt * 2.0f;
+
+        p.lifetime -= dt;
+
+        // Respawn when off-screen or lifetime expired
+        if (p.lifetime <= 0 || p.x < -10 || p.x > screenW + 10 ||
+            p.y < -10 || p.y > screenH + 10) {
+            // Respawn at random position (prefer bottom for upward drift)
+            p.x = randFloat() * screenW;
+            p.y = screenH + randFloat() * 20.0f; // Start below screen
+            p.vx = (randFloat() - 0.5f) * 12.0f;
+            p.vy = -2.0f - randFloat() * 8.0f;
+            p.size = 1.0f + randFloat() * 2.0f;
+            p.alphaTarget = 20.0f + randFloat() * 40.0f;
+            p.alpha = 0.0f; // Fade in from invisible
+            p.lifetime = 4.0f + randFloat() * 8.0f;
+
+            // Set colors based on current dimension
+            if (currentDimension == 2) {
+                // Dimension B: orange/red/amber
+                if (randFloat() > 0.5f) {
+                    p.r = static_cast<Uint8>(200 + randFloat() * 55);
+                    p.g = static_cast<Uint8>(100 + randFloat() * 80);
+                    p.b = static_cast<Uint8>(20 + randFloat() * 40);
+                } else {
+                    p.r = static_cast<Uint8>(220 + randFloat() * 35);
+                    p.g = static_cast<Uint8>(60 + randFloat() * 60);
+                    p.b = static_cast<Uint8>(30 + randFloat() * 30);
+                }
+            } else {
+                // Dimension A: purple/blue
+                if (randFloat() > 0.5f) {
+                    p.r = static_cast<Uint8>(100 + randFloat() * 80);
+                    p.g = static_cast<Uint8>(60 + randFloat() * 60);
+                    p.b = static_cast<Uint8>(180 + randFloat() * 75);
+                } else {
+                    p.r = static_cast<Uint8>(60 + randFloat() * 60);
+                    p.g = static_cast<Uint8>(120 + randFloat() * 80);
+                    p.b = static_cast<Uint8>(200 + randFloat() * 55);
+                }
+            }
+        }
+    }
+}
+
+void ScreenEffects::renderAmbientParticles(SDL_Renderer* renderer) {
+    for (int i = 0; i < kMaxAmbientParticles; ++i) {
+        const auto& p = m_ambientParticles[i];
+        Uint8 a = clampAlpha(p.alpha);
+        if (a < 3) continue; // Skip nearly invisible particles
+
+        SDL_SetRenderDrawColor(renderer, p.r, p.g, p.b, a);
+
+        int size = static_cast<int>(p.size);
+        int px = static_cast<int>(p.x);
+        int py = static_cast<int>(p.y);
+
+        if (size <= 1) {
+            // Single pixel
+            SDL_RenderDrawPoint(renderer, px, py);
+        } else {
+            // Small filled rect
+            SDL_Rect r = {px - size / 2, py - size / 2, size, size};
+            SDL_RenderFillRect(renderer, &r);
+        }
+
+        // Faint glow halo for larger particles (1 extra ring, very low alpha)
+        if (size >= 2 && a > 15) {
+            SDL_SetRenderDrawColor(renderer, p.r, p.g, p.b, static_cast<Uint8>(a / 4));
+            SDL_Rect glow = {px - size, py - size, size * 2 + 1, size * 2 + 1};
+            SDL_RenderDrawRect(renderer, &glow);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Bloom/Glow Simulation — soft additive-blended rectangles at bright spots
+// Games register glow points each frame; we draw soft concentric rects.
+// Uses SDL additive blending for the "light bleeding" look.
+// -----------------------------------------------------------------------------
+void ScreenEffects::registerGlowPoint(float screenX, float screenY, float radius,
+                                       Uint8 r, Uint8 g, Uint8 b, Uint8 intensity) {
+    if (m_glowPointCount >= kMaxGlowPoints) return;
+    auto& gp = m_glowPoints[m_glowPointCount++];
+    gp.x = screenX;
+    gp.y = screenY;
+    gp.radius = radius;
+    gp.r = r;
+    gp.g = g;
+    gp.b = b;
+    gp.intensity = intensity;
+}
+
+void ScreenEffects::clearGlowPoints() {
+    m_glowPointCount = 0;
+}
+
+void ScreenEffects::renderBloom(SDL_Renderer* renderer) {
+    // Use additive blending for bloom — light adds on top of existing colors
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+
+    for (int i = 0; i < m_glowPointCount; ++i) {
+        const auto& gp = m_glowPoints[i];
+        int cx = static_cast<int>(gp.x);
+        int cy = static_cast<int>(gp.y);
+        float r = gp.radius;
+
+        // Draw 4 concentric soft layers (inner = brighter, outer = dimmer)
+        constexpr int kLayers = 4;
+        for (int layer = 0; layer < kLayers; ++layer) {
+            float t = static_cast<float>(layer) / static_cast<float>(kLayers);
+            float layerRadius = r * (0.3f + t * 0.7f); // 30% to 100% of radius
+            float alphaFactor = (1.0f - t) * (1.0f - t); // Quadratic falloff
+            Uint8 a = clampAlpha(gp.intensity * alphaFactor);
+            if (a < 2) continue;
+
+            int halfW = static_cast<int>(layerRadius);
+            int halfH = static_cast<int>(layerRadius * 0.8f); // Slightly vertically squished
+
+            SDL_SetRenderDrawColor(renderer, gp.r, gp.g, gp.b, a);
+            SDL_Rect rect = {cx - halfW, cy - halfH, halfW * 2, halfH * 2};
+            SDL_RenderFillRect(renderer, &rect);
+        }
+    }
+
+    // Restore normal blending
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 }

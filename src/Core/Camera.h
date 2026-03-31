@@ -32,7 +32,7 @@ public:
     void setPosition(const Vec2& pos) { m_position = pos; }
     void setBounds(float minX, float minY, float maxX, float maxY);
 
-    float zoom = 1.0f;
+    float zoom = 2.5f;  // 2.5x zoom: sprite detail + world visibility at native res
 
     int getViewWidth() const { return m_screenW; }
     int getViewHeight() const { return m_screenH; }

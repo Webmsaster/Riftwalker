@@ -102,6 +102,7 @@ public:
 
 private:
     int m_width, m_height, m_tileSize;
+    int m_texTileSize;  // Texture tile size (4x upscaled)
     std::vector<Tile> m_tilesA; // Dimension A
     std::vector<Tile> m_tilesB; // Dimension B
     Vec2 m_spawnPoint;
