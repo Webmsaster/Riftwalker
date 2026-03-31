@@ -277,7 +277,7 @@ ANIM_FUNCS = {
 ENEMIES = {
     "walker": ("dark robotic quadruped patrol bot, mechanical legs, single glowing red eye, armored shell, small ground robot", 32, 32, False),
     "flyer": ("dark winged drone creature, bat-like energy wings spread wide, hovering, red glowing eyes, aerial enemy", 32, 32, False),
-    "turret": ("stationary gun turret, mounted cannon barrel, targeting laser, military defense platform, compact weapon", 32, 32, False),
+    "turret": ("small stationary ground-mounted rotating gun turret, no legs, mechanical barrel pointing forward, compact military weapon platform on tripod base, NOT humanoid", 32, 32, False),
     "charger": ("large horned beast, glowing orange horns, muscular charging pose, heavy armored front, aggressive bull creature", 32, 32, False),
     "phaser": ("ghostly translucent specter, ethereal flowing form, phasing between dimensions, purple glow, transparent edges", 32, 32, True),
     "exploder": ("round bloated green creature, toxic volatile body, unstable glowing cracks, about to burst, spherical enemy", 32, 32, True),
@@ -286,8 +286,8 @@ ENEMIES = {
     "summoner": ("floating dark mage in robes, casting purple magic from hands, mystical hovering sorcerer, glowing staff", 32, 32, True),
     "sniper": ("thin sleek sniper unit, long rifle barrel, telescopic red eye, crouching pose, dark matte metal body", 32, 32, False),
     "teleporter": ("glitching digital creature, electric blue distortion, unstable holographic form, teleport sparks", 32, 32, True),
-    "reflector": ("angular chrome mirror creature, prismatic reflective surface, geometric shape, light reflections", 32, 32, True),
-    "leech": ("dark parasitic slug, tendril appendages reaching out, draining red energy veins, slimy purple body", 32, 32, False),
+    "reflector": ("floating diamond-shaped mirror shield creature, silver chrome angular body, prismatic rainbow light reflections, crystalline geometric form, NOT humanoid", 32, 32, True),
+    "leech": ("dark parasitic slug creature, tendril appendages, draining red energy veins, slimy purple body, low to ground, worm-like", 32, 32, True),
     "swarmer": ("tiny insect creature, dark body with yellow warning stripes, small bee-like, compact", 16, 16, False),
     "gravitywell": ("floating dark orb, gravitational distortion rings, warping space around it, deep black sphere, energy halo", 32, 32, False),
     "mimic": ("treasure chest with teeth and eyes, wooden chest opening revealing monster mouth, ambush predator, hinged lid", 32, 32, True),
@@ -582,7 +582,8 @@ def assemble_boss_sheet(name, info):
 
         src = Image.open(img_path).convert('RGBA')
         char = extract_character(src, 0.08)
-        base_sprite = process_sprite(char, fsize, fsize)
+        # Bosses always use BG removal (they're colorful enough)
+        base_sprite = process_sprite(char, fsize, fsize, remove_bg=True)
 
         anim_func = BOSS_ANIM_FUNCS[anim_name]
         for frame_idx in range(num_frames):
