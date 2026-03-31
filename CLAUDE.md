@@ -5,7 +5,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-03-29/30 refactoring sessions):**
+**Recent Updates (2026-04-01 visual overhaul session):**
+- Native display resolution detection (auto-detects 2560×1440, 4K, etc.)
+- Physical window at native res, logical at 1280×720 via SDL_RenderSetLogicalSize
+- Camera Zoom 2.5: better balance of sprite detail vs world visibility
+- Anisotropic texture filtering (SDL hint "2") + per-texture SDL_SetTextureScaleMode(Linear)
+- 4× Real-ESRGAN upscaled sprites with professional transparency cleanup (186 frames fixed)
+- Post-processing system: vignette, color grading, ambient particles, bloom/glow
+- NPC rendering overhaul: layered figures with glow auras, type-specific details (+507 lines)
+- Event rendering overhaul: merchants=stalls, shrines=pedestals, anomalies=vortexes, etc.
+- HUD upgrade: gradient backing panels, 3-band gradient bars, specular highlights, animated shimmer
+- Font size 20px with light hinting for crisp text
+- 3 new sprite tools: fix_sprites_pro.py, fix_backgrounds_aggressive.py, fix_grabcut.py
+
+**Previous Updates (2026-03-29/30 refactoring sessions):**
 - ChallengeMode persistence: best scores per challenge saved to riftwalker_challenges.dat
 - AscensionSystem backup: .bak fallback on load, backup before save
 - AISystem synergy pass optimized from O(n²) to O(n*s) with stack-allocated collection
@@ -135,6 +148,10 @@ Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victo
 - `bestiary_save.dat` — Enemy discovery & kill counts
 - `ascension_save.dat` — NG+ tier and Rift Cores (with .bak backup)
 - `riftwalker_challenges.dat` — Challenge mode best scores (with .bak backup)
+
+## Build & Asset Tools
+- `tools/fix_transparency.py` — Removes white backgrounds from sprite PNGs (batch processing)
+- `tools/upscale_sprites_v2.py` — Upscales sprites 4× using Real-ESRGAN (GPU-accelerated)
 
 ## Rules
 - New features always via ECS pattern (Component for data + System for logic)
