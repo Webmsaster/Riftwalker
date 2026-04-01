@@ -277,6 +277,17 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         }
     }
 
+    // Idle breathing: subtle vertical scale oscillation when player is still
+    if (tag == "player" && !spawning) {
+        auto& sprite2 = entity.getComponent<SpriteComponent>();
+        if (sprite2.animState == AnimState::Idle) {
+            float breathe = std::sin(SDL_GetTicks() * 0.003f) * 0.02f; // ±2% at ~1.5Hz
+            int deltaH = static_cast<int>(screenRect.h * breathe);
+            screenRect.y -= deltaH;
+            screenRect.h += deltaH;
+        }
+    }
+
     // Hybrid rendering: try sprite first, fall back to procedural
     if (entity.getComponent<SpriteComponent>().texture) {
         // Soft gradient drop shadow (4 bands, decreasing alpha, expanding outward)
