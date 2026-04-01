@@ -5,7 +5,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-01 high-end visual overhaul session):**
+**Recent Updates (2026-04-02 complete 2K UI scaling + polish session):**
+- **COMPLETE UI SCALING**: All 35+ files scaled from 1280x720 → 2560x1440 logical resolution
+  - Every menu state, overlay, HUD element, title card, and dialog
+  - Font sizes doubled for Credits/Lore/Ending (56/32/28px)
+  - Boss HP bar, weapon panel, minimap, combo counter all scaled
+- Smooth button hover transitions: color lerp + glow fade (m_hoverBlend)
+- Staggered button entrance animation on menu load (ease-out slide from left)
+- Boss attack animation cycling: Attack1/2/3 based on bossAttackPattern
+- Boss enrage animation trigger when isEnraged + Idle state
+- AnimationComponent: while-loop frame accumulation (prevents frame skipping)
+- Camera.cpp: pixel-perfect SDL_Rect calculation (round-based edge snapping)
+- Camera culling margin doubled (128px) + RenderSystem margin (200px)
+- Splash screen: larger glow rects, 1.5x press-any-key, 1s skip lock
+- ScreenEffects: GameState::SCREEN_WIDTH/HEIGHT instead of hardcoded values
+- Level complete iris transition banner scaled for 2K
+- Run intro narrative text positions + vignette border scaled
+- Boss intro title card: doubled cinematic bars, separator lines, text offsets
+- 6 commits, 35+ files changed, ~400 lines
+
+**Previous Updates (2026-04-01 high-end visual overhaul session):**
 - **COMPLETE SPRITE OVERHAUL**: All 17 enemies + player regenerated via v3 pipeline
   - JuggernautXL v9 SDXL at 768px (no pixel-art LoRA — professional hand-painted style)
   - rembg U²-Net neural background removal (eliminates grey artifacts)
