@@ -742,31 +742,54 @@ void RenderSystem::renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 }
 
 void RenderSystem::renderProjectile(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
+    auto& sprite = entity.getComponent<SpriteComponent>();
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int cx = rect.x + rect.w / 2;
     int cy = rect.y + rect.h / 2;
     int r = rect.w / 2 + 1;
 
-    // Outer glow
-    fillRect(renderer, cx - r - 2, cy - r - 2, (r + 2) * 2, (r + 2) * 2, 255, 200, 50, static_cast<Uint8>(a * 0.3f));
-    // Core
-    fillRect(renderer, cx - r, cy - r, r * 2, r * 2, 255, 230, 100, a);
-    // Bright center
-    fillRect(renderer, cx - 1, cy - 1, 2, 2, 255, 255, 220, a);
+    // Determine projectile color from sprite
+    Uint8 pr = sprite.color.r, pg = sprite.color.g, pb = sprite.color.b;
 
-    // Trail behind projectile
+    // Additive outer glow (2 layers for soft look)
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+    fillRect(renderer, cx - r - 4, cy - r - 4, (r + 4) * 2, (r + 4) * 2, pr, pg, pb, static_cast<Uint8>(a * 0.15f));
+    fillRect(renderer, cx - r - 2, cy - r - 2, (r + 2) * 2, (r + 2) * 2, pr, pg, pb, static_cast<Uint8>(a * 0.3f));
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Core
+    fillRect(renderer, cx - r, cy - r, r * 2, r * 2, pr, pg, pb, a);
+    // Bright white center
+    fillRect(renderer, cx - 1, cy - 1, 2, 2,
+             static_cast<Uint8>(std::min(255, pr + 100)),
+             static_cast<Uint8>(std::min(255, pg + 100)),
+             static_cast<Uint8>(std::min(255, pb + 80)), a);
+
+    // Trail behind projectile (longer, fading, with glow)
     if (entity.hasComponent<PhysicsBody>()) {
         auto& phys = entity.getComponent<PhysicsBody>();
         float speed = std::sqrt(phys.velocity.x * phys.velocity.x + phys.velocity.y * phys.velocity.y);
         if (speed > 10.0f) {
             float nx = -phys.velocity.x / speed;
             float ny = -phys.velocity.y / speed;
-            for (int i = 1; i <= 4; i++) {
-                int tx = cx + static_cast<int>(nx * i * 4);
-                int ty = cy + static_cast<int>(ny * i * 4);
-                Uint8 ta = static_cast<Uint8>(a * (1.0f - i * 0.2f));
-                fillRect(renderer, tx - 1, ty - 1, 2, 2, 255, 200, 50, ta);
+            // Extended trail (6 segments instead of 4, with size falloff)
+            for (int i = 1; i <= 6; i++) {
+                float falloff = 1.0f - i * 0.14f;
+                int tx = cx + static_cast<int>(nx * i * 3.5f);
+                int ty = cy + static_cast<int>(ny * i * 3.5f);
+                int ts = std::max(1, static_cast<int>(r * falloff));
+                Uint8 ta = static_cast<Uint8>(a * falloff * 0.7f);
+                fillRect(renderer, tx - ts, ty - ts, ts * 2, ts * 2, pr, pg, pb, ta);
             }
+            // Additive trail glow
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+            for (int i = 1; i <= 3; i++) {
+                int tx = cx + static_cast<int>(nx * i * 5);
+                int ty = cy + static_cast<int>(ny * i * 5);
+                Uint8 ga = static_cast<Uint8>(a * 0.12f * (1.0f - i * 0.25f));
+                fillRect(renderer, tx - r - 1, ty - r - 1, (r + 1) * 2, (r + 1) * 2, pr, pg, pb, ga);
+            }
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         }
     }
 }
