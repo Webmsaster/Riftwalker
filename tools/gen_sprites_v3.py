@@ -571,10 +571,33 @@ def refine_alpha_edges(img_pil, erode_px=1, feather_px=2):
 # ═══════════════════════════════════════════════════════════════════════════
 
 def extract_character(img_pil, margin_pct=0.08):
-    """Crop to character region, removing excess background padding."""
-    w, h = img_pil.size
+    """Crop to character bounding box (content-aware), with padding margin.
+    Finds actual non-transparent content and crops to that + margin."""
+    arr = np.array(img_pil.convert("RGBA"))
+    alpha = arr[:, :, 3]
+
+    # Find bounding box of non-transparent pixels
+    rows = np.any(alpha > 30, axis=1)
+    cols = np.any(alpha > 30, axis=0)
+
+    if not rows.any() or not cols.any():
+        # Fallback: no content detected, use simple margin crop
+        w, h = img_pil.size
+        margin = int(min(w, h) * margin_pct)
+        return img_pil.crop((margin, margin, w - margin, h - margin))
+
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    # Add margin around the content
+    h, w = arr.shape[:2]
     margin = int(min(w, h) * margin_pct)
-    return img_pil.crop((margin, margin, w - margin, h - margin))
+    rmin = max(0, rmin - margin)
+    rmax = min(h - 1, rmax + margin)
+    cmin = max(0, cmin - margin)
+    cmax = min(w - 1, cmax + margin)
+
+    return img_pil.crop((cmin, rmin, cmax + 1, rmax + 1))
 
 
 def adjust_colors(img_pil, saturation=1.25, contrast=1.15, brightness=1.05):
@@ -613,6 +636,33 @@ def add_outline(img_pil, color=(10, 10, 10, 180), thickness=1):
     return Image.alpha_composite(outline_img, img)
 
 
+def fit_to_frame(img_pil, target_w, target_h, fill_pct=0.85):
+    """Resize image to fit within target frame, preserving aspect ratio.
+    Centers the result, leaving transparent padding. fill_pct controls
+    how much of the frame the sprite fills (0.85 = 85%, leaves breathing room)."""
+    src_w, src_h = img_pil.size
+    if src_w <= 0 or src_h <= 0:
+        return Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+
+    # Available space (with padding)
+    avail_w = int(target_w * fill_pct)
+    avail_h = int(target_h * fill_pct)
+
+    # Scale to fit (maintain aspect ratio)
+    scale = min(avail_w / src_w, avail_h / src_h)
+    new_w = max(1, int(src_w * scale))
+    new_h = max(1, int(src_h * scale))
+
+    resized = img_pil.resize((new_w, new_h), Image.LANCZOS)
+
+    # Center in frame (anchor to bottom-center for grounded characters)
+    result = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+    ox = (target_w - new_w) // 2
+    oy = target_h - new_h - int(target_h * 0.03)  # Small bottom margin
+    result.paste(resized, (ox, oy), resized)
+    return result
+
+
 def process_sprite_v3(raw_img_path, target_w, target_h, use_rembg=True):
     """Full post-processing pipeline for a single generated image.
     Returns a clean, game-ready RGBA PIL Image at target_w x target_h."""
@@ -630,8 +680,8 @@ def process_sprite_v3(raw_img_path, target_w, target_h, use_rembg=True):
     # Step 3: Refine alpha edges (kills grey halos)
     img = refine_alpha_edges(img, erode_px=2, feather_px=2)
 
-    # Step 4: Resize to target frame size (high-quality LANCZOS)
-    img = img.resize((target_w, target_h), Image.LANCZOS)
+    # Step 4: Fit to target frame (preserve aspect ratio, center in frame)
+    img = fit_to_frame(img, target_w, target_h)
 
     # Step 5: Color adjustment for game readability
     img = adjust_colors(img, saturation=1.20, contrast=1.12, brightness=1.03)
@@ -1055,32 +1105,29 @@ def assemble_enemy_sheet(name, desc, fw, fh, q="standard", two_pass=True,
 
     base_seed = _name_to_seed(name)
 
+    # === KEY FIX: Generate ONE base sprite, reuse for ALL animations ===
+    # This ensures the character looks the same across all animation rows.
+    # Only the idle pose is AI-generated; all other rows use code transforms.
+    base_raw_path = str(edir / "base_raw.png")
+    base_clean_path = str(edir / "base_clean.png")
+
+    if force_regen or not os.path.exists(base_clean_path):
+        if not os.path.exists(base_raw_path) or force_regen:
+            idle_desc = ENEMY_ANIMS["idle"][0]
+            prompt = f"{desc}, {idle_desc}"
+            ok, _ = generate_sprite(prompt, base_raw_path, q=q,
+                                     seed=base_seed, two_pass=two_pass)
+            if not ok:
+                print(f"  [FAIL] Could not generate base sprite for {name}")
+                return None
+        base = process_sprite_v3(base_raw_path, fw, fh, use_rembg=True)
+        base.save(base_clean_path, "PNG")
+
+    base_sprite = Image.open(base_clean_path).convert("RGBA")
+
     for row_idx, anim_name in enumerate(rows):
-        anim_desc, num_frames = ENEMY_ANIMS[anim_name]
-        raw_path = str(edir / f"{anim_name}_raw.png")
-        processed_path = str(edir / f"{anim_name}_clean.png")
-
-        # Generate if not cached (or forced)
-        if force_regen or not os.path.exists(processed_path):
-            if not os.path.exists(raw_path) or force_regen:
-                prompt = f"{desc}, {anim_desc}"
-                ok, _ = generate_sprite(prompt, raw_path, q=q,
-                                         seed=base_seed + row_idx,
-                                         two_pass=two_pass)
-                if not ok:
-                    print(f"  [SKIP] {anim_name} — generation failed")
-                    continue
-
-            # Post-process
-            base = process_sprite_v3(raw_path, fw, fh, use_rembg=True)
-            base.save(processed_path, "PNG")
-
-        if not os.path.exists(processed_path):
-            continue
-
-        base_sprite = Image.open(processed_path).convert("RGBA")
-
-        # Generate animation frames
+        _, num_frames = ENEMY_ANIMS[anim_name]
+        # All rows use the SAME base sprite — animation is purely code transforms
         anim_func = ANIM_FUNCS[anim_name]
         for fi in range(num_frames):
             frame = anim_func(base_sprite, fi, num_frames, fw, fh)
@@ -1118,28 +1165,26 @@ def assemble_player_sheet(q="standard", two_pass=True, force_regen=False):
 
     base_seed = _name_to_seed("player_void_warrior")
 
+    # === KEY FIX: Generate ONE base sprite, reuse for ALL animations ===
+    base_raw_path = str(pdir / "base_raw.png")
+    base_clean_path = str(pdir / "base_clean.png")
+
+    if force_regen or not os.path.exists(base_clean_path):
+        if not os.path.exists(base_raw_path) or force_regen:
+            idle_desc = PLAYER_ANIMS["idle"][0]
+            prompt = f"{PLAYER_DESC}, {idle_desc}"
+            ok, _ = generate_sprite(prompt, base_raw_path, q=q,
+                                     seed=base_seed, two_pass=two_pass)
+            if not ok:
+                print(f"  [FAIL] Could not generate player base sprite")
+                return None
+        base = process_sprite_v3(base_raw_path, fw, fh, use_rembg=True)
+        base.save(base_clean_path, "PNG")
+
+    base_sprite = Image.open(base_clean_path).convert("RGBA")
+
     for row_idx, anim_name in enumerate(rows):
-        anim_desc, num_frames = PLAYER_ANIMS[anim_name]
-        raw_path = str(pdir / f"{anim_name}_raw.png")
-        processed_path = str(pdir / f"{anim_name}_clean.png")
-
-        if force_regen or not os.path.exists(processed_path):
-            if not os.path.exists(raw_path) or force_regen:
-                prompt = f"{PLAYER_DESC}, {anim_desc}"
-                ok, _ = generate_sprite(prompt, raw_path, q=q,
-                                         seed=base_seed + row_idx,
-                                         two_pass=two_pass)
-                if not ok:
-                    print(f"  [SKIP] {anim_name}")
-                    continue
-
-            base = process_sprite_v3(raw_path, fw, fh, use_rembg=True)
-            base.save(processed_path, "PNG")
-
-        if not os.path.exists(processed_path):
-            continue
-
-        base_sprite = Image.open(processed_path).convert("RGBA")
+        _, num_frames = PLAYER_ANIMS[anim_name]
         anim_func = player_anim_funcs[anim_name]
         for fi in range(num_frames):
             frame = anim_func(base_sprite, fi, num_frames, fw, fh)
@@ -1173,28 +1218,26 @@ def assemble_boss_sheet(name, info, q="standard", two_pass=True, force_regen=Fal
 
     base_seed = _name_to_seed(f"boss_{name}")
 
+    # === KEY FIX: Generate ONE base sprite, reuse for ALL animations ===
+    base_raw_path = str(bdir / "base_raw.png")
+    base_clean_path = str(bdir / "base_clean.png")
+
+    if force_regen or not os.path.exists(base_clean_path):
+        if not os.path.exists(base_raw_path) or force_regen:
+            idle_desc = BOSS_ANIMS["idle"][0]
+            prompt = f"{desc}, {idle_desc}"
+            ok, _ = generate_sprite(prompt, base_raw_path, q=q,
+                                     seed=base_seed, two_pass=two_pass)
+            if not ok:
+                print(f"  [FAIL] Could not generate base sprite for boss {name}")
+                return None
+        base = process_sprite_v3(base_raw_path, fw, fh, use_rembg=True)
+        base.save(base_clean_path, "PNG")
+
+    base_sprite = Image.open(base_clean_path).convert("RGBA")
+
     for row_idx, anim_name in enumerate(rows):
-        anim_desc, num_frames = BOSS_ANIMS[anim_name]
-        raw_path = str(bdir / f"{anim_name}_raw.png")
-        processed_path = str(bdir / f"{anim_name}_clean.png")
-
-        if force_regen or not os.path.exists(processed_path):
-            if not os.path.exists(raw_path) or force_regen:
-                prompt = f"{desc}, {anim_desc}"
-                ok, _ = generate_sprite(prompt, raw_path, q=q,
-                                         seed=base_seed + row_idx,
-                                         two_pass=two_pass)
-                if not ok:
-                    print(f"  [SKIP] {anim_name}")
-                    continue
-
-            base = process_sprite_v3(raw_path, fw, fh, use_rembg=True)
-            base.save(processed_path, "PNG")
-
-        if not os.path.exists(processed_path):
-            continue
-
-        base_sprite = Image.open(processed_path).convert("RGBA")
+        _, num_frames = BOSS_ANIMS[anim_name]
         anim_func = BOSS_ANIM_FUNCS[anim_name]
         for fi in range(num_frames):
             frame = anim_func(base_sprite, fi, num_frames, fw, fh)
