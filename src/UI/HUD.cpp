@@ -1210,9 +1210,9 @@ void HUD::renderBar(SDL_Renderer* renderer, int x, int y, int w, int h,
         // Animated shimmer (subtle moving highlight)
         Uint32 ticks = SDL_GetTicks();
         int shimmerX = x + static_cast<int>((ticks % 3000) * fillW / 3000.0f);
-        if (shimmerX < x + fillW - 8) {
+        if (shimmerX < x + fillW - 16) {
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 25);
-            SDL_Rect shimmer = {shimmerX, y + 1, 8, h - 2};
+            SDL_Rect shimmer = {shimmerX, y + 1, 16, h - 2};
             SDL_RenderFillRect(renderer, &shimmer);
         }
     }
