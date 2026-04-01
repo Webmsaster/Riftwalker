@@ -263,7 +263,7 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
             int themeId = static_cast<int>(theme.id);
             for (int i = 0; i < 8; i++) {
                 int baseX = ((i * 8317 + 29741) % 2000) - 200;
-                int baseY = SCREEN_HEIGHT - 50 - ((i * 4729) % 200);
+                int baseY = SCREEN_HEIGHT - 100 - ((i * 4729) % 400);
                 int sx = ((baseX - offX) % 1800 + 1800) % 1800 - 200;
                 int sy = baseY - (offY % 300);
 
