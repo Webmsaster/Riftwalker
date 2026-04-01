@@ -604,6 +604,55 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Particles
     m_particles.render(renderer, m_camera);
 
+    // Dynamic lighting: register light sources, then render darkness with light holes
+    {
+        Vec2 cam = m_camera.getPosition();
+
+        // Player is always the primary light source
+        if (m_player && m_player->getEntity()) {
+            auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+            float sx = pt.getCenter().x - cam.x;
+            float sy = pt.getCenter().y - cam.y;
+            m_screenEffects.registerLight(sx, sy, 220.0f, 200, 200, 255, 1.0f);
+        }
+
+        // Rifts glow
+        if (m_level) {
+            for (auto& rp : m_level->getRiftPositions()) {
+                float rx = rp.x + m_level->getTileSize() * 0.5f - cam.x;
+                float ry = rp.y + m_level->getTileSize() - cam.y;
+                if (rx > -150 && rx < SCREEN_WIDTH + 150 && ry > -150 && ry < SCREEN_HEIGHT + 150) {
+                    m_screenEffects.registerLight(rx, ry, 100.0f, 130, 80, 255, 0.7f);
+                }
+            }
+            // Exit glows
+            float ex = m_level->getExitPoint().x + m_level->getTileSize() * 0.5f - cam.x;
+            float ey = m_level->getExitPoint().y + m_level->getTileSize() - cam.y;
+            if (ex > -150 && ex < SCREEN_WIDTH + 150 && ey > -150 && ey < SCREEN_HEIGHT + 150) {
+                Uint8 lr = m_level->isExitActive() ? 50 : 120;
+                Uint8 lg = m_level->isExitActive() ? 200 : 40;
+                Uint8 lb = m_level->isExitActive() ? 80 : 40;
+                m_screenEffects.registerLight(ex, ey, 120.0f, lr, lg, lb, 0.8f);
+            }
+        }
+
+        // Boss light
+        if (m_isBossLevel && !m_bossDefeated) {
+            for (auto* e : m_entities.getEntitiesWithComponent<AIComponent>()) {
+                if (!e || !e->isAlive()) continue;
+                auto& ai = e->getComponent<AIComponent>();
+                if (ai.enemyType == EnemyType::Boss && e->hasComponent<TransformComponent>()) {
+                    auto& bt = e->getComponent<TransformComponent>();
+                    float bx = bt.getCenter().x - cam.x;
+                    float by = bt.getCenter().y - cam.y;
+                    m_screenEffects.registerLight(bx, by, 160.0f, 200, 60, 80, 0.6f);
+                    break;
+                }
+            }
+        }
+    }
+    m_screenEffects.renderDynamicLighting(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+
     // Dimension switch visual effect
     m_dimManager.applyVisualEffect(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 

@@ -768,3 +768,52 @@ void ScreenEffects::renderBloom(SDL_Renderer* renderer) {
     // Restore normal blending
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 }
+
+void ScreenEffects::registerLight(float screenX, float screenY, float radius,
+                                   Uint8 r, Uint8 g, Uint8 b, float intensity) {
+    if (m_lightCount >= kMaxLights) return;
+    m_lights[m_lightCount++] = {screenX, screenY, radius, r, g, b, intensity};
+}
+
+void ScreenEffects::renderDynamicLighting(SDL_Renderer* renderer, int screenW, int screenH) {
+    if (!dynamicLightingEnabled || m_lightCount == 0) return;
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Ambient darkness with light radii carved out
+    // Performance-optimized: 8px grid + distance-squared (no sqrt)
+    constexpr Uint8 kAmbientDarkness = 40;
+    constexpr int kStep = 8;
+
+    for (int y = 0; y < screenH; y += kStep) {
+        float cy = y + kStep * 0.5f;
+        for (int x = 0; x < screenW; x += kStep) {
+            float cx = x + kStep * 0.5f;
+
+            float totalLight = 0.0f;
+            for (int i = 0; i < m_lightCount; i++) {
+                auto& lt = m_lights[i];
+                float dx = cx - lt.x;
+                float dy = cy - lt.y;
+                float distSq = dx * dx + dy * dy;
+                float radiusSq = lt.radius * lt.radius;
+                if (distSq < radiusSq) {
+                    float t = 1.0f - distSq / radiusSq; // Linear in dist², quadratic in dist
+                    totalLight += t * lt.intensity;
+                    if (totalLight >= 1.0f) break; // Early out — fully lit
+                }
+            }
+
+            if (totalLight >= 0.95f) continue; // Fully lit, skip draw
+            Uint8 darkness = static_cast<Uint8>(kAmbientDarkness * (1.0f - std::min(1.0f, totalLight)));
+            if (darkness < 2) continue;
+
+            SDL_SetRenderDrawColor(renderer, 0, 0, 5, darkness);
+            SDL_Rect band = {x, y, kStep, kStep};
+            SDL_RenderFillRect(renderer, &band);
+        }
+    }
+
+    // Reset light count for next frame
+    m_lightCount = 0;
+}

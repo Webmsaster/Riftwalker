@@ -32,6 +32,19 @@ public:
     bool colorGradingEnabled = true;
     bool ambientParticlesEnabled = true;
     bool bloomEnabled = true;
+    bool dynamicLightingEnabled = true;
+
+    // Dynamic lighting: renders a dark overlay with light circles cut out
+    // Call AFTER world/entity rendering, BEFORE post-processing
+    void renderDynamicLighting(SDL_Renderer* renderer, int screenW, int screenH);
+
+    // Register light sources (screen-space) — cleared each frame with clearGlowPoints
+    struct LightSource {
+        float x, y, radius;
+        Uint8 r, g, b;
+        float intensity; // 0-1
+    };
+    void registerLight(float screenX, float screenY, float radius, Uint8 r, Uint8 g, Uint8 b, float intensity);
 
     // Bloom: register bright spots for glow overlay (screen-space coordinates)
     void registerGlowPoint(float screenX, float screenY, float radius, Uint8 r, Uint8 g, Uint8 b, Uint8 intensity);
@@ -100,4 +113,9 @@ private:
 
     // Track current dimension for ambient particle colors
     int m_currentDimension = 1;
+
+    // Dynamic lighting state
+    static constexpr int kMaxLights = 48;
+    int m_lightCount = 0;
+    std::array<LightSource, kMaxLights> m_lights{};
 };
