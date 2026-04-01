@@ -34,20 +34,24 @@ void PlayState::renderDeathSequence(SDL_Renderer* renderer) {
     float progress = 1.0f - (m_deathSequenceTimer / m_deathSequenceDuration);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // Layer 1: Desaturation (gray overlay that drains color from the world)
-    // Ramps up from 0 to ~120 alpha, giving a "life draining away" feel
+    // Layer 1: Multiplicative desaturation (drains color toward muted gray)
     {
-        Uint8 grayAlpha = static_cast<Uint8>(std::min(120.0f, progress * 160.0f));
-        SDL_SetRenderDrawColor(renderer, 30, 30, 35, grayAlpha);
-        SDL_Rect fullScreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
-        SDL_RenderFillRect(renderer, &fullScreen);
+        float desatProgress = std::min(1.0f, progress * 1.5f);
+        Uint8 modVal = static_cast<Uint8>(255 - desatProgress * 80); // 255→175
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_MOD);
+        SDL_SetRenderDrawColor(renderer, modVal, modVal, modVal, 255);
+        SDL_Rect fs = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &fs);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     }
 
-    // Layer 2: Red-black fade on top of desaturation (intensifies over time)
-    Uint8 overlayAlpha = static_cast<Uint8>(std::min(160.0f, progress * 200.0f));
-    SDL_SetRenderDrawColor(renderer, 40, 0, 0, overlayAlpha);
-    SDL_Rect fullScreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
-    SDL_RenderFillRect(renderer, &fullScreen);
+    // Layer 2: Dark + red overlay (life draining away)
+    {
+        Uint8 darkA = static_cast<Uint8>(std::min(140.0f, progress * 180.0f));
+        SDL_SetRenderDrawColor(renderer, 25, 5, 5, darkA);
+        SDL_Rect fs = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &fs);
+    }
 
     // Layer 3: Expanding dark vignette border (red edges closing in)
     int borderW = static_cast<int>(20 + progress * 80);

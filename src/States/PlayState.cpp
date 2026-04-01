@@ -277,18 +277,27 @@ void PlayState::update(float dt) {
         }
     }
 
-    // Death sequence: dramatic slow-mo + zoom before ending the run
+    // Death sequence: dramatic freeze frame + slow-mo + zoom + desaturate
     if (m_playerDying) {
         float progress = 1.0f - (m_deathSequenceTimer / m_deathSequenceDuration);
 
-        // Time slowdown: 30% speed in first second, ramp back up at the end
-        float deathSlowdown = (m_deathSequenceTimer > 0.2f) ? 0.3f : 1.0f;
+        // Phase 1 (0-12%): Freeze frame — complete time stop for dramatic impact
+        // Phase 2 (12-85%): Slow-mo at 15% speed
+        // Phase 3 (85-100%): Ramp back to normal speed for transition
+        float deathSlowdown;
+        if (progress < 0.12f) {
+            deathSlowdown = 0.0f; // Complete freeze
+        } else if (progress < 0.85f) {
+            deathSlowdown = 0.15f; // Very slow motion
+        } else {
+            deathSlowdown = 0.15f + (progress - 0.85f) / 0.15f * 0.85f; // Ramp to 1.0
+        }
         float slowDt = dt * deathSlowdown;
 
         m_deathSequenceTimer -= dt; // Real-time countdown (not slowed)
 
-        // Camera zoom: smoothly zoom in during death (base zoom + 1.0)
-        float targetZoom = 2.5f + 1.0f * std::min(1.0f, progress * 2.0f);
+        // Camera zoom: smoothly zoom in during death
+        float targetZoom = 2.5f + 1.2f * std::min(1.0f, progress * 2.0f);
         m_camera.zoom += (targetZoom - m_camera.zoom) * std::min(1.0f, dt * 4.0f);
 
         m_camera.update(slowDt);       // camera shake continues (slowed)

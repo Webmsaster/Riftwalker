@@ -606,37 +606,41 @@ void ScreenEffects::renderVignette(SDL_Renderer* renderer, int screenW, int scre
 // -----------------------------------------------------------------------------
 void ScreenEffects::renderColorGrading(SDL_Renderer* renderer, int screenW, int screenH,
                                         int currentDimension, float dimBlendAlpha) {
-    // Dimension A: cool blue-purple tint
-    // Dimension B: warm orange-amber tint
-    // During transition (dimBlendAlpha != 0/1), blend between them
-
-    struct ColorTint { Uint8 r, g, b; Uint8 alpha; };
-
-    // Base tints — very subtle
-    constexpr ColorTint kDimATint = {40, 60, 140, 10};   // Cool blue
-    constexpr ColorTint kDimBTint = {160, 100, 30, 10};  // Warm orange
-
-    // Slight time-based pulse for life (amplitude ~2 alpha)
-    float pulse = 1.0f + 0.2f * std::sin(m_time * 0.8f);
-
     // Determine blend factor (0 = full dim A, 1 = full dim B)
     float dimBFactor = 0.0f;
     if (currentDimension == 2) dimBFactor = 1.0f;
     else if (currentDimension == 1) dimBFactor = 0.0f;
-    // If dimBlendAlpha is mid-transition, interpolate
     if (dimBlendAlpha > 0.01f && dimBlendAlpha < 0.99f) {
         dimBFactor = dimBlendAlpha;
     }
 
-    // Lerp between the two tints
-    Uint8 r = static_cast<Uint8>(kDimATint.r + (kDimBTint.r - kDimATint.r) * dimBFactor);
-    Uint8 g = static_cast<Uint8>(kDimATint.g + (kDimBTint.g - kDimATint.g) * dimBFactor);
-    Uint8 b = static_cast<Uint8>(kDimATint.b + (kDimBTint.b - kDimATint.b) * dimBFactor);
-    Uint8 a = clampAlpha((kDimATint.alpha + (kDimBTint.alpha - kDimATint.alpha) * dimBFactor) * pulse);
-
-    SDL_SetRenderDrawColor(renderer, r, g, b, a);
     SDL_Rect fullScreen = {0, 0, screenW, screenH};
-    SDL_RenderFillRect(renderer, &fullScreen);
+
+    // Pass 1: Multiplicative color grading (SDL_BLENDMODE_MOD)
+    // This multiplies screen colors: (255,230,200) = warm, (200,220,255) = cool
+    // Values >128 brighten that channel, <128 darken it (relative to 255)
+    {
+        // Dim A: cool blue tint — reduce red, slightly reduce green, boost blue
+        // Dim B: warm amber tint — boost red, slightly reduce blue
+        Uint8 mr = static_cast<Uint8>(235 + (255 - 235) * dimBFactor); // 235→255 (A→B)
+        Uint8 mg = static_cast<Uint8>(240 + (245 - 240) * dimBFactor); // 240→245
+        Uint8 mb = static_cast<Uint8>(255 + (230 - 255) * dimBFactor); // 255→230
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_MOD);
+        SDL_SetRenderDrawColor(renderer, mr, mg, mb, 255);
+        SDL_RenderFillRect(renderer, &fullScreen);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    }
+
+    // Pass 2: Subtle additive mood overlay (very low alpha for atmosphere)
+    {
+        float pulse = 1.0f + 0.15f * std::sin(m_time * 0.8f);
+        Uint8 r = static_cast<Uint8>(30 + 90 * dimBFactor);   // 30→120
+        Uint8 g = static_cast<Uint8>(40 + 30 * dimBFactor);   // 40→70
+        Uint8 b = static_cast<Uint8>(100 - 70 * dimBFactor);  // 100→30
+        Uint8 a = static_cast<Uint8>(std::min(255.0f, 6.0f * pulse));
+        SDL_SetRenderDrawColor(renderer, r, g, b, a);
+        SDL_RenderFillRect(renderer, &fullScreen);
+    }
 }
 
 // -----------------------------------------------------------------------------

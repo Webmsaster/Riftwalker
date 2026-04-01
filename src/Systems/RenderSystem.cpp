@@ -50,15 +50,28 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         }
     }
 
-    SDL_SetTextureColorMod(sprite.texture, filteredColor.r, filteredColor.g, filteredColor.b);
-    SDL_SetTextureAlphaMod(sprite.texture, static_cast<Uint8>(sprite.color.a * alpha));
-    SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
-
     // Flip based on facing direction
     SDL_RendererFlip flip = SDL_FLIP_NONE;
     if (sprite.flipX) flip = static_cast<SDL_RendererFlip>(flip | SDL_FLIP_HORIZONTAL);
     if (sprite.flipY) flip = static_cast<SDL_RendererFlip>(flip | SDL_FLIP_VERTICAL);
 
+    // Outline pass: draw sprite 4x in black at 1px offsets (Hollow Knight method)
+    // Skip for tiny entities or low alpha
+    if (alpha > 0.4f && rect.w >= 8 && rect.h >= 8) {
+        SDL_SetTextureColorMod(sprite.texture, 0, 0, 0);
+        SDL_SetTextureAlphaMod(sprite.texture, static_cast<Uint8>(200 * alpha));
+        SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
+        static const int offsets[][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+        for (auto& off : offsets) {
+            SDL_Rect outlineRect = {rect.x + off[0], rect.y + off[1], rect.w, rect.h};
+            SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &outlineRect, 0.0, nullptr, flip);
+        }
+    }
+
+    // Normal sprite pass
+    SDL_SetTextureColorMod(sprite.texture, filteredColor.r, filteredColor.g, filteredColor.b);
+    SDL_SetTextureAlphaMod(sprite.texture, static_cast<Uint8>(sprite.color.a * alpha));
+    SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
     SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &rect, 0.0, nullptr, flip);
 
     // Additive white glow overlay during hit flash (makes hit POP visually)

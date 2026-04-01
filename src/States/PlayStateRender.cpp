@@ -361,6 +361,31 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
 
     renderBackgroundMidground(renderer, camPos, ticks, bgColor);
 
+    // Depth fog: horizontal bands at different heights for atmospheric depth
+    {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        // 3 fog bands at different heights, parallaxed vertically
+        for (int band = 0; band < 3; band++) {
+            int baseY = SCREEN_HEIGHT / 2 + band * 100 - 80;
+            float parallax = 0.05f + band * 0.08f;
+            int fogY = baseY - static_cast<int>(camPos.y * parallax * 0.1f);
+            int fogH = 40 + band * 20;
+            float wave = std::sin(ticks * 0.0004f + band * 1.5f) * 8.0f;
+            fogY += static_cast<int>(wave);
+            // Gradient: center is brightest, edges fade
+            for (int row = 0; row < fogH; row += 2) {
+                float rowT = static_cast<float>(row) / fogH;
+                float edgeFade = 1.0f - std::abs(rowT - 0.5f) * 2.0f; // 0→1→0
+                edgeFade = edgeFade * edgeFade; // Sharper falloff
+                Uint8 fogA = static_cast<Uint8>(8 * edgeFade);
+                if (fogA < 2) continue;
+                SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, fogA);
+                SDL_Rect fogRect = {0, fogY + row, SCREEN_WIDTH, 2};
+                SDL_RenderFillRect(renderer, &fogRect);
+            }
+        }
+    }
+
     // Layer 6: Floating dimension particles (close parallax)
     auto& dimColor = (m_dimManager.getCurrentDimension() == 1) ?
         m_themeA.colors.solid : m_themeB.colors.solid;
