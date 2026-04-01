@@ -244,63 +244,108 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     } else if (tag == "player_trap") {
         renderShockTrap(renderer, screenRect, entity, alpha);
     } else if (tag == "enemy_crate") {
-        // Breakable crate: brown box with darker outline and plank lines
+        // Professional breakable crate with wood grain, metal bands, gradient
         auto& sprite = entity.getComponent<SpriteComponent>();
         Uint8 a = static_cast<Uint8>(sprite.color.a * alpha);
         int dx = screenRect.x, dy = screenRect.y, dw = screenRect.w, dh = screenRect.h;
-        // Shadow
-        fillRect(renderer, dx + 2, dy + dh, dw - 4, 3, 0, 0, 0, static_cast<Uint8>(a * 0.35f));
-        // Dark outline
-        fillRect(renderer, dx, dy, dw, dh, 80, 50, 20, a);
-        // Main body
-        fillRect(renderer, dx + 1, dy + 1, dw - 2, dh - 2, 139, 90, 43, a);
-        // Highlight top
-        fillRect(renderer, dx + 1, dy + 1, dw - 2, 2, 180, 130, 70, static_cast<Uint8>(a * 0.7f));
-        // Horizontal plank line
-        fillRect(renderer, dx + 2, dy + dh / 2, dw - 4, 1, 100, 65, 30, a);
-        // Vertical plank line
-        fillRect(renderer, dx + dw / 2, dy + 2, 1, dh - 4, 100, 65, 30, a);
+        // Multi-layer shadow
+        for (int s = 3; s >= 0; s--) {
+            fillRect(renderer, dx + 1 + s, dy + dh + s, dw - 2, 3 - s,
+                     0, 0, 0, static_cast<Uint8>(a * (0.12f + 0.06f * s)));
+        }
+        // Dark outline frame
+        fillRect(renderer, dx, dy, dw, dh, 55, 35, 15, a);
+        // Wood body with 3-band vertical gradient (lighter top, darker bottom)
+        int bandH = dh / 3;
+        fillRect(renderer, dx + 1, dy + 1, dw - 2, bandH, 160, 110, 55, a);
+        fillRect(renderer, dx + 1, dy + 1 + bandH, dw - 2, bandH, 139, 90, 43, a);
+        fillRect(renderer, dx + 1, dy + 1 + bandH * 2, dw - 2, dh - 2 - bandH * 2, 115, 75, 35, a);
+        // Wood grain lines (horizontal)
+        for (int gy = 0; gy < dh - 4; gy += 4) {
+            int gx_off = (gy * 7) % 3;  // slight variation
+            fillRect(renderer, dx + 3 + gx_off, dy + 2 + gy, dw - 6, 1,
+                     100, 65, 28, static_cast<Uint8>(a * 0.3f));
+        }
+        // Horizontal plank seam (center)
+        fillRect(renderer, dx + 2, dy + dh / 2 - 1, dw - 4, 2, 70, 45, 18, a);
+        // Vertical plank seam (center)
+        fillRect(renderer, dx + dw / 2 - 1, dy + 2, 2, dh - 4, 70, 45, 18, a);
+        // Metal bands (top and bottom, darker with highlight)
+        fillRect(renderer, dx + 1, dy + 2, dw - 2, 3, 90, 85, 75, a);
+        fillRect(renderer, dx + 1, dy + 3, dw - 2, 1, 130, 125, 110, static_cast<Uint8>(a * 0.5f));
+        fillRect(renderer, dx + 1, dy + dh - 5, dw - 2, 3, 90, 85, 75, a);
+        fillRect(renderer, dx + 1, dy + dh - 4, dw - 2, 1, 130, 125, 110, static_cast<Uint8>(a * 0.5f));
+        // Nails at band intersections
+        fillRect(renderer, dx + 3, dy + 3, 2, 2, 180, 175, 160, a);
+        fillRect(renderer, dx + dw - 5, dy + 3, 2, 2, 180, 175, 160, a);
+        fillRect(renderer, dx + 3, dy + dh - 5, 2, 2, 180, 175, 160, a);
+        fillRect(renderer, dx + dw - 5, dy + dh - 5, 2, 2, 180, 175, 160, a);
+        // Top-left specular highlight
+        fillRect(renderer, dx + 2, dy + 1, dw / 3, 1, 200, 160, 90, static_cast<Uint8>(a * 0.4f));
     } else if (tag.find("pickup_") == 0) {
         renderPickup(renderer, screenRect, entity, alpha);
     } else if (tag == "projectile") {
         renderProjectile(renderer, screenRect, entity, alpha);
     } else {
-        // Default: polished procedural rectangle with outline, highlight, shadow, and eye dots
+        // Professional default renderer: layered body with glow, gradient, and details
         auto& sprite = entity.getComponent<SpriteComponent>();
         Uint8 a = static_cast<Uint8>(sprite.color.a * alpha);
         int dx = screenRect.x, dy = screenRect.y, dw = screenRect.w, dh = screenRect.h;
+        Uint8 cr = sprite.color.r, cg = sprite.color.g, cb = sprite.color.b;
 
-        // Drop shadow (dark oval below entity)
-        fillRect(renderer, dx + 2, dy + dh, dw - 4, 3,
-                 0, 0, 0, static_cast<Uint8>(a * 0.35f));
+        // Soft multi-layer ground shadow
+        for (int s = 3; s >= 0; s--) {
+            int expand = s * 2;
+            fillRect(renderer, dx - expand + 2, dy + dh + s, dw + expand * 2 - 4, 3,
+                     0, 0, 0, static_cast<Uint8>(a * (0.10f + 0.05f * s)));
+        }
 
-        // Darker outline (1px border)
+        // Subtle glow aura (pulsing)
+        Uint32 ticks = SDL_GetTicks();
+        float glowPulse = 0.5f + 0.5f * std::sin(ticks * 0.004f);
+        Uint8 ga = static_cast<Uint8>(20 * glowPulse * alpha);
+        fillRect(renderer, dx - 3, dy - 3, dw + 6, dh + 6, cr, cg, cb, ga);
+        fillRect(renderer, dx - 1, dy - 1, dw + 2, dh + 2, cr, cg, cb, static_cast<Uint8>(ga * 0.7f));
+
+        // Dark outline
         fillRect(renderer, dx, dy, dw, dh,
-                 static_cast<Uint8>(sprite.color.r * 0.4f),
-                 static_cast<Uint8>(sprite.color.g * 0.4f),
-                 static_cast<Uint8>(sprite.color.b * 0.4f), a);
+                 static_cast<Uint8>(cr * 0.3f), static_cast<Uint8>(cg * 0.3f),
+                 static_cast<Uint8>(cb * 0.3f), a);
 
-        // Main body fill (inset by 1px)
-        fillRect(renderer, dx + 1, dy + 1, dw - 2, dh - 2,
-                 sprite.color.r, sprite.color.g, sprite.color.b, a);
+        // 3-band gradient body
+        int bandH = std::max(1, dh / 3);
+        // Top: bright
+        fillRect(renderer, dx + 1, dy + 1, dw - 2, bandH,
+                 static_cast<Uint8>(std::min(255, cr + 30)),
+                 static_cast<Uint8>(std::min(255, cg + 30)),
+                 static_cast<Uint8>(std::min(255, cb + 25)), a);
+        // Mid: base
+        fillRect(renderer, dx + 1, dy + 1 + bandH, dw - 2, bandH, cr, cg, cb, a);
+        // Bottom: dark
+        fillRect(renderer, dx + 1, dy + 1 + bandH * 2, dw - 2, dh - 2 - bandH * 2,
+                 static_cast<Uint8>(cr * 0.7f), static_cast<Uint8>(cg * 0.7f),
+                 static_cast<Uint8>(cb * 0.7f), a);
 
-        // Top highlight (2px lighter band)
-        fillRect(renderer, dx + 1, dy + 1, dw - 2, 2,
-                 static_cast<Uint8>(std::min(255, sprite.color.r + 60)),
-                 static_cast<Uint8>(std::min(255, sprite.color.g + 60)),
-                 static_cast<Uint8>(std::min(255, sprite.color.b + 60)),
-                 static_cast<Uint8>(a * 0.7f));
+        // Specular highlight (1px bright line at top)
+        fillRect(renderer, dx + 2, dy + 1, dw - 4, 1,
+                 255, 255, 255, static_cast<Uint8>(a * 0.25f));
 
-        // Bottom darkening (2px darker band)
-        fillRect(renderer, dx + 1, dy + dh - 3, dw - 2, 2,
-                 static_cast<Uint8>(sprite.color.r * 0.6f),
-                 static_cast<Uint8>(sprite.color.g * 0.6f),
-                 static_cast<Uint8>(sprite.color.b * 0.6f),
-                 static_cast<Uint8>(a * 0.5f));
+        // Left-side highlight (3D effect)
+        fillRect(renderer, dx + 1, dy + 2, 1, dh - 4,
+                 static_cast<Uint8>(std::min(255, cr + 50)),
+                 static_cast<Uint8>(std::min(255, cg + 50)),
+                 static_cast<Uint8>(std::min(255, cb + 40)),
+                 static_cast<Uint8>(a * 0.3f));
 
-        // Eye dots (2 small white rectangles near top)
-        if (dw >= 8 && dh >= 8) {
+        // Glowing eyes (if entity is large enough)
+        if (dw >= 10 && dh >= 10) {
             int eyeY2 = dy + dh / 4;
+            // Eye glow
+            fillRect(renderer, dx + dw / 3 - 1, eyeY2 - 1, 4, 4,
+                     255, 255, 255, static_cast<Uint8>(a * 0.15f));
+            fillRect(renderer, dx + 2 * dw / 3 - 3, eyeY2 - 1, 4, 4,
+                     255, 255, 255, static_cast<Uint8>(a * 0.15f));
+            // Eye cores
             fillRect(renderer, dx + dw / 3, eyeY2, 2, 2, 255, 255, 255, a);
             fillRect(renderer, dx + 2 * dw / 3 - 2, eyeY2, 2, 2, 255, 255, 255, a);
         }
