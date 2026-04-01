@@ -557,7 +557,7 @@ void PlayState::renderBackgroundMidground(SDL_Renderer* renderer, const Vec2& ca
                 SDL_RenderFillRect(renderer, &weight);
             } else if (i % 4 == 2) {
                 int railW = 70 + (i * 19) % 50;
-                int railY = SCREEN_HEIGHT - 40 + (nearOffY / 5);
+                int railY = SCREEN_HEIGHT - 80 + (nearOffY / 5);
                 SDL_Rect topRail = {sx, railY, railW, 3};
                 SDL_RenderFillRect(renderer, &topRail);
                 for (int p = 0; p < railW; p += 16) {
@@ -565,7 +565,7 @@ void PlayState::renderBackgroundMidground(SDL_Renderer* renderer, const Vec2& ca
                     SDL_RenderFillRect(renderer, &post);
                 }
             } else {
-                int gy = SCREEN_HEIGHT - 10 + nearOffY / 5;
+                int gy = SCREEN_HEIGHT - 20 + nearOffY / 5;
                 for (int r = 0; r < 4; r++) {
                     int rx = sx + r * 18 + ((i + r) * 11) % 10;
                     int rw = 6 + (i + r) % 6;
