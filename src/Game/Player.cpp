@@ -226,6 +226,22 @@ void Player::update(float dt, const InputManager& input) {
             intensity = 0.5f + intensity * 0.5f; // range: 0.5 to 1.0
 
             particles->weaponTrail(center, tipPos, trailColor, intensity);
+
+            // Slash arc: emit particles along a curved arc path at peak swing
+            if (progress > 0.3f && progress < 0.7f) {
+                float arcAngle = std::atan2(combat.attackDirection.y, combat.attackDirection.x);
+                // Arc spans ±45° from attack direction
+                for (int seg = 0; seg < 4; seg++) {
+                    float segT = (seg - 1.5f) / 3.0f; // -0.5 to 0.5
+                    float segAngle = arcAngle + segT * 1.57f; // ±45°
+                    float arcR = reach * (0.8f + 0.2f * intensity);
+                    Vec2 arcPos = {center.x + std::cos(segAngle) * arcR,
+                                   center.y + std::sin(segAngle) * arcR};
+                    SDL_Color arcColor = trailColor;
+                    arcColor.a = static_cast<Uint8>(180 * intensity);
+                    particles->burst(arcPos, 1, arcColor, 15.0f, 2.0f + intensity);
+                }
+            }
         }
     }
 
