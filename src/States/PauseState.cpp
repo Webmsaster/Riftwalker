@@ -135,6 +135,7 @@ void PauseState::handleEvent(const SDL_Event& event) {
 
 void PauseState::update(float dt) {
     m_time += dt;
+    for (auto& btn : m_buttons) btn.update(dt);
 
     // Gamepad navigation — only active when a gamepad is connected to avoid
     // doubling up with the keyboard handling already in handleEvent()

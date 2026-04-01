@@ -14,6 +14,7 @@ public:
 
     void setSelected(bool selected) { m_selected = selected; }
     bool isSelected() const { return m_selected; }
+    void update(float dt);  // smooth hover transition
 
     std::function<void()> onClick;
 
@@ -32,4 +33,5 @@ private:
     SDL_Rect m_rect;
     std::string m_text;
     bool m_selected = false;
+    float m_hoverBlend = 0.0f;  // 0.0 = unselected, 1.0 = fully selected
 };

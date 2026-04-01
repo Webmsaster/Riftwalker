@@ -269,7 +269,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
         SDL_RenderFillRect(renderer, &fullScreen);
 
         // Cinematic bars (top and bottom)
-        float barH = contentAlpha * 60.0f;
+        float barH = contentAlpha * 120.0f;
         int bH = static_cast<int>(barH);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 240);
         SDL_Rect topBar = {0, 0, screenW, bH};
@@ -285,19 +285,19 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
 
             // Top line (above boss name)
             SDL_SetRenderDrawColor(renderer, 200, 50, 80, lineA);
-            SDL_Rect lineTop = {lineX, screenH / 2 - 28, lineW, 2};
+            SDL_Rect lineTop = {lineX, screenH / 2 - 56, lineW, 4};
             SDL_RenderFillRect(renderer, &lineTop);
             // Glow around top line
             SDL_SetRenderDrawColor(renderer, 200, 50, 80, static_cast<Uint8>(lineA / 3));
-            SDL_Rect lineTopGlow = {lineX, screenH / 2 - 30, lineW, 6};
+            SDL_Rect lineTopGlow = {lineX, screenH / 2 - 60, lineW, 12};
             SDL_RenderFillRect(renderer, &lineTopGlow);
 
             // Bottom line (below subtitle)
             SDL_SetRenderDrawColor(renderer, 200, 50, 80, lineA);
-            SDL_Rect lineBot = {lineX, screenH / 2 + 30, lineW, 2};
+            SDL_Rect lineBot = {lineX, screenH / 2 + 60, lineW, 4};
             SDL_RenderFillRect(renderer, &lineBot);
             SDL_SetRenderDrawColor(renderer, 200, 50, 80, static_cast<Uint8>(lineA / 3));
-            SDL_Rect lineBotGlow = {lineX, screenH / 2 + 28, lineW, 6};
+            SDL_Rect lineBotGlow = {lineX, screenH / 2 + 56, lineW, 12};
             SDL_RenderFillRect(renderer, &lineBotGlow);
         }
 
@@ -319,7 +319,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
                         for (int dy = -2; dy <= 2; dy += 2) {
                             if (dx == 0 && dy == 0) continue;
                             SDL_Rect gr = {screenW / 2 - glowSurf->w / 2 + dx,
-                                           screenH / 2 - glowSurf->h / 2 - 8 + dy,
+                                           screenH / 2 - glowSurf->h / 2 - 16 + dy,
                                            glowSurf->w, glowSurf->h};
                             SDL_RenderCopy(renderer, glowTex, nullptr, &gr);
                         }
@@ -337,7 +337,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
                 if (nameTex) {
                     SDL_SetTextureAlphaMod(nameTex, textA);
                     SDL_Rect nr = {screenW / 2 - nameSurf->w / 2,
-                                   screenH / 2 - nameSurf->h / 2 - 8,
+                                   screenH / 2 - nameSurf->h / 2 - 16,
                                    nameSurf->w, nameSurf->h};
                     SDL_RenderCopy(renderer, nameTex, nullptr, &nr);
                     SDL_DestroyTexture(nameTex);
@@ -358,7 +358,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
                         int subW = subSurf->w * 3 / 4;
                         int subH = subSurf->h * 3 / 4;
                         SDL_Rect sr = {screenW / 2 - subW / 2,
-                                       screenH / 2 + 10,
+                                       screenH / 2 + 20,
                                        subW, subH};
                         SDL_RenderCopy(renderer, subTex, nullptr, &sr);
                         SDL_DestroyTexture(subTex);

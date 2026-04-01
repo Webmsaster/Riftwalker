@@ -118,6 +118,8 @@ void MenuState::update(float dt) {
         m_fadeIn += dt * 0.8f;
         if (m_fadeIn > 1.0f) m_fadeIn = 1.0f;
     }
+    // Update button hover animations
+    for (auto& btn : m_buttons) btn.update(dt);
 
     // Gamepad navigation — only active when a gamepad is connected to avoid
     // doubling up with the keyboard handling already in handleEvent()

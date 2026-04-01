@@ -707,7 +707,7 @@ void PlayState::renderZoneTransition(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
             if (tex) {
                 SDL_SetTextureAlphaMod(tex, a);
-                SDL_Rect r = {centerX - s->w / 2, centerY - 38, s->w, s->h};
+                SDL_Rect r = {centerX - s->w / 2, centerY - 76, s->w, s->h};
                 SDL_RenderCopy(renderer, tex, nullptr, &r);
                 SDL_DestroyTexture(tex);
             }
