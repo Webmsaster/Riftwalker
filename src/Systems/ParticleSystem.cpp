@@ -96,26 +96,33 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
             static_cast<int>(p.size)
         };
 
-        // Outer glow for larger particles (additive feel)
+        // Outer glow halo (soft, additive-blended for bright hot look)
         if (p.size >= 3.0f && alpha > 30) {
-            Uint8 glowA = static_cast<Uint8>(alpha * 0.25f);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+            Uint8 glowA = static_cast<Uint8>(alpha * 0.18f);
             SDL_SetRenderDrawColor(renderer, r, g, b, glowA);
-            SDL_Rect glow = {rect.x - 2, rect.y - 2, rect.w + 4, rect.h + 4};
-            SDL_RenderFillRect(renderer, &glow);
+            SDL_Rect glow2 = {rect.x - 4, rect.y - 4, rect.w + 8, rect.h + 8};
+            SDL_RenderFillRect(renderer, &glow2);
+            Uint8 glowA2 = static_cast<Uint8>(alpha * 0.3f);
+            SDL_SetRenderDrawColor(renderer, r, g, b, glowA2);
+            SDL_Rect glow1 = {rect.x - 2, rect.y - 2, rect.w + 4, rect.h + 4};
+            SDL_RenderFillRect(renderer, &glow1);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         }
 
         // Core particle
         SDL_SetRenderDrawColor(renderer, r, g, b, alpha);
         SDL_RenderFillRect(renderer, &rect);
 
-        // Bright center pixel for medium+ particles
-        if (p.size >= 2.5f && alpha > 60) {
-            Uint8 coreA = static_cast<Uint8>(std::min(255, alpha + 40));
-            SDL_SetRenderDrawColor(renderer,
-                static_cast<Uint8>(std::min(255, r + 80)),
-                static_cast<Uint8>(std::min(255, g + 80)),
-                static_cast<Uint8>(std::min(255, b + 60)), coreA);
-            SDL_Rect core = {rect.x + rect.w / 2, rect.y + rect.h / 2, 1, 1};
+        // Bright center pixel for medium+ particles (hot core)
+        if (p.size >= 2.5f && alpha > 50) {
+            Uint8 coreA = static_cast<Uint8>(std::min(255, static_cast<int>(alpha) + 50));
+            Uint8 cr = static_cast<Uint8>(std::min(255, static_cast<int>(r) + 100));
+            Uint8 cg = static_cast<Uint8>(std::min(255, static_cast<int>(g) + 90));
+            Uint8 cb = static_cast<Uint8>(std::min(255, static_cast<int>(b) + 70));
+            SDL_SetRenderDrawColor(renderer, cr, cg, cb, coreA);
+            int coreSize = std::max(1, static_cast<int>(p.size * 0.35f));
+            SDL_Rect core = {rect.x + rect.w / 2, rect.y + rect.h / 2, coreSize, coreSize};
             SDL_RenderFillRect(renderer, &core);
         }
     }
@@ -152,8 +159,10 @@ void ParticleSystem::spawnParticle(const ParticleEmitter& emitter) {
     p.lifetime = emitter.lifetime + randFloat(-emitter.lifetimeVariance, emitter.lifetimeVariance);
     if (p.lifetime <= 0.01f) p.lifetime = 0.01f;
     p.maxLifetime = p.lifetime;
-    p.size = emitter.size;
-    p.sizeDecay = emitter.sizeDecay;
+    // Size variation: ±30% for visual interest
+    float sizeVar = emitter.size * randFloat(0.7f, 1.3f);
+    p.size = sizeVar;
+    p.sizeDecay = emitter.sizeDecay * (sizeVar / std::max(emitter.size, 0.1f));
     p.alive = true;
     ++m_activeCount;
 }
@@ -162,13 +171,22 @@ void ParticleSystem::burst(const Vec2& pos, int count, SDL_Color color, float sp
     ParticleEmitter e;
     e.position = pos;
     e.colorStart = color;
+    // Color lerp: bright start → dark ember end
+    e.colorEnd = {
+        static_cast<Uint8>(color.r / 3),
+        static_cast<Uint8>(color.g / 4),
+        static_cast<Uint8>(color.b / 4),
+        static_cast<Uint8>(1) // non-zero triggers useColorLerp
+    };
     e.burstCount = count;
     e.speed = speed;
     e.speedVariance = speed * 0.5f;
     e.lifetime = 0.5f;
+    e.lifetimeVariance = 0.15f; // Size variation via lifetime spread
     e.size = size;
     e.sizeDecay = size * 1.5f;
     e.spread = 360.0f;
+    e.gravity = 150.0f; // Particles fall for more physical feel
     addEmitter(e);
 }
 
@@ -176,11 +194,18 @@ void ParticleSystem::directionalBurst(const Vec2& pos, int count, SDL_Color colo
     ParticleEmitter e;
     e.position = pos;
     e.colorStart = color;
+    // Color lerp: bright → ember
+    e.colorEnd = {
+        static_cast<Uint8>(color.r / 3),
+        static_cast<Uint8>(color.g / 4),
+        static_cast<Uint8>(color.b / 4),
+        static_cast<Uint8>(1)
+    };
     e.burstCount = count;
     e.speed = speed;
     e.speedVariance = speed * 0.4f;
-    e.lifetime = 0.35f;
-    e.lifetimeVariance = 0.1f;
+    e.lifetime = 0.4f;
+    e.lifetimeVariance = 0.12f;
     e.size = size;
     e.sizeDecay = size * 2.0f;
     e.direction = dirDeg;
@@ -200,12 +225,12 @@ void ParticleSystem::damageEffect(const Vec2& pos, SDL_Color color) {
 
 void ParticleSystem::weaponTrail(const Vec2& origin, const Vec2& tipPos, SDL_Color color, float intensity) {
     // Spawn trail particles along the weapon line (origin -> tip)
-    int count = static_cast<int>(2 + intensity * 2); // 2-4 particles per frame
+    int count = static_cast<int>(3 + intensity * 3); // 3-6 particles per frame (was 2-4)
     for (int i = 0; i < count; i++) {
         int slot = findFreeSlot();
         if (slot < 0) return; // Pool full
 
-        float t = randFloat(0.3f, 1.0f); // bias toward tip
+        float t = randFloat(0.2f, 1.0f); // bias toward tip
         Vec2 pos = {
             origin.x + (tipPos.x - origin.x) * t,
             origin.y + (tipPos.y - origin.y) * t
@@ -218,14 +243,30 @@ void ParticleSystem::weaponTrail(const Vec2& origin, const Vec2& tipPos, SDL_Col
         p.position = pos;
         // Slow drift away from weapon line
         p.velocity = {randFloat(-20.0f, 20.0f), randFloat(-30.0f, 10.0f)};
-        p.color = color;
-        p.color.a = static_cast<Uint8>(200 * intensity);
-        p.colorEnd = {color.r, color.g, color.b, 0};
+
+        // Bright core particles near tip, dimmer further away
+        bool isCore = (t > 0.7f && randFloat(0.0f, 1.0f) < 0.4f);
+        if (isCore) {
+            // White-hot core particles
+            p.color = {
+                static_cast<Uint8>(std::min(255, color.r + 100)),
+                static_cast<Uint8>(std::min(255, color.g + 100)),
+                static_cast<Uint8>(std::min(255, color.b + 80)),
+                static_cast<Uint8>(255 * intensity)
+            };
+            p.colorEnd = color;
+            p.colorEnd.a = 1; // Triggers lerp
+        } else {
+            p.color = color;
+            p.color.a = static_cast<Uint8>(200 * intensity);
+            p.colorEnd = {static_cast<Uint8>(color.r / 2), static_cast<Uint8>(color.g / 2),
+                          static_cast<Uint8>(color.b / 2), 1};
+        }
         p.useColorLerp = true;
-        p.lifetime = 0.1f + randFloat(0.0f, 0.05f);
+        p.lifetime = 0.12f + randFloat(0.0f, 0.08f); // Slightly longer persistence
         p.maxLifetime = p.lifetime;
-        p.size = 2.0f + randFloat(0.0f, 2.0f) * intensity;
-        p.sizeDecay = p.size * 6.0f; // fast shrink
+        p.size = 2.0f + randFloat(0.0f, 2.5f) * intensity;
+        p.sizeDecay = p.size * 5.0f;
         p.gravity = 0;
         p.alive = true;
         ++m_activeCount;

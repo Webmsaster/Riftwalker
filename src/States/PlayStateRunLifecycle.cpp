@@ -217,6 +217,10 @@ void PlayState::startNewRun() {
     m_playerDying = false;
     m_deathSequenceTimer = 0;
     m_deathCause = 0;
+    m_deathEffectCount = 0;
+    m_fogInitialized = false;
+    m_killSlowMoTimer = 0;
+    m_killSlowMoScale = 1.0f;
 
     // Reset dynamic level events
     m_dynamicEvent = {};

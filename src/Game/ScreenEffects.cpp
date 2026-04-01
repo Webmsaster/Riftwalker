@@ -458,6 +458,16 @@ void ScreenEffects::renderPostProcessing(SDL_Renderer* renderer, int screenW, in
         renderColorGrading(renderer, screenW, screenH, currentDimension, dimBlendAlpha);
     }
 
+    // 1b. Low HP desaturation: muted gray overlay when health is critical
+    if (m_hpPercent < 0.25f) {
+        float desatIntensity = (0.25f - m_hpPercent) / 0.25f; // 0→1 as HP drops to 0
+        // Semi-transparent gray overlay simulates desaturation
+        Uint8 grayA = static_cast<Uint8>(desatIntensity * 35); // Max 35 alpha — subtle
+        SDL_SetRenderDrawColor(renderer, 80, 70, 70, grayA);
+        SDL_Rect fullScreen = {0, 0, screenW, screenH};
+        SDL_RenderFillRect(renderer, &fullScreen);
+    }
+
     // 2. Bloom/glow simulation (additive bright spots)
     if (bloomEnabled && m_glowPointCount > 0) {
         renderBloom(renderer);

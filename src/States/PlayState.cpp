@@ -294,6 +294,7 @@ void PlayState::update(float dt) {
         m_camera.update(slowDt);       // camera shake continues (slowed)
         m_particles.update(slowDt);    // death particles animate (slowed)
         m_screenEffects.update(slowDt);
+        updateDeathEffects(slowDt);    // death ghosts animate (slowed)
 
         // Slow-motion particle drip during death (enhanced: more particles, wider spread)
         if (m_player && m_deathSequenceTimer > 0.2f) {
@@ -369,6 +370,16 @@ void PlayState::update(float dt) {
         m_camera.update(dt);       // still update camera shake during freeze
         m_particles.update(dt);    // particles keep going
         return;
+    }
+
+    // Kill slow-motion: time dilation after significant kills
+    if (m_killSlowMoTimer > 0) {
+        m_killSlowMoTimer -= dt;
+        float progress = 1.0f - (m_killSlowMoTimer / 0.3f); // 0→1
+        // Ease out: start slow, ramp back to normal
+        m_killSlowMoScale = 0.4f + 0.6f * (progress * progress);
+        if (m_killSlowMoTimer <= 0) m_killSlowMoScale = 1.0f;
+        dt *= m_killSlowMoScale;
     }
 
     // Relic choice popup takes priority
@@ -800,6 +811,10 @@ void PlayState::update(float dt) {
     // Particles
     m_particles.update(dt);
 
+    // Death ghost effects + foreground fog
+    updateDeathEffects(dt);
+    updateFogParticles(dt);
+
     // DimResidue damage zones: tick down lifetime and deal AoE damage
     int curDim = m_dimManager.getCurrentDimension();
     float residueDps = 15.0f; // Default DPS
@@ -912,18 +927,26 @@ void PlayState::update(float dt) {
 
     // Ambient rift particles — energy leaking upward from unrepaired rifts
     m_riftAmbientTimer += dt;
-    if (m_riftAmbientTimer >= 0.3f && m_level) {
+    if (m_riftAmbientTimer >= 0.2f && m_level) {
         m_riftAmbientTimer = 0;
         int curDim = m_dimManager.getCurrentDimension();
         auto rifts = m_level->getRiftPositions();
+        Vec2 cam = m_camera.getPosition();
         for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
             if (m_repairedRiftIndices.count(i)) continue;
             if (!m_level->isRiftActiveInDimension(i, curDim)) continue;
+            Vec2 center = {rifts[i].x + 16.0f, rifts[i].y + 16.0f};
+            // Cull off-screen rifts
+            float sx = center.x - cam.x, sy = center.y - cam.y;
+            if (sx < -200 || sx > SCREEN_WIDTH + 200 || sy < -200 || sy > SCREEN_HEIGHT + 200) continue;
             int reqDim = m_level->getRiftRequiredDimension(i);
             SDL_Color col = (reqDim == 2) ? SDL_Color{220, 50, 50, 140}   // red for dim-B
                                           : SDL_Color{160, 60, 220, 140}; // purple for dim-A / neutral
-            Vec2 center = {rifts[i].x + 16.0f, rifts[i].y + 16.0f};
-            m_particles.ambientThemeParticle(center, col, 90.0f, 20.0f, 2.5f, 2.0f, -15.0f, 24.0f);
+            // Enhanced: swirling upward particles + center glow
+            m_particles.ambientThemeParticle(center, col, 90.0f, 25.0f, 3.0f, 2.5f, -20.0f, 20.0f);
+            m_particles.ambientThemeParticle(center, col, 90.0f, 15.0f, 2.0f, 1.8f, -10.0f, 16.0f);
+            // White core sparkle
+            m_particles.ambientThemeParticle(center, {255, 255, 255, 80}, 90.0f, 10.0f, 1.5f, 1.0f, -5.0f, 8.0f);
         }
     }
 
@@ -1134,6 +1157,17 @@ void PlayState::update(float dt) {
     }
 
     updateKillEffects();
+
+    // Consume death ghost effects from combat system
+    {
+        auto effects = m_combatSystem.consumeDeathEffects();
+        for (auto& de : effects) {
+            if (m_deathEffectCount < MAX_DEATH_EFFECTS) {
+                m_deathEffects[m_deathEffectCount++] = de;
+            }
+        }
+    }
+
     updateQuestProgress();
     updatePostCombat(dt);
 }

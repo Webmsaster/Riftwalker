@@ -5,17 +5,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-01 visual overhaul session):**
+**Recent Updates (2026-04-01 combat feel + visual polish session):**
+- Enemy death ghost effects: white flash → shrink-to-nothing over 0.3s (sprite preserved)
+- Graduated hitstop on ALL kills: normal 0.04s, elite 0.06s, mini-boss 0.1s, boss 0.25s
+- Kill slow-motion: 0.4s at 40% speed on boss/mini-boss kills, 0.25s on multi-kills
+- Weapon impact sparks: directional bright burst at hit point (6 normal, 12 crit)
+- Enhanced hit confirmation: stronger white flash + additive overlay + 10% scale pulse
+- Improved camera shake: exponential decay + sinusoidal oscillation (smoother, snappier)
+- Soft gradient drop shadows (4-band, decreasing alpha vs. flat rectangles)
+- Foreground fog particles (8 large semi-transparent drifting rectangles, dimension-tinted)
+- Pickup hover animation: sine-wave bob + pulsing additive glow aura
+- Enhanced spawn-in: dimensional rift opening (expanding purple ring + bright crack) before entity materializes
+- Particle system overhaul: color interpolation (bright→ember), size variation ±30%, gravity on bursts, additive glow layers
+- Weapon trail enhancement: white-hot core particles near tip, longer persistence, more particles
+- Dash effects: directional speed burst + backward dust cloud + speed line particles + end-puff
+- Tile edge highlights: top-left light + bottom-right shadow on tileset tiles, brightness variation per tile
+- Rift ambient particles: tripled density with white core sparkle
+- Low HP desaturation: gray overlay at <25% HP for visual danger feedback
+- 14 files changed, +602/-69 lines
+
+**Previous Updates (2026-04-01 visual overhaul + art refinement session):**
 - Native display resolution detection (auto-detects 2560×1440, 4K, etc.)
 - Physical window at native res, logical at 1280×720 via SDL_RenderSetLogicalSize
 - Camera Zoom 2.5: better balance of sprite detail vs world visibility
 - Anisotropic texture filtering (SDL hint "2") + per-texture SDL_SetTextureScaleMode(Linear)
 - 4× Real-ESRGAN upscaled sprites with professional transparency cleanup (186 frames fixed)
-- Post-processing system: vignette, color grading, ambient particles, bloom/glow
-- NPC rendering overhaul: layered figures with glow auras, type-specific details (+507 lines)
-- Event rendering overhaul: merchants=stalls, shrines=pedestals, anomalies=vortexes, etc.
+- Post-processing system: vignette, color grading, ambient particles, bloom/glow (~100 extra draw-calls, zero heap allocs)
+- NPC rendering complete overhaul: multi-layer hooded figures with robe gradients, glowing eyes, type-specific details (scrolls, gears, anvils, crystal balls)
+- Event rendering complete overhaul: market stalls, shrine pedestals, swirling vortexes, ghost figures, mechanical workbenches, slot machines
 - HUD upgrade: gradient backing panels, 3-band gradient bars, specular highlights, animated shimmer
 - Font size 20px with light hinting for crisp text
+- Sprite quality: 26/29 = GOOD, 3 = NEEDS_FIX (Flyer, GravityWell, Turret — grey artefacts from ComfyUI)
+- All 48 files committed in 2 commits (`216c463` + `194ed30`): +2118/-164 lines
 - 3 new sprite tools: fix_sprites_pro.py, fix_backgrounds_aggressive.py, fix_grabcut.py
 
 **Previous Updates (2026-03-29/30 refactoring sessions):**

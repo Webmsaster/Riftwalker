@@ -482,6 +482,22 @@ void PlayState::updateKillEffects() {
     game->getUpgradeSystem().totalEnemiesKilled += m_combatSystem.killCount;
     m_screenEffects.triggerKillFlash();
 
+    // Kill slow-motion: trigger on boss/mini-boss kills or multi-kills
+    for (auto& ke : m_combatSystem.killEvents) {
+        if (ke.wasBoss) {
+            m_killSlowMoTimer = 0.4f; // Longer slow-mo for boss
+            m_killSlowMoScale = 0.4f;
+        } else if (ke.wasMiniBoss && m_killSlowMoTimer <= 0) {
+            m_killSlowMoTimer = 0.3f;
+            m_killSlowMoScale = 0.4f;
+        }
+    }
+    // Multi-kill slow-mo (3+ kills in one frame)
+    if (m_combatSystem.killCount >= 3 && m_killSlowMoTimer <= 0) {
+        m_killSlowMoTimer = 0.25f;
+        m_killSlowMoScale = 0.5f;
+    }
+
     // Award XP per kill (base 15, elite/miniboss/boss give more)
     if (m_player) {
         for (auto& ke : m_combatSystem.killEvents) {
@@ -891,5 +907,180 @@ void PlayState::completeQuest() {
     m_questsCompletedTotal++;
     if (m_questsCompletedTotal >= 5) {
         game->getAchievements().unlock("quest_helper");
+    }
+}
+
+// =========================================================================
+// Death ghost effects: shrink + fade + white flash after enemy death
+// =========================================================================
+
+void PlayState::updateDeathEffects(float dt) {
+    for (int i = 0; i < m_deathEffectCount; ) {
+        auto& de = m_deathEffects[i];
+        de.timer += dt;
+        if (de.timer >= de.maxLife) {
+            // Remove by swap with last
+            m_deathEffects[i] = m_deathEffects[--m_deathEffectCount];
+        } else {
+            i++;
+        }
+    }
+}
+
+void PlayState::renderDeathEffects(SDL_Renderer* renderer) {
+    if (m_deathEffectCount <= 0) return;
+
+    Vec2 cam = m_camera.getPosition();
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    for (int i = 0; i < m_deathEffectCount; i++) {
+        auto& de = m_deathEffects[i];
+        float t = de.timer / de.maxLife; // 0 → 1
+
+        // Phase 1 (0-15%): white flash, full size
+        // Phase 2 (15-100%): shrink to 0, fade out
+        float scale, alpha, whiteness;
+        if (t < 0.15f) {
+            float flashT = t / 0.15f;
+            scale = 1.0f + 0.15f * (1.0f - flashT); // Slight expand then settle
+            alpha = 1.0f;
+            whiteness = 1.0f - flashT; // 1→0 (full white → normal color)
+        } else {
+            float shrinkT = (t - 0.15f) / 0.85f; // 0→1
+            // Ease-in: accelerating shrink (slow start, fast end)
+            float eased = shrinkT * shrinkT;
+            scale = 1.0f - eased * 0.9f; // Shrink to 10% size
+            alpha = 1.0f - eased;
+            whiteness = 0;
+        }
+
+        if (alpha < 0.02f || scale < 0.05f) continue;
+
+        float w = de.width * scale;
+        float h = de.height * scale;
+        float sx = de.position.x - w * 0.5f - cam.x;
+        float sy = de.position.y - h * 0.5f - cam.y;
+
+        // Cull off-screen
+        if (sx + w < -20 || sx > SCREEN_WIDTH + 20 || sy + h < -20 || sy > SCREEN_HEIGHT + 20)
+            continue;
+
+        SDL_Rect dstRect = {
+            static_cast<int>(sx), static_cast<int>(sy),
+            std::max(1, static_cast<int>(w)), std::max(1, static_cast<int>(h))
+        };
+
+        Uint8 drawAlpha = static_cast<Uint8>(alpha * 255);
+
+        if (de.texture) {
+            // Render sprite with white flash + fade
+            Uint8 r = static_cast<Uint8>(std::min(255, static_cast<int>(de.color.r + whiteness * (255 - de.color.r))));
+            Uint8 g = static_cast<Uint8>(std::min(255, static_cast<int>(de.color.g + whiteness * (255 - de.color.g))));
+            Uint8 b = static_cast<Uint8>(std::min(255, static_cast<int>(de.color.b + whiteness * (255 - de.color.b))));
+
+            SDL_SetTextureColorMod(de.texture, r, g, b);
+            SDL_SetTextureAlphaMod(de.texture, drawAlpha);
+            SDL_SetTextureBlendMode(de.texture, SDL_BLENDMODE_BLEND);
+
+            SDL_RendererFlip flip = de.flipX ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+            SDL_RenderCopyEx(renderer, de.texture, &de.srcRect, &dstRect, 0.0, nullptr, flip);
+
+            // Additive white glow overlay during flash phase
+            if (whiteness > 0.2f) {
+                SDL_SetTextureBlendMode(de.texture, SDL_BLENDMODE_ADD);
+                Uint8 glowA = static_cast<Uint8>(whiteness * 180 * alpha);
+                SDL_SetTextureColorMod(de.texture, 255, 255, 255);
+                SDL_SetTextureAlphaMod(de.texture, glowA);
+                SDL_RenderCopyEx(renderer, de.texture, &de.srcRect, &dstRect, 0.0, nullptr, flip);
+                SDL_SetTextureBlendMode(de.texture, SDL_BLENDMODE_BLEND);
+            }
+        } else {
+            // Fallback: colored rectangle with white flash
+            Uint8 r = static_cast<Uint8>(std::min(255, static_cast<int>(de.color.r + whiteness * (255 - de.color.r))));
+            Uint8 g = static_cast<Uint8>(std::min(255, static_cast<int>(de.color.g + whiteness * (255 - de.color.g))));
+            Uint8 b = static_cast<Uint8>(std::min(255, static_cast<int>(de.color.b + whiteness * (255 - de.color.b))));
+            SDL_SetRenderDrawColor(renderer, r, g, b, drawAlpha);
+            SDL_RenderFillRect(renderer, &dstRect);
+        }
+
+        // Outer glow halo during death (expanding, fading)
+        if (de.isBoss || de.isElite) {
+            float glowRadius = w * (1.0f + t * 0.5f);
+            Uint8 glowA = static_cast<Uint8>(alpha * 40);
+            SDL_SetRenderDrawColor(renderer, de.color.r, de.color.g, de.color.b, glowA);
+            SDL_Rect glow = {
+                static_cast<int>(sx - (glowRadius - w) * 0.5f),
+                static_cast<int>(sy - (glowRadius - h) * 0.5f),
+                static_cast<int>(glowRadius),
+                static_cast<int>(glowRadius * h / w)
+            };
+            SDL_RenderFillRect(renderer, &glow);
+        }
+    }
+}
+
+// =========================================================================
+// Foreground fog particles: atmospheric depth layer
+// =========================================================================
+
+void PlayState::initFogParticles() {
+    for (int i = 0; i < MAX_FOG_PARTICLES; i++) {
+        auto& f = m_fogParticles[i];
+        f.x = static_cast<float>(std::rand() % SCREEN_WIDTH);
+        f.y = static_cast<float>(std::rand() % SCREEN_HEIGHT);
+        f.vx = 8.0f + static_cast<float>(std::rand() % 20); // Slow drift right
+        if (std::rand() % 2) f.vx = -f.vx; // Some drift left
+        f.width = 120.0f + static_cast<float>(std::rand() % 180);
+        f.height = 30.0f + static_cast<float>(std::rand() % 50);
+        f.alpha = 0.02f + static_cast<float>(std::rand() % 30) / 1000.0f; // Very subtle: 0.02-0.05
+        f.alphaPhase = static_cast<float>(std::rand() % 628) / 100.0f; // Random phase
+    }
+    m_fogInitialized = true;
+}
+
+void PlayState::updateFogParticles(float dt) {
+    if (!m_fogInitialized) initFogParticles();
+    for (int i = 0; i < MAX_FOG_PARTICLES; i++) {
+        auto& f = m_fogParticles[i];
+        f.x += f.vx * dt;
+        f.alphaPhase += dt * 0.5f;
+        // Wrap around screen
+        if (f.x > SCREEN_WIDTH + f.width) f.x = -f.width;
+        if (f.x < -f.width) f.x = SCREEN_WIDTH + f.width * 0.5f;
+    }
+}
+
+void PlayState::renderFogParticles(SDL_Renderer* renderer) {
+    if (!m_fogInitialized) return;
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    int dim = m_dimManager.getCurrentDimension();
+    // Fog color: cool blue-gray for dim A, warm amber-gray for dim B
+    Uint8 fogR = (dim == 1) ? 140 : 180;
+    Uint8 fogG = (dim == 1) ? 150 : 160;
+    Uint8 fogB = (dim == 1) ? 180 : 140;
+
+    for (int i = 0; i < MAX_FOG_PARTICLES; i++) {
+        auto& f = m_fogParticles[i];
+        float pulse = 0.7f + 0.3f * std::sin(f.alphaPhase);
+        Uint8 a = static_cast<Uint8>(f.alpha * pulse * 255);
+        if (a < 2) continue;
+
+        SDL_SetRenderDrawColor(renderer, fogR, fogG, fogB, a);
+
+        // Draw multiple overlapping rects for soft edges
+        int ix = static_cast<int>(f.x);
+        int iy = static_cast<int>(f.y);
+        int iw = static_cast<int>(f.width);
+        int ih = static_cast<int>(f.height);
+
+        // Core
+        SDL_Rect core = {ix, iy, iw, ih};
+        SDL_RenderFillRect(renderer, &core);
+
+        // Soft edge (larger, dimmer)
+        SDL_SetRenderDrawColor(renderer, fogR, fogG, fogB, static_cast<Uint8>(a / 3));
+        SDL_Rect outer = {ix - iw / 4, iy - ih / 3, iw + iw / 2, ih + ih * 2 / 3};
+        SDL_RenderFillRect(renderer, &outer);
     }
 }

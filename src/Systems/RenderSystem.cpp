@@ -28,13 +28,25 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     SDL_Color filteredColor = applyColorBlind(sprite.color);
 
     // Hit flash: brief white tint when entity takes damage
+    float hitFlashIntensity = 0;
     if (entity.hasComponent<HealthComponent>()) {
         float flashT = entity.getComponent<HealthComponent>().hitFlashTimer;
         if (flashT > 0) {
-            float intensity = flashT / HealthComponent::HIT_FLASH_DURATION;
-            filteredColor.r = static_cast<Uint8>(std::min(255, static_cast<int>(filteredColor.r + 120 * intensity)));
-            filteredColor.g = static_cast<Uint8>(std::min(255, static_cast<int>(filteredColor.g + 120 * intensity)));
-            filteredColor.b = static_cast<Uint8>(std::min(255, static_cast<int>(filteredColor.b + 120 * intensity)));
+            hitFlashIntensity = flashT / HealthComponent::HIT_FLASH_DURATION;
+            // Stronger white tint (was +120, now +200)
+            int boost = static_cast<int>(200 * hitFlashIntensity);
+            filteredColor.r = static_cast<Uint8>(std::min(255, static_cast<int>(filteredColor.r) + boost));
+            filteredColor.g = static_cast<Uint8>(std::min(255, static_cast<int>(filteredColor.g) + boost));
+            filteredColor.b = static_cast<Uint8>(std::min(255, static_cast<int>(filteredColor.b) + boost));
+
+            // Hit scale pulse: expand 10% during flash, then shrink back
+            float scalePulse = 1.0f + 0.1f * hitFlashIntensity;
+            int newW = static_cast<int>(rect.w * scalePulse);
+            int newH = static_cast<int>(rect.h * scalePulse);
+            rect.x -= (newW - rect.w) / 2;
+            rect.y -= (newH - rect.h) / 2;
+            rect.w = newW;
+            rect.h = newH;
         }
     }
 
@@ -48,6 +60,18 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     if (sprite.flipY) flip = static_cast<SDL_RendererFlip>(flip | SDL_FLIP_VERTICAL);
 
     SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &rect, 0.0, nullptr, flip);
+
+    // Additive white glow overlay during hit flash (makes hit POP visually)
+    if (hitFlashIntensity > 0.3f) {
+        SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_ADD);
+        Uint8 addA = static_cast<Uint8>(hitFlashIntensity * 150 * alpha);
+        SDL_SetTextureColorMod(sprite.texture, 255, 255, 255);
+        SDL_SetTextureAlphaMod(sprite.texture, addA);
+        SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &rect, 0.0, nullptr, flip);
+        // Restore blend mode
+        SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
+    }
+
     return true;
 }
 
@@ -135,6 +159,27 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
+    // Pickup hover animation: bob up/down + pulsing glow ring
+    if (tag.find("pickup_") == 0) {
+        Uint32 ticks = SDL_GetTicks();
+        // Sine-wave hover (±3 pixel bob)
+        float hover = std::sin(ticks * 0.004f + entity.dimension * 1.5f) * 3.0f;
+        screenRect.y += static_cast<int>(hover);
+        // Pulsing glow aura behind pickup
+        float pulse = 0.5f + 0.5f * std::sin(ticks * 0.005f + entity.dimension * 2.0f);
+        auto& sprite = entity.getComponent<SpriteComponent>();
+        Uint8 glowA = static_cast<Uint8>(20 + 25 * pulse * alpha);
+        int glowExpand = 4 + static_cast<int>(pulse * 3);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+        SDL_SetRenderDrawColor(renderer, sprite.color.r, sprite.color.g, sprite.color.b, glowA);
+        SDL_Rect glowRect = {
+            screenRect.x - glowExpand, screenRect.y - glowExpand,
+            screenRect.w + glowExpand * 2, screenRect.h + glowExpand * 2
+        };
+        SDL_RenderFillRect(renderer, &glowRect);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    }
+
     // Dash afterimage ghost trail: render fading copies behind the entity
     {
         auto& sprite = entity.getComponent<SpriteComponent>();
@@ -157,7 +202,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         }
     }
 
-    // Spawn-in effect: scale-up + white tint + fade-in when enemies materialize
+    // Spawn-in effect: dimensional rift opening + scale-up + white tint
     bool spawning = false;
     float spawnProgress = 1.0f;
     if (tag.find("enemy") != std::string::npos && entity.hasComponent<AIComponent>()) {
@@ -165,29 +210,79 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         if (ai.spawnTimer > 0 && ai.spawnTimerInitial > 0) {
             spawning = true;
             spawnProgress = 1.0f - (ai.spawnTimer / ai.spawnTimerInitial); // 0→1
-            // Scale: grow from 50% to 100%
-            float scale = 0.5f + 0.5f * spawnProgress;
-            int sw = static_cast<int>(screenRect.w * scale);
-            int sh = static_cast<int>(screenRect.h * scale);
-            screenRect.x += (screenRect.w - sw) / 2; // center horizontally
-            screenRect.y += (screenRect.h - sh);      // grow from bottom
-            screenRect.w = sw;
-            screenRect.h = sh;
-            // Fade in alpha
-            alpha *= (0.3f + 0.7f * spawnProgress);
+
+            // Phase 1 (0-40%): dimensional rift opening (just the portal, entity invisible)
+            // Phase 2 (40-100%): entity materializes from rift
+            if (spawnProgress < 0.4f) {
+                float riftT = spawnProgress / 0.4f; // 0→1 within rift phase
+                // Render expanding rift ring
+                int centerX = screenRect.x + screenRect.w / 2;
+                int centerY = screenRect.y + screenRect.h / 2;
+                float riftSize = screenRect.w * 0.5f * riftT;
+                Uint8 riftA = static_cast<Uint8>(180 * (1.0f - riftT * 0.5f) * alpha);
+
+                // Outer glow ring
+                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+                for (int ring = 2; ring >= 0; ring--) {
+                    int expand = ring * 3;
+                    Uint8 ra = static_cast<Uint8>(riftA / (ring + 1));
+                    SDL_SetRenderDrawColor(renderer, 160, 80, 255, ra);
+                    SDL_Rect riftRect = {
+                        static_cast<int>(centerX - riftSize - expand),
+                        static_cast<int>(centerY - riftSize * 0.3f - expand),
+                        static_cast<int>(riftSize * 2 + expand * 2),
+                        static_cast<int>(riftSize * 0.6f + expand * 2)
+                    };
+                    SDL_RenderFillRect(renderer, &riftRect);
+                }
+                // Bright center line
+                SDL_SetRenderDrawColor(renderer, 220, 200, 255, riftA);
+                SDL_Rect line = {
+                    static_cast<int>(centerX - riftSize * 0.8f),
+                    centerY - 1,
+                    static_cast<int>(riftSize * 1.6f),
+                    2
+                };
+                SDL_RenderFillRect(renderer, &line);
+                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+                // Hide entity during rift phase
+                alpha = 0;
+            } else {
+                float matT = (spawnProgress - 0.4f) / 0.6f; // 0→1 within materialize phase
+                // Scale: grow from 30% to 100% (more dramatic)
+                float scale = 0.3f + 0.7f * matT;
+                int sw = static_cast<int>(screenRect.w * scale);
+                int sh = static_cast<int>(screenRect.h * scale);
+                screenRect.x += (screenRect.w - sw) / 2;
+                screenRect.y += (screenRect.h - sh);
+                screenRect.w = sw;
+                screenRect.h = sh;
+                // Fade in alpha with white tint
+                alpha *= (0.2f + 0.8f * matT);
+            }
         }
     }
 
     // Hybrid rendering: try sprite first, fall back to procedural
     if (entity.getComponent<SpriteComponent>().texture) {
-        // Drop shadow for texture-based entities (procedural renderers draw their own)
-        int shadowW = screenRect.w * 4 / 5;
-        int shadowH = std::max(2, screenRect.h * 3 / 10);
-        int shadowX = screenRect.x + (screenRect.w - shadowW) / 2;
-        int shadowY = screenRect.y + screenRect.h - shadowH / 2;
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(35 * alpha));
-        SDL_Rect shadowRect = {shadowX, shadowY, shadowW, shadowH};
-        SDL_RenderFillRect(renderer, &shadowRect);
+        // Soft gradient drop shadow (4 bands, decreasing alpha, expanding outward)
+        int baseW = screenRect.w * 3 / 4;
+        int baseH = std::max(2, screenRect.h / 5);
+        int baseX = screenRect.x + (screenRect.w - baseW) / 2;
+        int baseY = screenRect.y + screenRect.h - baseH / 3;
+        for (int band = 3; band >= 0; band--) {
+            int expand = band * 2;
+            int bw = baseW + expand * 2;
+            int bh = baseH + expand;
+            int bx = baseX - expand;
+            int by = baseY - expand / 2;
+            // Alpha: inner band darkest (40), outer lightest (8)
+            Uint8 sa = static_cast<Uint8>((10 + (3 - band) * 10) * alpha);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, sa);
+            SDL_Rect shadowRect = {bx, by, bw, bh};
+            SDL_RenderFillRect(renderer, &shadowRect);
+        }
     }
     if (renderSprite(renderer, screenRect, entity, alpha)) {
         // Sprite rendered successfully — skip procedural, but still apply overlays below

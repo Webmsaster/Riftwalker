@@ -30,6 +30,21 @@ struct KillEvent {
     bool wasBoss = false;
 };
 
+// Visual ghost that persists after entity is destroyed (shrink + fade death animation)
+struct DeathEffect {
+    Vec2 position;         // World center position
+    float width, height;   // Original entity size (world units)
+    SDL_Color color;       // Entity sprite color
+    SDL_Texture* texture;  // Sprite texture (owned by ResourceManager, safe to keep)
+    SDL_Rect srcRect;      // Sprite source rect
+    bool flipX;
+    float timer;           // Counts up from 0
+    float maxLife;         // Total animation duration
+    bool isBoss;
+    bool isElite;
+    float flashPhase;      // 0-1, white flash at start
+};
+
 class CombatSystem {
 public:
     void update(EntityManager& entities, float dt, int currentDimension);
@@ -62,6 +77,7 @@ public:
         m_dashRefreshOnKill = false;
         m_damageEvents.clear();
         m_damageEvents.reserve(64);
+        m_deathEffects.clear();
         parryEvents.clear();
         killEvents.reserve(32);
     }
@@ -97,6 +113,13 @@ public:
     struct ParryEvent { Vec2 position; };
     std::vector<ParryEvent> parryEvents;
 
+    // Death effects (consumed by PlayState for ghost rendering)
+    std::vector<DeathEffect> consumeDeathEffects() {
+        auto effects = std::move(m_deathEffects);
+        m_deathEffects.clear();
+        return effects;
+    }
+
     // Balance tracking (consumed by PlayState for run summary)
     int voidResonanceProcs = 0;
 
@@ -131,4 +154,5 @@ private:
     class DimensionManager* m_dimMgr = nullptr;
     class SuitEntropy* m_suitEntropy = nullptr;
     std::vector<DamageEvent> m_damageEvents;
+    std::vector<DeathEffect> m_deathEffects;
 };

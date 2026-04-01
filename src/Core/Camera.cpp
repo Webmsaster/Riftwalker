@@ -88,9 +88,16 @@ void Camera::update(float dt) {
     if (m_shakeDuration > 0 && m_shakeTimer < m_shakeDuration) {
         m_shakeTimer += dt;
         float progress = m_shakeTimer / m_shakeDuration;
-        float currentIntensity = m_shakeIntensity * (1.0f - progress);
-        m_shakeOffset.x = (static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f) * currentIntensity;
-        m_shakeOffset.y = (static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f) * currentIntensity;
+        // Exponential decay for natural falloff (fast start, smooth tail)
+        float decay = std::exp(-4.0f * progress);
+        float currentIntensity = m_shakeIntensity * decay;
+        // Sinusoidal oscillation for smoother motion (not pure random)
+        float freq = 25.0f; // High frequency for snappy feel
+        float phase = m_shakeTimer * freq;
+        float randX = std::sin(phase) * 0.7f + (static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f) * 0.3f;
+        float randY = std::cos(phase * 1.3f) * 0.7f + (static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f) * 0.3f;
+        m_shakeOffset.x = randX * currentIntensity;
+        m_shakeOffset.y = randY * currentIntensity;
     }
 
     // Clamp to bounds

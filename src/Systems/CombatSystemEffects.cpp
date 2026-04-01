@@ -6,6 +6,7 @@
 #include "Components/PhysicsBody.h"
 #include "Components/ColliderComponent.h"
 #include "Components/SpriteComponent.h"
+#include "Components/AnimationComponent.h"
 #include "Components/AIComponent.h"
 #include "Components/RelicComponent.h"
 #include "Core/AudioManager.h"
@@ -363,6 +364,40 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
         targetElem = static_cast<int>(tAI.element);
         targetType = static_cast<int>(tAI.enemyType);
     }
+
+    // Capture death ghost effect BEFORE destroying entity
+    {
+        DeathEffect de{};
+        de.position = targetCenter;
+        if (target.hasComponent<TransformComponent>()) {
+            auto& tf = target.getComponent<TransformComponent>();
+            de.width = static_cast<float>(tf.width);
+            de.height = static_cast<float>(tf.height);
+        } else {
+            de.width = 32.0f;
+            de.height = 32.0f;
+        }
+        de.color = deathColor;
+        de.texture = nullptr;
+        de.srcRect = {0, 0, 32, 32};
+        de.flipX = false;
+        if (target.hasComponent<SpriteComponent>()) {
+            auto& spr = target.getComponent<SpriteComponent>();
+            de.texture = spr.texture;
+            de.srcRect = spr.srcRect;
+            de.flipX = spr.flipX;
+            if (target.hasComponent<AnimationComponent>()) {
+                de.srcRect = target.getComponent<AnimationComponent>().getCurrentSrcRect();
+            }
+        }
+        de.timer = 0;
+        de.maxLife = wasBoss ? 0.6f : (wasMB ? 0.4f : 0.3f);
+        de.isBoss = wasBoss;
+        de.isElite = wasElite || wasMB;
+        de.flashPhase = 0;
+        m_deathEffects.push_back(de);
+    }
+
     target.destroy();
 
     if (wasBoss && isPlayer) {
@@ -413,6 +448,10 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
         if (m_camera && isPlayer) {
             m_camera->shake(wasMB ? 12.0f : (wasElite ? 10.0f : 8.0f),
                             wasMB ? 0.35f : (wasElite ? 0.3f : 0.2f));
+        }
+        // Graduated hitstop: normal 2f, elite 4f, mini-boss 6f (at 60fps)
+        if (isPlayer) {
+            m_pendingHitFreeze += wasMB ? 0.10f : (wasElite ? 0.06f : 0.04f);
         }
     }
 
@@ -629,6 +668,16 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
         hp.takeDamage(damage);
         Vec2 tc = target.getComponent<TransformComponent>().getCenter();
         addDamageEvent(tc, damage, false, isCrit);
+
+        // Impact sparks (bright directional burst at hit point)
+        if (m_particles) {
+            SDL_Color sparkColor = isCrit
+                ? SDL_Color{255, 255, 200, 255}   // Bright gold for crits
+                : SDL_Color{255, 220, 160, 255};   // Warm white for normal hits
+            float impactDir = std::atan2(knockDir.y, knockDir.x) * 180.0f / 3.14159f;
+            m_particles->directionalBurst(tc, isCrit ? 12 : 6, sparkColor,
+                                          impactDir, 60.0f, 280.0f, 2.5f);
+        }
 
         // Knockback
         if (knockback > 0 && target.hasComponent<PhysicsBody>()) {

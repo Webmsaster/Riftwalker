@@ -553,18 +553,21 @@ void Player::handleDash(float dt, const InputManager& input) {
                               ghostColor, spr.flipX);
         }
 
-        // Particle trail (smaller now that afterimages handle the main visual)
-        // Dimension-tinted to match afterimage color
+        // Particle trail: dimension-tinted + speed line particles
         if (particles) {
             SDL_Color trailColor;
             if (dimensionManager) {
                 int dim = dimensionManager->getCurrentDimension();
-                trailColor = (dim == 1) ? SDL_Color{80, 140, 255, 80}
-                                        : SDL_Color{255, 80, 100, 80};
+                trailColor = (dim == 1) ? SDL_Color{80, 140, 255, 100}
+                                        : SDL_Color{255, 80, 100, 100};
             } else {
-                trailColor = {cc.r, cc.g, cc.b, 80};
+                trailColor = {cc.r, cc.g, cc.b, 100};
             }
-            particles->burst(t.getCenter(), 1, trailColor, 15.0f, 4.0f);
+            particles->burst(t.getCenter(), 2, trailColor, 20.0f, 3.5f);
+            // Speed line particles: fast horizontal streaks in dash direction
+            float dashDir = spr.flipX ? 180.0f : 0.0f;
+            particles->directionalBurst(t.getCenter(), 1, {200, 220, 255, 60},
+                                        dashDir + 180.0f, 15.0f, 50.0f, 1.5f);
             // Phantom Phase Through: extra cyan phase particles
             if (isPhaseThrough()) {
                 particles->burst(t.getCenter(), 3, {60, 220, 200, 120}, 35.0f, 5.0f);
@@ -576,6 +579,11 @@ void Player::handleDash(float dt, const InputManager& input) {
             phys.useGravity = true;
             phys.velocity.x *= 0.7f;
             dashMomentumTimer = dashMomentumTime;
+            // Dash end: deceleration dust puff
+            if (particles) {
+                auto& t2 = m_entity->getComponent<TransformComponent>();
+                particles->burst(t2.getCenter(), 6, {160, 160, 180, 100}, 60.0f, 2.5f);
+            }
             // Phantom: post-dash invisibility
             if (playerClass == PlayerClass::Phantom) {
                 const auto& classData = ClassSystem::getData(PlayerClass::Phantom);
@@ -602,11 +610,19 @@ void Player::handleDash(float dt, const InputManager& input) {
         }
         phys.velocity.x = (facingRight ? 1.0f : -1.0f) * finalDashSpeed;
 
-        // Dash particles
+        // Dash start burst: directional explosion + dust cloud
         if (particles) {
             auto& t = m_entity->getComponent<TransformComponent>();
             SDL_Color dashColor = {100, 180, 255, 255};
-            particles->burst(t.getCenter(), 15, dashColor, 150.0f, 4.0f);
+            // Directional speed burst in dash direction
+            float dashDir = facingRight ? 0.0f : 180.0f;
+            particles->directionalBurst(t.getCenter(), 12, dashColor, dashDir, 40.0f, 250.0f, 4.5f);
+            // Backward dust cloud (opposite direction)
+            float backDir = facingRight ? 180.0f : 0.0f;
+            SDL_Color dustColor = {180, 180, 200, 120};
+            particles->directionalBurst(t.getCenter(), 8, dustColor, backDir, 60.0f, 120.0f, 3.0f);
+            // White flash burst at start position
+            particles->burst(t.getCenter(), 6, {255, 255, 255, 200}, 80.0f, 3.0f);
         }
     }
 }

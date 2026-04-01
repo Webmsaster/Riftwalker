@@ -185,6 +185,8 @@ private:
 
     // Combat feel
     float m_hitFreezeTimer = 0;
+    float m_killSlowMoTimer = 0;       // Time dilation: counts down from 0.3s
+    float m_killSlowMoScale = 1.0f;    // Current time scale (1.0=normal, 0.4=slow)
     float m_spikeDmgCooldown = 0;
     float m_conveyorParticleTimer = 0;
     float m_heartbeatTimer = 0;  // Low HP heartbeat SFX interval
@@ -595,6 +597,28 @@ private:
     std::string m_zoneTransitionTagline;
     int m_zoneTransitionNumber = 0;
     void renderZoneTransition(SDL_Renderer* renderer, TTF_Font* font);
+
+    // Death ghost effects (enemy shrink+fade after death)
+    static constexpr int MAX_DEATH_EFFECTS = 24;
+    DeathEffect m_deathEffects[MAX_DEATH_EFFECTS];
+    int m_deathEffectCount = 0;
+    void updateDeathEffects(float dt);
+    void renderDeathEffects(SDL_Renderer* renderer);
+
+    // Foreground fog (atmospheric depth layer)
+    struct FogParticle {
+        float x, y;
+        float vx;
+        float width, height;
+        float alpha;
+        float alphaPhase; // For pulsing
+    };
+    static constexpr int MAX_FOG_PARTICLES = 8;
+    FogParticle m_fogParticles[MAX_FOG_PARTICLES];
+    bool m_fogInitialized = false;
+    void initFogParticles();
+    void updateFogParticles(float dt);
+    void renderFogParticles(SDL_Renderer* renderer);
 
     // Visual polish (Stufe 4)
     TrailSystem m_trails;

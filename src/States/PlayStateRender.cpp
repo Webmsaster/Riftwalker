@@ -598,6 +598,9 @@ void PlayState::render(SDL_Renderer* renderer) {
         }
     }
 
+    // Death ghost effects (shrink+fade after entity destruction, before particles)
+    renderDeathEffects(renderer);
+
     // Trails (before particles)
     m_trails.render(renderer);
 
@@ -719,6 +722,9 @@ void PlayState::render(SDL_Renderer* renderer) {
     m_screenEffects.renderPostProcessing(renderer, SCREEN_WIDTH, SCREEN_HEIGHT,
                                           m_dimManager.getCurrentDimension(),
                                           m_dimManager.getBlendAlpha());
+
+    // Foreground fog (atmospheric depth layer, between world and HUD)
+    renderFogParticles(renderer);
 
     // Entropy visual effects
     m_entropy.applyVisualEffects(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);

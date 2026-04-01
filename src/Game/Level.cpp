@@ -312,15 +312,45 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
         int autoIdx = getAutoTileIndex(tx, ty, dim);
         // Row 0 of tileset, column = auto-tile index (0-15)
         SDL_Rect srcRect = { autoIdx * m_texTileSize, 0, m_texTileSize, m_texTileSize };
+        // Subtle brightness variation per tile (deterministic from position)
+        int variation = ((tx * 7 + ty * 13 + tx * ty) % 15) - 7; // -7 to +7
         // Lighten the color mod so tileset texture detail shows through
-        // Blend tile color toward white (60% tile, 40% white) to preserve texture contrast
-        Uint8 modR = static_cast<Uint8>(tile.color.r + (255 - tile.color.r) * 4 / 10);
-        Uint8 modG = static_cast<Uint8>(tile.color.g + (255 - tile.color.g) * 4 / 10);
-        Uint8 modB = static_cast<Uint8>(tile.color.b + (255 - tile.color.b) * 4 / 10);
+        Uint8 modR = static_cast<Uint8>(std::clamp(tile.color.r + (255 - tile.color.r) * 4 / 10 + variation, 0, 255));
+        Uint8 modG = static_cast<Uint8>(std::clamp(tile.color.g + (255 - tile.color.g) * 4 / 10 + variation, 0, 255));
+        Uint8 modB = static_cast<Uint8>(std::clamp(tile.color.b + (255 - tile.color.b) * 4 / 10 + variation, 0, 255));
         SDL_SetTextureColorMod(m_tileset, modR, modG, modB);
         SDL_SetTextureAlphaMod(m_tileset, tile.color.a);
         SDL_SetTextureBlendMode(m_tileset, SDL_BLENDMODE_BLEND);
         SDL_RenderCopy(renderer, m_tileset, &srcRect, &sr);
+
+        // Edge highlights on tileset tiles (exposed edges get light/shadow)
+        bool eAbove = !isSolid(tx, ty - 1, dim);
+        bool eBelow = !isSolid(tx, ty + 1, dim);
+        bool eLeft  = !isSolid(tx - 1, ty, dim);
+        bool eRight = !isSolid(tx + 1, ty, dim);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        // Top-left highlight (light hitting from above-left)
+        if (eAbove) {
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 25);
+            SDL_Rect top = {sr.x, sr.y, sr.w, 1};
+            SDL_RenderFillRect(renderer, &top);
+        }
+        if (eLeft) {
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 18);
+            SDL_Rect left = {sr.x, sr.y, 1, sr.h};
+            SDL_RenderFillRect(renderer, &left);
+        }
+        // Bottom-right shadow
+        if (eBelow) {
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 30);
+            SDL_Rect bot = {sr.x, sr.y + sr.h - 1, sr.w, 1};
+            SDL_RenderFillRect(renderer, &bot);
+        }
+        if (eRight) {
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 22);
+            SDL_Rect right = {sr.x + sr.w - 1, sr.y, 1, sr.h};
+            SDL_RenderFillRect(renderer, &right);
+        }
         return;
     }
 
