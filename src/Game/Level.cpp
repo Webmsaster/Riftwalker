@@ -721,6 +721,20 @@ void Level::renderFireTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile
     SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g / 2, 0, 40);
     SDL_Rect glowR = {sr.x - 1, sr.y - 1, sr.w + 2, sr.h + 2};
     SDL_RenderDrawRect(renderer, &glowR);
+
+    // Heat haze: wavy horizontal bands above fire (rising hot air effect)
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+    for (int band = 0; band < 3; band++) {
+        int hazeY = sr.y - 4 - band * 6;
+        if (hazeY < 0) continue;
+        float wave = std::sin(time * 2.0f + band * 1.5f + sr.x * 0.1f) * 3.0f;
+        int hazeX = sr.x + static_cast<int>(wave);
+        Uint8 hazeA = static_cast<Uint8>(6 - band * 2); // 6, 4, 2 alpha
+        SDL_SetRenderDrawColor(renderer, 255, 160, 40, hazeA);
+        SDL_Rect haze = {hazeX, hazeY, sr.w, 2};
+        SDL_RenderFillRect(renderer, &haze);
+    }
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 }
 
 void Level::renderConveyorTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile, Uint32 ticks) const {
