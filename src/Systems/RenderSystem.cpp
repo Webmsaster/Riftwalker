@@ -740,6 +740,42 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         SDL_RenderDrawRect(renderer, &innerGlow);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     }
+
+    // Enemy rim light: element/type-specific colored additive outline
+    if (tag.find("enemy") != std::string::npos && alpha > 0.4f &&
+        entity.hasComponent<AIComponent>() && entity.hasComponent<SpriteComponent>() &&
+        entity.getComponent<SpriteComponent>().texture) {
+        auto& ai = entity.getComponent<AIComponent>();
+        Uint8 rimR = 180, rimG = 180, rimB = 180; // Default: neutral white
+        // Element-based rim color
+        switch (static_cast<int>(ai.element)) {
+            case 1: rimR = 255; rimG = 120; rimB = 40; break;  // Fire: orange
+            case 2: rimR = 80;  rimG = 180; rimB = 255; break; // Ice: blue
+            case 3: rimR = 255; rimG = 240; rimB = 60; break;  // Electric: yellow
+            default: // Type-based fallback
+                if (ai.enemyType == EnemyType::Boss) { rimR = 220; rimG = 40; rimB = 60; }
+                else if (ai.isElite) { rimR = 200; rimG = 160; rimB = 40; }
+                else if (ai.isMiniBoss) { rimR = 255; rimG = 200; rimB = 50; }
+                else { rimR = 140; rimG = 100; rimB = 160; } // Normal: dim purple (void theme)
+                break;
+        }
+        // Subtle additive rim (2px expanded sprite in rim color)
+        auto& spr = entity.getComponent<SpriteComponent>();
+        SDL_Rect srcRect2 = spr.srcRect;
+        if (entity.hasComponent<AnimationComponent>())
+            srcRect2 = entity.getComponent<AnimationComponent>().getCurrentSrcRect();
+        SDL_RendererFlip flip2 = spr.flipX ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+        Uint8 rimA = static_cast<Uint8>(18 * alpha);
+        SDL_SetTextureBlendMode(spr.texture, SDL_BLENDMODE_ADD);
+        SDL_SetTextureColorMod(spr.texture, rimR, rimG, rimB);
+        SDL_SetTextureAlphaMod(spr.texture, rimA);
+        static const int rimOff[][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+        for (auto& off : rimOff) {
+            SDL_Rect rimRect = {screenRect.x + off[0], screenRect.y + off[1], screenRect.w, screenRect.h};
+            SDL_RenderCopyEx(renderer, spr.texture, &srcRect2, &rimRect, 0.0, nullptr, flip2);
+        }
+        SDL_SetTextureBlendMode(spr.texture, SDL_BLENDMODE_BLEND);
+    }
 }
 
 void RenderSystem::renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
