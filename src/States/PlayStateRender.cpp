@@ -614,20 +614,37 @@ void PlayState::render(SDL_Renderer* renderer) {
     {
         Vec2 cam = m_camera.getPosition();
 
-        // Player glow (subtle aura around the player)
+        // Player glow (prominent aura — makes the player the visual focus)
         if (m_player && m_player->getEntity()) {
             auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
             float sx = pt.getCenter().x - cam.x;
             float sy = pt.getCenter().y - cam.y;
-            if (sx > -50 && sx < SCREEN_WIDTH + 50 && sy > -50 && sy < SCREEN_HEIGHT + 50) {
-                // Dimension-colored player glow
+            if (sx > -80 && sx < SCREEN_WIDTH + 80 && sy > -80 && sy < SCREEN_HEIGHT + 80) {
+                // Large ambient light circle around player (warm/cool by dimension)
                 if (m_dimManager.getCurrentDimension() == 2) {
-                    m_screenEffects.registerGlowPoint(sx, sy, 40.0f, 200, 120, 40, 18);
+                    m_screenEffects.registerGlowPoint(sx, sy, 90.0f, 200, 130, 50, 22);
+                    m_screenEffects.registerGlowPoint(sx, sy, 50.0f, 240, 160, 60, 15);
                 } else {
-                    m_screenEffects.registerGlowPoint(sx, sy, 40.0f, 80, 100, 200, 18);
+                    m_screenEffects.registerGlowPoint(sx, sy, 90.0f, 80, 110, 210, 22);
+                    m_screenEffects.registerGlowPoint(sx, sy, 50.0f, 100, 140, 240, 15);
                 }
+                // Feet glow (ground interaction light)
+                m_screenEffects.registerGlowPoint(sx, sy + 16.0f, 35.0f, 150, 150, 180, 10);
             }
         }
+
+        // Pickup item glows (make collectibles visually pop)
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag().find("pickup_") != 0 || !e.isAlive()) return;
+            if (!e.hasComponent<TransformComponent>()) return;
+            auto& pt = e.getComponent<TransformComponent>();
+            float px = pt.getCenter().x - cam.x;
+            float py = pt.getCenter().y - cam.y;
+            if (px < -30 || px > SCREEN_WIDTH + 30 || py < -30 || py > SCREEN_HEIGHT + 30) return;
+            auto& sprite = e.getComponent<SpriteComponent>();
+            m_screenEffects.registerGlowPoint(px, py, 20.0f,
+                sprite.color.r, sprite.color.g, sprite.color.b, 12);
+        });
 
         // Boss aura glow (larger, more intense when boss is alive)
         if (m_isBossLevel && !m_bossDefeated) {
