@@ -6,7 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
 **Recent Updates (2026-04-01 high-end visual overhaul session):**
+- **COMPLETE SPRITE OVERHAUL**: All 17 enemies + player regenerated via v3 pipeline
+  - JuggernautXL v9 SDXL at 768px (no pixel-art LoRA — professional hand-painted style)
+  - rembg U²-Net neural background removal (eliminates grey artifacts)
+  - Style: Hades/Dead Cells/Vanillaware inspired — bold painterly, dramatic rim light
+  - gen_sprites_v3.py: 1527-line production pipeline with 2-pass support
 - Entity sprite outlines: 4-direction 1px black offset (Hollow Knight method) on all textured entities
+- Enemy rim lights: element/type-specific colored additive outlines (fire=orange, ice=blue, boss=red)
 - Multiplicative color grading: SDL_BLENDMODE_MOD for dimension tinting (warm/cool)
 - God rays: vertical additive light shafts from rifts (3 bands each) and exit beacon
 - Enhanced death sequence: freeze frame → 15% slowmo → multiply desaturation + dark overlay
