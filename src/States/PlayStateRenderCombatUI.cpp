@@ -287,7 +287,7 @@ void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
     Uint8 glowA = static_cast<Uint8>(alpha * 40);
     SDL_SetRenderDrawColor(renderer, glowA, static_cast<Uint8>(glowA * 0.8f), 0, glowA);
-    int glowW = 400, glowH = 100;
+    int glowW = 800, glowH = 200;
     SDL_Rect glow = {SCREEN_WIDTH / 2 - glowW / 2,
                      SCREEN_HEIGHT / 3 - glowH / 2 + static_cast<int>(slideUp), glowW, glowH};
     SDL_RenderFillRect(renderer, &glow);
@@ -322,7 +322,7 @@ void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
             int lw = static_cast<int>(lvlSurf->w * lvlScale);
             int lh = static_cast<int>(lvlSurf->h * lvlScale);
             SDL_Rect dst = {SCREEN_WIDTH / 2 - lw / 2,
-                            SCREEN_HEIGHT / 3 + 24 + static_cast<int>(slideUp), lw, lh};
+                            SCREEN_HEIGHT / 3 + 48 + static_cast<int>(slideUp), lw, lh};
             SDL_SetTextureAlphaMod(lvlTex, static_cast<Uint8>(a * 0.8f));
             SDL_RenderCopy(renderer, lvlTex, nullptr, &dst);
             SDL_DestroyTexture(lvlTex);

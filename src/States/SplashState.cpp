@@ -23,7 +23,8 @@ void SplashState::exit() {
 }
 
 void SplashState::handleEvent(const SDL_Event& event) {
-    // Any key or mouse press skips to menu
+    // Any key or mouse press skips to menu (after 1s to prevent accidental skip)
+    if (m_time < 1.0f) return;
     if (event.type == SDL_KEYDOWN || event.type == SDL_MOUSEBUTTONDOWN ||
         event.type == SDL_CONTROLLERBUTTONDOWN) {
         transitionToMenu();
@@ -73,8 +74,8 @@ void SplashState::render(SDL_Renderer* renderer) {
         Uint8 ga = static_cast<Uint8>(glowAlpha * 50);
 
         // Soft glow rectangle behind title area
-        int glowW = 500;
-        int glowH = 80;
+        int glowW = 1000;
+        int glowH = 160;
         int cx = SCREEN_WIDTH / 2;
         int cy = SCREEN_HEIGHT / 2 - 30;
         SDL_Rect glowRect = { cx - glowW / 2, cy - glowH / 2, glowW, glowH };
@@ -82,8 +83,8 @@ void SplashState::render(SDL_Renderer* renderer) {
         SDL_RenderFillRect(renderer, &glowRect);
 
         // Slightly smaller, brighter inner glow
-        int innerW = 380;
-        int innerH = 50;
+        int innerW = 760;
+        int innerH = 100;
         SDL_Rect innerRect = { cx - innerW / 2, cy - innerH / 2, innerW, innerH };
         Uint8 ia = static_cast<Uint8>(glowAlpha * 30);
         SDL_SetRenderDrawColor(renderer, gr, gg, gb, ia);
@@ -153,8 +154,8 @@ void SplashState::render(SDL_Renderer* renderer) {
     // --- "Press any key" hint after title is fully visible ---
     if (m_time > TITLE_FADE_DURATION + 0.3f) {
         float hintPulse = (std::sin(m_time * 3.0f) + 1.0f) * 0.5f;
-        Uint8 ha = static_cast<Uint8>(40 + hintPulse * 60); // Subtle pulse
-        SDL_Color hintColor = { 120, 110, 140, ha };
+        Uint8 ha = static_cast<Uint8>(80 + hintPulse * 120); // More visible pulse
+        SDL_Color hintColor = { 160, 140, 200, ha };
 
         TTF_Font* font = game->getFont();
         SDL_Surface* surface = TTF_RenderText_Blended(font, "Press any key", hintColor);
@@ -162,11 +163,13 @@ void SplashState::render(SDL_Renderer* renderer) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
                 SDL_SetTextureAlphaMod(texture, ha);
+                int pw = static_cast<int>(surface->w * 1.5f);
+                int ph = static_cast<int>(surface->h * 1.5f);
                 SDL_Rect dst = {
-                    SCREEN_WIDTH / 2 - surface->w / 2,
-                    SCREEN_HEIGHT - 80,
-                    surface->w,
-                    surface->h
+                    SCREEN_WIDTH / 2 - pw / 2,
+                    SCREEN_HEIGHT - 120,
+                    pw,
+                    ph
                 };
                 SDL_RenderCopy(renderer, texture, nullptr, &dst);
                 SDL_DestroyTexture(texture);
