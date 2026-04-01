@@ -6,81 +6,99 @@
 #include <cmath>
 #include <algorithm>
 
-// Shared HP bar for all enemies: color gradient, delayed damage lag bar, elite diamond marker
+// High-end HP bar: beveled frame, 2-band gradient fill, animated lag, elite skull
 void RenderSystem::renderEnemyHPBar(SDL_Renderer* renderer, int x, int y, int w,
                                      Entity& entity, float alpha, bool isBoss) {
     if (!entity.hasComponent<HealthComponent>()) return;
     auto& hp = entity.getComponent<HealthComponent>();
     float pct = hp.getPercent();
-    if (pct >= 1.0f && !isBoss) return; // full HP: nothing to show (bosses always show)
+    if (pct >= 1.0f && !isBoss) return;
 
     Uint8 a = static_cast<Uint8>(255 * alpha);
-    int barW = isBoss ? w + 20 : w;
-    int barH = isBoss ? 5 : 4;
-    int barX = isBoss ? x - 10 : x;
-    int barY = isBoss ? y - 14 : y - 8;
+    int barW = isBoss ? w + 30 : w + 6;
+    int barH = isBoss ? 6 : 4;
+    int barX = isBoss ? x - 15 : x - 3;
+    int barY = isBoss ? y - 16 : y - 10;
 
-    // Background (dark)
-    fillRect(renderer, barX - 1, barY - 1, barW + 2, barH + 2, 10, 10, 10, a);
-    fillRect(renderer, barX, barY, barW, barH, 30, 30, 30, a);
+    // Outer bevel frame (dark border with subtle highlight)
+    fillRect(renderer, barX - 2, barY - 2, barW + 4, barH + 4, 5, 5, 8, a);
+    fillRect(renderer, barX - 1, barY - 1, barW + 2, barH + 2, 15, 15, 20, a);
+    // Top-left highlight edge
+    fillRect(renderer, barX - 1, barY - 1, barW + 2, 1, 50, 50, 60, static_cast<Uint8>(a * 0.4f));
+    fillRect(renderer, barX - 1, barY - 1, 1, barH + 2, 50, 50, 60, static_cast<Uint8>(a * 0.3f));
 
-    // Lag bar (delayed damage indicator — fading orange/white)
+    // Background (dark gradient)
+    fillRect(renderer, barX, barY, barW, barH / 2, 25, 25, 30, a);
+    fillRect(renderer, barX, barY + barH / 2, barW, barH - barH / 2, 18, 18, 22, a);
+
+    // Lag bar (delayed damage — fading white/orange with animation)
     float lagPct = hp.getLagPercent();
     if (lagPct > pct) {
         int lagW = static_cast<int>(barW * lagPct);
-        fillRect(renderer, barX, barY, lagW, barH, 200, 120, 60, static_cast<Uint8>(a * 0.8f));
+        Uint32 ticks = SDL_GetTicks();
+        float flicker = 0.7f + 0.3f * std::sin(ticks * 0.01f);
+        fillRect(renderer, barX, barY, lagW, barH,
+                 static_cast<Uint8>(220 * flicker), static_cast<Uint8>(140 * flicker),
+                 static_cast<Uint8>(60 * flicker), static_cast<Uint8>(a * 0.7f));
     }
 
-    // Current HP fill with color gradient: green > yellow > red
+    // HP color gradient
     int hpW = static_cast<int>(barW * pct);
     Uint8 r, g, b;
     if (pct > 0.6f) {
-        // Green to yellow (60%-100%)
-        float t = (pct - 0.6f) / 0.4f; // 1 at full, 0 at 60%
-        r = static_cast<Uint8>(220 - 180 * t);  // 220 -> 40
-        g = static_cast<Uint8>(200 + 40 * t);   // 200 -> 240
+        float t = (pct - 0.6f) / 0.4f;
+        r = static_cast<Uint8>(220 - 180 * t);
+        g = static_cast<Uint8>(200 + 40 * t);
         b = static_cast<Uint8>(40);
     } else if (pct > 0.3f) {
-        // Yellow to orange (30%-60%)
-        float t = (pct - 0.3f) / 0.3f; // 1 at 60%, 0 at 30%
-        r = static_cast<Uint8>(240 - 20 * t);   // 240 -> 220
-        g = static_cast<Uint8>(80 + 120 * t);   // 80 -> 200
+        float t = (pct - 0.3f) / 0.3f;
+        r = static_cast<Uint8>(240 - 20 * t);
+        g = static_cast<Uint8>(80 + 120 * t);
         b = static_cast<Uint8>(30);
     } else {
-        // Orange to red (0%-30%)
-        float t = pct / 0.3f; // 1 at 30%, 0 at 0%
-        r = static_cast<Uint8>(200 + 40 * t);   // 200 -> 240
-        g = static_cast<Uint8>(30 + 50 * t);    // 30 -> 80
+        float t = pct / 0.3f;
+        r = static_cast<Uint8>(200 + 40 * t);
+        g = static_cast<Uint8>(30 + 50 * t);
         b = static_cast<Uint8>(20);
     }
-    fillRect(renderer, barX, barY, hpW, barH, r, g, b, a);
 
-    // Subtle top highlight on HP fill (1px lighter strip)
-    if (hpW > 2) {
-        fillRect(renderer, barX, barY, hpW, 1,
-                 static_cast<Uint8>(std::min(255, r + 40)),
+    if (hpW > 0) {
+        // 2-band fill: brighter top, darker bottom
+        fillRect(renderer, barX, barY, hpW, barH / 2,
+                 static_cast<Uint8>(std::min(255, r + 35)),
                  static_cast<Uint8>(std::min(255, g + 30)),
-                 static_cast<Uint8>(std::min(255, b + 20)),
-                 static_cast<Uint8>(a * 0.5f));
+                 static_cast<Uint8>(std::min(255, b + 15)), a);
+        fillRect(renderer, barX, barY + barH / 2, hpW, barH - barH / 2, r, g, b, a);
+
+        // Glass specular (1px bright line)
+        fillRect(renderer, barX, barY, hpW, 1, 255, 255, 255, static_cast<Uint8>(a * 0.2f));
+
+        // End-cap glow (bright pixel at the fill edge)
+        if (hpW > 3 && pct < 0.95f) {
+            fillRect(renderer, barX + hpW - 1, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+        }
     }
 
-    // Boss phase markers
+    // Boss: phase markers + name underline
     if (isBoss) {
-        fillRect(renderer, barX + barW * 2 / 3, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
-        fillRect(renderer, barX + barW / 3, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.4f));
+        fillRect(renderer, barX + barW / 3, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.3f));
+        fillRect(renderer, barX + barW * 2 / 3, barY, 1, barH, 255, 255, 255, static_cast<Uint8>(a * 0.3f));
+        // Decorative end caps
+        fillRect(renderer, barX - 2, barY - 1, 2, barH + 2, 80, 60, 100, a);
+        fillRect(renderer, barX + barW, barY - 1, 2, barH + 2, 80, 60, 100, a);
     }
 
-    // Elite diamond marker
+    // Elite: golden crown marker
     if (entity.hasComponent<AIComponent>()) {
         auto& ai = entity.getComponent<AIComponent>();
         if (ai.isElite) {
-            // Small diamond icon to the left of the HP bar
-            int dx = barX - 6;
-            int dy = barY + barH / 2;
-            // Diamond shape: 4 pixels arranged as a diamond
-            fillRect(renderer, dx, dy - 2, 3, 1, 255, 220, 80, a);
-            fillRect(renderer, dx - 1, dy - 1, 5, 1, 255, 220, 80, a);
-            fillRect(renderer, dx, dy, 3, 1, 255, 220, 80, a);
+            int cx = barX - 8;
+            int cy = barY + barH / 2;
+            // Crown shape
+            fillRect(renderer, cx - 3, cy - 1, 7, 3, 255, 200, 40, a);
+            fillRect(renderer, cx - 3, cy - 3, 1, 2, 255, 220, 60, a);
+            fillRect(renderer, cx, cy - 4, 1, 3, 255, 230, 80, a);
+            fillRect(renderer, cx + 3, cy - 3, 1, 2, 255, 220, 60, a);
         }
     }
 }

@@ -956,28 +956,64 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_FRect worldRect = {dn.position.x - 10, dn.position.y - 8, 20, 16};
         SDL_Rect screenRect = m_camera.worldToScreen(worldRect);
 
+        // Pop-in scale animation: starts large, settles to target scale
+        float lifeProgress = 1.0f - t; // 0 at birth, 1 at death
+        float popScale = 1.0f;
+        if (lifeProgress < 0.15f) {
+            // Pop-in: scale from 1.6 to 1.0 in first 15% of life
+            float popT = lifeProgress / 0.15f;
+            popScale = 1.6f - 0.6f * popT;
+        }
+
+        float baseScale = 1.0f;
+        if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
+            baseScale = 1.8f;
+        } else if (dn.isCritical) {
+            baseScale = 1.8f;
+        } else if (dn.value > 20) {
+            baseScale = 1.3f;
+        }
+        float finalScale = baseScale * popScale;
+
+        // Render text with outline shadow for readability
+        // Shadow pass (dark outline)
+        SDL_Color shadowColor = {0, 0, 0, static_cast<Uint8>(alpha * 0.8f)};
+        SDL_Surface* shadowSurf = TTF_RenderText_Blended(font, buf, shadowColor);
         SDL_Surface* surface = TTF_RenderText_Blended(font, buf, color);
         if (surface) {
+            int sw = static_cast<int>(surface->w * finalScale);
+            int sh = static_cast<int>(surface->h * finalScale);
+            int dx = screenRect.x - sw / 2;
+            int dy = screenRect.y;
+
+            // Shadow (4 offset copies for thick outline)
+            if (shadowSurf) {
+                SDL_Texture* shadowTex = SDL_CreateTextureFromSurface(renderer, shadowSurf);
+                if (shadowTex) {
+                    SDL_SetTextureAlphaMod(shadowTex, static_cast<Uint8>(alpha * 0.7f));
+                    for (int ox = -1; ox <= 1; ox++) {
+                        for (int oy = -1; oy <= 1; oy++) {
+                            if (ox == 0 && oy == 0) continue;
+                            SDL_Rect sdst = {dx + ox, dy + oy, sw, sh};
+                            SDL_RenderCopy(renderer, shadowTex, nullptr, &sdst);
+                        }
+                    }
+                    SDL_DestroyTexture(shadowTex);
+                }
+                SDL_FreeSurface(shadowSurf);
+            }
+
+            // Main text
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
-                // Scale up for crits, parry, and large damage
-                float scale = 1.0f;
-                if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
-                    scale = 1.8f; // biggest text in the game
-                } else if (dn.isCritical) {
-                    scale = 1.8f;
-                } else if (dn.value > 20) {
-                    scale = 1.3f;
-                }
-                SDL_Rect dst = {screenRect.x - static_cast<int>(surface->w * scale) / 2,
-                               screenRect.y,
-                               static_cast<int>(surface->w * scale),
-                               static_cast<int>(surface->h * scale)};
+                SDL_Rect dst = {dx, dy, sw, sh};
                 SDL_SetTextureAlphaMod(texture, alpha);
                 SDL_RenderCopy(renderer, texture, nullptr, &dst);
                 SDL_DestroyTexture(texture);
             }
             SDL_FreeSurface(surface);
+        } else if (shadowSurf) {
+            SDL_FreeSurface(shadowSurf);
         }
     }
 }
