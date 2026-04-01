@@ -98,7 +98,7 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
     if (progress < 0.85f) {
         float textAlpha = std::min(1.0f, progress * 3.0f);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(160 * textAlpha));
-        SDL_Rect banner = {0, 330, SCREEN_WIDTH, 60};
+        SDL_Rect banner = {0, 660, SCREEN_WIDTH, 120};
         SDL_RenderFillRect(renderer, &banner);
 
         TTF_Font* font = game->getFont();
@@ -109,7 +109,7 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 348, s->w, s->h};
+                    SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 696, s->w, s->h};
                     SDL_RenderCopy(renderer, t, nullptr, &r);
                     SDL_DestroyTexture(t);
                 }
