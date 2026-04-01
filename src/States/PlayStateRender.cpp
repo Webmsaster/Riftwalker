@@ -629,6 +629,30 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Trails (before particles)
     m_trails.render(renderer);
 
+    // Screen-space speed lines during fast movement (Dead Cells style)
+    if (m_player && m_player->getEntity() && m_player->getEntity()->hasComponent<PhysicsBody>()) {
+        auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
+        float speed = std::sqrt(phys.velocity.x * phys.velocity.x + phys.velocity.y * phys.velocity.y);
+        if (speed > 350.0f || m_player->isDashing) {
+            float intensity = m_player->isDashing ? 1.0f : std::min(1.0f, (speed - 350.0f) / 400.0f);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+            Uint32 ticks = SDL_GetTicks();
+            bool movingRight = phys.velocity.x > 0;
+            for (int i = 0; i < 6; i++) {
+                // Deterministic but varied positions
+                int lineY = ((i * 9137 + ticks / 50) % SCREEN_HEIGHT);
+                int lineLen = 40 + (i * 31) % 80;
+                int lineX = movingRight ? SCREEN_WIDTH - lineLen - (i * 113 + ticks / 30) % 200
+                                        : (i * 113 + ticks / 30) % 200;
+                Uint8 lineA = static_cast<Uint8>(intensity * (8 + i % 5));
+                SDL_SetRenderDrawColor(renderer, 200, 220, 255, lineA);
+                SDL_Rect speedLine = {lineX, lineY, lineLen, 1};
+                SDL_RenderFillRect(renderer, &speedLine);
+            }
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        }
+    }
+
     // Particles
     m_particles.render(renderer, m_camera);
 
