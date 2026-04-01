@@ -104,20 +104,55 @@ void DimensionManager::applyVisualEffect(SDL_Renderer* renderer, int screenW, in
         SDL_RenderFillRect(renderer, &fullscreen);
     }
 
-    // Glitch scanlines during switch
+    // Enhanced glitch effect during dimension switch
     if (m_glitchIntensity > 0.1f) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        int lineCount = static_cast<int>(m_glitchIntensity * 20);
+        Uint32 ticks = SDL_GetTicks();
+
+        // Glitch scanlines (horizontal displacement bands)
+        int lineCount = static_cast<int>(m_glitchIntensity * 25);
         for (int i = 0; i < lineCount; i++) {
             int y = std::rand() % screenH;
-            int h = 1 + std::rand() % 3;
-            int offset = static_cast<int>((std::rand() % 20 - 10) * m_glitchIntensity);
-            Uint8 a = static_cast<Uint8>(m_glitchIntensity * 100);
-
+            int h = 1 + std::rand() % 4;
+            int offset = static_cast<int>((std::rand() % 30 - 15) * m_glitchIntensity);
+            Uint8 a = static_cast<Uint8>(m_glitchIntensity * 120);
             SDL_Color& c = (std::rand() % 2 == 0) ? m_dimColorA : m_dimColorB;
             SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, a);
             SDL_Rect line = {offset, y, screenW, h};
             SDL_RenderFillRect(renderer, &line);
+        }
+
+        // Rift tear: bright horizontal crack across screen center
+        if (m_glitchIntensity > 0.3f) {
+            float tearIntensity = (m_glitchIntensity - 0.3f) / 0.7f; // 0-1 in upper range
+            int centerY = screenH / 2 + static_cast<int>(std::sin(ticks * 0.01f) * 20 * tearIntensity);
+            int tearH = 2 + static_cast<int>(tearIntensity * 6);
+
+            // Bright core of the tear
+            Uint8 tearAlpha = static_cast<Uint8>(200 * tearIntensity);
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, tearAlpha);
+            SDL_Rect tearCore = {0, centerY - tearH / 2, screenW, tearH};
+            SDL_RenderFillRect(renderer, &tearCore);
+
+            // Color-shifted edges (chromatic aberration simulation)
+            Uint8 chromAlpha = static_cast<Uint8>(100 * tearIntensity);
+            SDL_SetRenderDrawColor(renderer, m_dimColorA.r, m_dimColorA.g, m_dimColorA.b, chromAlpha);
+            SDL_Rect tearTop = {0, centerY - tearH - 2, screenW, 2};
+            SDL_RenderFillRect(renderer, &tearTop);
+            SDL_SetRenderDrawColor(renderer, m_dimColorB.r, m_dimColorB.g, m_dimColorB.b, chromAlpha);
+            SDL_Rect tearBot = {0, centerY + tearH / 2, screenW, 2};
+            SDL_RenderFillRect(renderer, &tearBot);
+
+            // Sparks along the tear
+            for (int s = 0; s < 8; s++) {
+                float sparkX = (ticks * 0.5f + s * 173.7f);
+                int sx = static_cast<int>(std::fmod(sparkX, static_cast<float>(screenW)));
+                int sy = centerY + static_cast<int>(std::sin(sparkX * 0.03f) * tearH * 2);
+                Uint8 sa = static_cast<Uint8>(180 * tearIntensity * (0.5f + 0.5f * std::sin(ticks * 0.02f + s)));
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, sa);
+                SDL_Rect spark = {sx - 1, sy - 1, 3, 3};
+                SDL_RenderFillRect(renderer, &spark);
+            }
         }
     }
 }

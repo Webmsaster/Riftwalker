@@ -96,8 +96,28 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
             static_cast<int>(p.size)
         };
 
+        // Outer glow for larger particles (additive feel)
+        if (p.size >= 3.0f && alpha > 30) {
+            Uint8 glowA = static_cast<Uint8>(alpha * 0.25f);
+            SDL_SetRenderDrawColor(renderer, r, g, b, glowA);
+            SDL_Rect glow = {rect.x - 2, rect.y - 2, rect.w + 4, rect.h + 4};
+            SDL_RenderFillRect(renderer, &glow);
+        }
+
+        // Core particle
         SDL_SetRenderDrawColor(renderer, r, g, b, alpha);
         SDL_RenderFillRect(renderer, &rect);
+
+        // Bright center pixel for medium+ particles
+        if (p.size >= 2.5f && alpha > 60) {
+            Uint8 coreA = static_cast<Uint8>(std::min(255, alpha + 40));
+            SDL_SetRenderDrawColor(renderer,
+                static_cast<Uint8>(std::min(255, r + 80)),
+                static_cast<Uint8>(std::min(255, g + 80)),
+                static_cast<Uint8>(std::min(255, b + 60)), coreA);
+            SDL_Rect core = {rect.x + rect.w / 2, rect.y + rect.h / 2, 1, 1};
+            SDL_RenderFillRect(renderer, &core);
+        }
     }
 }
 
