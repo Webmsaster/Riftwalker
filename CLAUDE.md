@@ -5,7 +5,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-01 combat feel + visual polish session):**
+**Recent Updates (2026-04-01 high-end visual overhaul session):**
+- Entity sprite outlines: 4-direction 1px black offset (Hollow Knight method) on all textured entities
+- Multiplicative color grading: SDL_BLENDMODE_MOD for dimension tinting (warm/cool)
+- God rays: vertical additive light shafts from rifts (3 bands each) and exit beacon
+- Enhanced death sequence: freeze frame → 15% slowmo → multiply desaturation + dark overlay
+- Boss zoom transitions: smooth zoom-out on boss appear (2.5→2.2), zoom-in on kill (→2.8)
+- Chromatic aberration on player damage: brief RGB split at screen edges
+- Player edge glow: dimension-colored additive outline (blue for dim A, red for dim B)
+- Level-up celebration: expanding golden ring + 8 radial speed lines + additive flash
+- Depth fog bands: 3 horizontal gradient bands between parallax layers
+- Enhanced projectile trails: additive glow, 6-segment falloff, sprite-colored
+
+**Previous Updates (2026-04-01 combat feel session):**
 - Enemy death ghost effects: white flash → shrink-to-nothing over 0.3s (sprite preserved)
 - Graduated hitstop on ALL kills: normal 0.04s, elite 0.06s, mini-boss 0.1s, boss 0.25s
 - Kill slow-motion: 0.4s at 40% speed on boss/mini-boss kills, 0.25s on multi-kills
