@@ -55,6 +55,13 @@ void MenuState::enter() {
     m_time = 0;
     m_fadeIn = 0;
     m_bgParticles.clear();
+
+    // Staggered entrance animation for buttons
+    for (int i = 0; i < static_cast<int>(m_buttons.size()); i++) {
+        m_buttons[i].baseX = cx - btnW / 2;
+        m_buttons[i].entranceDelay = 0.15f + i * 0.04f; // staggered 40ms each
+        m_buttons[i].entranceProgress = 0.0f;
+    }
 }
 
 void MenuState::handleEvent(const SDL_Event& event) {
@@ -118,8 +125,11 @@ void MenuState::update(float dt) {
         m_fadeIn += dt * 0.8f;
         if (m_fadeIn > 1.0f) m_fadeIn = 1.0f;
     }
-    // Update button hover animations
-    for (auto& btn : m_buttons) btn.update(dt);
+    // Update button hover + entrance animations
+    for (auto& btn : m_buttons) {
+        btn.update(dt);
+        btn.updateEntrance(dt);
+    }
 
     // Gamepad navigation — only active when a gamepad is connected to avoid
     // doubling up with the keyboard handling already in handleEvent()

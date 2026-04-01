@@ -34,4 +34,11 @@ private:
     std::string m_text;
     bool m_selected = false;
     float m_hoverBlend = 0.0f;  // 0.0 = unselected, 1.0 = fully selected
+
+public:
+    // Entrance animation: slide from left with staggered delay
+    float entranceDelay = 0.0f;   // seconds before this button starts sliding in
+    float entranceProgress = 0.0f; // 0.0 = off-screen left, 1.0 = at final position
+    int baseX = 0;                 // final resting X position
+    void updateEntrance(float dt);
 };

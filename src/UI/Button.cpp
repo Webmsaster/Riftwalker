@@ -121,3 +121,17 @@ bool Button::isHovered(int mouseX, int mouseY) const {
 bool Button::isClicked(int mouseX, int mouseY, bool mouseDown) const {
     return enabled && mouseDown && isHovered(mouseX, mouseY);
 }
+
+void Button::updateEntrance(float dt) {
+    if (entranceDelay > 0) {
+        entranceDelay -= dt;
+        return;
+    }
+    if (entranceProgress < 1.0f) {
+        entranceProgress += dt * 5.0f; // fast slide-in
+        if (entranceProgress > 1.0f) entranceProgress = 1.0f;
+        // Ease-out curve (decelerate at end)
+        float eased = 1.0f - (1.0f - entranceProgress) * (1.0f - entranceProgress);
+        m_rect.x = baseX - static_cast<int>((1.0f - eased) * 400);
+    }
+}
