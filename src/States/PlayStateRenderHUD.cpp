@@ -55,7 +55,7 @@ void PlayState::renderCollapseWarning(SDL_Renderer* renderer) {
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
-                SDL_Rect tr = {640 - ts->w / 2, 50, ts->w, ts->h};
+                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, 50, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }
@@ -88,7 +88,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 if (rs) {
                     SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
                     if (rt) {
-                        SDL_Rect rr = {640 - rs->w / 2, 30, rs->w, rs->h};
+                        SDL_Rect rr = {SCREEN_WIDTH / 2 - rs->w / 2, 30, rs->w, rs->h};
                         SDL_RenderCopy(renderer, rt, nullptr, &rr);
                         SDL_DestroyTexture(rt);
                     }
@@ -112,7 +112,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
                 if (ht) {
                     SDL_SetTextureAlphaMod(ht, alpha);
-                    SDL_Rect hr = {640 - hs->w / 2, 460, hs->w, hs->h};
+                    SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, 460, hs->w, hs->h};
                     SDL_RenderCopy(renderer, ht, nullptr, &hr);
                     SDL_DestroyTexture(ht);
                 }
@@ -146,7 +146,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
                 if (ht) {
                     SDL_SetTextureAlphaMod(ht, alpha);
-                    SDL_Rect hr = {640 - hs->w / 2, 482, hs->w, hs->h};
+                    SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, 482, hs->w, hs->h};
                     SDL_RenderCopy(renderer, ht, nullptr, &hr);
                     SDL_DestroyTexture(ht);
                 }
@@ -192,7 +192,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    SDL_Rect r = {640 - s->w / 2, 500, s->w, s->h};
+                    SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 500, s->w, s->h};
                     SDL_RenderCopy(renderer, t, nullptr, &r);
                     SDL_DestroyTexture(t);
                 }
@@ -205,7 +205,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
     if (m_level && !m_activePuzzle) {
         auto rifts = m_level->getRiftPositions();
         Vec2 camPos = m_camera.getPosition();
-        float halfW = 640.0f, halfH = 360.0f;
+        float halfW = SCREEN_WIDTH / 2.0f, halfH = SCREEN_HEIGHT / 2.0f;
 
         for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
             // Skip already-repaired rifts
@@ -246,7 +246,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
     if (m_level && (m_level->isExitActive() || m_collapsing) && !m_levelComplete) {
         Vec2 exitPos = m_level->getExitPoint();
         Vec2 camPos = m_camera.getPosition();
-        float halfW = 640.0f, halfH = 360.0f;
+        float halfW = SCREEN_WIDTH / 2.0f, halfH = SCREEN_HEIGHT / 2.0f;
 
         float sx = (exitPos.x - camPos.x) * m_camera.zoom + halfW;
         float sy = (exitPos.y - camPos.y) * m_camera.zoom + halfH;
@@ -536,7 +536,7 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     // Bar background
     int barW = 400;
     int barH = 12;
-    int barX = 640 - barW / 2;
+    int barX = SCREEN_WIDTH / 2 - barW / 2;
     int barY = 20;
 
     // Dark frame
@@ -623,7 +623,7 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
-                SDL_Rect tr = {640 - ts->w / 2, barY + barH + 4, ts->w, ts->h};
+                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, barY + barH + 4, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }

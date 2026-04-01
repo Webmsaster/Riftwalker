@@ -122,8 +122,8 @@ void PlayState::startNewRun() {
     m_voidSovereignDefeated = false;
     m_trails.clear();
     m_moveTrailTimer = 0.0f;
-    m_camera.zoom = 2.5f; // Reset death zoom
-    m_camera.zoomTarget = 2.5f;
+    m_camera.zoom = 5.0f; // Reset death zoom
+    m_camera.zoomTarget = 5.0f;
     m_runTime = 0.0f;
     m_bestCombo = 0;
     m_nearNPCIndex = -1;
@@ -252,7 +252,7 @@ void PlayState::generateLevel() {
     m_damageIndicators.clear();
     m_trails.clear();
     // Reset zoom to default for new level (boss zoom-out will re-apply if needed)
-    m_camera.zoomTarget = 2.5f;
+    m_camera.zoomTarget = 5.0f;
     m_camera.zoomSpeed = 2.0f;
 
     m_levelGen.setThemes(m_themeA, m_themeB);
@@ -710,7 +710,7 @@ void PlayState::spawnBoss() {
     }
 
     // Cinematic zoom-out for boss arena (show more of the level)
-    m_camera.zoomTarget = 2.2f;
+    m_camera.zoomTarget = 4.4f;
     m_camera.zoomSpeed = 1.5f;
 
     // Activate boss intro freeze (skip for automated bots)

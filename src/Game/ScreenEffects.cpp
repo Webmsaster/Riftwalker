@@ -25,8 +25,8 @@ void ScreenEffects::update(float dt) {
 
     // Update ambient particles (use stored screen dimensions from last render call)
     if (ambientParticlesEnabled && m_ambientParticlesInitialized) {
-        // Screen dimensions passed as 1280x720 (logical) — matches Game::SCREEN_WIDTH/HEIGHT
-        updateAmbientParticles(dt, 1280, 720, m_currentDimension);
+        // Screen dimensions match Game::SCREEN_WIDTH/HEIGHT (logical resolution)
+        updateAmbientParticles(dt, 2560, 1440, m_currentDimension);
     }
 }
 

@@ -1286,7 +1286,7 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
     // Dialog box (taller for returning NPCs with longer story text)
     int stage = getNPCStoryStage(npc.type);
     int boxW = 500, boxH = 260 + (stage > 0 ? 30 : 0);
-    int boxX = 640 - boxW / 2, boxY = 360 - boxH / 2;
+    int boxX = SCREEN_WIDTH / 2 - boxW / 2, boxY = SCREEN_HEIGHT / 2 - boxH / 2;
 
     SDL_SetRenderDrawColor(renderer, 20, 15, 35, 240);
     SDL_Rect box = {boxX, boxY, boxW, boxH};

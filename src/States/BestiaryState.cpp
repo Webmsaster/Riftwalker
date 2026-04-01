@@ -220,14 +220,14 @@ void BestiaryState::render(SDL_Renderer* renderer) {
     if (!font) return;
 
     // ---- Title ----
-    drawTextCentered(renderer, font, "B E S T I A R Y", 640, 18, {180, 100, 100, 255}, 1.5f);
+    drawTextCentered(renderer, font, "B E S T I A R Y", SCREEN_WIDTH / 2, 18, {180, 100, 100, 255}, 1.5f);
 
     // Discovery counter
     {
         char countText[48];
         std::snprintf(countText, sizeof(countText), "Discovered: %d / %d",
                       Bestiary::getDiscoveredCount(), Bestiary::getTotalCount());
-        drawTextCentered(renderer, font, countText, 640, 62, {120, 110, 150, 200});
+        drawTextCentered(renderer, font, countText, SCREEN_WIDTH / 2, 62, {120, 110, 150, 200});
     }
 
     // ---- Left: list panel ----
@@ -369,7 +369,7 @@ void BestiaryState::render(SDL_Renderer* renderer) {
 
     // ---- Navigation hint ----
     drawTextCentered(renderer, font, "W/S  Navigate     ESC  Back",
-                     640, 692, {60, 55, 85, 140});
+                     SCREEN_WIDTH / 2, 692, {60, 55, 85, 140});
 }
 
 // ---- Discovered detail panel ----

@@ -178,12 +178,12 @@ void UpgradeState::render(SDL_Renderer* renderer) {
             // Glow
             SDL_SetTextureBlendMode(titleTex, SDL_BLENDMODE_ADD);
             SDL_SetTextureAlphaMod(titleTex, 40);
-            SDL_Rect glowR = {640 - tw / 2 - 2, 22, tw + 4, th + 4};
+            SDL_Rect glowR = {SCREEN_WIDTH / 2 - tw / 2 - 2, 22, tw + 4, th + 4};
             SDL_RenderCopy(renderer, titleTex, nullptr, &glowR);
             // Main
             SDL_SetTextureBlendMode(titleTex, SDL_BLENDMODE_BLEND);
             SDL_SetTextureAlphaMod(titleTex, 255);
-            SDL_Rect titleR = {640 - tw / 2, 25, tw, th};
+            SDL_Rect titleR = {SCREEN_WIDTH / 2 - tw / 2, 25, tw, th};
             SDL_RenderCopy(renderer, titleTex, nullptr, &titleR);
             SDL_DestroyTexture(titleTex);
         }
@@ -201,7 +201,7 @@ void UpgradeState::render(SDL_Renderer* renderer) {
         SDL_Texture* shTex = SDL_CreateTextureFromSurface(renderer, shSurf);
         if (shTex) {
             // Diamond icon
-            int ix = 640 - shSurf->w / 2 - 18;
+            int ix = SCREEN_WIDTH / 2 - shSurf->w / 2 - 18;
             int iy = 65;
             SDL_SetRenderDrawColor(renderer, 200, 160, 255, 230);
             SDL_RenderDrawLine(renderer, ix, iy, ix + 5, iy - 7);
@@ -209,7 +209,7 @@ void UpgradeState::render(SDL_Renderer* renderer) {
             SDL_RenderDrawLine(renderer, ix + 10, iy, ix + 5, iy + 7);
             SDL_RenderDrawLine(renderer, ix + 5, iy + 7, ix, iy);
 
-            SDL_Rect shR = {640 - shSurf->w / 2, 57, shSurf->w, shSurf->h};
+            SDL_Rect shR = {SCREEN_WIDTH / 2 - shSurf->w / 2, 57, shSurf->w, shSurf->h};
             SDL_RenderCopy(renderer, shTex, nullptr, &shR);
             SDL_DestroyTexture(shTex);
         }
@@ -349,13 +349,13 @@ void UpgradeState::render(SDL_Renderer* renderer) {
     // Scroll indicators
     if (m_scrollOffset > 0) {
         SDL_SetRenderDrawColor(renderer, 140, 100, 220, 150);
-        int cx = 640;
+        int cx = SCREEN_WIDTH / 2;
         SDL_RenderDrawLine(renderer, cx - 8, startY - 8, cx, startY - 14);
         SDL_RenderDrawLine(renderer, cx, startY - 14, cx + 8, startY - 8);
     }
     if (endIdx < static_cast<int>(upgradeList.size())) {
         SDL_SetRenderDrawColor(renderer, 140, 100, 220, 150);
-        int cx = 640;
+        int cx = SCREEN_WIDTH / 2;
         int botY = startY + VISIBLE_ITEMS * itemH;
         SDL_RenderDrawLine(renderer, cx - 8, botY + 2, cx, botY + 8);
         SDL_RenderDrawLine(renderer, cx, botY + 8, cx + 8, botY + 2);
@@ -374,5 +374,5 @@ void UpgradeState::render(SDL_Renderer* renderer) {
     SDL_Rect instrBg = {0, 670, SCREEN_WIDTH, 50};
     SDL_RenderFillRect(renderer, &instrBg);
     renderText(renderer, font, "W/S: Navigate    ENTER: Purchase    ESC: Back",
-               640 - 200, 683, {120, 110, 150, 180});
+               SCREEN_WIDTH / 2 - 200, 683, {120, 110, 150, 180});
 }

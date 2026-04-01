@@ -366,7 +366,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
             if (t) {
                 int tw = s->w * 2;
                 int th = s->h * 2;
-                SDL_Rect r = {640 - tw / 2, 80, tw, th};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 80, tw, th};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -378,7 +378,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
     int startY = 170;
     int itemH = 52;
     int cardW = 500;
-    int cardX = 640 - cardW / 2;
+    int cardX = SCREEN_WIDTH / 2 - cardW / 2;
 
     for (int i = 0; i < static_cast<int>(m_options.size()); i++) {
         int y = startY + i * itemH;
@@ -410,7 +410,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
             if (lt) {
                 SDL_Rect lr;
                 if (isSpecial) {
-                    lr = {640 - ls->w / 2, y + (itemH - 8) / 2 - ls->h / 2, ls->w, ls->h};
+                    lr = {SCREEN_WIDTH / 2 - ls->w / 2, y + (itemH - 8) / 2 - ls->h / 2, ls->w, ls->h};
                 } else {
                     lr = {cardX + 20, y + (itemH - 8) / 2 - ls->h / 2, ls->w, ls->h};
                 }
@@ -508,7 +508,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
             if (cs) {
                 SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
                 if (ct) {
-                    SDL_Rect cr = {640 - cs->w / 2, 630 + i * 22, cs->w, cs->h};
+                    SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 630 + i * 22, cs->w, cs->h};
                     SDL_RenderCopy(renderer, ct, nullptr, &cr);
                     SDL_DestroyTexture(ct);
                 }
@@ -524,7 +524,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {640 - ns->w / 2, SCREEN_HEIGHT - 30, ns->w, ns->h};
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, SCREEN_HEIGHT - 30, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }

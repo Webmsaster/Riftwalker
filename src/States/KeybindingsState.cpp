@@ -105,7 +105,7 @@ void KeybindingsState::handleEvent(const SDL_Event& event) {
     // Mouse hover: update selection (not while listening for a key)
     if (event.type == SDL_MOUSEMOTION && !m_listening) {
         int mx = event.motion.x, my = event.motion.y;
-        const int startY = 120, itemH = 48, cardW = 500, cardX = 640 - cardW / 2;
+        const int startY = 120, itemH = 48, cardW = 500, cardX = SCREEN_WIDTH / 2 - cardW / 2;
         for (int i = 0; i < totalItems(); i++) {
             int y = startY + i * itemH;
             SDL_Rect card = {cardX, y, cardW, itemH - 6};
@@ -122,7 +122,7 @@ void KeybindingsState::handleEvent(const SDL_Event& event) {
     // Mouse click: select + confirm (not while listening)
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && !m_listening) {
         int mx = event.button.x, my = event.button.y;
-        const int startY = 120, itemH = 48, cardW = 500, cardX = 640 - cardW / 2;
+        const int startY = 120, itemH = 48, cardW = 500, cardX = SCREEN_WIDTH / 2 - cardW / 2;
         for (int i = 0; i < totalItems(); i++) {
             int y = startY + i * itemH;
             SDL_Rect card = {cardX, y, cardW, itemH - 6};
@@ -184,7 +184,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
             if (t) {
                 int tw = s->w * 2;
                 int th = s->h * 2;
-                SDL_Rect r = {640 - tw / 2, 50, tw, th};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 50, tw, th};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -195,7 +195,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
     int startY = 120;
     int itemH = 48;
     int cardW = 500;
-    int cardX = 640 - cardW / 2;
+    int cardX = SCREEN_WIDTH / 2 - cardW / 2;
 
     for (int i = 0; i < totalItems(); i++) {
         int y = startY + i * itemH;
@@ -228,7 +228,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
             if (ls) {
                 SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
                 if (lt) {
-                    SDL_Rect lr = {640 - ls->w / 2, y + (itemH - 6) / 2 - ls->h / 2, ls->w, ls->h};
+                    SDL_Rect lr = {SCREEN_WIDTH / 2 - ls->w / 2, y + (itemH - 6) / 2 - ls->h / 2, ls->w, ls->h};
                     SDL_RenderCopy(renderer, lt, nullptr, &lr);
                     SDL_DestroyTexture(lt);
                 }
@@ -291,7 +291,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {640 - ns->w / 2, 680, ns->w, ns->h};
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, 680, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }

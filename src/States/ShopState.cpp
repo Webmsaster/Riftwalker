@@ -111,7 +111,7 @@ void ShopState::handleEvent(const SDL_Event& event) {
         if (newSel == -1) {
             // Check skip button
             int skipW = 160, skipH = 50;
-            int skipX = 640 - skipW / 2;
+            int skipX = SCREEN_WIDTH / 2 - skipW / 2;
             int skipY = cardY + cardH + 50;
             if (mx >= skipX && mx < skipX + skipW && my >= skipY && my < skipY + skipH)
                 newSel = totalCards; // skip index
@@ -141,7 +141,7 @@ void ShopState::handleEvent(const SDL_Event& event) {
         }
         if (clicked == -1) {
             int skipW = 160, skipH = 50;
-            int skipX = 640 - skipW / 2;
+            int skipX = SCREEN_WIDTH / 2 - skipW / 2;
             int skipY = cardY + cardH + 50;
             if (mx >= skipX && mx < skipX + skipW && my >= skipY && my < skipY + skipH)
                 clicked = totalCards;
@@ -207,7 +207,7 @@ void ShopState::render(SDL_Renderer* renderer) {
         if (titleSurf) {
             SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
             if (titleTex) {
-                SDL_Rect tr = {640 - titleSurf->w / 2, 40, titleSurf->w, titleSurf->h};
+                SDL_Rect tr = {SCREEN_WIDTH / 2 - titleSurf->w / 2, 40, titleSurf->w, titleSurf->h};
                 SDL_RenderCopy(renderer, titleTex, nullptr, &tr);
                 SDL_DestroyTexture(titleTex);
             }
@@ -223,7 +223,7 @@ void ShopState::render(SDL_Renderer* renderer) {
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
-                SDL_Rect sr = {640 - ss->w / 2, 75, ss->w, ss->h};
+                SDL_Rect sr = {SCREEN_WIDTH / 2 - ss->w / 2, 75, ss->w, ss->h};
                 SDL_RenderCopy(renderer, st, nullptr, &sr);
                 SDL_DestroyTexture(st);
             }
@@ -251,7 +251,7 @@ void ShopState::render(SDL_Renderer* renderer) {
     {
         bool skipSelected = (m_selectedIndex >= totalCards);
         int skipW = SHOP_SKIP_W, skipH = SHOP_SKIP_H;
-        int skipX = 640 - skipW / 2;
+        int skipX = SCREEN_WIDTH / 2 - skipW / 2;
         int skipY = cardY + cardH + 50;
 
         SDL_SetRenderDrawColor(renderer, skipSelected ? 60 : 30, skipSelected ? 50 : 25,
@@ -304,7 +304,7 @@ void ShopState::render(SDL_Renderer* renderer) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
                 SDL_SetTextureAlphaMod(tt, ta);
-                SDL_Rect tr2 = {640 - ts->w / 2, 104, ts->w, ts->h};
+                SDL_Rect tr2 = {SCREEN_WIDTH / 2 - ts->w / 2, 104, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr2);
                 SDL_DestroyTexture(tt);
             }
@@ -319,7 +319,7 @@ void ShopState::render(SDL_Renderer* renderer) {
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
-                SDL_Rect hr = {640 - hs->w / 2, 680, hs->w, hs->h};
+                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, 680, hs->w, hs->h};
                 SDL_RenderCopy(renderer, ht, nullptr, &hr);
                 SDL_DestroyTexture(ht);
             }

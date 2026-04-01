@@ -106,7 +106,7 @@ bool Game::init() {
     };
 
     for (auto path : fontPaths) {
-        m_font = TTF_OpenFont(path, 20);
+        m_font = TTF_OpenFont(path, 36);
         if (m_font) break;
     }
 

@@ -18,10 +18,10 @@ static constexpr int PANEL_X      = 60;
 static constexpr int PANEL_Y      = 180;
 static constexpr int PANEL_W      = 1160;
 static constexpr int PANEL_H      = 460;
-static constexpr int BOTTOM_BAR_Y = 720 - 3; // SCREEN_HEIGHT - 3
+static constexpr int BOTTOM_BAR_Y = GameState::SCREEN_HEIGHT - 3;
 
 void PauseState::enter() {
-    int cx = 640;
+    int cx = SCREEN_WIDTH / 2;
     int startY = 300;
     int btnW = 240;
     int btnH = 44;
@@ -226,7 +226,7 @@ void PauseState::render(SDL_Renderer* renderer) {
             SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
             if (gt) {
                 SDL_SetTextureBlendMode(gt, SDL_BLENDMODE_ADD);
-                SDL_Rect gr = {640 - gs->w - 2, 218, gs->w * 2 + 4, gs->h * 2 + 4};
+                SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w - 2, 218, gs->w * 2 + 4, gs->h * 2 + 4};
                 SDL_RenderCopy(renderer, gt, nullptr, &gr);
                 SDL_DestroyTexture(gt);
             }
@@ -239,7 +239,7 @@ void PauseState::render(SDL_Renderer* renderer) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {640 - s->w, 220, s->w * 2, s->h * 2};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w, 220, s->w * 2, s->h * 2};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -293,7 +293,7 @@ void PauseState::render(SDL_Renderer* renderer) {
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
-                SDL_Rect hr = {640 - hs->w / 2, SCREEN_HEIGHT - 30, hs->w, hs->h};
+                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, SCREEN_HEIGHT - 30, hs->w, hs->h};
                 SDL_RenderCopy(renderer, ht, nullptr, &hr);
                 SDL_DestroyTexture(ht);
             }

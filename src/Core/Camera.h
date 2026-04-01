@@ -32,8 +32,8 @@ public:
     void setPosition(const Vec2& pos) { m_position = pos; }
     void setBounds(float minX, float minY, float maxX, float maxY);
 
-    float zoom = 2.5f;  // 2.5x zoom: sprite detail + world visibility at native res
-    float zoomTarget = 2.5f; // Target zoom for smooth transitions
+    float zoom = 5.0f;  // 5.0x zoom: doubled for 2560x1440 logical res (was 2.5 at 1280x720)
+    float zoomTarget = 5.0f; // Target zoom for smooth transitions
     float zoomSpeed = 2.0f;  // Lerp speed (units/sec)
 
     int getViewWidth() const { return m_screenW; }

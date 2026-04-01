@@ -99,7 +99,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
-                SDL_Rect tr = {640 - ts->w / 2, 30, ts->w, ts->h};
+                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, 30, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }
@@ -117,7 +117,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
-                SDL_Rect cr = {640 - cs->w / 2, 60, cs->w, cs->h};
+                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 60, cs->w, cs->h};
                 SDL_RenderCopy(renderer, ct, nullptr, &cr);
                 SDL_DestroyTexture(ct);
             }
@@ -231,13 +231,13 @@ void AchievementsState::render(SDL_Renderer* renderer) {
     // Scroll indicators
     if (m_scrollOffset > 0) {
         SDL_SetRenderDrawColor(renderer, 180, 160, 220, 150);
-        int cx = 640;
+        int cx = SCREEN_WIDTH / 2;
         SDL_RenderDrawLine(renderer, cx - 10, 92, cx, 85);
         SDL_RenderDrawLine(renderer, cx + 10, 92, cx, 85);
     }
     if (m_scrollOffset < m_maxScroll) {
         SDL_SetRenderDrawColor(renderer, 180, 160, 220, 150);
-        int cx = 640;
+        int cx = SCREEN_WIDTH / 2;
         SDL_RenderDrawLine(renderer, cx - 10, 628, cx, 635);
         SDL_RenderDrawLine(renderer, cx + 10, 628, cx, 635);
     }
@@ -249,7 +249,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
-                SDL_Rect hr = {640 - hs->w / 2, 670, hs->w, hs->h};
+                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, 670, hs->w, hs->h};
                 SDL_RenderCopy(renderer, ht, nullptr, &hr);
                 SDL_DestroyTexture(ht);
             }

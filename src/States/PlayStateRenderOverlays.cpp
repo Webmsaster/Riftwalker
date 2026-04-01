@@ -135,7 +135,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {640 - s->w / 2, 180, s->w, s->h};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 180, s->w, s->h};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -148,7 +148,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
     int cardH = 260;
     int gap = 30;
     int totalW = static_cast<int>(m_relicChoices.size()) * cardW + (static_cast<int>(m_relicChoices.size()) - 1) * gap;
-    int startX = 640 - totalW / 2;
+    int startX = SCREEN_WIDTH / 2 - totalW / 2;
     int cardY = 230;
 
     for (int i = 0; i < static_cast<int>(m_relicChoices.size()); i++) {
@@ -613,7 +613,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Surface* hintSurf = TTF_RenderText_Blended(font, hint, {180, 220, 255, a});
         SDL_Surface* keySurf = TTF_RenderText_Blended(font, keyLabel, {255, 255, 255, 255});
         int totalW = (keySurf ? keySurf->w + 16 : 0) + (hintSurf ? hintSurf->w : 0);
-        int startX = 640 - totalW / 2;
+        int startX = SCREEN_WIDTH / 2 - totalW / 2;
 
         if (keySurf) {
             renderKeyBox(renderer, font, keyLabel, startX, 148, a);
@@ -637,7 +637,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
                 SDL_SetTextureAlphaMod(texture, a);
-                SDL_Rect dst = {640 - surface->w / 2, 148, surface->w, surface->h};
+                SDL_Rect dst = {SCREEN_WIDTH / 2 - surface->w / 2, 148, surface->w, surface->h};
                 SDL_RenderCopy(renderer, texture, nullptr, &dst);
                 SDL_DestroyTexture(texture);
             }

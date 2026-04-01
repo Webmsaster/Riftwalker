@@ -100,7 +100,7 @@ void NGPlusSelectState::handleEvent(const SDL_Event& event) {
     int totalOptions = std::min(m_maxTier + 2, 11);
     int cardW        = 700;
     int cardH        = (totalOptions > 6) ? 50 : 78;
-    int cardX        = 640 - cardW / 2;
+    int cardX        = SCREEN_WIDTH / 2 - cardW / 2;
     int startY       = 155;
 
     if (event.type == SDL_MOUSEMOTION) {
@@ -184,7 +184,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
             if (tt) {
                 int tw = static_cast<int>(ts->w * 1.8f);
                 int th = static_cast<int>(ts->h * 1.8f);
-                SDL_Rect r = {640 - tw / 2, 60, tw, th};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 60, tw, th};
                 SDL_RenderCopy(renderer, tt, nullptr, &r);
                 SDL_DestroyTexture(tt);
             }
@@ -200,7 +200,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
-                SDL_Rect r = {640 - ss->w / 2, 118, ss->w, ss->h};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - ss->w / 2, 118, ss->w, ss->h};
                 SDL_RenderCopy(renderer, st, nullptr, &r);
                 SDL_DestroyTexture(st);
             }
@@ -211,7 +211,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
     // Option cards — Normal + unlocked NG+ tiers + one locked next tier
     int cardW = 700;
     int cardH = 78;
-    int cardX = 640 - cardW / 2;
+    int cardX = SCREEN_WIDTH / 2 - cardW / 2;
     int startY = 155;
     int totalOptions = m_maxTier + 2; // Normal + all unlocked + one locked (next)
     if (totalOptions > 11) totalOptions = 11;
@@ -316,7 +316,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {640 - ns->w / 2, 670, ns->w, ns->h};
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, 670, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }

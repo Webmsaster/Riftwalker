@@ -179,12 +179,12 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
         // Layer 1: Distant stars (slow parallax)
         for (int i = 0; i < 60; i++) {
             // Deterministic pseudo-random positions based on index
-            int baseX = ((i * 7919 + 104729) % 2560) - 640;
-            int baseY = ((i * 6271 + 73856) % 1440) - 360;
+            int baseX = ((i * 7919 + 104729) % (SCREEN_WIDTH * 2)) - SCREEN_WIDTH / 2;
+            int baseY = ((i * 6271 + 73856) % (SCREEN_HEIGHT * 2)) - SCREEN_HEIGHT / 2;
 
             float parallax = 0.05f;
-            int sx = baseX - static_cast<int>(camPos.x * parallax) % 2560;
-            int sy = baseY - static_cast<int>(camPos.y * parallax) % 1440;
+            int sx = baseX - static_cast<int>(camPos.x * parallax) % (SCREEN_WIDTH * 2);
+            int sy = baseY - static_cast<int>(camPos.y * parallax) % (SCREEN_HEIGHT * 2);
             // Wrap around screen
             sx = ((sx % SCREEN_WIDTH) + SCREEN_WIDTH) % SCREEN_WIDTH;
             sy = ((sy % SCREEN_HEIGHT) + SCREEN_HEIGHT) % SCREEN_HEIGHT;

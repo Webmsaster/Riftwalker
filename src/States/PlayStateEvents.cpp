@@ -1094,7 +1094,7 @@ void PlayState::pushUnlockNotification(const char* name, bool isWeapon) {
     float z = m_camera.zoom;
     float sw = static_cast<float>(m_camera.getViewWidth());
     float sh = static_cast<float>(m_camera.getViewHeight());
-    Vec2 worldPos = {(640.0f - sw / 2.0f) / z + camPos.x,
+    Vec2 worldPos = {(SCREEN_WIDTH / 2.0f - sw / 2.0f) / z + camPos.x,
                      (155.0f - sh / 2.0f) / z + camPos.y};
     SDL_Color gold = {255, 200, 50, 255};
     m_particles.burst(worldPos, 20, gold, 120.0f, 3.0f);
