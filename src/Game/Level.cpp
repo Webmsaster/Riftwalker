@@ -351,6 +351,38 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
             SDL_Rect right = {sr.x + sr.w - 1, sr.y, 1, sr.h};
             SDL_RenderFillRect(renderer, &right);
         }
+
+        // Procedural detail overlay: deterministic noise per tile for texture feel
+        // Hash-based pattern — adds subtle cracks, wear marks, surface variation
+        int tileHash = (tx * 2654435761u + ty * 2246822519u) & 0xFFFF;
+        // Sparse detail: only ~25% of tiles get extra marks
+        if ((tileHash & 3) == 0) {
+            int detailType = (tileHash >> 2) & 3;
+            Uint8 detailA = 12 + (tileHash >> 4) % 10; // alpha 12-21
+            if (detailType == 0 && eAbove) {
+                // Surface crack from top edge
+                int cx = sr.x + (tileHash % (sr.w - 4)) + 2;
+                int cLen = 3 + tileHash % 5;
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, detailA);
+                SDL_RenderDrawLine(renderer, cx, sr.y, cx + (tileHash & 1 ? 2 : -2), sr.y + cLen);
+            } else if (detailType == 1) {
+                // Small wear spot (1-2px dark patch)
+                int wx = sr.x + 2 + tileHash % (sr.w - 4);
+                int wy = sr.y + 2 + (tileHash >> 3) % (sr.h - 4);
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, detailA);
+                SDL_Rect wear = {wx, wy, 1 + (tileHash >> 5) % 2, 1 + (tileHash >> 6) % 2};
+                SDL_RenderFillRect(renderer, &wear);
+            } else if (detailType == 2 && eAbove) {
+                // Moss/growth on top edge (green-ish tiny pixels)
+                SDL_SetRenderDrawColor(renderer, 40, 80, 30, detailA);
+                for (int mx = 0; mx < sr.w; mx += 3 + (tileHash + mx) % 4) {
+                    if (((tileHash + mx * 7) & 3) == 0) {
+                        SDL_Rect moss = {sr.x + mx, sr.y, 2, 1};
+                        SDL_RenderFillRect(renderer, &moss);
+                    }
+                }
+            }
+        }
         return;
     }
 
