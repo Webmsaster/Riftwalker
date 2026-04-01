@@ -239,12 +239,41 @@ void PlayState::renderKillStreak(SDL_Renderer* renderer, TTF_Font* font) {
 
 void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
     if (m_levelUpFlashTimer > 0) {
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         float flashPct = m_levelUpFlashTimer / 0.3f;
-        Uint8 flashA = static_cast<Uint8>(flashPct * 100);
-        SDL_SetRenderDrawColor(renderer, 255, 215, 0, flashA);
+        // Additive golden flash
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+        Uint8 flashA = static_cast<Uint8>(flashPct * 50);
+        SDL_SetRenderDrawColor(renderer, flashA, static_cast<Uint8>(flashA * 0.8f), 0, flashA);
         SDL_Rect fullScreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
         SDL_RenderFillRect(renderer, &fullScreen);
+
+        // Expanding golden ring from player
+        if (m_player && m_player->getEntity()) {
+            Vec2 cam = m_camera.getPosition();
+            auto& pt = m_player->getEntity()->getComponent<TransformComponent>();
+            int cx = static_cast<int>(pt.getCenter().x - cam.x);
+            int cy = static_cast<int>(pt.getCenter().y - cam.y);
+            float ringRadius = (1.0f - flashPct) * 280.0f;
+            Uint8 ringA = static_cast<Uint8>(flashPct * 35);
+            for (int r = 0; r < 3; r++) {
+                int rr = static_cast<int>(ringRadius) + r * 4;
+                SDL_SetRenderDrawColor(renderer, ringA, static_cast<Uint8>(ringA * 0.7f), 0, static_cast<Uint8>(ringA / (r + 1)));
+                SDL_Rect ring = {cx - rr, cy - rr, rr * 2, rr * 2};
+                SDL_RenderDrawRect(renderer, &ring);
+            }
+            // Radial speed lines
+            for (int line = 0; line < 8; line++) {
+                float angle = line * 0.785f;
+                float inner = ringRadius * 0.5f;
+                int x1 = cx + static_cast<int>(std::cos(angle) * inner);
+                int y1 = cy + static_cast<int>(std::sin(angle) * inner);
+                int x2 = cx + static_cast<int>(std::cos(angle) * ringRadius);
+                int y2 = cy + static_cast<int>(std::sin(angle) * ringRadius);
+                SDL_SetRenderDrawColor(renderer, ringA, static_cast<Uint8>(ringA * 0.8f), 0, ringA);
+                SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+            }
+        }
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     }
 
     if (m_levelUpTimer <= 0 || !font) return;
@@ -254,13 +283,15 @@ void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
     float slideUp = (1.0f - std::min(1.0f, (1.5f - m_levelUpTimer) / 0.3f)) * 10.0f;
     Uint8 a = static_cast<Uint8>(alpha * 255);
 
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    Uint8 glowA = static_cast<Uint8>(alpha * 50);
-    SDL_SetRenderDrawColor(renderer, 255, 200, 0, glowA);
-    int glowW = 360, glowH = 80;
+    // Golden glow backdrop (additive for warm bright feel)
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+    Uint8 glowA = static_cast<Uint8>(alpha * 40);
+    SDL_SetRenderDrawColor(renderer, glowA, static_cast<Uint8>(glowA * 0.8f), 0, glowA);
+    int glowW = 400, glowH = 100;
     SDL_Rect glow = {SCREEN_WIDTH / 2 - glowW / 2,
                      SCREEN_HEIGHT / 3 - glowH / 2 + static_cast<int>(slideUp), glowW, glowH};
     SDL_RenderFillRect(renderer, &glow);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     float pulse = 1.0f + 0.05f * std::sin(m_levelUpTimer * 12.0f);
     SDL_Color gold = {255, 215, 0, a};

@@ -681,6 +681,74 @@ void PlayState::render(SDL_Renderer* renderer) {
     }
     m_screenEffects.renderDynamicLighting(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+    // Light shafts (god rays): vertical additive light bands from rift/exit sources
+    {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+        Vec2 cam2 = m_camera.getPosition();
+        Uint32 ticks = SDL_GetTicks();
+
+        // Rift light shafts
+        if (m_level) {
+            auto rifts = m_level->getRiftPositions();
+            int curDim = m_dimManager.getCurrentDimension();
+            for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
+                if (m_repairedRiftIndices.count(i)) continue;
+                if (!m_level->isRiftActiveInDimension(i, curDim)) continue;
+                float rx = rifts[i].x + 16.0f - cam2.x;
+                float ry = rifts[i].y + 16.0f - cam2.y;
+                if (rx < -60 || rx > SCREEN_WIDTH + 60) continue;
+                // 3 converging light bands upward from rift
+                for (int band = 0; band < 3; band++) {
+                    float drift = std::sin(ticks * 0.0008f + i * 2.0f + band * 1.2f) * 15.0f;
+                    int bx = static_cast<int>(rx + drift + (band - 1) * 12);
+                    int bw = 6 + band * 2;
+                    int bh = 100 + band * 40;
+                    Uint8 shaftA = static_cast<Uint8>(8 + 4 * std::sin(ticks * 0.002f + band));
+                    int reqDim = m_level->getRiftRequiredDimension(i);
+                    if (reqDim == 2) {
+                        SDL_SetRenderDrawColor(renderer, shaftA, static_cast<Uint8>(shaftA / 3), static_cast<Uint8>(shaftA / 2), shaftA);
+                    } else {
+                        SDL_SetRenderDrawColor(renderer, static_cast<Uint8>(shaftA / 2), static_cast<Uint8>(shaftA / 3), shaftA, shaftA);
+                    }
+                    // Fade from bottom (bright) to top (transparent) via gradient bands
+                    for (int seg = 0; seg < 5; seg++) {
+                        float segFade = 1.0f - seg * 0.2f;
+                        Uint8 segA = static_cast<Uint8>(shaftA * segFade);
+                        SDL_SetRenderDrawColor(renderer, reqDim == 2 ? segA : static_cast<Uint8>(segA / 2),
+                                               static_cast<Uint8>(segA / 3),
+                                               reqDim == 2 ? static_cast<Uint8>(segA / 2) : segA, segA);
+                        SDL_Rect shaft = {bx - bw / 2, static_cast<int>(ry - seg * bh / 5 - bh / 5), bw, bh / 5};
+                        SDL_RenderFillRect(renderer, &shaft);
+                    }
+                }
+            }
+
+            // Exit light shaft (single wide beam, green when active)
+            {
+                float ex = m_level->getExitPoint().x + m_level->getTileSize() * 0.5f - cam2.x;
+                float ey = m_level->getExitPoint().y - cam2.y;
+                if (ex > -40 && ex < SCREEN_WIDTH + 40) {
+                    bool active = m_level->isExitActive();
+                    Uint8 er = active ? 5 : 8;
+                    Uint8 eg = active ? 12 : 5;
+                    Uint8 eb = active ? 8 : 5;
+                    float pulse = 0.7f + 0.3f * std::sin(ticks * 0.002f);
+                    for (int seg = 0; seg < 8; seg++) {
+                        float segFade = (1.0f - seg * 0.12f) * pulse;
+                        Uint8 sa = static_cast<Uint8>(std::max(0.0f, er * segFade));
+                        Uint8 sg = static_cast<Uint8>(std::max(0.0f, eg * segFade));
+                        Uint8 sb = static_cast<Uint8>(std::max(0.0f, eb * segFade));
+                        SDL_SetRenderDrawColor(renderer, sa, sg, sb, static_cast<Uint8>(sa));
+                        int shaftW = 12 + seg * 2; // Widens upward
+                        SDL_Rect shaft = {static_cast<int>(ex - shaftW / 2), static_cast<int>(ey - seg * 25 - 25), shaftW, 25};
+                        SDL_RenderFillRect(renderer, &shaft);
+                    }
+                }
+            }
+        }
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    }
+
     // Dimension switch visual effect
     m_dimManager.applyVisualEffect(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
