@@ -84,6 +84,14 @@ void Camera::update(float dt) {
         m_flashTimer += dt;
     }
 
+    // Smooth zoom transition
+    if (std::abs(zoom - zoomTarget) > 0.01f) {
+        float diff = zoomTarget - zoom;
+        zoom += diff * zoomSpeed * dt;
+    } else {
+        zoom = zoomTarget;
+    }
+
     m_shakeOffset = {0, 0};
     if (m_shakeDuration > 0 && m_shakeTimer < m_shakeDuration) {
         m_shakeTimer += dt;

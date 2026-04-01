@@ -17,6 +17,7 @@ public:
     void triggerKillFlash();
     void triggerBossIntro(const char* bossName, const char* subtitle = nullptr);
     void triggerDimensionRipple();
+    void triggerDamageChromaticAberration(float intensity = 1.0f); // Brief RGB split on damage
     void cancelBossIntro() { m_bossIntroTimer = 0; m_bossName.clear(); m_bossSubtitle.clear(); }
 
     // Query
@@ -74,6 +75,10 @@ private:
 
     // Void Storm
     bool m_voidStormActive = false;
+
+    // Chromatic aberration on damage
+    float m_chromaticTimer = 0;
+    float m_chromaticIntensity = 0;
 
     // --- Post-processing state ---
 

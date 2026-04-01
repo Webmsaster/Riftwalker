@@ -19,6 +19,7 @@ void ScreenEffects::update(float dt) {
     if (m_killFlashTimer > 0) m_killFlashTimer -= dt;
     if (m_bossIntroTimer > 0) m_bossIntroTimer -= dt;
     if (m_rippleTimer > 0) m_rippleTimer -= dt;
+    if (m_chromaticTimer > 0) m_chromaticTimer -= dt;
     if (m_entropy > 80.0f) m_glitchTimer += dt;
     else m_glitchTimer = 0;
 
@@ -218,6 +219,32 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, a);
         SDL_Rect full = {0, 0, screenW, screenH};
         SDL_RenderFillRect(renderer, &full);
+    }
+
+    // 3b. Chromatic aberration on player damage (brief RGB split at screen edges)
+    if (m_chromaticTimer > 0) {
+        float t = m_chromaticTimer / 0.15f; // 1→0
+        float intensity = t * m_chromaticIntensity;
+        int offset = static_cast<int>(3 * intensity); // 0-3 pixel shift
+        Uint8 chromA = static_cast<Uint8>(intensity * 50);
+        if (offset > 0 && chromA > 5) {
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+            // Red shift: right edge band
+            SDL_SetRenderDrawColor(renderer, chromA, 0, 0, chromA);
+            SDL_Rect redBand = {screenW - offset * 8, 0, offset * 8, screenH};
+            SDL_RenderFillRect(renderer, &redBand);
+            // Blue shift: left edge band
+            SDL_SetRenderDrawColor(renderer, 0, 0, chromA, chromA);
+            SDL_Rect blueBand = {0, 0, offset * 8, screenH};
+            SDL_RenderFillRect(renderer, &blueBand);
+            // Also top/bottom for completeness
+            SDL_SetRenderDrawColor(renderer, chromA, 0, static_cast<Uint8>(chromA / 2), static_cast<Uint8>(chromA * 0.7f));
+            SDL_Rect topBand = {0, 0, screenW, offset * 4};
+            SDL_RenderFillRect(renderer, &topBand);
+            SDL_Rect botBand = {0, screenH - offset * 4, screenW, offset * 4};
+            SDL_RenderFillRect(renderer, &botBand);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        }
     }
 
     // 4. Boss intro cinematic title card
@@ -421,6 +448,11 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
 
 void ScreenEffects::triggerKillFlash() {
     m_killFlashTimer = 0.05f;
+}
+
+void ScreenEffects::triggerDamageChromaticAberration(float intensity) {
+    m_chromaticTimer = 0.15f;
+    m_chromaticIntensity = std::min(1.0f, intensity);
 }
 
 void ScreenEffects::triggerBossIntro(const char* bossName, const char* subtitle) {

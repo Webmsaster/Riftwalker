@@ -692,6 +692,30 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
             }
         }
     }
+
+    // Player edge glow: dimension-colored outline to make player pop against dark backgrounds
+    if (tag == "player" && alpha > 0.5f) {
+        Uint32 ticks = SDL_GetTicks();
+        float pulse = 0.6f + 0.4f * std::sin(ticks * 0.003f);
+        // Dimension color: blue for A, red for B
+        Uint8 glowR, glowG, glowB;
+        if (entity.dimension == 2) {
+            glowR = 255; glowG = 80; glowB = 80;
+        } else {
+            glowR = 80; glowG = 140; glowB = 255;
+        }
+        Uint8 glowA = static_cast<Uint8>(30 * pulse * alpha);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+        // Outer glow (expanded rect)
+        SDL_SetRenderDrawColor(renderer, glowR, glowG, glowB, glowA);
+        SDL_Rect outerGlow = {screenRect.x - 3, screenRect.y - 3, screenRect.w + 6, screenRect.h + 6};
+        SDL_RenderFillRect(renderer, &outerGlow);
+        // Inner glow (tighter, brighter)
+        SDL_SetRenderDrawColor(renderer, glowR, glowG, glowB, static_cast<Uint8>(glowA * 1.5f));
+        SDL_Rect innerGlow = {screenRect.x - 1, screenRect.y - 1, screenRect.w + 2, screenRect.h + 2};
+        SDL_RenderDrawRect(renderer, &innerGlow);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    }
 }
 
 void RenderSystem::renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {

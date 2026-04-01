@@ -515,6 +515,9 @@ void PlayState::update(float dt) {
                 m_hud.triggerDamageFlash();
                 AudioManager::instance().play(SFX::PlayerHurt);
                 game->getInputMutable().rumble(0.6f, 150);
+                // Chromatic aberration: stronger for big hits
+                float dmgRatio = std::min(1.0f, evt.damage / 30.0f);
+                m_screenEffects.triggerDamageChromaticAberration(0.5f + 0.5f * dmgRatio);
             }
             // Directional damage indicator: show red edge flash toward damage source
             if (m_player && (evt.sourcePos.x != 0 || evt.sourcePos.y != 0)) {
@@ -691,6 +694,9 @@ void PlayState::update(float dt) {
         });
         if (!bossAlive) {
             m_bossDefeated = true;
+            // Dramatic zoom-in on boss kill
+            m_camera.zoomTarget = 2.8f;
+            m_camera.zoomSpeed = 3.0f;
             // Boss kill rewards
             float bossShardMult = game->getRunBuffSystem().getShardMultiplier();
             bossShardMult *= m_achievementShardMult;

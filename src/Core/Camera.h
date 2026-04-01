@@ -33,6 +33,8 @@ public:
     void setBounds(float minX, float minY, float maxX, float maxY);
 
     float zoom = 2.5f;  // 2.5x zoom: sprite detail + world visibility at native res
+    float zoomTarget = 2.5f; // Target zoom for smooth transitions
+    float zoomSpeed = 2.0f;  // Lerp speed (units/sec)
 
     int getViewWidth() const { return m_screenW; }
     int getViewHeight() const { return m_screenH; }
