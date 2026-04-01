@@ -779,7 +779,7 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
     {
         Uint8 vigA = static_cast<Uint8>(overlayFade * 80);
         SDL_SetRenderDrawColor(renderer, 60, 10, 30, vigA);
-        int bw = 40;
+        int bw = 80;
         SDL_Rect top = {0, 0, SCREEN_WIDTH, bw};
         SDL_Rect bot = {0, SCREEN_HEIGHT - bw, SCREEN_WIDTH, bw};
         SDL_Rect lft = {0, 0, bw, SCREEN_HEIGHT};
@@ -809,7 +809,7 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
                 SDL_SetTextureAlphaMod(tex, a);
-                SDL_Rect dst = {centerX - surf->w / 2, centerY - 40, surf->w, surf->h};
+                SDL_Rect dst = {centerX - surf->w / 2, centerY - 80, surf->w, surf->h};
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
             }
@@ -835,7 +835,7 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
                 SDL_SetTextureAlphaMod(tex, a);
-                SDL_Rect dst = {centerX - surf->w / 2, centerY - 5, surf->w, surf->h};
+                SDL_Rect dst = {centerX - surf->w / 2, centerY - 10, surf->w, surf->h};
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
             }
@@ -861,7 +861,7 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
                 float scale = 1.5f;
                 int w = static_cast<int>(surf->w * scale);
                 int h = static_cast<int>(surf->h * scale);
-                SDL_Rect dst = {centerX - w / 2, centerY + 35, w, h};
+                SDL_Rect dst = {centerX - w / 2, centerY + 70, w, h};
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
             }
