@@ -895,22 +895,44 @@ void PlayState::renderKillFeed(SDL_Renderer* renderer, TTF_Font* font) {
     }
 
     for (int i = 0; i < count; i++) {
-        float alpha = std::min(display[i].timer / 0.5f, 1.0f); // fade out in last 0.5s
-        SDL_Color c = display[i].color;
-        c.a = static_cast<Uint8>(c.a * alpha);
+        float alpha = std::min(display[i].timer / 0.5f, 1.0f);
+        // Slide-in animation: new entries slide from right
+        float slideProgress = std::min(display[i].timer / 0.15f, 1.0f);
+        float eased = 1.0f - (1.0f - slideProgress) * (1.0f - slideProgress); // ease-out
+        int slideOffset = static_cast<int>((1.0f - eased) * 60);
 
-        SDL_Surface* surf = TTF_RenderText_Blended(font, display[i].text, c);
+        SDL_Color c = display[i].color;
+        Uint8 a = static_cast<Uint8>(c.a * alpha);
+
+        SDL_Surface* surf = TTF_RenderText_Blended(font, display[i].text, {c.r, c.g, c.b, 255});
         if (surf) {
+            int entryX = x - surf->w + slideOffset;
+            int entryW = surf->w + 16;
+
+            // Background panel with gradient
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(70 * alpha));
+            SDL_Rect bgRect = {entryX - 10, y - 1, entryW + 10, surf->h + 2};
+            SDL_RenderFillRect(renderer, &bgRect);
+            // Left accent bar (colored)
+            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(180 * alpha));
+            SDL_Rect accentBar = {entryX - 12, y - 1, 2, surf->h + 2};
+            SDL_RenderFillRect(renderer, &accentBar);
+
+            // Kill dot (small colored circle)
+            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, a);
+            SDL_Rect dot = {entryX - 8, y + surf->h / 2 - 2, 4, 4};
+            SDL_RenderFillRect(renderer, &dot);
+
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
-                SDL_SetTextureAlphaMod(tex, c.a);
-                SDL_Rect r = {x - surf->w, y, surf->w, surf->h};
+                SDL_SetTextureAlphaMod(tex, a);
+                SDL_Rect r = {entryX, y, surf->w, surf->h};
                 SDL_RenderCopy(renderer, tex, nullptr, &r);
                 SDL_DestroyTexture(tex);
             }
             SDL_FreeSurface(surf);
         }
-        y += 18;
+        y += 20;
     }
 }
 

@@ -681,14 +681,39 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
             int comboY = 60;
 
-            // Render scaled combo text
+            // Render combo text with glow outline and background
             SDL_Surface* comboSurf = TTF_RenderText_Blended(font, comboText, comboColor);
             if (comboSurf) {
+                int tw = static_cast<int>(comboSurf->w * comboScale);
+                int th = static_cast<int>(comboSurf->h * comboScale);
+                int cx = screenW / 2 - tw / 2;
+
+                // Background panel (semi-transparent dark with colored accent)
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 60);
+                SDL_Rect comboBg = {cx - 12, comboY - 4, tw + 24, th + 8};
+                SDL_RenderFillRect(renderer, &comboBg);
+                SDL_SetRenderDrawColor(renderer, comboColor.r, comboColor.g, comboColor.b, 40);
+                SDL_RenderDrawRect(renderer, &comboBg);
+
                 SDL_Texture* comboTex = SDL_CreateTextureFromSurface(renderer, comboSurf);
                 if (comboTex) {
-                    int tw = static_cast<int>(comboSurf->w * comboScale);
-                    int th = static_cast<int>(comboSurf->h * comboScale);
-                    SDL_Rect dst = {screenW / 2 - tw / 2, comboY, tw, th};
+                    // Glow pass (additive, larger, dimmer)
+                    SDL_SetTextureBlendMode(comboTex, SDL_BLENDMODE_ADD);
+                    SDL_SetTextureAlphaMod(comboTex, 35);
+                    SDL_Rect glowDst = {cx - 3, comboY - 2, tw + 6, th + 4};
+                    SDL_RenderCopy(renderer, comboTex, nullptr, &glowDst);
+
+                    // Shadow pass
+                    SDL_SetTextureBlendMode(comboTex, SDL_BLENDMODE_BLEND);
+                    SDL_SetTextureColorMod(comboTex, 0, 0, 0);
+                    SDL_SetTextureAlphaMod(comboTex, 160);
+                    SDL_Rect shadowDst = {cx + 1, comboY + 1, tw, th};
+                    SDL_RenderCopy(renderer, comboTex, nullptr, &shadowDst);
+
+                    // Main text
+                    SDL_SetTextureColorMod(comboTex, 255, 255, 255);
+                    SDL_SetTextureAlphaMod(comboTex, 255);
+                    SDL_Rect dst = {cx, comboY, tw, th};
                     SDL_RenderCopy(renderer, comboTex, nullptr, &dst);
                     SDL_DestroyTexture(comboTex);
                 }
