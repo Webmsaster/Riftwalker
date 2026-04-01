@@ -40,7 +40,7 @@ void RunHistoryState::handleEvent(const SDL_Event& event) {
                 m_scrollOffset++;
                 {
                     const auto& hist = game->getUpgradeSystem().getRunHistory();
-                    int maxVis = (Game::SCREEN_HEIGHT - 160) / 24; // match render maxVisible calc
+                    int maxVis = (Game::SCREEN_HEIGHT - 320) / 48; // match render maxVisible calc
                     int maxScroll = std::max(0, static_cast<int>(hist.size()) - maxVis);
                     if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
                 }
@@ -63,7 +63,7 @@ void RunHistoryState::update(float dt) {
     if (input.isActionPressed(Action::MenuDown)) {
         m_scrollOffset++;
         const auto& hist = game->getUpgradeSystem().getRunHistory();
-        int maxVis = (Game::SCREEN_HEIGHT - 160) / 24;
+        int maxVis = (Game::SCREEN_HEIGHT - 320) / 48;
         int maxScroll = std::max(0, static_cast<int>(hist.size()) - maxVis);
         if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
     }
@@ -86,13 +86,13 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
     int screenH = Game::SCREEN_HEIGHT;
 
     // Title
-    renderText(renderer, font, "RUN HISTORY", screenW / 2 - 60, 25, {200, 180, 255, 255});
+    renderText(renderer, font, "RUN HISTORY", screenW / 2 - 120, 50, {200, 180, 255, 255});
 
     // Lifetime stats panel
-    int panelX = 40;
-    int panelY = 65;
+    int panelX = 80;
+    int panelY = 130;
     SDL_SetRenderDrawColor(renderer, 30, 25, 50, 200);
-    SDL_Rect statsBg = {panelX - 10, panelY - 5, 500, 55};
+    SDL_Rect statsBg = {panelX - 10, panelY - 5, 1000, 110};
     SDL_RenderFillRect(renderer, &statsBg);
     SDL_SetRenderDrawColor(renderer, 100, 80, 160, 120);
     SDL_RenderDrawRect(renderer, &statsBg);
@@ -101,40 +101,40 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
     std::snprintf(buf, sizeof(buf), "Total Runs: %d    Enemies Killed: %d    Best Floor: %d    Rifts: %d",
                   upgrades.totalRuns, upgrades.totalEnemiesKilled,
                   upgrades.bestRoomReached, upgrades.totalRiftsRepaired);
-    renderText(renderer, font, buf, panelX, panelY + 2, {180, 180, 200, 220});
+    renderText(renderer, font, buf, panelX, panelY + 4, {180, 180, 200, 220});
 
     // Averages
     if (upgrades.totalRuns > 0) {
         float avgKills = static_cast<float>(upgrades.totalEnemiesKilled) / upgrades.totalRuns;
         std::snprintf(buf, sizeof(buf), "Avg Kills/Run: %.1f", avgKills);
-        renderText(renderer, font, buf, panelX, panelY + 25, {150, 160, 180, 200});
+        renderText(renderer, font, buf, panelX, panelY + 50, {150, 160, 180, 200});
     }
 
     // Table header
-    int tableY = 135;
+    int tableY = 270;
     SDL_SetRenderDrawColor(renderer, 40, 35, 60, 220);
-    SDL_Rect headerBg = {panelX - 10, tableY - 3, screenW - 80, 22};
+    SDL_Rect headerBg = {panelX - 10, tableY - 3, screenW - 160, 44};
     SDL_RenderFillRect(renderer, &headerBg);
 
     SDL_Color headerCol = {160, 150, 200, 255};
-    renderText(renderer, font, "#",    panelX,       tableY, headerCol);
-    renderText(renderer, font, "Class", panelX + 30,  tableY, headerCol);
-    renderText(renderer, font, "Floor", panelX + 130, tableY, headerCol);
-    renderText(renderer, font, "Kills", panelX + 195, tableY, headerCol);
-    renderText(renderer, font, "Rifts", panelX + 260, tableY, headerCol);
-    renderText(renderer, font, "Combo", panelX + 325, tableY, headerCol);
-    renderText(renderer, font, "Time",  panelX + 400, tableY, headerCol);
-    renderText(renderer, font, "Shards", panelX + 480, tableY, headerCol);
-    renderText(renderer, font, "Diff",  panelX + 560, tableY, headerCol);
-    renderText(renderer, font, "Result", panelX + 620, tableY, headerCol);
+    renderText(renderer, font, "#",    panelX,        tableY, headerCol);
+    renderText(renderer, font, "Class", panelX + 60,  tableY, headerCol);
+    renderText(renderer, font, "Floor", panelX + 260, tableY, headerCol);
+    renderText(renderer, font, "Kills", panelX + 390, tableY, headerCol);
+    renderText(renderer, font, "Rifts", panelX + 520, tableY, headerCol);
+    renderText(renderer, font, "Combo", panelX + 650, tableY, headerCol);
+    renderText(renderer, font, "Time",  panelX + 800, tableY, headerCol);
+    renderText(renderer, font, "Shards", panelX + 960, tableY, headerCol);
+    renderText(renderer, font, "Diff",  panelX + 1120, tableY, headerCol);
+    renderText(renderer, font, "Result", panelX + 1240, tableY, headerCol);
 
     // Separator
     SDL_SetRenderDrawColor(renderer, 80, 70, 120, 150);
-    SDL_RenderDrawLine(renderer, panelX - 10, tableY + 20, screenW - 40, tableY + 20);
+    SDL_RenderDrawLine(renderer, panelX - 10, tableY + 40, screenW - 80, tableY + 40);
 
     // Run rows
-    int rowH = 24;
-    int startY = tableY + 25;
+    int rowH = 48;
+    int startY = tableY + 50;
     int maxVisible = (screenH - startY - 40) / rowH;
     int clampedScroll = std::min(m_scrollOffset,
         std::max(0, static_cast<int>(history.size()) - maxVisible));
@@ -148,7 +148,7 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
         // Alternating row background
         if (idx % 2 == 0) {
             SDL_SetRenderDrawColor(renderer, 25, 22, 40, 100);
-            SDL_Rect rowBg = {panelX - 10, ry - 2, screenW - 80, rowH};
+            SDL_Rect rowBg = {panelX - 10, ry - 2, screenW - 160, rowH};
             SDL_RenderFillRect(renderer, &rowBg);
         }
 
@@ -164,42 +164,42 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
         const char* className = "Unknown";
         if (run.playerClass >= 0 && run.playerClass < static_cast<int>(PlayerClass::COUNT))
             className = ClassSystem::getData(static_cast<PlayerClass>(run.playerClass)).name;
-        renderText(renderer, font, className, panelX + 30, ry, rowCol);
+        renderText(renderer, font, className, panelX + 60, ry, rowCol);
 
         // Floor
         std::snprintf(buf, sizeof(buf), "%d", run.rooms);
-        renderText(renderer, font, buf, panelX + 130, ry, rowCol);
+        renderText(renderer, font, buf, panelX + 260, ry, rowCol);
 
         // Kills
         std::snprintf(buf, sizeof(buf), "%d", run.enemies);
-        renderText(renderer, font, buf, panelX + 195, ry, rowCol);
+        renderText(renderer, font, buf, panelX + 390, ry, rowCol);
 
         // Rifts
         std::snprintf(buf, sizeof(buf), "%d", run.rifts);
-        renderText(renderer, font, buf, panelX + 260, ry, rowCol);
+        renderText(renderer, font, buf, panelX + 520, ry, rowCol);
 
         // Best combo
         std::snprintf(buf, sizeof(buf), "%d", run.bestCombo);
-        renderText(renderer, font, buf, panelX + 325, ry, rowCol);
+        renderText(renderer, font, buf, panelX + 650, ry, rowCol);
 
         // Time (mm:ss)
         int mins = static_cast<int>(run.runTime) / 60;
         int secs = static_cast<int>(run.runTime) % 60;
         std::snprintf(buf, sizeof(buf), "%d:%02d", mins, secs);
-        renderText(renderer, font, buf, panelX + 400, ry, rowCol);
+        renderText(renderer, font, buf, panelX + 800, ry, rowCol);
 
         // Shards
         std::snprintf(buf, sizeof(buf), "%d", run.shards);
-        renderText(renderer, font, buf, panelX + 480, ry, rowCol);
+        renderText(renderer, font, buf, panelX + 960, ry, rowCol);
 
         // Difficulty
         std::snprintf(buf, sizeof(buf), "%d", run.difficulty);
-        renderText(renderer, font, buf, panelX + 560, ry, rowCol);
+        renderText(renderer, font, buf, panelX + 1120, ry, rowCol);
 
         // Death cause
         const char* result = UpgradeSystem::getDeathCauseName(run.deathCause);
         SDL_Color resultCol = (run.deathCause == 5) ? SDL_Color{80, 255, 80, 255} : SDL_Color{255, 80, 80, 220};
-        renderText(renderer, font, result, panelX + 620, ry, resultCol);
+        renderText(renderer, font, result, panelX + 1240, ry, resultCol);
     }
 
     // Scroll indicator

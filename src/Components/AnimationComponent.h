@@ -54,9 +54,12 @@ struct AnimationComponent : public Component {
         if (anim.frames.empty()) return;
 
         frameTimer += dt;
-        float frameDur = anim.frames[currentFrame].duration;
-        if (frameDur <= 0) frameDur = 0.016f; // prevent infinite loop on zero-duration frames
-        if (frameTimer >= frameDur) {
+        // Process multiple frames if dt is large (prevents frame skipping)
+        int maxAdvances = 8; // safety limit
+        while (maxAdvances-- > 0) {
+            float frameDur = anim.frames[currentFrame].duration;
+            if (frameDur <= 0) frameDur = 0.016f;
+            if (frameTimer < frameDur) break;
             frameTimer -= frameDur;
             currentFrame++;
             if (currentFrame >= static_cast<int>(anim.frames.size())) {
@@ -65,6 +68,7 @@ struct AnimationComponent : public Component {
                 } else {
                     currentFrame = static_cast<int>(anim.frames.size()) - 1;
                     finished = true;
+                    break;
                 }
             }
         }

@@ -7,20 +7,20 @@
 #include <cstdio>
 #include <string>
 
-// ---- layout constants ----
-static constexpr int LIST_X     = 20;
-static constexpr int LIST_Y     = 95;
-static constexpr int LIST_W     = 320;
-static constexpr int ROW_H      = 44;
-static constexpr int VISIBLE    = 8;
+// ---- layout constants (scaled for 2560x1440) ----
+static constexpr int LIST_X     = 40;
+static constexpr int LIST_Y     = 190;
+static constexpr int LIST_W     = 640;
+static constexpr int ROW_H      = 88;
+static constexpr int VISIBLE    = 12;
 
-static constexpr int DETAIL_X   = 356;
-static constexpr int DETAIL_Y   = 90;
-static constexpr int DETAIL_W   = 904;
-static constexpr int DETAIL_H   = 590;
+static constexpr int DETAIL_X   = 712;
+static constexpr int DETAIL_Y   = 180;
+static constexpr int DETAIL_W   = 1808;
+static constexpr int DETAIL_H   = 1180;
 
-static constexpr int PREVIEW_CX = DETAIL_X + 130;
-static constexpr int PREVIEW_CY = DETAIL_Y + 130;
+static constexpr int PREVIEW_CX = DETAIL_X + 260;
+static constexpr int PREVIEW_CY = DETAIL_Y + 260;
 
 // ---- helpers ----
 static void drawText(SDL_Renderer* renderer, TTF_Font* font, const char* text,

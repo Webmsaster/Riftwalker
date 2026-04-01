@@ -606,7 +606,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
     // Semi-transparent background
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(a * 0.4f));
-    SDL_Rect bg = {240, 140, 800, 36};
+    SDL_Rect bg = {480, 280, 1600, 72};
     SDL_RenderFillRect(renderer, &bg);
 
     if (keyLabel) {
@@ -616,7 +616,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
         int startX = SCREEN_WIDTH / 2 - totalW / 2;
 
         if (keySurf) {
-            renderKeyBox(renderer, font, keyLabel, startX, 148, a);
+            renderKeyBox(renderer, font, keyLabel, startX, 296, a);
             startX += keySurf->w + 16;
             SDL_FreeSurface(keySurf);
         }
@@ -624,7 +624,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, hintSurf);
             if (tex) {
                 SDL_SetTextureAlphaMod(tex, a);
-                SDL_Rect dst = {startX, 148, hintSurf->w, hintSurf->h};
+                SDL_Rect dst = {startX, 296, hintSurf->w, hintSurf->h};
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
             }

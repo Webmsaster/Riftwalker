@@ -7,9 +7,9 @@
 extern PlayerClass g_selectedClass;
 
 void EndingState::enter() {
-    m_fontTitle = TTF_OpenFont("assets/fonts/default.ttf", 32);
-    m_fontBody = TTF_OpenFont("assets/fonts/default.ttf", 18);
-    m_fontSmall = TTF_OpenFont("assets/fonts/default.ttf", 14);
+    m_fontTitle = TTF_OpenFont("assets/fonts/default.ttf", 64);
+    m_fontBody = TTF_OpenFont("assets/fonts/default.ttf", 36);
+    m_fontSmall = TTF_OpenFont("assets/fonts/default.ttf", 28);
     m_phase = 0;
     m_phaseTimer = 0.0f;
     m_time = 0.0f;
@@ -63,13 +63,12 @@ void EndingState::update(float dt) {
             if (m_phaseTimer > 2.0f) { m_phase = 1; m_phaseTimer = 0.0f; }
             break;
         case 1: { // Story scroll
-            m_storyScroll += dt * 30.0f;
-            // Scroll threshold depends on ending text length
+            m_storyScroll += dt * 60.0f; // doubled for 2K
+            // Scroll threshold depends on ending text length (doubled for 2K)
             // healer=19 lines, destroyer=18 lines, speedrunner=14 lines
-            // Formula: numLines * 30 + 650 (baseY=600 + buffer)
-            float scrollMax = 1220.0f; // default: healer
-            if (m_endingType == 1) scrollMax = 1190.0f;      // destroyer
-            else if (m_endingType == 2) scrollMax = 1070.0f;  // speedrunner
+            float scrollMax = 2440.0f; // default: healer
+            if (m_endingType == 1) scrollMax = 2380.0f;      // destroyer
+            else if (m_endingType == 2) scrollMax = 2140.0f;  // speedrunner
             if (m_storyScroll > scrollMax) { m_phase = 2; m_phaseTimer = 0.0f; }
             break;
         }
@@ -195,15 +194,15 @@ void EndingState::render(SDL_Renderer* renderer) {
             }
 
             if (m_fontBody) {
-                float baseY = 600 - m_storyScroll;
+                float baseY = 1200 - m_storyScroll;
                 for (int i = 0; i < numLines; i++) {
-                    float ly = baseY + i * 30;
-                    if (ly < -30 || ly > 620) continue;
+                    float ly = baseY + i * 60;
+                    if (ly < -60 || ly > 1240) continue;
 
                     // Fade at edges
                     float fadeAlpha = 1.0f;
-                    if (ly < 80) fadeAlpha = ly / 80.0f;
-                    if (ly > 520) fadeAlpha = (620 - ly) / 100.0f;
+                    if (ly < 160) fadeAlpha = ly / 160.0f;
+                    if (ly > 1040) fadeAlpha = (1240 - ly) / 200.0f;
                     fadeAlpha = std::max(0.0f, std::min(1.0f, fadeAlpha));
 
                     SDL_Color col = {
@@ -234,7 +233,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, "SPACE to skip", hint);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 575, surf->w, surf->h};
+                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, SCREEN_HEIGHT - 60, surf->w, surf->h};
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                     SDL_FreeSurface(surf);

@@ -39,12 +39,12 @@ void ClassSelectState::handleEvent(const SDL_Event& event) {
     }
 
     // Card layout — mirrors render() calculations exactly
-    int cardW = (ClassSystem::CLASS_COUNT <= 3) ? 340 : 280;
-    int cardH = 440;
-    int gap   = (ClassSystem::CLASS_COUNT <= 3) ? 30  : 20;
+    int cardW = (ClassSystem::CLASS_COUNT <= 3) ? 680 : 560;
+    int cardH = 880;
+    int gap   = (ClassSystem::CLASS_COUNT <= 3) ? 60  : 40;
     int totalW = cardW * ClassSystem::CLASS_COUNT + gap * (ClassSystem::CLASS_COUNT - 1);
     int startX = SCREEN_WIDTH / 2 - totalW / 2;
-    int cardY  = 110;
+    int cardY  = 220;
 
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x, my = event.motion.y;
@@ -141,13 +141,13 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
         }
     }
 
-    // Class cards side by side (auto-size for any count)
-    int cardW = (ClassSystem::CLASS_COUNT <= 3) ? 340 : 280;
-    int cardH = 440;
-    int gap = (ClassSystem::CLASS_COUNT <= 3) ? 30 : 20;
+    // Class cards side by side (auto-size for any count, scaled for 2K)
+    int cardW = (ClassSystem::CLASS_COUNT <= 3) ? 680 : 560;
+    int cardH = 880;
+    int gap = (ClassSystem::CLASS_COUNT <= 3) ? 60 : 40;
     int totalW = cardW * ClassSystem::CLASS_COUNT + gap * (ClassSystem::CLASS_COUNT - 1);
     int startX = SCREEN_WIDTH / 2 - totalW / 2;
-    int cardY = 110;
+    int cardY = 220;
 
     for (int i = 0; i < ClassSystem::CLASS_COUNT; i++) {
         const auto& data = ClassSystem::getData(i);
@@ -219,7 +219,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
         if (nt) {
             int nw = static_cast<int>(ns->w * 1.4f);
             int nh = static_cast<int>(ns->h * 1.4f);
-            SDL_Rect nr = {cardCx - nw / 2, y + 155, nw, nh};
+            SDL_Rect nr = {cardCx - nw / 2, y + 310, nw, nh};
             SDL_RenderCopy(renderer, nt, nullptr, &nr);
             SDL_DestroyTexture(nt);
         }
@@ -236,7 +236,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
             // Scale down if too wide
             int maxW = w - 20;
             float scale = (ds->w > maxW) ? static_cast<float>(maxW) / ds->w : 1.0f;
-            SDL_Rect dr = {cardCx - static_cast<int>(ds->w * scale) / 2, y + 190,
+            SDL_Rect dr = {cardCx - static_cast<int>(ds->w * scale) / 2, y + 380,
                            static_cast<int>(ds->w * scale), static_cast<int>(ds->h * scale)};
             SDL_RenderCopy(renderer, dt, nullptr, &dr);
             SDL_DestroyTexture(dt);
@@ -252,7 +252,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     if (ps) {
         SDL_Texture* pt = SDL_CreateTextureFromSurface(renderer, ps);
         if (pt) {
-            SDL_Rect pr = {cardCx - ps->w / 2, y + 230, ps->w, ps->h};
+            SDL_Rect pr = {cardCx - ps->w / 2, y + 460, ps->w, ps->h};
             SDL_RenderCopy(renderer, pt, nullptr, &pr);
             SDL_DestroyTexture(pt);
         }
@@ -267,7 +267,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
         if (pdt) {
             int maxW = w - 20;
             float scale = (pds->w > maxW) ? static_cast<float>(maxW) / pds->w : 1.0f;
-            SDL_Rect pdr = {cardCx - static_cast<int>(pds->w * scale) / 2, y + 255,
+            SDL_Rect pdr = {cardCx - static_cast<int>(pds->w * scale) / 2, y + 510,
                             static_cast<int>(pds->w * scale), static_cast<int>(pds->h * scale)};
             SDL_RenderCopy(renderer, pdt, nullptr, &pdr);
             SDL_DestroyTexture(pdt);
@@ -283,7 +283,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
         if (amt) {
             int maxW = w - 20;
             float scale = (ams->w > maxW) ? static_cast<float>(maxW) / ams->w : 1.0f;
-            SDL_Rect amr = {cardCx - static_cast<int>(ams->w * scale) / 2, y + 285,
+            SDL_Rect amr = {cardCx - static_cast<int>(ams->w * scale) / 2, y + 570,
                             static_cast<int>(ams->w * scale), static_cast<int>(ams->h * scale)};
             SDL_RenderCopy(renderer, amt, nullptr, &amr);
             SDL_DestroyTexture(amt);
@@ -295,22 +295,22 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     if (locked) {
         // Dark overlay
         SDL_SetRenderDrawColor(renderer, 5, 3, 15, 180);
-        SDL_Rect overlay = {x + 2, y + 180, w - 4, h - 185};
+        SDL_Rect overlay = {x + 4, y + 360, w - 8, h - 370};
         SDL_RenderFillRect(renderer, &overlay);
 
         // Lock icon (simple padlock shape)
         int lockCx = x + w / 2;
-        int lockCy = y + 280;
+        int lockCy = y + 560;
         SDL_SetRenderDrawColor(renderer, 120, 100, 80, 200);
-        SDL_Rect lockBody = {lockCx - 15, lockCy, 30, 24};
+        SDL_Rect lockBody = {lockCx - 30, lockCy, 60, 48};
         SDL_RenderFillRect(renderer, &lockBody);
         // Lock shackle (arc with lines)
-        SDL_RenderDrawLine(renderer, lockCx - 10, lockCy, lockCx - 10, lockCy - 12);
-        SDL_RenderDrawLine(renderer, lockCx + 10, lockCy, lockCx + 10, lockCy - 12);
-        SDL_RenderDrawLine(renderer, lockCx - 10, lockCy - 12, lockCx + 10, lockCy - 12);
+        SDL_RenderDrawLine(renderer, lockCx - 20, lockCy, lockCx - 20, lockCy - 24);
+        SDL_RenderDrawLine(renderer, lockCx + 20, lockCy, lockCx + 20, lockCy - 24);
+        SDL_RenderDrawLine(renderer, lockCx - 20, lockCy - 24, lockCx + 20, lockCy - 24);
         // Keyhole
         SDL_SetRenderDrawColor(renderer, 30, 25, 40, 255);
-        SDL_Rect keyhole = {lockCx - 3, lockCy + 8, 6, 8};
+        SDL_Rect keyhole = {lockCx - 6, lockCy + 16, 12, 16};
         SDL_RenderFillRect(renderer, &keyhole);
 
         // "LOCKED" text
@@ -321,7 +321,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
             if (lt) {
                 int lw = static_cast<int>(ls->w * 1.2f);
                 int lh = static_cast<int>(ls->h * 1.2f);
-                SDL_Rect lr = {lockCx - lw / 2, lockCy + 35, lw, lh};
+                SDL_Rect lr = {lockCx - lw / 2, lockCy + 70, lw, lh};
                 SDL_RenderCopy(renderer, lt, nullptr, &lr);
                 SDL_DestroyTexture(lt);
             }
@@ -337,7 +337,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
             if (rt) {
                 int maxW = w - 30;
                 float scale = (rs->w > maxW) ? static_cast<float>(maxW) / rs->w : 1.0f;
-                SDL_Rect rr = {lockCx - static_cast<int>(rs->w * scale) / 2, lockCy + 60,
+                SDL_Rect rr = {lockCx - static_cast<int>(rs->w * scale) / 2, lockCy + 120,
                                static_cast<int>(rs->w * scale), static_cast<int>(rs->h * scale)};
                 SDL_RenderCopy(renderer, rt, nullptr, &rr);
                 SDL_DestroyTexture(rt);
@@ -348,10 +348,10 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     }
 
     // Stats: HP and Speed bars
-    int statY = y + 330;
-    int barW = w - 60;
-    int barH = 14;
-    int barX = x + 30;
+    int statY = y + 660;
+    int barW = w - 120;
+    int barH = 28;
+    int barX = x + 60;
 
     // HP label + bar
     {
@@ -368,7 +368,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
             }
             SDL_FreeSurface(hs);
         }
-        statY += 20;
+        statY += 40;
         float hpPercent = data.baseHP / 150.0f; // max possible HP for bar scale
         SDL_SetRenderDrawColor(renderer, 40, 30, 50, 120);
         SDL_Rect bgBar = {barX, statY, barW, barH};
@@ -378,7 +378,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
         SDL_RenderFillRect(renderer, &fillBar);
     }
 
-    statY += barH + 10;
+    statY += barH + 20;
 
     // Speed label + bar
     {
@@ -395,7 +395,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
             }
             SDL_FreeSurface(ss);
         }
-        statY += 20;
+        statY += 40;
         float spdPercent = data.baseSpeed / 350.0f;
         SDL_SetRenderDrawColor(renderer, 40, 30, 50, 120);
         SDL_Rect bgBar = {barX, statY, barW, barH};
@@ -411,7 +411,7 @@ void ClassSelectState::renderClassPreview(SDL_Renderer* renderer, const ClassDat
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     // Character body (28x48 like player)
-    int bw = 42, bh = 72; // scaled up for preview
+    int bw = 84, bh = 144; // scaled up for 2K preview
     SDL_SetRenderDrawColor(renderer, data.color.r, data.color.g, data.color.b, 220);
     SDL_Rect body = {cx - bw / 2, cy - bh / 2, bw, bh};
     SDL_RenderFillRect(renderer, &body);

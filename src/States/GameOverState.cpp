@@ -100,7 +100,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
         int tw = textSurf->w * 2;
         int th = textSurf->h * 2;
         int tx = SCREEN_WIDTH / 2 - tw / 2;
-        int ty = 280;
+        int ty = 560;
 
         // Glitch offset
         int glitchOff = static_cast<int>(m_glitchIntensity * 20.0f *
@@ -152,7 +152,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
                 SDL_SetTextureAlphaMod(st, sa);
-                SDL_Rect sr = {SCREEN_WIDTH / 2 - ss->w / 2, 370, ss->w, ss->h};
+                SDL_Rect sr = {SCREEN_WIDTH / 2 - ss->w / 2, 740, ss->w, ss->h};
                 SDL_RenderCopy(renderer, st, nullptr, &sr);
                 SDL_DestroyTexture(st);
             }
@@ -177,7 +177,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
                 SDL_SetTextureAlphaMod(st, sa);
-                SDL_Rect sr = {SCREEN_WIDTH / 2 - ss->w / 2, 398, ss->w, ss->h};
+                SDL_Rect sr = {SCREEN_WIDTH / 2 - ss->w / 2, 796, ss->w, ss->h};
                 SDL_RenderCopy(renderer, st, nullptr, &sr);
                 SDL_DestroyTexture(st);
             }
@@ -190,7 +190,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
         float barAlpha = std::min(1.0f, (m_timer - 1.0f) * 2.0f);
         Uint8 ba = static_cast<Uint8>(200 * barAlpha);
 
-        int barX = 440, barY = 410, barW = 400, barH = 16;
+        int barX = 880, barY = 820, barW = 800, barH = 32;
         SDL_SetRenderDrawColor(renderer, 30, 10, 10, ba);
         SDL_Rect barBg = {barX, barY, barW, barH};
         SDL_RenderFillRect(renderer, &barBg);
@@ -230,7 +230,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
         if (s2) {
             SDL_Texture* t2 = SDL_CreateTextureFromSurface(renderer, s2);
             if (t2) {
-                SDL_Rect r2 = {SCREEN_WIDTH / 2 - s2->w / 2, 500, s2->w, s2->h};
+                SDL_Rect r2 = {SCREEN_WIDTH / 2 - s2->w / 2, 1000, s2->w, s2->h};
                 SDL_RenderCopy(renderer, t2, nullptr, &r2);
                 SDL_DestroyTexture(t2);
             }

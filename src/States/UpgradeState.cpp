@@ -5,10 +5,10 @@
 #include <cstdio>
 #include <cmath>
 
-// Layout constants
-static constexpr int UPGRADE_MARGIN = 100;
-static constexpr int UPGRADE_ITEM_H = 65;
-static constexpr int UPGRADE_START_Y = 105;
+// Layout constants (scaled for 2560x1440)
+static constexpr int UPGRADE_MARGIN = 200;
+static constexpr int UPGRADE_ITEM_H = 130;
+static constexpr int UPGRADE_START_Y = 210;
 
 void UpgradeState::enter() {
     m_selectedUpgrade = 0;
@@ -371,8 +371,8 @@ void UpgradeState::render(SDL_Renderer* renderer) {
 
     // Instructions
     SDL_SetRenderDrawColor(renderer, 60, 40, 90, 80);
-    SDL_Rect instrBg = {0, 670, SCREEN_WIDTH, 50};
+    SDL_Rect instrBg = {0, SCREEN_HEIGHT - 50, SCREEN_WIDTH, 50};
     SDL_RenderFillRect(renderer, &instrBg);
     renderText(renderer, font, "W/S: Navigate    ENTER: Purchase    ESC: Back",
-               SCREEN_WIDTH / 2 - 200, 683, {120, 110, 150, 180});
+               SCREEN_WIDTH / 2 - 400, SCREEN_HEIGHT - 37, {120, 110, 150, 180});
 }

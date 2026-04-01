@@ -4,9 +4,9 @@
 #include <cmath>
 
 void LoreState::enter() {
-    m_fontTitle = TTF_OpenFont("assets/fonts/default.ttf", 28);
-    m_fontBody = TTF_OpenFont("assets/fonts/default.ttf", 16);
-    m_fontSmall = TTF_OpenFont("assets/fonts/default.ttf", 14);
+    m_fontTitle = TTF_OpenFont("assets/fonts/default.ttf", 56);
+    m_fontBody = TTF_OpenFont("assets/fonts/default.ttf", 32);
+    m_fontSmall = TTF_OpenFont("assets/fonts/default.ttf", 28);
     m_selected = 0;
     m_time = 0.0f;
     m_lore = game->getLoreSystem();
@@ -67,7 +67,7 @@ void LoreState::render(SDL_Renderer* renderer) {
         SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, buf, gray);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 65, surf->w, surf->h};
+            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 130, surf->w, surf->h};
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
             SDL_DestroyTexture(tex);
             SDL_FreeSurface(surf);
@@ -75,7 +75,7 @@ void LoreState::render(SDL_Renderer* renderer) {
     }
 
     // List on left
-    int listX = 30, listY = 100;
+    int listX = 60, listY = 200;
     for (int i = 0; i < static_cast<int>(fragments.size()); i++) {
         bool discovered = fragments[i].discovered;
         bool selected = (i == m_selected);
@@ -83,7 +83,7 @@ void LoreState::render(SDL_Renderer* renderer) {
         // Background
         if (selected) {
             SDL_SetRenderDrawColor(renderer, 60, 30, 80, 200);
-            SDL_Rect bg = {listX - 5, listY + i * 32 - 2, 250, 28};
+            SDL_Rect bg = {listX - 5, listY + i * 64 - 2, 500, 56};
             SDL_RenderFillRect(renderer, &bg);
         }
 
@@ -95,7 +95,7 @@ void LoreState::render(SDL_Renderer* renderer) {
             SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, title, col);
             if (surf) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                SDL_Rect dst = {listX, listY + i * 32, surf->w, surf->h};
+                SDL_Rect dst = {listX, listY + i * 64, surf->w, surf->h};
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
                 SDL_FreeSurface(surf);
@@ -104,7 +104,7 @@ void LoreState::render(SDL_Renderer* renderer) {
     }
 
     // Detail panel on right
-    int panelX = 310, panelY = 100, panelW = 460, panelH = 440;
+    int panelX = 620, panelY = 200, panelW = 920, panelH = 880;
     SDL_SetRenderDrawColor(renderer, 20, 10, 30, 220);
     SDL_Rect panel = {panelX, panelY, panelW, panelH};
     SDL_RenderFillRect(renderer, &panel);
@@ -191,7 +191,7 @@ void LoreState::render(SDL_Renderer* renderer) {
         SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, "W/S: Navigate   ESC: Back", hint);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 570, surf->w, surf->h};
+            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, SCREEN_HEIGHT - 60, surf->w, surf->h};
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
             SDL_DestroyTexture(tex);
             SDL_FreeSurface(surf);

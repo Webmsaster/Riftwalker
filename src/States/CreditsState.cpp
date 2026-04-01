@@ -4,8 +4,8 @@
 #include <cstdlib>
 
 void CreditsState::enter() {
-    m_fontTitle = TTF_OpenFont("assets/fonts/default.ttf", 28);
-    m_fontBody = TTF_OpenFont("assets/fonts/default.ttf", 16);
+    m_fontTitle = TTF_OpenFont("assets/fonts/default.ttf", 56);
+    m_fontBody = TTF_OpenFont("assets/fonts/default.ttf", 32);
     m_scrollY = 0.0f;
     m_time = 0.0f;
     m_particles.clear();
@@ -118,7 +118,7 @@ void CreditsState::handleEvent(const SDL_Event& event) {
 
 void CreditsState::update(float dt) {
     m_time += dt;
-    m_scrollY += dt * 30.0f; // Scroll speed: 30px/s
+    m_scrollY += dt * 60.0f; // Scroll speed: 60px/s (scaled for 2K)
 
     // Spawn ambient particles
     if (m_particles.size() < 40) {
@@ -172,7 +172,7 @@ void CreditsState::render(SDL_Renderer* renderer) {
     // Render scrolling credits
     // Text starts below the screen and scrolls up
     float baseY = static_cast<float>(SCREEN_HEIGHT) - m_scrollY;
-    int lineSpacing = 28;
+    int lineSpacing = 56;
 
     for (int i = 0; i < static_cast<int>(m_lines.size()); i++) {
         float lineY = baseY + i * lineSpacing;

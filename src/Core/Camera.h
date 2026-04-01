@@ -42,7 +42,7 @@ public:
     // Frustum test: returns true if a world-space rect is potentially visible (with margin)
     bool isInView(float wx, float wy, float ww, float wh) const {
         Vec2 scr = worldToScreen(Vec2(wx, wy));
-        float margin = 64.0f; // extra margin for particles/auras extending beyond hitbox
+        float margin = 128.0f; // extra margin for particles/auras extending beyond hitbox (scaled for 2K)
         return scr.x + ww * zoom + margin > 0 && scr.x - margin < m_screenW
             && scr.y + wh * zoom + margin > 0 && scr.y - margin < m_screenH;
     }

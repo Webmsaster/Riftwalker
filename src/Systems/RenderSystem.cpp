@@ -160,7 +160,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     SDL_Rect screenRect = camera.worldToScreen(worldRect);
 
     // Viewport culling: skip entities entirely off-screen (with generous margin)
-    constexpr int CULL_MARGIN = 100;
+    constexpr int CULL_MARGIN = 200;
     int screenW = GameState::SCREEN_WIDTH;
     int screenH = GameState::SCREEN_HEIGHT;
     if (screenRect.x + screenRect.w < -CULL_MARGIN || screenRect.x > screenW + CULL_MARGIN ||

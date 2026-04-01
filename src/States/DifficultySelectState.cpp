@@ -45,10 +45,10 @@ void DifficultySelectState::handleEvent(const SDL_Event& event) {
     }
 
     // Card layout — mirrors render() calculations exactly
-    int cardH = 100;
-    int cardW = 500;
+    int cardH = 200;
+    int cardW = 1000;
     int cardX = SCREEN_WIDTH / 2 - cardW / 2;
-    int startY = 240;
+    int startY = 480;
 
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x, my = event.motion.y;
@@ -140,7 +140,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
             if (t) {
                 int tw = static_cast<int>(s->w * 1.5f);
                 int th = static_cast<int>(s->h * 1.5f);
-                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 100, tw, th};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 200, tw, th};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -159,9 +159,9 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
         {"H A R D", "More enemies, stronger bosses, -25% shards", {220, 60, 60, 255}}
     };
 
-    int startY = 240;
-    int cardH = 100;
-    int cardW = 500;
+    int startY = 480;
+    int cardH = 200;
+    int cardW = 1000;
     int cardX = SCREEN_WIDTH / 2 - cardW / 2;
 
     for (int i = 0; i < 3; i++) {
@@ -228,7 +228,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, 660, ns->w, ns->h};
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, SCREEN_HEIGHT - 60, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }

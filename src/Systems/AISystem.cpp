@@ -66,7 +66,16 @@ void AISystem::updateEnemyAnimation(Entity& entity) {
     } else if (ai.state == AIState::Stunned || ai.state == AIState::Juggled) {
         animName = Anim::Hurt;
     } else if (ai.state == AIState::Attack) {
-        animName = isBoss ? Anim::Attack1 : Anim::Attack;
+        if (isBoss) {
+            // Cycle through Attack1/2/3 based on boss attack pattern
+            switch (ai.bossAttackPattern % 3) {
+                case 0: animName = Anim::Attack1; break;
+                case 1: animName = Anim::Attack2; break;
+                case 2: animName = Anim::Attack3; break;
+            }
+        } else {
+            animName = Anim::Attack;
+        }
     } else if (ai.state == AIState::Chase) {
         animName = isBoss ? Anim::Move : Anim::Walk;
     } else if (ai.state == AIState::Patrol) {
@@ -77,11 +86,15 @@ void AISystem::updateEnemyAnimation(Entity& entity) {
         animName = Anim::Idle;
     }
 
-    // Boss-specific: hit flash triggers hurt
+    // Boss-specific: hit flash triggers hurt, phase transition, enrage
     if (isBoss && entity.hasComponent<HealthComponent>()) {
         auto& hp = entity.getComponent<HealthComponent>();
         if (hp.invincibilityTimer > hp.invincibilityTime - 0.12f && hp.invincibilityTimer > 0) {
             animName = Anim::Hurt;
+        }
+        // Enrage animation (brief override on enrage transition)
+        if (ai.isEnraged && ai.state == AIState::Idle) {
+            animName = Anim::Enrage;
         }
     }
 

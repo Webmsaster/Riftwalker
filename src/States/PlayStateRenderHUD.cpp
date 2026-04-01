@@ -112,7 +112,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
                 if (ht) {
                     SDL_SetTextureAlphaMod(ht, alpha);
-                    SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, 460, hs->w, hs->h};
+                    SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, 920, hs->w, hs->h};
                     SDL_RenderCopy(renderer, ht, nullptr, &hr);
                     SDL_DestroyTexture(ht);
                 }
@@ -146,7 +146,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
                 if (ht) {
                     SDL_SetTextureAlphaMod(ht, alpha);
-                    SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, 482, hs->w, hs->h};
+                    SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, 964, hs->w, hs->h};
                     SDL_RenderCopy(renderer, ht, nullptr, &hr);
                     SDL_DestroyTexture(ht);
                 }
@@ -192,7 +192,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 500, s->w, s->h};
+                    SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 1000, s->w, s->h};
                     SDL_RenderCopy(renderer, t, nullptr, &r);
                     SDL_DestroyTexture(t);
                 }
@@ -215,11 +215,11 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             float sy = (rifts[i].y - camPos.y) * m_camera.zoom + halfH;
 
             // Only show if off-screen
-            if (sx >= -10 && sx <= 1290 && sy >= -10 && sy <= 730) continue;
+            if (sx >= -10 && sx <= SCREEN_WIDTH + 10 && sy >= -10 && sy <= SCREEN_HEIGHT + 10) continue;
 
             // Clamp to screen edge with margin
-            float cx = std::max(25.0f, std::min(1255.0f, sx));
-            float cy = std::max(25.0f, std::min(695.0f, sy));
+            float cx = std::max(25.0f, std::min(static_cast<float>(SCREEN_WIDTH - 25), sx));
+            float cy = std::max(25.0f, std::min(static_cast<float>(SCREEN_HEIGHT - 25), sy));
 
             float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.005f + i * 1.5f);
             Uint8 pa = static_cast<Uint8>(120 + 80 * pulse);
@@ -252,10 +252,10 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
         float sy = (exitPos.y - camPos.y) * m_camera.zoom + halfH;
 
         // Only show if exit is off-screen
-        if (sx < -10 || sx > 1290 || sy < -10 || sy > 730) {
+        if (sx < -10 || sx > SCREEN_WIDTH + 10 || sy < -10 || sy > SCREEN_HEIGHT + 10) {
             // Clamp to screen edge with margin
-            float cx = std::max(30.0f, std::min(1250.0f, sx));
-            float cy = std::max(30.0f, std::min(690.0f, sy));
+            float cx = std::max(30.0f, std::min(static_cast<float>(SCREEN_WIDTH - 30), sx));
+            float cy = std::max(30.0f, std::min(static_cast<float>(SCREEN_HEIGHT - 30), sy));
 
             Uint8 pa, gr, gg;
             if (m_collapsing) {
@@ -486,9 +486,9 @@ void PlayState::renderDebugOverlay(SDL_Renderer* renderer, TTF_Font* font) {
     addLine(cDim, "F4: snapshot to balance_snapshots.csv");
 
     // Render panel
-    int panelX = 10, panelY = 60;
-    int lineH = 16, padX = 8, padY = 4;
-    int panelW = 380;
+    int panelX = 20, panelY = 120;
+    int lineH = 32, padX = 16, padY = 8;
+    int panelW = 760;
     int panelH = padY * 2 + lineCount * lineH;
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -534,10 +534,10 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     // Bar background
-    int barW = 400;
-    int barH = 12;
+    int barW = 800;
+    int barH = 24;
     int barX = SCREEN_WIDTH / 2 - barW / 2;
-    int barY = 20;
+    int barY = 40;
 
     // Dark frame
     SDL_SetRenderDrawColor(renderer, 20, 10, 30, 220);
@@ -623,7 +623,7 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
-                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, barY + barH + 4, ts->w, ts->h};
+                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, barY + barH + 8, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }

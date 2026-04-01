@@ -366,7 +366,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
             if (t) {
                 int tw = s->w * 2;
                 int th = s->h * 2;
-                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 80, tw, th};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 160, tw, th};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -375,9 +375,9 @@ void OptionsState::render(SDL_Renderer* renderer) {
     }
 
     // Options
-    int startY = 170;
-    int itemH = 52;
-    int cardW = 500;
+    int startY = 340;
+    int itemH = 70;
+    int cardW = 1000;
     int cardX = SCREEN_WIDTH / 2 - cardW / 2;
 
     for (int i = 0; i < static_cast<int>(m_options.size()); i++) {
@@ -412,7 +412,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
                 if (isSpecial) {
                     lr = {SCREEN_WIDTH / 2 - ls->w / 2, y + (itemH - 8) / 2 - ls->h / 2, ls->w, ls->h};
                 } else {
-                    lr = {cardX + 20, y + (itemH - 8) / 2 - ls->h / 2, ls->w, ls->h};
+                    lr = {cardX + 40, y + (itemH - 8) / 2 - ls->h / 2, ls->w, ls->h};
                 }
                 SDL_RenderCopy(renderer, lt, nullptr, &lr);
                 SDL_DestroyTexture(lt);
@@ -426,10 +426,10 @@ void OptionsState::render(SDL_Renderer* renderer) {
 
             // Slider bar for non-toggles
             if (!m_options[i].isToggle) {
-                int barX = cardX + cardW - 220;
-                int barY = y + (itemH - 8) / 2 - 4;
-                int barW = 150;
-                int barH = 8;
+                int barX = cardX + cardW - 440;
+                int barY = y + (itemH - 8) / 2 - 8;
+                int barW = 300;
+                int barH = 16;
 
                 // Background bar
                 SDL_SetRenderDrawColor(renderer, 40, 35, 60, 200);
@@ -508,7 +508,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
             if (cs) {
                 SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
                 if (ct) {
-                    SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 630 + i * 22, cs->w, cs->h};
+                    SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, SCREEN_HEIGHT - 100 + i * 44, cs->w, cs->h};
                     SDL_RenderCopy(renderer, ct, nullptr, &cr);
                     SDL_DestroyTexture(ct);
                 }

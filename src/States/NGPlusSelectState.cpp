@@ -98,10 +98,10 @@ void NGPlusSelectState::handleEvent(const SDL_Event& event) {
 
     // Card layout mirrors render() calculations exactly
     int totalOptions = std::min(m_maxTier + 2, 11);
-    int cardW        = 700;
-    int cardH        = (totalOptions > 6) ? 50 : 78;
+    int cardW        = 1400;
+    int cardH        = (totalOptions > 6) ? 100 : 156;
     int cardX        = SCREEN_WIDTH / 2 - cardW / 2;
-    int startY       = 155;
+    int startY       = 310;
 
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x, my = event.motion.y;
@@ -209,10 +209,10 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
     }
 
     // Option cards — Normal + unlocked NG+ tiers + one locked next tier
-    int cardW = 700;
-    int cardH = 78;
+    int cardW = 1400;
+    int cardH = 156;
     int cardX = SCREEN_WIDTH / 2 - cardW / 2;
-    int startY = 155;
+    int startY = 310;
     int totalOptions = m_maxTier + 2; // Normal + all unlocked + one locked (next)
     if (totalOptions > 11) totalOptions = 11;
 
@@ -316,7 +316,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, 670, ns->w, ns->h};
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, SCREEN_HEIGHT - 50, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }

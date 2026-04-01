@@ -130,12 +130,12 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             // Glow
             SDL_SetTextureBlendMode(tt, SDL_BLENDMODE_ADD);
             SDL_SetTextureAlphaMod(tt, static_cast<Uint8>(alpha * 0.15f));
-            SDL_Rect glowR = {SCREEN_WIDTH / 2 - tw / 2 - 3, 67, tw + 6, th + 6};
+            SDL_Rect glowR = {SCREEN_WIDTH / 2 - tw / 2 - 3, 134, tw + 6, th + 6};
             SDL_RenderCopy(renderer, tt, nullptr, &glowR);
             // Main
             SDL_SetTextureBlendMode(tt, SDL_BLENDMODE_BLEND);
             SDL_SetTextureAlphaMod(tt, alpha);
-            SDL_Rect tr = {SCREEN_WIDTH / 2 - tw / 2, 70, tw, th};
+            SDL_Rect tr = {SCREEN_WIDTH / 2 - tw / 2, 140, tw, th};
             SDL_RenderCopy(renderer, tt, nullptr, &tr);
             SDL_DestroyTexture(tt);
         }
@@ -144,7 +144,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
     // Separator
     SDL_SetRenderDrawColor(renderer, 140, 60, 60, static_cast<Uint8>(alpha * 0.4f));
-    SDL_RenderDrawLine(renderer, 350, 145, 930, 145);
+    SDL_RenderDrawLine(renderer, 700, 290, 1860, 290);
 
     // Run info line (class, weapons, difficulty, time)
     {
@@ -163,7 +163,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_Texture* it = SDL_CreateTextureFromSurface(renderer, is);
             if (it) {
                 SDL_SetTextureAlphaMod(it, alpha);
-                SDL_Rect ir = {SCREEN_WIDTH / 2 - is->w / 2, 152, is->w, is->h};
+                SDL_Rect ir = {SCREEN_WIDTH / 2 - is->w / 2, 304, is->w, is->h};
                 SDL_RenderCopy(renderer, it, nullptr, &ir);
                 SDL_DestroyTexture(it);
             }
@@ -190,7 +190,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
                     SDL_SetTextureAlphaMod(nt, ngA);
                     int nw = static_cast<int>(ns->w * 1.1f);
                     int nh = static_cast<int>(ns->h * 1.1f);
-                    SDL_Rect nr = {SCREEN_WIDTH / 2 - nw / 2, 172, nw, nh};
+                    SDL_Rect nr = {SCREEN_WIDTH / 2 - nw / 2, 344, nw, nh};
                     SDL_RenderCopy(renderer, nt, nullptr, &nr);
                     SDL_DestroyTexture(nt);
                 }
@@ -212,7 +212,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
                 SDL_SetTextureAlphaMod(ct, alpha);
-                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 172, cs->w, cs->h};
+                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 344, cs->w, cs->h};
                 SDL_RenderCopy(renderer, ct, nullptr, &cr);
                 SDL_DestroyTexture(ct);
             }
@@ -234,7 +234,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             if (gt) {
                 SDL_SetTextureAlphaMod(gt, alpha);
                 // Render grade larger
-                SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w, 178, gs->w * 2, gs->h * 2};
+                SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w, 356, gs->w * 2, gs->h * 2};
                 SDL_RenderCopy(renderer, gt, nullptr, &gr);
                 SDL_DestroyTexture(gt);
             }
@@ -259,8 +259,8 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
     };
 
     int statCount = 11;
-    int baseY = 250;
-    int statH = 38;
+    int baseY = 500;
+    int statH = 76;
     float revealDelay = 0.35f;
 
     for (int i = 0; i < statCount; i++) {
@@ -274,13 +274,13 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
         // Background bar
         SDL_SetRenderDrawColor(renderer, 25, 20, 40, static_cast<Uint8>(ia * 0.6f));
-        SDL_Rect bg = {300, y, 680, statH - 6};
+        SDL_Rect bg = {600, y, 1360, statH - 6};
         SDL_RenderFillRect(renderer, &bg);
 
         // Left accent line
         SDL_SetRenderDrawColor(renderer, stats[i].barColor.r, stats[i].barColor.g,
                                stats[i].barColor.b, ia);
-        SDL_Rect accent = {300, y, 3, statH - 6};
+        SDL_Rect accent = {600, y, 6, statH - 6};
         SDL_RenderFillRect(renderer, &accent);
 
         // Label
@@ -292,7 +292,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
             if (lt) {
                 SDL_SetTextureAlphaMod(lt, ia);
-                SDL_Rect lr = {320, y + 10, ls->w, ls->h};
+                SDL_Rect lr = {640, y + 20, ls->w, ls->h};
                 SDL_RenderCopy(renderer, lt, nullptr, &lr);
                 SDL_DestroyTexture(lt);
             }
@@ -311,7 +311,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_Texture* vt = SDL_CreateTextureFromSurface(renderer, vs);
             if (vt) {
                 SDL_SetTextureAlphaMod(vt, ia);
-                SDL_Rect vr = {930 - vs->w, y + 10, vs->w, vs->h};
+                SDL_Rect vr = {1860 - vs->w, y + 20, vs->w, vs->h};
                 SDL_RenderCopy(renderer, vt, nullptr, &vr);
                 SDL_DestroyTexture(vt);
             }
@@ -328,11 +328,11 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         float bAlpha = std::min(1.0f, (m_statsTimer - 3.0f) * 2.0f) * m_fadeIn;
         Uint8 ba = static_cast<Uint8>(255 * bAlpha);
 
-        int by = baseY + statCount * statH + 8;
+        int by = baseY + statCount * statH + 16;
 
         // Thin separator
         SDL_SetRenderDrawColor(renderer, 100, 80, 140, static_cast<Uint8>(ba * 0.5f));
-        SDL_RenderDrawLine(renderer, 350, by, 930, by);
+        SDL_RenderDrawLine(renderer, 700, by, 1860, by);
 
         // Header
         SDL_Color hdrC = {140, 120, 180, ba};
@@ -363,7 +363,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_Texture* l1t = SDL_CreateTextureFromSurface(renderer, l1s);
             if (l1t) {
                 SDL_SetTextureAlphaMod(l1t, ba);
-                SDL_Rect l1r = {320, by + 22, l1s->w, l1s->h};
+                SDL_Rect l1r = {640, by + 44, l1s->w, l1s->h};
                 SDL_RenderCopy(renderer, l1t, nullptr, &l1r);
                 SDL_DestroyTexture(l1t);
             }
@@ -380,7 +380,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_Texture* l2t = SDL_CreateTextureFromSurface(renderer, l2s);
             if (l2t) {
                 SDL_SetTextureAlphaMod(l2t, ba);
-                SDL_Rect l2r = {320, by + 38, l2s->w, l2s->h};
+                SDL_Rect l2r = {640, by + 76, l2s->w, l2s->h};
                 SDL_RenderCopy(renderer, l2t, nullptr, &l2r);
                 SDL_DestroyTexture(l2t);
             }
@@ -398,7 +398,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
                 SDL_Texture* l3t = SDL_CreateTextureFromSurface(renderer, l3s);
                 if (l3t) {
                     SDL_SetTextureAlphaMod(l3t, ba);
-                    SDL_Rect l3r = {320, by + 54, l3s->w, l3s->h};
+                    SDL_Rect l3r = {640, by + 108, l3s->w, l3s->h};
                     SDL_RenderCopy(renderer, l3t, nullptr, &l3r);
                     SDL_DestroyTexture(l3t);
                 }
@@ -406,7 +406,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             }
         }
 
-        balanceEndY = by + 72;
+        balanceEndY = by + 144;
     }
 
     // NEW RECORD banner
@@ -418,7 +418,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
         // Glowing background bar
         SDL_SetRenderDrawColor(renderer, 255, 200, 50, static_cast<Uint8>(ra * 0.2f));
-        SDL_Rect recordBg = {300, recordY, 680, 40};
+        SDL_Rect recordBg = {600, recordY, 1360, 80};
         SDL_RenderFillRect(renderer, &recordBg);
 
         // Gold border
@@ -458,8 +458,8 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         Uint8 sa = static_cast<Uint8>(255 * scoreAlpha);
         float pulse = 0.7f + 0.3f * std::sin(m_time * 4.0f);
 
-        int px = 950, py = 70;
-        int pw = 300, ph = 60;
+        int px = 1900, py = 140;
+        int pw = 600, ph = 120;
 
         SDL_SetRenderDrawColor(renderer, 20, 14, 35, static_cast<Uint8>(sa * 0.85f));
         SDL_Rect panelBg = {px, py, pw, ph};
@@ -565,7 +565,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             if (dls) {
                 SDL_Texture* dlt = SDL_CreateTextureFromSurface(renderer, dls);
                 if (dlt) {
-                    SDL_Rect dlr = {SCREEN_WIDTH / 2 - dls->w / 2, 640, dls->w, dls->h};
+                    SDL_Rect dlr = {SCREEN_WIDTH / 2 - dls->w / 2, SCREEN_HEIGHT - 80, dls->w, dls->h};
                     SDL_RenderCopy(renderer, dlt, nullptr, &dlr);
                     SDL_DestroyTexture(dlt);
                 }
@@ -578,7 +578,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 660, s->w, s->h};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, SCREEN_HEIGHT - 60, s->w, s->h};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }

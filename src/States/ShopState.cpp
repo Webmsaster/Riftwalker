@@ -6,13 +6,13 @@
 #include <cstdio>
 #include <cmath>
 
-// Layout constants
-static constexpr int SHOP_CARD_W   = 220;
-static constexpr int SHOP_CARD_H   = 300;
-static constexpr int SHOP_CARD_GAP = 30;
-static constexpr int SHOP_CARD_Y   = 130;
-static constexpr int SHOP_SKIP_W   = 160;
-static constexpr int SHOP_SKIP_H   = 50;
+// Layout constants (scaled for 2560x1440)
+static constexpr int SHOP_CARD_W   = 440;
+static constexpr int SHOP_CARD_H   = 600;
+static constexpr int SHOP_CARD_GAP = 60;
+static constexpr int SHOP_CARD_Y   = 260;
+static constexpr int SHOP_SKIP_W   = 320;
+static constexpr int SHOP_SKIP_H   = 100;
 
 extern bool g_autoSmokeTest;
 extern bool g_autoPlaytest;
@@ -95,10 +95,10 @@ void ShopState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x, my = event.motion.y;
         int totalCards = static_cast<int>(m_offerings.size());
-        int cardW = 220, cardH = 300, cardGap = 30;
+        int cardW = SHOP_CARD_W, cardH = SHOP_CARD_H, cardGap = SHOP_CARD_GAP;
         int totalWidth = totalCards * cardW + (totalCards - 1) * cardGap;
         int startX = (Game::SCREEN_WIDTH - totalWidth) / 2;
-        int cardY = 130;
+        int cardY = SHOP_CARD_Y;
 
         int newSel = -1;
         for (int i = 0; i < totalCards; i++) {
@@ -110,7 +110,7 @@ void ShopState::handleEvent(const SDL_Event& event) {
         }
         if (newSel == -1) {
             // Check skip button
-            int skipW = 160, skipH = 50;
+            int skipW = SHOP_SKIP_W, skipH = SHOP_SKIP_H;
             int skipX = SCREEN_WIDTH / 2 - skipW / 2;
             int skipY = cardY + cardH + 50;
             if (mx >= skipX && mx < skipX + skipW && my >= skipY && my < skipY + skipH)
@@ -126,10 +126,10 @@ void ShopState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         int mx = event.button.x, my = event.button.y;
         int totalCards = static_cast<int>(m_offerings.size());
-        int cardW = 220, cardH = 300, cardGap = 30;
+        int cardW = SHOP_CARD_W, cardH = SHOP_CARD_H, cardGap = SHOP_CARD_GAP;
         int totalWidth = totalCards * cardW + (totalCards - 1) * cardGap;
         int startX = (Game::SCREEN_WIDTH - totalWidth) / 2;
-        int cardY = 130;
+        int cardY = SHOP_CARD_Y;
 
         int clicked = -1;
         for (int i = 0; i < totalCards; i++) {
@@ -140,7 +140,7 @@ void ShopState::handleEvent(const SDL_Event& event) {
             }
         }
         if (clicked == -1) {
-            int skipW = 160, skipH = 50;
+            int skipW = SHOP_SKIP_W, skipH = SHOP_SKIP_H;
             int skipX = SCREEN_WIDTH / 2 - skipW / 2;
             int skipY = cardY + cardH + 50;
             if (mx >= skipX && mx < skipX + skipW && my >= skipY && my < skipY + skipH)
@@ -292,7 +292,7 @@ void ShopState::render(SDL_Renderer* renderer) {
         Uint8 ta = static_cast<Uint8>(220 * pulse);
         // Semi-transparent bar above cards
         SDL_SetRenderDrawColor(renderer, 10, 5, 30, 160);
-        SDL_Rect tutBg = {200, 100, 880, 28};
+        SDL_Rect tutBg = {400, 200, 1760, 56};
         SDL_RenderFillRect(renderer, &tutBg);
         SDL_SetRenderDrawColor(renderer, 140, 100, 220, ta);
         SDL_RenderDrawRect(renderer, &tutBg);
@@ -304,7 +304,7 @@ void ShopState::render(SDL_Renderer* renderer) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
                 SDL_SetTextureAlphaMod(tt, ta);
-                SDL_Rect tr2 = {SCREEN_WIDTH / 2 - ts->w / 2, 104, ts->w, ts->h};
+                SDL_Rect tr2 = {SCREEN_WIDTH / 2 - ts->w / 2, 208, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr2);
                 SDL_DestroyTexture(tt);
             }
@@ -319,7 +319,7 @@ void ShopState::render(SDL_Renderer* renderer) {
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
-                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, 680, hs->w, hs->h};
+                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, SCREEN_HEIGHT - 40, hs->w, hs->h};
                 SDL_RenderCopy(renderer, ht, nullptr, &hr);
                 SDL_DestroyTexture(ht);
             }
@@ -374,7 +374,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
     }
 
     // Tier header bar
-    SDL_Rect headerBar = {x + 2, y + 2, w - 4, 24};
+    SDL_Rect headerBar = {x + 4, y + 4, w - 8, 48};
     SDL_SetRenderDrawColor(renderer, tierColor.r / 3, tierColor.g / 3, tierColor.b / 3, 200);
     SDL_RenderFillRect(renderer, &headerBar);
 
@@ -385,7 +385,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
-                SDL_Rect tr = {x + w / 2 - ts->w / 2, y + 5, ts->w, ts->h};
+                SDL_Rect tr = {x + w / 2 - ts->w / 2, y + 10, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }
@@ -394,8 +394,8 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
 
         // Buff icon area (procedural)
         int iconCX = x + w / 2;
-        int iconCY = y + 80;
-        int iconR = 25;
+        int iconCY = y + 160;
+        int iconR = 50;
 
         // Icon circle background
         SDL_SetRenderDrawColor(renderer, tierColor.r / 4, tierColor.g / 4, tierColor.b / 4, 180);
@@ -437,7 +437,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {x + w / 2 - ns->w / 2, y + 120, ns->w, ns->h};
+                SDL_Rect nr = {x + w / 2 - ns->w / 2, y + 240, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }
@@ -450,7 +450,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
-                SDL_Rect dr = {x + w / 2 - ds->w / 2, y + 150, ds->w, ds->h};
+                SDL_Rect dr = {x + w / 2 - ds->w / 2, y + 300, ds->w, ds->h};
                 SDL_RenderCopy(renderer, dt, nullptr, &dr);
                 SDL_DestroyTexture(dt);
             }
@@ -459,7 +459,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
 
         // Divider line
         SDL_SetRenderDrawColor(renderer, tierColor.r / 2, tierColor.g / 2, tierColor.b / 2, 100);
-        SDL_RenderDrawLine(renderer, x + 20, y + 200, x + w - 20, y + 200);
+        SDL_RenderDrawLine(renderer, x + 40, y + 400, x + w - 40, y + 400);
 
         // Cost
         char costText[32];
@@ -469,7 +469,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
-                SDL_Rect cr = {x + w / 2 - cs->w / 2, y + 220, cs->w, cs->h};
+                SDL_Rect cr = {x + w / 2 - cs->w / 2, y + 440, cs->w, cs->h};
                 SDL_RenderCopy(renderer, ct, nullptr, &cr);
                 SDL_DestroyTexture(ct);
             }
@@ -484,7 +484,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
             if (bs) {
                 SDL_Texture* bt = SDL_CreateTextureFromSurface(renderer, bs);
                 if (bt) {
-                    SDL_Rect br = {x + w / 2 - bs->w / 2, y + h - 40, bs->w, bs->h};
+                    SDL_Rect br = {x + w / 2 - bs->w / 2, y + h - 80, bs->w, bs->h};
                     SDL_RenderCopy(renderer, bt, nullptr, &br);
                     SDL_DestroyTexture(bt);
                 }
@@ -496,7 +496,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
             if (errSurf) {
                 SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, errSurf);
                 if (nt) {
-                    SDL_Rect nr = {x + w / 2 - errSurf->w / 2, y + h - 40, errSurf->w, errSurf->h};
+                    SDL_Rect nr = {x + w / 2 - errSurf->w / 2, y + h - 80, errSurf->w, errSurf->h};
                     SDL_RenderCopy(renderer, nt, nullptr, &nr);
                     SDL_DestroyTexture(nt);
                 }

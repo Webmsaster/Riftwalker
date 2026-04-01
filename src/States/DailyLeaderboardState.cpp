@@ -141,9 +141,9 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
     // --- Title ---
     {
         SDL_Color titleColor = {220, 190, 80, alpha};
-        dlRenderTextCentered(renderer, font, "DAILY LEADERBOARD", SCREEN_WIDTH / 2, 22, titleColor);
+        dlRenderTextCentered(renderer, font, "DAILY LEADERBOARD", SCREEN_WIDTH / 2, 44, titleColor);
         SDL_SetRenderDrawColor(renderer, 220, 190, 80, static_cast<Uint8>(alpha * 0.5f));
-        SDL_RenderDrawLine(renderer, 300, 46, 980, 46);
+        SDL_RenderDrawLine(renderer, 600, 92, 1960, 92);
     }
 
     // Today's date and seed
@@ -152,7 +152,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
         std::snprintf(buf, sizeof(buf), "Today: %s  |  Seed: %d",
                       m_todayDate.c_str(), m_todaySeed);
         SDL_Color infoColor = {140, 130, 180, alpha};
-        dlRenderTextCentered(renderer, font, buf, SCREEN_WIDTH / 2, 52, infoColor);
+        dlRenderTextCentered(renderer, font, buf, SCREEN_WIDTH / 2, 104, infoColor);
     }
 
     // Today's personal best
@@ -165,37 +165,37 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
             std::snprintf(buf, sizeof(buf), "No runs today yet");
         SDL_Color bestColor = (todayBest > 0) ? SDL_Color{255, 220, 60, alpha}
                                                : SDL_Color{120, 120, 150, alpha};
-        dlRenderTextCentered(renderer, font, buf, SCREEN_WIDTH / 2, 70, bestColor);
+        dlRenderTextCentered(renderer, font, buf, SCREEN_WIDTH / 2, 140, bestColor);
     }
 
     // --- Today's Top 10 Table ---
-    int tableX  = 50;
-    int tableY  = 100;
-    int tableW  = 820;
-    int rowH    = 26;
+    int tableX  = 100;
+    int tableY  = 200;
+    int tableW  = 1640;
+    int rowH    = 52;
 
     // Table header background
     SDL_SetRenderDrawColor(renderer, 25, 20, 45, 200);
-    SDL_Rect headerBg = {tableX - 5, tableY - 3, tableW + 10, 22};
+    SDL_Rect headerBg = {tableX - 5, tableY - 3, tableW + 10, 44};
     SDL_RenderFillRect(renderer, &headerBg);
     SDL_SetRenderDrawColor(renderer, 220, 190, 80, static_cast<Uint8>(alpha * 0.6f));
     SDL_RenderDrawRect(renderer, &headerBg);
 
     SDL_Color headerCol = {200, 185, 130, alpha};
-    dlRenderText(renderer, font, "#",       tableX,        tableY, headerCol);
-    dlRenderText(renderer, font, "Score",   tableX + 35,   tableY, headerCol);
-    dlRenderText(renderer, font, "Class",   tableX + 155,  tableY, headerCol);
-    dlRenderText(renderer, font, "Floors",  tableX + 270,  tableY, headerCol);
-    dlRenderText(renderer, font, "Kills",   tableX + 340,  tableY, headerCol);
-    dlRenderText(renderer, font, "Rifts",   tableX + 410,  tableY, headerCol);
-    dlRenderText(renderer, font, "Combo",   tableX + 480,  tableY, headerCol);
-    dlRenderText(renderer, font, "Time",    tableX + 555,  tableY, headerCol);
-    dlRenderText(renderer, font, "Result",  tableX + 650,  tableY, headerCol);
+    dlRenderText(renderer, font, "#",       tableX,         tableY, headerCol);
+    dlRenderText(renderer, font, "Score",   tableX + 70,   tableY, headerCol);
+    dlRenderText(renderer, font, "Class",   tableX + 310,  tableY, headerCol);
+    dlRenderText(renderer, font, "Floors",  tableX + 540,  tableY, headerCol);
+    dlRenderText(renderer, font, "Kills",   tableX + 680,  tableY, headerCol);
+    dlRenderText(renderer, font, "Rifts",   tableX + 820,  tableY, headerCol);
+    dlRenderText(renderer, font, "Combo",   tableX + 960,  tableY, headerCol);
+    dlRenderText(renderer, font, "Time",    tableX + 1110, tableY, headerCol);
+    dlRenderText(renderer, font, "Result",  tableX + 1300, tableY, headerCol);
 
     SDL_SetRenderDrawColor(renderer, 180, 160, 70, static_cast<Uint8>(alpha * 0.5f));
-    SDL_RenderDrawLine(renderer, tableX - 5, tableY + 20, tableX + tableW + 5, tableY + 20);
+    SDL_RenderDrawLine(renderer, tableX - 5, tableY + 40, tableX + tableW + 5, tableY + 40);
 
-    int startRow   = tableY + 24;
+    int startRow   = tableY + 48;
     int maxVisible = 10;
     int maxScroll  = std::max(0, static_cast<int>(m_todayEntries.size()) - maxVisible);
     m_scrollOffset = std::min(m_scrollOffset, maxScroll);
@@ -256,38 +256,38 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
         else if (rank == 2) std::snprintf(buf, sizeof(buf), "[2] %d", e.score);
         else if (rank == 3) std::snprintf(buf, sizeof(buf), "[3] %d", e.score);
         else                std::snprintf(buf, sizeof(buf), "%d", e.score);
-        dlRenderText(renderer, font, buf, tableX + 35, ry, rankColor);
+        dlRenderText(renderer, font, buf, tableX + 70, ry, rankColor);
 
         // Class
-        dlRenderText(renderer, font, getDLClassName(e.playerClass), tableX + 155, ry, rankColor);
+        dlRenderText(renderer, font, getDLClassName(e.playerClass), tableX + 310, ry, rankColor);
 
         // Floors
         std::snprintf(buf, sizeof(buf), "%d", e.floors);
-        dlRenderText(renderer, font, buf, tableX + 270, ry, rankColor);
+        dlRenderText(renderer, font, buf, tableX + 540, ry, rankColor);
 
         // Kills
         std::snprintf(buf, sizeof(buf), "%d", e.kills);
-        dlRenderText(renderer, font, buf, tableX + 340, ry, rankColor);
+        dlRenderText(renderer, font, buf, tableX + 680, ry, rankColor);
 
         // Rifts
         std::snprintf(buf, sizeof(buf), "%d", e.rifts);
-        dlRenderText(renderer, font, buf, tableX + 410, ry, rankColor);
+        dlRenderText(renderer, font, buf, tableX + 820, ry, rankColor);
 
         // Best combo
         std::snprintf(buf, sizeof(buf), "%d", e.bestCombo);
-        dlRenderText(renderer, font, buf, tableX + 480, ry, rankColor);
+        dlRenderText(renderer, font, buf, tableX + 960, ry, rankColor);
 
         // Time mm:ss
         int mins = static_cast<int>(e.runTime) / 60;
         int secs = static_cast<int>(e.runTime) % 60;
         std::snprintf(buf, sizeof(buf), "%d:%02d", mins, secs);
-        dlRenderText(renderer, font, buf, tableX + 555, ry, rankColor);
+        dlRenderText(renderer, font, buf, tableX + 1110, ry, rankColor);
 
         // Result
         const char* resultStr = (e.deathCause == 5) ? "Victory" : "Fallen";
         SDL_Color resultColor = (e.deathCause == 5) ? SDL_Color{80, 255, 80, alpha}
                                                      : SDL_Color{255, 80, 80, alpha};
-        dlRenderText(renderer, font, resultStr, tableX + 650, ry, resultColor);
+        dlRenderText(renderer, font, resultStr, tableX + 1300, ry, resultColor);
     }
 
     // Scroll indicator

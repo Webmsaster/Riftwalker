@@ -8,9 +8,9 @@ void AchievementsState::enter() {
     m_animTimer = 0;
 
     auto& achievements = game->getAchievements().getAll();
-    int itemH = 60;
+    int itemH = 120;
     int totalH = static_cast<int>(achievements.size()) * itemH;
-    int visibleH = 520; // area between title and bottom
+    int visibleH = 1080; // area between title and bottom (scaled for 1440p)
     m_maxScroll = std::max(0, totalH - visibleH);
 }
 
@@ -117,7 +117,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
-                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 60, cs->w, cs->h};
+                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 120, cs->w, cs->h};
                 SDL_RenderCopy(renderer, ct, nullptr, &cr);
                 SDL_DestroyTexture(ct);
             }
@@ -126,19 +126,19 @@ void AchievementsState::render(SDL_Renderer* renderer) {
     }
 
     // Clip area for scrollable list
-    SDL_Rect clipRect = {140, 90, 1000, 540};
+    SDL_Rect clipRect = {280, 180, 2000, 1080};
     SDL_RenderSetClipRect(renderer, &clipRect);
 
     auto& achievements = achSys.getAll();
-    int itemH = 60;
-    int startY = 100 - m_scrollOffset;
+    int itemH = 120;
+    int startY = 200 - m_scrollOffset;
 
     for (int i = 0; i < static_cast<int>(achievements.size()); i++) {
         auto& a = achievements[i];
         int y = startY + i * itemH;
 
         // Skip if off-screen
-        if (y + itemH < 90 || y > 630) continue;
+        if (y + itemH < 180 || y > SCREEN_HEIGHT - 80) continue;
 
         int cardX = 190;
         int cardW = 900;
@@ -249,7 +249,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
-                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, 670, hs->w, hs->h};
+                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, SCREEN_HEIGHT - 50, hs->w, hs->h};
                 SDL_RenderCopy(renderer, ht, nullptr, &hr);
                 SDL_DestroyTexture(ht);
             }

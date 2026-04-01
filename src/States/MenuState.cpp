@@ -17,11 +17,11 @@ void MenuState::enter() {
     ChallengeMode::load("riftwalker_challenges.dat");
 
     int cx = SCREEN_WIDTH / 2;
-    int btnW = 260;
-    int btnH = 30;
-    int gap = 2;
+    int btnW = 520;
+    int btnH = 60;
+    int gap = 4;
     int totalMenuH = 12 * (btnH + gap) - gap;
-    int startY = SCREEN_HEIGHT - totalMenuH - 16;
+    int startY = SCREEN_HEIGHT - totalMenuH - 32;
 
     m_buttons.clear();
     m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, LOC("menu.new_run"));
@@ -469,11 +469,11 @@ void MenuState::renderDailyInfo(SDL_Renderer* renderer, TTF_Font* font) {
     int bestScore = dailyRun.getTodayBest();
 
     // Panel position: right of the menu buttons, aligned with button 1 (Daily Run)
-    int btnW = 260;
-    int btnH = 30;
-    int gap = 2;
+    int btnW = 520;
+    int btnH = 60;
+    int gap = 4;
     int totalMenuH = 12 * (btnH + gap) - gap;
-    int startY = SCREEN_HEIGHT - totalMenuH - 16;
+    int startY = SCREEN_HEIGHT - totalMenuH - 32;
     int panelX = SCREEN_WIDTH / 2 + btnW / 2 + 16;
     int panelY = startY + (btnH + gap); // same Y as button 1
 

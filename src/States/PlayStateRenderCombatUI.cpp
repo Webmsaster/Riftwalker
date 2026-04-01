@@ -28,7 +28,7 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
     bool hasReward = !notif->rewardText.empty();
     int popW = 300, popH = hasReward ? 56 : 40;
     int popX = SCREEN_WIDTH / 2 - popW / 2;
-    int popY = 660 - popH - static_cast<int>(slideIn * 20);
+    int popY = SCREEN_HEIGHT - 80 - popH - static_cast<int>(slideIn * 20);
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 20, 40, 25, a);

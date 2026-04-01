@@ -1,4 +1,5 @@
 #include "Game/ScreenEffects.h"
+#include "States/GameState.h"
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
@@ -26,7 +27,7 @@ void ScreenEffects::update(float dt) {
     // Update ambient particles (use stored screen dimensions from last render call)
     if (ambientParticlesEnabled && m_ambientParticlesInitialized) {
         // Screen dimensions match Game::SCREEN_WIDTH/HEIGHT (logical resolution)
-        updateAmbientParticles(dt, 2560, 1440, m_currentDimension);
+        updateAmbientParticles(dt, GameState::SCREEN_WIDTH, GameState::SCREEN_HEIGHT, m_currentDimension);
     }
 }
 

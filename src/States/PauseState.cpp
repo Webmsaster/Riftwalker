@@ -13,19 +13,19 @@
 #include <cmath>
 #include <cstdio>
 
-// Layout constants
-static constexpr int PANEL_X      = 60;
-static constexpr int PANEL_Y      = 180;
-static constexpr int PANEL_W      = 1160;
-static constexpr int PANEL_H      = 460;
+// Layout constants (scaled for logical resolution)
+static constexpr int PANEL_X      = 120;
+static constexpr int PANEL_Y      = 360;
+static constexpr int PANEL_W      = 2320;
+static constexpr int PANEL_H      = 920;
 static constexpr int BOTTOM_BAR_Y = GameState::SCREEN_HEIGHT - 3;
 
 void PauseState::enter() {
     int cx = SCREEN_WIDTH / 2;
-    int startY = 300;
-    int btnW = 240;
-    int btnH = 44;
-    int gap = 10;
+    int startY = 600;
+    int btnW = 480;
+    int btnH = 88;
+    int gap = 20;
 
     m_buttons.clear();
     m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, LOC("pause.resume"));

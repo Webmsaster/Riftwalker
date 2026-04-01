@@ -180,10 +180,10 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
     }
 
     // Challenge cards (left side)
-    int cardW = 500;
-    int cardH = 80;
-    int cardX = 40;
-    int startY = 100;
+    int cardW = 1000;
+    int cardH = 160;
+    int cardX = 80;
+    int startY = 200;
 
     int challengeCount = ChallengeMode::getChallengeCount();
     for (int i = 0; i < challengeCount; i++) {
@@ -201,7 +201,7 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
         if (ms) {
             SDL_Texture* mt = SDL_CreateTextureFromSurface(renderer, ms);
             if (mt) {
-                SDL_Rect mr = {700, 100, ms->w, ms->h};
+                SDL_Rect mr = {1400, 200, ms->w, ms->h};
                 SDL_RenderCopy(renderer, mt, nullptr, &mr);
                 SDL_DestroyTexture(mt);
             }
@@ -209,10 +209,10 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
         }
     }
 
-    int mutX = 700;
-    int mutY = 130;
-    int mutW = 520;
-    int mutH = 50;
+    int mutX = 1400;
+    int mutY = 260;
+    int mutW = 1040;
+    int mutH = 100;
     int mutatorCount = ChallengeMode::getMutatorCount();
     for (int i = 0; i < mutatorCount; i++) {
         MutatorID mid = static_cast<MutatorID>(i + 1);
@@ -230,7 +230,7 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, 680, ns->w, ns->h};
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, SCREEN_HEIGHT - 40, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }
