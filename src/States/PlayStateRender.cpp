@@ -102,6 +102,36 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     Vec2 camPos = m_camera.getPosition();
     Uint32 ticks = SDL_GetTicks();
+
+    // Animated energy field: subtle diagonal grid lines for living background
+    {
+        float scrollSpeed = 0.02f;
+        int scrollOffset = static_cast<int>(ticks * scrollSpeed) % 40;
+        int dim = m_dimManager.getCurrentDimension();
+        Uint8 lineR = (dim == 1) ? 40 : 60;
+        Uint8 lineG = (dim == 1) ? 50 : 40;
+        Uint8 lineB = (dim == 1) ? 80 : 50;
+        // Diagonal lines (top-left to bottom-right, scrolling)
+        SDL_SetRenderDrawColor(renderer, lineR, lineG, lineB, 6);
+        for (int i = -SCREEN_HEIGHT; i < SCREEN_WIDTH + SCREEN_HEIGHT; i += 40) {
+            int x1 = i + scrollOffset;
+            int y1 = 0;
+            int x2 = i - SCREEN_HEIGHT + scrollOffset;
+            int y2 = SCREEN_HEIGHT;
+            SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+        }
+        // Cross-hatch (opposite diagonal, slower)
+        int scrollOffset2 = static_cast<int>(ticks * scrollSpeed * 0.6f) % 60;
+        SDL_SetRenderDrawColor(renderer, lineR, lineG, lineB, 4);
+        for (int i = -SCREEN_HEIGHT; i < SCREEN_WIDTH + SCREEN_HEIGHT; i += 60) {
+            int x1 = i - scrollOffset2;
+            int y1 = 0;
+            int x2 = i + SCREEN_HEIGHT - scrollOffset2;
+            int y2 = SCREEN_HEIGHT;
+            SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+        }
+    }
+
     SDL_Texture* artTestBackground = nullptr;
     if (kUseAiFinalBackgroundArtTest) {
         if (m_isBossLevel && m_bossTestBackground) {
