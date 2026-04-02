@@ -352,7 +352,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
     int diff = playState->getCurrentDifficulty();
     std::snprintf(buf, sizeof(buf), LOC("pause.difficulty"), (diff >= 0 && diff <= 2) ? diffNames[diff] : "??");
     renderStatText(renderer, font, buf, lx, ly, valCol);
-    ly += 18;
+    ly += 36;
 
     // Boss level indicator
     if (playState->isBossLevel()) {
@@ -365,27 +365,27 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
     int secs = static_cast<int>(playState->getRunTime()) % 60;
     std::snprintf(buf, sizeof(buf), LOC("pause.time"), mins, secs);
     renderStatText(renderer, font, buf, lx, ly, valCol);
-    ly += 18;
+    ly += 36;
 
     // Kills
     std::snprintf(buf, sizeof(buf), LOC("pause.kills"), playState->enemiesKilled);
     renderStatText(renderer, font, buf, lx, ly, valCol);
-    ly += 18;
+    ly += 36;
 
     // Rifts
     std::snprintf(buf, sizeof(buf), LOC("pause.rifts_repaired"), playState->riftsRepaired);
     renderStatText(renderer, font, buf, lx, ly, valCol);
-    ly += 18;
+    ly += 36;
 
     // Shards
     std::snprintf(buf, sizeof(buf), LOC("pause.shards"), playState->shardsCollected);
     renderStatText(renderer, font, buf, lx, ly, {255, 215, 80, 255});
-    ly += 18;
+    ly += 36;
 
     // Best combo
     std::snprintf(buf, sizeof(buf), LOC("pause.best_combo"), playState->getBestCombo());
     renderStatText(renderer, font, buf, lx, ly, valCol);
-    ly += 18;
+    ly += 36;
 
     // NG+ level
     if (g_newGamePlusLevel > 0) {
