@@ -5,7 +5,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-02 bugfix + polish session):**
+**Recent Updates (2026-04-02 deep code audit + hardening session):**
+- **AnimationComponent**: Bounds-check currentFrame in getCurrentSrcRect() (OOB crash fix)
+- **Null texture guards**: 19 SDL_CreateTextureFromSurface calls now null-checked (PlayStateRenderOverlays, EndingState, LoreState)
+- **Game::shutdown**: Added missing save calls for Bestiary, AscensionSystem, ChallengeMode (data loss prevention)
+- **wyrm_hunter achievement**: Fixed triggering on wrong bosses (% 2 → % 4, only fires for Void Wyrm)
+- **Save deserialization**: Validated bestRoomReached, totalEnemiesKilled, totalRiftsRepaired, milestonesUnlocked on load
+- **ChallengeMode load**: Clamped negative values on deserialized scores/times/floors/kills
+- **DailyRun legacy load**: Fixed reset that zeroed score/kills after reading v1 leaderboard entries
+- **ItemDrop**: Added missing hasComponent<TransformComponent>() check on health orb pickup
+- **Level.h**: Initialized m_spawnPoint and m_exitPoint to {0,0}
+- 3 commits, 11 files changed
+
+**Previous Updates (2026-04-02 bugfix + polish session):**
 - **RunSummaryState**: Fixed NG+ badge, death cause, and grade overlapping at y=344 (dynamic Y cursor)
 - **OptionsState**: Fixed 16 items overflowing screen height (itemH 70→64, startY 340→300)
 - **PlayerCombat**: Added unique parry-counter particle effects for all 12 weapons (6 were missing)
