@@ -46,8 +46,8 @@ void HUD::renderFlash(SDL_Renderer* renderer, int screenW, int screenH) {
     }
     // Top/bottom red bars
     SDL_SetRenderDrawColor(renderer, 200, 0, 0, static_cast<Uint8>(alpha * 0.5f));
-    SDL_Rect top = {0, 0, screenW, 8};
-    SDL_Rect bot = {0, screenH - 8, screenW, 8};
+    SDL_Rect top = {0, 0, screenW, 16};
+    SDL_Rect bot = {0, screenH - 16, screenW, 16};
     SDL_RenderFillRect(renderer, &top);
     SDL_RenderFillRect(renderer, &bot);
 }
