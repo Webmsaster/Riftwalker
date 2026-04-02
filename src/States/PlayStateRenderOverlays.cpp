@@ -135,7 +135,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 180, s->w, s->h};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 360, s->w, s->h};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -144,12 +144,12 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
     }
 
     // Relic cards
-    int cardW = 200;
-    int cardH = 260;
-    int gap = 30;
+    int cardW = 400;
+    int cardH = 520;
+    int gap = 60;
     int totalW = static_cast<int>(m_relicChoices.size()) * cardW + (static_cast<int>(m_relicChoices.size()) - 1) * gap;
     int startX = SCREEN_WIDTH / 2 - totalW / 2;
-    int cardY = 230;
+    int cardY = 460;
 
     for (int i = 0; i < static_cast<int>(m_relicChoices.size()); i++) {
         int cx = startX + i * (cardW + gap);
@@ -172,8 +172,8 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
 
         // Relic icon (colored orb)
         int orbX = cx + cardW / 2;
-        int orbY = cardY + 50;
-        int orbR = 24;
+        int orbY = cardY + 100;
+        int orbR = 48;
         for (int oy = -orbR; oy <= orbR; oy++) {
             for (int ox = -orbR; ox <= orbR; ox++) {
                 if (ox * ox + oy * oy <= orbR * orbR) {
@@ -198,7 +198,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 90, s->w, s->h};
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 180, s->w, s->h};
                     SDL_RenderCopy(renderer, t, nullptr, &r);
                     SDL_DestroyTexture(t);
                 }
@@ -208,7 +208,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
         // Cursed relics: draw a red skull-mark (X lines) in the top-right corner of the card
         if (isCursedRelic) {
             SDL_SetRenderDrawColor(renderer, 200, 20, 20, 200);
-            int mx = cx + cardW - 14, my = cardY + 8;
+            int mx = cx + cardW - 28, my = cardY + 16;
             SDL_RenderDrawLine(renderer, mx, my, mx + 10, my + 10);
             SDL_RenderDrawLine(renderer, mx + 10, my, mx, my + 10);
             SDL_RenderDrawLine(renderer, mx + 1, my, mx + 11, my + 10);
@@ -225,7 +225,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 120, s->w, s->h};
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 240, s->w, s->h};
                     SDL_RenderCopy(renderer, t, nullptr, &r);
                     SDL_DestroyTexture(t);
                 }
@@ -240,7 +240,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 160, s->w, s->h};
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 320, s->w, s->h};
                     SDL_RenderCopy(renderer, t, nullptr, &r);
                     SDL_DestroyTexture(t);
                 }
@@ -257,7 +257,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + cardH - 35, s->w, s->h};
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + cardH - 70, s->w, s->h};
                     SDL_RenderCopy(renderer, t, nullptr, &r);
                     SDL_DestroyTexture(t);
                 }
