@@ -489,11 +489,11 @@ void MenuState::renderDailyInfo(SDL_Renderer* renderer, TTF_Font* font) {
     int panelX = SCREEN_WIDTH / 2 + btnW / 2 + 16;
     int panelY = startY + (btnH + gap); // same Y as button 1
 
-    int panelW = 230;
-    int lineH = 18;
-    int panelH = lineH * 4 + 16; // 4 lines + padding
-    int textX = panelX + 10;
-    int textY = panelY + 8;
+    int panelW = 460;
+    int lineH = 36;
+    int panelH = lineH * 4 + 32; // 4 lines + padding (scaled for 2K)
+    int textX = panelX + 20;
+    int textY = panelY + 16;
 
     // Fade based on menu fade
     Uint8 panelAlpha = static_cast<Uint8>(180 * m_fadeIn);
@@ -551,11 +551,11 @@ void MenuState::renderCareerStats(SDL_Renderer* renderer, TTF_Font* font) {
     auto& ups = game->getUpgradeSystem();
     if (ups.totalRuns == 0) return; // Nothing to show yet
 
-    int lineH = 16;
-    int panelW = 220;
-    int panelH = lineH * 4 + 14;
-    int panelX = 12;
-    int panelY = SCREEN_HEIGHT - panelH - 20;
+    int lineH = 32;
+    int panelW = 440;
+    int panelH = lineH * 4 + 28;
+    int panelX = 24;
+    int panelY = SCREEN_HEIGHT - panelH - 40;
 
     Uint8 alpha = static_cast<Uint8>(120 * m_fadeIn);
 
@@ -567,8 +567,8 @@ void MenuState::renderCareerStats(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_SetRenderDrawColor(renderer, 60, 45, 100, static_cast<Uint8>(80 * m_fadeIn));
     SDL_RenderDrawRect(renderer, &bg);
 
-    int tx = panelX + 8;
-    int ty = panelY + 6;
+    int tx = panelX + 16;
+    int ty = panelY + 12;
     Uint8 ta = static_cast<Uint8>(180 * m_fadeIn);
 
     auto drawStat = [&](const char* text, SDL_Color color, int y) {
