@@ -1000,9 +1000,9 @@ void PlayState::render(SDL_Renderer* renderer) {
         // Subtle cyan line underneath
         if (a > 30) {
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-            int lineW = static_cast<int>(200 * alpha);
+            int lineW = static_cast<int>(400 * alpha);
             SDL_SetRenderDrawColor(renderer, 0, 255, 255, static_cast<Uint8>(a * 0.5f));
-            SDL_Rect line = {SCREEN_WIDTH / 2 - lineW / 2, SCREEN_HEIGHT / 3 + 14, lineW, 2};
+            SDL_Rect line = {SCREEN_WIDTH / 2 - lineW / 2, SCREEN_HEIGHT / 3 + 28, lineW, 4};
             SDL_RenderFillRect(renderer, &line);
         }
     }
