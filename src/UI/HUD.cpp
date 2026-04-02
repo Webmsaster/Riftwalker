@@ -369,7 +369,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     int barH   = static_cast<int>(36 * g_hudScale);
 
     // Professional HUD backing panel with gradient and border
-    SDL_Rect hudBg = {margin - 5, margin - 5, barW + 20, barH * 4 + 70 + static_cast<int>(8 * g_hudScale) + 4};
+    SDL_Rect hudBg = {margin - 10, margin - 10, barW + 40, barH * 4 + 140 + static_cast<int>(16 * g_hudScale) + 8};
     // Multi-layer gradient: darker at top, lighter at bottom
     int panelH = hudBg.h;
     int bands = 4;
@@ -522,7 +522,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         if (font) {
             char hpText[32];
             std::snprintf(hpText, sizeof(hpText), "HP %.0f/%.0f", hp.currentHP, hp.maxHP);
-            renderText(renderer, font, hpText, margin + hpBarOffset + 5, margin + 2, {255, 255, 255, 220});
+            renderText(renderer, font, hpText, margin + hpBarOffset + 10, margin + 4, {255, 255, 255, 220});
         }
     }
 
@@ -544,7 +544,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         if (font) {
             char xpText[32];
             std::snprintf(xpText, sizeof(xpText), "Lv.%d  %d/%d", player->level, player->xp, player->xpToNextLevel);
-            renderText(renderer, font, xpText, margin + hpBarOffset + 5, xpY, {255, 230, 160, 220});
+            renderText(renderer, font, xpText, margin + hpBarOffset + 10, xpY, {255, 230, 160, 220});
         }
     }
 
@@ -553,7 +553,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
     // Entropy Bar
     if (entropy) {
-        int ey = margin + barH + 2 + xpExtraH;
+        int ey = margin + barH + 4 + xpExtraH;
         float ep = entropy->getPercent();
         SDL_Color entropyColor;
         if (ep < 0.25f) entropyColor = {60, 180, 60, 255};
@@ -571,7 +571,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         if (font) {
             char entText[32];
             std::snprintf(entText, sizeof(entText), "ENTROPY %.0f%%", ep * 100);
-            renderText(renderer, font, entText, margin + 5, ey + 2, {255, 255, 255, 220});
+            renderText(renderer, font, entText, margin + 10, ey + 4, {255, 255, 255, 220});
         }
     }
 
