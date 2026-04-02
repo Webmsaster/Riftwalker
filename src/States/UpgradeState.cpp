@@ -178,12 +178,12 @@ void UpgradeState::render(SDL_Renderer* renderer) {
             // Glow
             SDL_SetTextureBlendMode(titleTex, SDL_BLENDMODE_ADD);
             SDL_SetTextureAlphaMod(titleTex, 40);
-            SDL_Rect glowR = {SCREEN_WIDTH / 2 - tw / 2 - 2, 22, tw + 4, th + 4};
+            SDL_Rect glowR = {SCREEN_WIDTH / 2 - tw / 2 - 2, 44, tw + 4, th + 4};
             SDL_RenderCopy(renderer, titleTex, nullptr, &glowR);
             // Main
             SDL_SetTextureBlendMode(titleTex, SDL_BLENDMODE_BLEND);
             SDL_SetTextureAlphaMod(titleTex, 255);
-            SDL_Rect titleR = {SCREEN_WIDTH / 2 - tw / 2, 25, tw, th};
+            SDL_Rect titleR = {SCREEN_WIDTH / 2 - tw / 2, 50, tw, th};
             SDL_RenderCopy(renderer, titleTex, nullptr, &titleR);
             SDL_DestroyTexture(titleTex);
         }
@@ -209,7 +209,7 @@ void UpgradeState::render(SDL_Renderer* renderer) {
             SDL_RenderDrawLine(renderer, ix + 10, iy, ix + 5, iy + 7);
             SDL_RenderDrawLine(renderer, ix + 5, iy + 7, ix, iy);
 
-            SDL_Rect shR = {SCREEN_WIDTH / 2 - shSurf->w / 2, 57, shSurf->w, shSurf->h};
+            SDL_Rect shR = {SCREEN_WIDTH / 2 - shSurf->w / 2, 114, shSurf->w, shSurf->h};
             SDL_RenderCopy(renderer, shTex, nullptr, &shR);
             SDL_DestroyTexture(shTex);
         }
