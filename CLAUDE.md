@@ -5,7 +5,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-02 complete 2K UI scaling + polish session):**
+**Recent Updates (2026-04-02 bugfix + polish session):**
+- **RunSummaryState**: Fixed NG+ badge, death cause, and grade overlapping at y=344 (dynamic Y cursor)
+- **OptionsState**: Fixed 16 items overflowing screen height (itemH 70→64, startY 340→300)
+- **PlayerCombat**: Added unique parry-counter particle effects for all 12 weapons (6 were missing)
+- **Mute persistence**: Mute state now saved/loaded in riftwalker_settings.cfg
+- **Achievement resets**: m_parryCountThisRun, m_tookDamageThisBoss, m_rangedOnlyFloors, m_usedMeleeThisFloor properly reset on quick-restart
+- **Localization**: "Resolution" option now localized (EN/DE)
+- **Gamepad support**: Relic choice, NPC dialog, and puzzle input now fully gamepad-compatible (D-pad/A/B/Start)
+- **PlayerGrapple**: Fixed 2 division-by-zero crash risks in rope constraint + enemy pull
+- **Level.cpp**: Added degenerate tile size guard for spike rendering
+- 3 commits, 10 files changed
+
+**Previous Updates (2026-04-02 complete 2K UI scaling + polish session):**
 - **COMPLETE UI SCALING**: All 35+ files scaled from 1280x720 → 2560x1440 logical resolution
   - Every menu state, overlay, HUD element, title card, and dialog
   - Font sizes doubled for Credits/Lore/Ending (56/32/28px)
