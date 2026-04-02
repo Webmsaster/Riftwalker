@@ -15,10 +15,10 @@ enum class AnimState : uint8_t {
 };
 
 struct Afterimage {
-    float worldX, worldY, width, height;
-    SDL_Color color;
-    bool flipX;
-    float timer;
+    float worldX = 0, worldY = 0, width = 0, height = 0;
+    SDL_Color color{255, 255, 255, 128};
+    bool flipX = false;
+    float timer = 0;
     static constexpr float MAX_LIFE = 0.25f;
 };
 

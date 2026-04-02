@@ -19,11 +19,11 @@ private:
     // Spatial grid broad-phase
     static constexpr int CELL_SIZE = 128; // pixels per grid cell
 
-    // Hash a cell coordinate to a single int key
-    static int cellHash(int cx, int cy) { return cx * 10000 + cy; }
+    // Hash a cell coordinate to a single int64 key (avoids int overflow at large coords)
+    static int64_t cellHash(int cx, int cy) { return static_cast<int64_t>(cx) * 100003 + cy; }
 
     // Sparse grid: maps cell hash -> list of entity indices
-    std::unordered_map<int, std::vector<int>> m_grid;
+    std::unordered_map<int64_t, std::vector<int>> m_grid;
 
     // Scratch buffers reused each frame to avoid allocations
     std::vector<Entity*> m_active;          // filtered entities for this frame
