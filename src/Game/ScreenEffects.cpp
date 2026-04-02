@@ -226,7 +226,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
     if (m_chromaticTimer > 0) {
         float t = m_chromaticTimer / 0.15f; // 1→0
         float intensity = t * m_chromaticIntensity;
-        int offset = static_cast<int>(3 * intensity); // 0-3 pixel shift
+        int offset = static_cast<int>(6 * intensity); // 0-6 pixel shift (scaled for 2K)
         Uint8 chromA = static_cast<Uint8>(intensity * 50);
         if (offset > 0 && chromA > 5) {
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
