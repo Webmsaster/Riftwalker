@@ -914,7 +914,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     if (font) {
         renderText(renderer, font,
                    "WASD Move  SPACE Jump  SHIFT Dash  J/K Attack  Q/R Weapon  E Dim  F Interact  1/2/3 Abilities",
-                   15, screenH - 22, {60, 60, 80, 100});
+                   30, screenH - 44, {60, 60, 80, 100});
     }
 
     // Restore main render target and blit HUD texture with opacity
