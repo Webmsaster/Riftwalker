@@ -256,7 +256,7 @@ void CreditsState::render(SDL_Renderer* renderer) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
                 SDL_SetTextureAlphaMod(tex, 180);
-                SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, SCREEN_HEIGHT - 30,
+                SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, SCREEN_HEIGHT - 60,
                                 surf->w, surf->h};
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
