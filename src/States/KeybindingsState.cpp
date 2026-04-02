@@ -184,7 +184,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
             if (t) {
                 int tw = s->w * 2;
                 int th = s->h * 2;
-                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 50, tw, th};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 100, tw, th};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
