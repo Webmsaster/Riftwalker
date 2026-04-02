@@ -18,11 +18,14 @@ void Button::update(float dt) {
 void Button::render(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
+    // Use render X for visual position (entrance animation), hitbox stays at baseX
+    int rx = getRenderX();
+
     // Background gradient (3 bands)
     int thirdH = m_rect.h / 3;
-    SDL_Rect top = {m_rect.x, m_rect.y, m_rect.w, thirdH};
-    SDL_Rect mid = {m_rect.x, m_rect.y + thirdH, m_rect.w, thirdH};
-    SDL_Rect bot = {m_rect.x, m_rect.y + thirdH * 2, m_rect.w, m_rect.h - thirdH * 2};
+    SDL_Rect top = {rx, m_rect.y, m_rect.w, thirdH};
+    SDL_Rect mid = {rx, m_rect.y + thirdH, m_rect.w, thirdH};
+    SDL_Rect bot = {rx, m_rect.y + thirdH * 2, m_rect.w, m_rect.h - thirdH * 2};
 
     if (!enabled) {
         SDL_SetRenderDrawColor(renderer, 30, 28, 38, 220);
@@ -46,7 +49,7 @@ void Button::render(SDL_Renderer* renderer, TTF_Font* font) {
         for (int i = 3; i >= 0; i--) {
             Uint8 ga = static_cast<Uint8>((50 - i * 12) * m_hoverBlend);
             SDL_SetRenderDrawColor(renderer, 150, 100, 255, ga);
-            SDL_Rect border = {m_rect.x - i, m_rect.y - i,
+            SDL_Rect border = {rx - i, m_rect.y - i,
                                m_rect.w + i * 2, m_rect.h + i * 2};
             SDL_RenderDrawRect(renderer, &border);
         }
@@ -54,21 +57,22 @@ void Button::render(SDL_Renderer* renderer, TTF_Font* font) {
         // Selection indicator diamond on left
         int midY = m_rect.y + m_rect.h / 2;
         SDL_SetRenderDrawColor(renderer, 200, 160, 255, static_cast<Uint8>(220 * m_hoverBlend));
-        SDL_RenderDrawLine(renderer, m_rect.x - 12, midY, m_rect.x - 7, midY - 5);
-        SDL_RenderDrawLine(renderer, m_rect.x - 7, midY - 5, m_rect.x - 2, midY);
-        SDL_RenderDrawLine(renderer, m_rect.x - 2, midY, m_rect.x - 7, midY + 5);
-        SDL_RenderDrawLine(renderer, m_rect.x - 7, midY + 5, m_rect.x - 12, midY);
+        SDL_RenderDrawLine(renderer, rx - 12, midY, rx - 7, midY - 5);
+        SDL_RenderDrawLine(renderer, rx - 7, midY - 5, rx - 2, midY);
+        SDL_RenderDrawLine(renderer, rx - 2, midY, rx - 7, midY + 5);
+        SDL_RenderDrawLine(renderer, rx - 7, midY + 5, rx - 12, midY);
     } else {
         SDL_SetRenderDrawColor(renderer, 70, 60, 90, 150);
-        SDL_RenderDrawRect(renderer, &m_rect);
+        SDL_Rect renderRect = {rx, m_rect.y, m_rect.w, m_rect.h};
+        SDL_RenderDrawRect(renderer, &renderRect);
     }
 
     // Top highlight line
     if (enabled) {
         Uint8 ha = m_selected ? static_cast<Uint8>(100) : static_cast<Uint8>(35);
         SDL_SetRenderDrawColor(renderer, 180, 160, 220, ha);
-        SDL_RenderDrawLine(renderer, m_rect.x + 1, m_rect.y,
-                          m_rect.x + m_rect.w - 1, m_rect.y);
+        SDL_RenderDrawLine(renderer, rx + 1, m_rect.y,
+                          rx + m_rect.w - 1, m_rect.y);
     }
 
     // Text with shadow
@@ -85,7 +89,7 @@ void Button::render(SDL_Renderer* renderer, TTF_Font* font) {
                 SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
                 if (st) {
                     SDL_Rect sr = {
-                        m_rect.x + (m_rect.w - ss->w) / 2 + 1,
+                        rx + (m_rect.w - ss->w) / 2 + 1,
                         m_rect.y + (m_rect.h - ss->h) / 2 + 1,
                         ss->w, ss->h
                     };
@@ -101,7 +105,7 @@ void Button::render(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
                 SDL_Rect textRect = {
-                    m_rect.x + (m_rect.w - surface->w) / 2,
+                    rx + (m_rect.w - surface->w) / 2,
                     m_rect.y + (m_rect.h - surface->h) / 2,
                     surface->w, surface->h
                 };
@@ -125,13 +129,20 @@ bool Button::isClicked(int mouseX, int mouseY, bool mouseDown) const {
 void Button::updateEntrance(float dt) {
     if (entranceDelay > 0) {
         entranceDelay -= dt;
+        // Keep button at final position for hitbox, use renderOffsetX for visual only
+        m_rect.x = baseX;
         return;
     }
     if (entranceProgress < 1.0f) {
         entranceProgress += dt * 5.0f; // fast slide-in
         if (entranceProgress > 1.0f) entranceProgress = 1.0f;
-        // Ease-out curve (decelerate at end)
-        float eased = 1.0f - (1.0f - entranceProgress) * (1.0f - entranceProgress);
-        m_rect.x = baseX - static_cast<int>((1.0f - eased) * 400);
     }
+    // Always keep m_rect.x at final position for hitbox accuracy
+    m_rect.x = baseX;
+}
+
+int Button::getRenderX() const {
+    if (entranceProgress >= 1.0f) return m_rect.x;
+    float eased = 1.0f - (1.0f - entranceProgress) * (1.0f - entranceProgress);
+    return baseX - static_cast<int>((1.0f - eased) * 400);
 }

@@ -41,4 +41,5 @@ public:
     float entranceProgress = 0.0f; // 0.0 = off-screen left, 1.0 = at final position
     int baseX = 0;                 // final resting X position
     void updateEntrance(float dt);
+    int getRenderX() const;        // visual X position (may differ from hitbox during entrance)
 };
