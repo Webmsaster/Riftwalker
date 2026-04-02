@@ -26,7 +26,7 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
     Uint8 a = static_cast<Uint8>(alpha * 220);
 
     bool hasReward = !notif->rewardText.empty();
-    int popW = 300, popH = hasReward ? 56 : 40;
+    int popW = 600, popH = hasReward ? 112 : 80;
     int popX = SCREEN_WIDTH / 2 - popW / 2;
     int popY = SCREEN_HEIGHT - 80 - popH - static_cast<int>(slideIn * 20);
 
@@ -39,7 +39,7 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
 
     // Trophy icon
     SDL_SetRenderDrawColor(renderer, 255, 200, 50, a);
-    SDL_Rect trophy = {popX + 10, popY + 8, 16, 16};
+    SDL_Rect trophy = {popX + 20, popY + 16, 32, 32};
     SDL_RenderFillRect(renderer, &trophy);
 
     // Achievement name
@@ -51,7 +51,7 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
         SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
         if (tt) {
             SDL_SetTextureAlphaMod(tt, a);
-            SDL_Rect tr = {popX + 34, popY + 4, ts->w, ts->h};
+            SDL_Rect tr = {popX + 68, popY + 8, ts->w, ts->h};
             SDL_RenderCopy(renderer, tt, nullptr, &tr);
             SDL_DestroyTexture(tt);
         }
@@ -68,7 +68,7 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
             SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
             if (rt) {
                 SDL_SetTextureAlphaMod(rt, a);
-                SDL_Rect rr = {popX + 34, popY + 28, rs->w, rs->h};
+                SDL_Rect rr = {popX + 68, popY + 56, rs->w, rs->h};
                 SDL_RenderCopy(renderer, rt, nullptr, &rr);
                 SDL_DestroyTexture(rt);
             }
@@ -107,12 +107,12 @@ void PlayState::renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font) {
 
     // Scroll icon
     SDL_SetRenderDrawColor(renderer, 180, 140, 255, a);
-    SDL_Rect scrollIcon = {popX + 12, popY + 10, 12, 16};
+    SDL_Rect scrollIcon = {popX + 24, popY + 20, 24, 32};
     SDL_RenderFillRect(renderer, &scrollIcon);
     SDL_SetRenderDrawColor(renderer, 100, 60, 180, a);
     for (int line = 0; line < 3; line++) {
-        SDL_RenderDrawLine(renderer, popX + 14, popY + 14 + line * 4,
-                           popX + 22, popY + 14 + line * 4);
+        SDL_RenderDrawLine(renderer, popX + 28, popY + 28 + line * 8,
+                           popX + 44, popY + 28 + line * 8);
     }
 
     // "LORE DISCOVERED" label
@@ -122,7 +122,7 @@ void PlayState::renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Texture* labelTex = SDL_CreateTextureFromSurface(renderer, labelSurf);
         if (labelTex) {
             SDL_SetTextureAlphaMod(labelTex, a);
-            SDL_Rect lr = {popX + 32, popY + 4, labelSurf->w, labelSurf->h};
+            SDL_Rect lr = {popX + 64, popY + 8, labelSurf->w, labelSurf->h};
             SDL_RenderCopy(renderer, labelTex, nullptr, &lr);
             SDL_DestroyTexture(labelTex);
         }
@@ -136,7 +136,7 @@ void PlayState::renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
         if (titleTex) {
             SDL_SetTextureAlphaMod(titleTex, a);
-            SDL_Rect tr = {popX + 32, popY + 22, titleSurf->w, titleSurf->h};
+            SDL_Rect tr = {popX + 64, popY + 44, titleSurf->w, titleSurf->h};
             SDL_RenderCopy(renderer, titleTex, nullptr, &tr);
             SDL_DestroyTexture(titleTex);
         }
@@ -177,14 +177,14 @@ void PlayState::renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
                 SDL_SetTextureAlphaMod(tt, a);
-                SDL_Rect tr = {popX + 10, popY + 6, ts->w, ts->h};
+                SDL_Rect tr = {popX + 20, popY + 12, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }
             SDL_FreeSurface(ts);
         }
 
-        baseY += popH + 4;
+        baseY += popH + 8;
     }
 }
 
