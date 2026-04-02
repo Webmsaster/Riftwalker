@@ -1130,8 +1130,8 @@ void HUD::renderWeaponPanel(SDL_Renderer* renderer, TTF_Font* font,
             auto renderMastery=[&](int kills,MasteryTier tier,int baseX,int barY,int slotIdx,SDL_Color barColor){
                 const int bW=80,bH=8;
                 int next=WeaponSystem::getNextTierThreshold(kills);
-                if(tier!=MasteryTier::None){const char*tName=WeaponSystem::getMasteryTierName(tier);SDL_Color col=tierColor(tier);if(m_masteryFlash[slotIdx]>0){float t2=m_masteryFlash[slotIdx]/0.6f;col={255,220,80,static_cast<Uint8>(200*t2)};}renderText(renderer,font,tName,baseX,barY-14,col);if(next>0){char prog[16];std::snprintf(prog,sizeof(prog),"%d/%d",kills,next);renderText(renderer,font,prog,baseX+44,barY-14,{100,100,110,140});}}
-                else{char prog[16];std::snprintf(prog,sizeof(prog),"%d/%d",kills,next);renderText(renderer,font,prog,baseX,barY-14,{100,100,110,140});}
+                if(tier!=MasteryTier::None){const char*tName=WeaponSystem::getMasteryTierName(tier);SDL_Color col=tierColor(tier);if(m_masteryFlash[slotIdx]>0){float t2=m_masteryFlash[slotIdx]/0.6f;col={255,220,80,static_cast<Uint8>(200*t2)};}renderText(renderer,font,tName,baseX,barY-28,col);if(next>0){char prog[16];std::snprintf(prog,sizeof(prog),"%d/%d",kills,next);renderText(renderer,font,prog,baseX+88,barY-28,{100,100,110,140});}}
+                else{char prog[16];std::snprintf(prog,sizeof(prog),"%d/%d",kills,next);renderText(renderer,font,prog,baseX,barY-28,{100,100,110,140});}
                 renderBar(renderer,baseX,barY,bW,bH,masteryProgress(kills),barColor,{30,30,40,160});
                 SDL_SetRenderDrawColor(renderer,60,60,80,100);SDL_Rect barRect={baseX,barY,bW,bH};SDL_RenderDrawRect(renderer,&barRect);
                 if(m_masteryFlash[slotIdx]>0){float t2=m_masteryFlash[slotIdx]/0.6f;SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);SDL_SetRenderDrawColor(renderer,255,220,80,static_cast<Uint8>(120*t2));SDL_Rect glow={baseX-1,barY-1,bW+2,bH+2};SDL_RenderDrawRect(renderer,&glow);}
