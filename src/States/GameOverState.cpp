@@ -80,15 +80,15 @@ void GameOverState::render(SDL_Renderer* renderer) {
     Uint8 vigAlpha = static_cast<Uint8>(std::min(255.0f, 40.0f + m_timer * 15.0f));
     // Top
     SDL_SetRenderDrawColor(renderer, 80, 0, 0, vigAlpha);
-    SDL_Rect vigTop = {0, 0, SCREEN_WIDTH, 80};
+    SDL_Rect vigTop = {0, 0, SCREEN_WIDTH, 160};
     SDL_RenderFillRect(renderer, &vigTop);
     // Bottom
-    SDL_Rect vigBot = {0, SCREEN_HEIGHT - 80, SCREEN_WIDTH, 80};
+    SDL_Rect vigBot = {0, SCREEN_HEIGHT - 160, SCREEN_WIDTH, 160};
     SDL_RenderFillRect(renderer, &vigBot);
     // Sides
-    SDL_Rect vigL = {0, 0, 60, SCREEN_HEIGHT};
+    SDL_Rect vigL = {0, 0, 120, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &vigL);
-    SDL_Rect vigR = {SCREEN_WIDTH - 60, 0, 60, SCREEN_HEIGHT};
+    SDL_Rect vigR = {SCREEN_WIDTH - 120, 0, 120, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &vigR);
 
     TTF_Font* font = game->getFont();

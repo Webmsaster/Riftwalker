@@ -414,7 +414,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
         SDL_Rect full = {0, 0, screenW, screenH};
         SDL_RenderFillRect(renderer, &full);
         // Danger border
-        int border = 6;
+        int border = 12;
         Uint8 ba = static_cast<Uint8>(60 + pulse * 80);
         SDL_SetRenderDrawColor(renderer, 180, 0, 255, ba);
         SDL_Rect top = {0, 0, screenW, border};
@@ -434,8 +434,8 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
         for (int i = 0; i < numGlitches; i++) {
             int gx = std::rand() % screenW;
             int gy = std::rand() % screenH;
-            int gw = 10 + std::rand() % 40;
-            int gh = 2 + std::rand() % 4;
+            int gw = 20 + std::rand() % 80;
+            int gh = 4 + std::rand() % 8;
             Uint8 gr = static_cast<uint8_t>(std::rand() % 256);
             Uint8 gg = static_cast<uint8_t>(std::rand() % 256);
             Uint8 gb = static_cast<uint8_t>(std::rand() % 256);
@@ -656,7 +656,7 @@ void ScreenEffects::initAmbientParticles(int screenW, int screenH) {
         p.y = randFloat() * screenH;
         p.vx = (randFloat() - 0.5f) * 12.0f;  // -6 to +6 px/s
         p.vy = -2.0f - randFloat() * 8.0f;     // Slowly drift upward (-2 to -10 px/s)
-        p.size = 1.0f + randFloat() * 2.0f;    // 1-3 px
+        p.size = 2.0f + randFloat() * 4.0f;    // 2-6 px (scaled for 2K)
         p.alpha = 20.0f + randFloat() * 40.0f;
         p.alphaTarget = 20.0f + randFloat() * 40.0f;
         p.lifetime = 2.0f + randFloat() * 8.0f;
