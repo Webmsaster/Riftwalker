@@ -220,14 +220,14 @@ void BestiaryState::render(SDL_Renderer* renderer) {
     if (!font) return;
 
     // ---- Title ----
-    drawTextCentered(renderer, font, "B E S T I A R Y", SCREEN_WIDTH / 2, 18, {180, 100, 100, 255}, 1.5f);
+    drawTextCentered(renderer, font, "B E S T I A R Y", SCREEN_WIDTH / 2, 36, {180, 100, 100, 255}, 1.5f);
 
     // Discovery counter
     {
         char countText[48];
         std::snprintf(countText, sizeof(countText), "Discovered: %d / %d",
                       Bestiary::getDiscoveredCount(), Bestiary::getTotalCount());
-        drawTextCentered(renderer, font, countText, SCREEN_WIDTH / 2, 62, {120, 110, 150, 200});
+        drawTextCentered(renderer, font, countText, SCREEN_WIDTH / 2, 124, {120, 110, 150, 200});
     }
 
     // ---- Left: list panel ----
