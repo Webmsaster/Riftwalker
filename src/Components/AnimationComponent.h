@@ -78,6 +78,8 @@ struct AnimationComponent : public Component {
         auto it = animations.find(currentAnim);
         if (it == animations.end() || it->second.frames.empty())
             return {0, 0, 32, 32};
-        return it->second.frames[currentFrame].srcRect;
+        int frame = std::min(currentFrame, static_cast<int>(it->second.frames.size()) - 1);
+        if (frame < 0) frame = 0;
+        return it->second.frames[frame].srcRect;
     }
 };

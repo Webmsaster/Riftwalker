@@ -787,7 +787,7 @@ void PlayState::update(float dt) {
                 game->getAchievements().unlock("no_damage_boss");
             }
             int bossIdx = m_currentDifficulty / 3;
-            if (bossIdx % 2 == 1) game->getAchievements().unlock("wyrm_hunter");
+            if (bossIdx % 4 == 1) game->getAchievements().unlock("wyrm_hunter");
 
             // Lore triggers on boss kill
             {

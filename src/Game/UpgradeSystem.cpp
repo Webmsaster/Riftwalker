@@ -180,6 +180,10 @@ void UpgradeSystem::deserialize(const std::string& data) {
        >> totalEnemiesKilled >> totalRiftsRepaired;
     if (m_riftShards < 0) m_riftShards = 0;
     if (totalRuns < 0) totalRuns = 0;
+    if (bestRoomReached < 0) bestRoomReached = 0;
+    if (bestRoomReached > 99) bestRoomReached = 99;
+    if (totalEnemiesKilled < 0) totalEnemiesKilled = 0;
+    if (totalRiftsRepaired < 0) totalRiftsRepaired = 0;
     for (auto& u : m_upgrades) {
         ss >> u.currentLevel;
         if (u.currentLevel < 0) u.currentLevel = 0;
@@ -209,7 +213,7 @@ void UpgradeSystem::deserialize(const std::string& data) {
     ClassSystem::s_classUnlocked[0] = true; // Voidwalker always unlocked
     // Deserialize milestones
     int ms = 0;
-    if (ss >> ms) milestonesUnlocked = ms;
+    if (ss >> ms) milestonesUnlocked = std::max(0, std::min(ms, 8));
     // Deserialize weapon unlocks (always apply defaults first, then override from save)
     WeaponSystem::resetUnlocks();
     int weaponCount = 0;

@@ -561,6 +561,9 @@ void Game::shutdown() {
     m_achievements.save("riftwalker_achievements.dat");
     m_lore.save("riftwalker_lore.dat");
     saveSaveData();
+    Bestiary::save("bestiary_save.dat");
+    AscensionSystem::save("ascension_save.dat");
+    ChallengeMode::save("riftwalker_challenges.dat");
 
     if (m_font) {
         TTF_CloseFont(m_font);

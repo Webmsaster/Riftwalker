@@ -68,7 +68,7 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
             hp.heal(30.0f);
             AudioManager::instance().play(SFX::Pickup);
             // Collection particle burst (green)
-            if (player && player->particles) {
+            if (player && player->particles && self->hasComponent<TransformComponent>()) {
                 auto& st = self->getComponent<TransformComponent>();
                 player->particles->burst(st.getCenter(), 8, {80, 230, 80, 255}, 120.0f);
             }

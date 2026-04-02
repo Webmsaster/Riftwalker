@@ -113,10 +113,10 @@ void ChallengeMode::load(const std::string& filepath) {
         if (id > 0 && id < static_cast<int>(ChallengeID::COUNT)) {
             auto& b = bestScores[id];
             b.completed = (comp != 0);
-            b.bestScore = score;
-            b.bestTime = time;
-            b.bestFloor = floor;
-            b.bestKills = kills;
+            b.bestScore = std::max(0, score);
+            b.bestTime = std::max(0.0f, time);
+            b.bestFloor = std::max(0, floor);
+            b.bestKills = std::max(0, kills);
         }
     }
 }

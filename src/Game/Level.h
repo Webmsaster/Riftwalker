@@ -105,8 +105,8 @@ private:
     int m_texTileSize;  // Texture tile size (4x upscaled)
     std::vector<Tile> m_tilesA; // Dimension A
     std::vector<Tile> m_tilesB; // Dimension B
-    Vec2 m_spawnPoint;
-    Vec2 m_exitPoint;
+    Vec2 m_spawnPoint{0, 0};
+    Vec2 m_exitPoint{0, 0};
     bool m_exitActive = false;
     std::vector<Vec2> m_riftPositions;
     LevelTopology m_topology;

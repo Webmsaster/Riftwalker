@@ -319,9 +319,11 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Surface* nameSurf = TTF_RenderText_Blended(font, m_eventChain.getName(), white);
         if (nameSurf) {
             SDL_Texture* nameTex = SDL_CreateTextureFromSurface(renderer, nameSurf);
-            SDL_Rect nameR = {panelX + 140, panelY + 8, nameSurf->w, nameSurf->h};
-            SDL_RenderCopy(renderer, nameTex, nullptr, &nameR);
-            SDL_DestroyTexture(nameTex);
+            if (nameTex) {
+                SDL_Rect nameR = {panelX + 140, panelY + 8, nameSurf->w, nameSurf->h};
+                SDL_RenderCopy(renderer, nameTex, nullptr, &nameR);
+                SDL_DestroyTexture(nameTex);
+            }
             SDL_FreeSurface(nameSurf);
         }
 
@@ -332,12 +334,14 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Surface* descSurf = TTF_RenderText_Blended(font, desc, dimWhite);
             if (descSurf) {
                 SDL_Texture* descTex = SDL_CreateTextureFromSurface(renderer, descSurf);
-                int maxW = panelW - 20;
-                int dw = std::min(descSurf->w, maxW);
-                int dh = descSurf->h * dw / std::max(descSurf->w, 1);
-                SDL_Rect descR = {panelX + 10, panelY + 52, dw, dh};
-                SDL_RenderCopy(renderer, descTex, nullptr, &descR);
-                SDL_DestroyTexture(descTex);
+                if (descTex) {
+                    int maxW = panelW - 20;
+                    int dw = std::min(descSurf->w, maxW);
+                    int dh = descSurf->h * dw / std::max(descSurf->w, 1);
+                    SDL_Rect descR = {panelX + 10, panelY + 52, dw, dh};
+                    SDL_RenderCopy(renderer, descTex, nullptr, &descR);
+                    SDL_DestroyTexture(descTex);
+                }
                 SDL_FreeSurface(descSurf);
             }
         }
@@ -356,12 +360,14 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Surface* surf = TTF_RenderText_Blended(font, stageText, textCol);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_SetTextureAlphaMod(tex, alpha);
-            int tx = (SCREEN_WIDTH - surf->w) / 2;
-            int ty = 100 + static_cast<int>((1.0f - slideIn) * -40);
-            SDL_Rect r = {tx, ty, surf->w, surf->h};
-            SDL_RenderCopy(renderer, tex, nullptr, &r);
-            SDL_DestroyTexture(tex);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, alpha);
+                int tx = (SCREEN_WIDTH - surf->w) / 2;
+                int ty = 100 + static_cast<int>((1.0f - slideIn) * -40);
+                SDL_Rect r = {tx, ty, surf->w, surf->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &r);
+                SDL_DestroyTexture(tex);
+            }
             SDL_FreeSurface(surf);
         }
     }
