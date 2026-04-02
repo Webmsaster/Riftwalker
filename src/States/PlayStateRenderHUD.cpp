@@ -55,7 +55,7 @@ void PlayState::renderCollapseWarning(SDL_Renderer* renderer) {
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
-                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, 50, ts->w, ts->h};
+                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, 100, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }
@@ -88,7 +88,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 if (rs) {
                     SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
                     if (rt) {
-                        SDL_Rect rr = {SCREEN_WIDTH / 2 - rs->w / 2, 30, rs->w, rs->h};
+                        SDL_Rect rr = {SCREEN_WIDTH / 2 - rs->w / 2, 60, rs->w, rs->h};
                         SDL_RenderCopy(renderer, rt, nullptr, &rr);
                         SDL_DestroyTexture(rt);
                     }

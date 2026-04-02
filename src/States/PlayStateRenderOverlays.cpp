@@ -651,8 +651,8 @@ void PlayState::renderKeyBox(SDL_Renderer* renderer, TTF_Font* font,
     // Render a key label as a bordered box
     SDL_Surface* surface = TTF_RenderText_Blended(font, key, {255, 255, 255, alpha});
     if (!surface) return;
-    int pad = 4;
-    SDL_Rect box = {x - pad, y - 2, surface->w + pad * 2, surface->h + 4};
+    int pad = 8;
+    SDL_Rect box = {x - pad, y - 4, surface->w + pad * 2, surface->h + 8};
     SDL_SetRenderDrawColor(renderer, 40, 50, 80, static_cast<Uint8>(alpha * 0.8f));
     SDL_RenderFillRect(renderer, &box);
     SDL_SetRenderDrawColor(renderer, 120, 160, 220, alpha);
