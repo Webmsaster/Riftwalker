@@ -374,5 +374,5 @@ void UpgradeState::render(SDL_Renderer* renderer) {
     SDL_Rect instrBg = {0, SCREEN_HEIGHT - 50, SCREEN_WIDTH, 50};
     SDL_RenderFillRect(renderer, &instrBg);
     renderText(renderer, font, "W/S: Navigate    ENTER: Purchase    ESC: Back",
-               SCREEN_WIDTH / 2 - 400, SCREEN_HEIGHT - 37, {120, 110, 150, 180});
+               SCREEN_WIDTH / 2 - 400, SCREEN_HEIGHT - 74, {120, 110, 150, 180});
 }
