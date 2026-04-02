@@ -189,12 +189,12 @@ void MenuState::update(float dt) {
 }
 
 void MenuState::renderPortal(SDL_Renderer* renderer) {
-    int cx = SCREEN_WIDTH / 2, cy = 240;
+    int cx = SCREEN_WIDTH / 2, cy = 480;
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     // Outer glow rings
     for (int ring = 0; ring < 6; ring++) {
-        float baseR = 85.0f + ring * 22.0f;
+        float baseR = 170.0f + ring * 44.0f;
         float pulse = std::sin(m_time * 2.0f + ring * 0.7f) * 8.0f;
         float radius = baseR + pulse;
         Uint8 alpha = static_cast<Uint8>(55 - ring * 8);
@@ -218,9 +218,9 @@ void MenuState::renderPortal(SDL_Renderer* renderer) {
     }
 
     // Inner void (filled ellipse)
-    for (int dy = -50; dy <= 50; dy++) {
-        int halfW = static_cast<int>(std::sqrt(std::max(0, 2500 - dy * dy)));
-        float yRatio = static_cast<float>(std::abs(dy)) / 50.0f;
+    for (int dy = -100; dy <= 100; dy++) {
+        int halfW = static_cast<int>(std::sqrt(std::max(0, 10000 - dy * dy)));
+        float yRatio = static_cast<float>(std::abs(dy)) / 100.0f;
         float pulse = std::sin(m_time * 3.0f + yRatio * 3.0f);
         Uint8 rb = static_cast<Uint8>(std::clamp(12.0f + pulse * 12.0f, 0.0f, 255.0f));
         Uint8 gb = static_cast<Uint8>(std::clamp(4.0f + pulse * 6.0f, 0.0f, 255.0f));
@@ -235,9 +235,9 @@ void MenuState::renderPortal(SDL_Renderer* renderer) {
     // Energy tendrils rotating outward
     for (int i = 0; i < 8; i++) {
         float angle = m_time * 0.8f + i * (6.283185f / 8);
-        float len = 55.0f + 25.0f * std::sin(m_time * 2.5f + i * 1.3f);
-        int x1 = cx + static_cast<int>(std::cos(angle) * 18);
-        int y1 = cy + static_cast<int>(std::sin(angle) * 12);
+        float len = 110.0f + 50.0f * std::sin(m_time * 2.5f + i * 1.3f);
+        int x1 = cx + static_cast<int>(std::cos(angle) * 36);
+        int y1 = cy + static_cast<int>(std::sin(angle) * 24);
         int x2 = cx + static_cast<int>(std::cos(angle) * len);
         int y2 = cy + static_cast<int>(std::sin(angle) * len * 0.7f);
 
@@ -250,7 +250,7 @@ void MenuState::renderPortal(SDL_Renderer* renderer) {
     // Rotating sparkles
     for (int i = 0; i < 14; i++) {
         float angle = m_time * 1.2f + i * (6.283185f / 14);
-        float dist = 50.0f + 18.0f * std::sin(m_time * 2.0f + i * 2.1f);
+        float dist = 100.0f + 36.0f * std::sin(m_time * 2.0f + i * 2.1f);
         int px = cx + static_cast<int>(std::cos(angle) * dist);
         int py = cy + static_cast<int>(std::sin(angle) * dist * 0.7f);
         float bright = 0.5f + 0.5f * std::sin(m_time * 4.0f + i * 1.5f);
@@ -261,7 +261,7 @@ void MenuState::renderPortal(SDL_Renderer* renderer) {
         else
             SDL_SetRenderDrawColor(renderer, 255, 120, 170, sa);
 
-        SDL_Rect spark = {px - 1, py - 1, 3, 3};
+        SDL_Rect spark = {px - 2, py - 2, 5, 5};
         SDL_RenderFillRect(renderer, &spark);
     }
 }
@@ -283,7 +283,7 @@ void MenuState::renderTitle(SDL_Renderer* renderer, TTF_Font* font) {
     int tw = surface->w * 2;
     int th = surface->h * 2;
     int tx = SCREEN_WIDTH / 2 - tw / 2;
-    int ty = 100;
+    int ty = 200;
 
     // Glow layers (additive blending for bloom effect)
     SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_ADD);
@@ -310,7 +310,7 @@ void MenuState::renderTitle(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, sub);
         if (st) {
             SDL_SetTextureAlphaMod(st, subAlpha);
-            SDL_Rect sr = {SCREEN_WIDTH / 2 - sub->w / 2, 170, sub->w, sub->h};
+            SDL_Rect sr = {SCREEN_WIDTH / 2 - sub->w / 2, 340, sub->w, sub->h};
             SDL_RenderCopy(renderer, st, nullptr, &sr);
             SDL_DestroyTexture(st);
         }
