@@ -849,6 +849,74 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             break;
         }
 
+        case WeaponID::EntropyScythe: {
+            // "Entropy Reap": 140px wide arc, 2.5x damage, reduces entropy by 15%, heals 10 HP
+            float counterDmg = meleeBaseDmg * 2.5f * dmgMult;
+            float counterRange = 140.0f;
+
+            entities.forEach([&](Entity& target) {
+                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
+                if (target.dimension != 0 && target.dimension != currentDim) return;
+                auto& tt = target.getComponent<TransformComponent>();
+                Vec2 tc = tt.getCenter();
+                float dx = tc.x - playerCenter.x;
+                float dy = tc.y - playerCenter.y;
+                float dist = std::sqrt(dx * dx + dy * dy);
+                if (dist < counterRange) {
+                    Vec2 kd = {dx, dy - 60.0f};
+                    hitTarget(target, counterDmg, 500.0f, 0.2f, kd, true);
+                }
+            });
+
+            if (m_camera) m_camera->shake(16.0f, 0.35f);
+            m_pendingHitFreeze += 0.15f;
+            if (m_particles) {
+                // Green entropy drain arc
+                float dirDeg = std::atan2(dir.y, dir.x) * 180.0f / 3.14159f;
+                m_particles->directionalBurst(playerCenter, 18, {80, 255, 120, 255},
+                    dirDeg, 100.0f, 250.0f, 4.0f);
+                m_particles->burst(playerCenter, 12, {60, 200, 80, 200}, 180.0f, 3.5f);
+            }
+            AudioManager::instance().play(SFX::MeleeHit);
+            break;
+        }
+
+        case WeaponID::ChainWhip: {
+            // "Chain Lash": Piercing line attack 180px, 2x damage, hits all enemies in direction
+            float counterDmg = meleeBaseDmg * 2.0f * dmgMult;
+            float lashRange = 180.0f;
+
+            entities.forEach([&](Entity& target) {
+                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
+                if (target.dimension != 0 && target.dimension != currentDim) return;
+                auto& tt = target.getComponent<TransformComponent>();
+                Vec2 tc = tt.getCenter();
+                float dx = tc.x - playerCenter.x;
+                float dy = tc.y - playerCenter.y;
+                float dist = std::sqrt(dx * dx + dy * dy);
+                if (dist > lashRange) return;
+                // Piercing line: only hit enemies roughly in attack direction (±45°)
+                float dotProduct = (dx * dir.x + dy * dir.y) / std::max(dist, 1.0f);
+                if (dotProduct < 0.5f) return; // Behind or too far off-axis
+                Vec2 kd = {dir.x, dir.y - 0.3f};
+                hitTarget(target, counterDmg, 350.0f, 0.15f, kd, true);
+            });
+
+            if (m_camera) m_camera->shake(12.0f, 0.3f);
+            m_pendingHitFreeze += 0.1f;
+            if (m_particles) {
+                // Orange chain trail in attack direction
+                float dirDeg = std::atan2(dir.y, dir.x) * 180.0f / 3.14159f;
+                m_particles->directionalBurst(playerCenter, 16, {255, 180, 60, 255},
+                    dirDeg, 30.0f, 320.0f, 3.5f);
+                m_particles->burst(playerCenter, 8, {255, 200, 100, 200}, 150.0f, 3.0f);
+            }
+            AudioManager::instance().play(SFX::MeleeHit);
+            break;
+        }
+
         default:
             // Ranged weapons: switch on ranged weapon type
             break;
