@@ -184,7 +184,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
             if (tt) {
                 int tw = static_cast<int>(ts->w * 1.8f);
                 int th = static_cast<int>(ts->h * 1.8f);
-                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 60, tw, th};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 120, tw, th};
                 SDL_RenderCopy(renderer, tt, nullptr, &r);
                 SDL_DestroyTexture(tt);
             }
