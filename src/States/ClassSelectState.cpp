@@ -133,7 +133,7 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
             if (t) {
                 int tw = static_cast<int>(s->w * 1.5f);
                 int th = static_cast<int>(s->h * 1.5f);
-                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 50, tw, th};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - tw / 2, 100, tw, th};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }

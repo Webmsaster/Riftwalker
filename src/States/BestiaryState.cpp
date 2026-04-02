@@ -251,7 +251,7 @@ void BestiaryState::render(SDL_Renderer* renderer) {
             Bestiary::getEntry(static_cast<EnemyType>(typeIdx));
 
         bool selected = (idx == m_selected);
-        int ey = LIST_Y + vi * (ROW_H + 4);
+        int ey = LIST_Y + vi * (ROW_H + 8);
 
         // Row background
         Uint8 bgA = selected ? 90 : 30;
