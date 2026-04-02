@@ -106,7 +106,7 @@ void NGPlusSelectState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x, my = event.motion.y;
         for (int i = 0; i < totalOptions; i++) {
-            int y = startY + i * (cardH + 8);
+            int y = startY + i * (cardH + 16);
             if (mx >= cardX && mx < cardX + cardW && my >= y && my < y + cardH) {
                 if (i != m_selected) {
                     m_selected = i;
@@ -120,7 +120,7 @@ void NGPlusSelectState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         int mx = event.button.x, my = event.button.y;
         for (int i = 0; i < totalOptions; i++) {
-            int y = startY + i * (cardH + 8);
+            int y = startY + i * (cardH + 16);
             if (mx >= cardX && mx < cardX + cardW && my >= y && my < y + cardH) {
                 m_selected = i;
                 handleConfirm();
@@ -233,7 +233,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         // Left accent bar
         Uint8 accentA = selected ? static_cast<Uint8>(240) : (unlocked ? static_cast<Uint8>(70) : static_cast<Uint8>(25));
         SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, accentA);
-        SDL_Rect accent = {cardX, y, 5, cardH};
+        SDL_Rect accent = {cardX, y, 10, cardH};
         SDL_RenderFillRect(renderer, &accent);
 
         // Selection pulsing border
@@ -250,7 +250,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
             if (bs) {
                 SDL_Texture* bt = SDL_CreateTextureFromSurface(renderer, bs);
                 if (bt) {
-                    SDL_Rect br = {cardX + cardW - bs->w - 12, y + 6, bs->w, bs->h};
+                    SDL_Rect br = {cardX + cardW - bs->w - 24, y + 12, bs->w, bs->h};
                     SDL_RenderCopy(renderer, bt, nullptr, &br);
                     SDL_DestroyTexture(bt);
                 }
@@ -272,7 +272,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
             if (nt) {
                 int nw = static_cast<int>(ns->w * 1.25f);
                 int nh = static_cast<int>(ns->h * 1.25f);
-                SDL_Rect nr = {cardX + 16, y + 10, nw, nh};
+                SDL_Rect nr = {cardX + 32, y + 20, nw, nh};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }
@@ -285,7 +285,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
-                SDL_Rect dr = {cardX + 18, y + 44, ds->w, ds->h};
+                SDL_Rect dr = {cardX + 36, y + 88, ds->w, ds->h};
                 SDL_RenderCopy(renderer, dt, nullptr, &dr);
                 SDL_DestroyTexture(dt);
             }
@@ -299,7 +299,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
             if (rs) {
                 SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
                 if (rt) {
-                    SDL_Rect rr = {cardX + cardW - rs->w - 10, y + cardH - rs->h - 6, rs->w, rs->h};
+                    SDL_Rect rr = {cardX + cardW - rs->w - 20, y + cardH - rs->h - 12, rs->w, rs->h};
                     SDL_RenderCopy(renderer, rt, nullptr, &rr);
                     SDL_DestroyTexture(rt);
                 }
