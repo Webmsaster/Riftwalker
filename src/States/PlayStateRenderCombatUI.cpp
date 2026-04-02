@@ -426,8 +426,8 @@ void PlayState::renderOffscreenEnemyIndicators(SDL_Renderer* renderer) {
         float maxDist = halfW * 3.0f;
         if (dist > maxDist) return;
 
-        int sx = static_cast<int>(std::clamp(dx + halfW, 16.0f, static_cast<float>(SCREEN_WIDTH) - 16.0f));
-        int sy = static_cast<int>(std::clamp(dy + halfH, 16.0f, static_cast<float>(SCREEN_HEIGHT) - 16.0f));
+        int sx = static_cast<int>(std::clamp(dx + halfW, 32.0f, static_cast<float>(SCREEN_WIDTH) - 32.0f));
+        int sy = static_cast<int>(std::clamp(dy + halfH, 32.0f, static_cast<float>(SCREEN_HEIGHT) - 32.0f));
 
         int insertIdx = count;
         for (int i = 0; i < count; i++) {
@@ -457,7 +457,7 @@ void PlayState::renderOffscreenEnemyIndicators(SDL_Renderer* renderer) {
         float nx = adx / len;
         float ny = ady / len;
 
-        int sz = static_cast<int>(5 + 2 * t);
+        int sz = static_cast<int>(10 + 4 * t);
         int tipX = ind.sx, tipY = ind.sy;
         int baseX1 = tipX - static_cast<int>(nx * sz + ny * sz * 0.6f);
         int baseY1 = tipY - static_cast<int>(ny * sz - nx * sz * 0.6f);
