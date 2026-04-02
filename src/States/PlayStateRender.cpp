@@ -396,10 +396,10 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         // 3 fog bands at different heights, parallaxed vertically
         for (int band = 0; band < 3; band++) {
-            int baseY = SCREEN_HEIGHT / 2 + band * 100 - 80;
+            int baseY = SCREEN_HEIGHT / 2 + band * 200 - 160;
             float parallax = 0.05f + band * 0.08f;
             int fogY = baseY - static_cast<int>(camPos.y * parallax * 0.1f);
-            int fogH = 40 + band * 20;
+            int fogH = 80 + band * 40;
             float wave = std::sin(ticks * 0.0004f + band * 1.5f) * 8.0f;
             fogY += static_cast<int>(wave);
             // Gradient: center is brightest, edges fade

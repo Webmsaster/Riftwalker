@@ -1030,8 +1030,8 @@ void PlayState::initFogParticles() {
         f.y = static_cast<float>(std::rand() % SCREEN_HEIGHT);
         f.vx = 8.0f + static_cast<float>(std::rand() % 20); // Slow drift right
         if (std::rand() % 2) f.vx = -f.vx; // Some drift left
-        f.width = 120.0f + static_cast<float>(std::rand() % 180);
-        f.height = 30.0f + static_cast<float>(std::rand() % 50);
+        f.width = 240.0f + static_cast<float>(std::rand() % 360);
+        f.height = 60.0f + static_cast<float>(std::rand() % 100);
         f.alpha = 0.02f + static_cast<float>(std::rand() % 30) / 1000.0f; // Very subtle: 0.02-0.05
         f.alphaPhase = static_cast<float>(std::rand() % 628) / 100.0f; // Random phase
     }
