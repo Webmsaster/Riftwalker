@@ -446,7 +446,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
 
                 // Knob
                 SDL_SetRenderDrawColor(renderer, 180, 150, 255, 255);
-                SDL_Rect knob = {barX + fillW - 3, barY - 2, 6, barH + 4};
+                SDL_Rect knob = {barX + fillW - 6, barY - 4, 12, barH + 8};
                 SDL_RenderFillRect(renderer, &knob);
 
                 // Arrows
@@ -456,7 +456,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
                     if (la) {
                         SDL_Texture* lat = SDL_CreateTextureFromSurface(renderer, la);
                         if (lat) {
-                            SDL_Rect lar = {barX - 18, barY - 3, la->w, la->h};
+                            SDL_Rect lar = {barX - 36, barY - 6, la->w, la->h};
                             SDL_RenderCopy(renderer, lat, nullptr, &lar);
                             SDL_DestroyTexture(lat);
                         }
@@ -466,7 +466,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
                     if (ra) {
                         SDL_Texture* rat = SDL_CreateTextureFromSurface(renderer, ra);
                         if (rat) {
-                            SDL_Rect rar = {barX + barW + 6, barY - 3, ra->w, ra->h};
+                            SDL_Rect rar = {barX + barW + 12, barY - 6, ra->w, ra->h};
                             SDL_RenderCopy(renderer, rat, nullptr, &rar);
                             SDL_DestroyTexture(rat);
                         }
@@ -481,7 +481,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
             if (vs) {
                 SDL_Texture* vt = SDL_CreateTextureFromSurface(renderer, vs);
                 if (vt) {
-                    SDL_Rect vr = {cardX + cardW - 55, y + (itemH - 8) / 2 - vs->h / 2, vs->w, vs->h};
+                    SDL_Rect vr = {cardX + cardW - 110, y + (itemH - 8) / 2 - vs->h / 2, vs->w, vs->h};
                     SDL_RenderCopy(renderer, vt, nullptr, &vr);
                     SDL_DestroyTexture(vt);
                 }
