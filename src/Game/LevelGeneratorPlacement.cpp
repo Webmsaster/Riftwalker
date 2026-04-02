@@ -646,10 +646,16 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
 
     auto themeConfig = ThemeEnemyConfig::getConfig(theme.id);
 
-    if (w <= 6 || h <= 4) return;
+    if (w < 4 || h < 3) return; // only skip truly tiny rooms
+    // Ensure at least 1 enemy in small rooms
+    if (w <= 6 || h <= 4) count = std::max(count, 1);
+    int spawnMarginX = std::min(3, w / 2 - 1);
+    int spawnMarginY = std::min(2, h / 2 - 1);
+    int spawnRangeX = std::max(1, w - spawnMarginX * 2);
+    int spawnRangeY = std::max(1, h - spawnMarginY * 2);
     for (int i = 0; i < count; i++) {
-        int ex = startX + 3 + m_rng() % (w - 6);
-        int ey = startY + 2 + m_rng() % (h - 4);
+        int ex = startX + spawnMarginX + m_rng() % spawnRangeX;
+        int ey = startY + spawnMarginY + m_rng() % spawnRangeY;
 
         if (level.isSolid(ex, ey, dim)) continue;
 

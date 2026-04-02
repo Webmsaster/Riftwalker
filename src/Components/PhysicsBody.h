@@ -30,7 +30,7 @@ struct PhysicsBody : public Component {
     float wallImpactSpeed = 0.0f;
 
     // Coyote time
-    float coyoteTime = 0.1f;
+    float coyoteTime = 0.12f;
     float coyoteTimer = 0.0f;
     bool canCoyoteJump() const { return coyoteTimer > 0.0f; }
 

@@ -529,9 +529,9 @@ void Player::handleJump(const InputManager& input) {
         }
     }
 
-    // Variable jump height: release early = lower jump
+    // Variable jump height: release early = lower jump (0.65 for better game feel)
     if (input.isActionReleased(Action::Jump) && phys.velocity.y < 0) {
-        phys.velocity.y *= 0.5f;
+        phys.velocity.y *= 0.65f;
     }
 }
 

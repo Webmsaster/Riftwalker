@@ -31,6 +31,12 @@ struct CombatComponent : public Component {
     Vec2 attackDirection{1, 0};
     AttackType currentAttack = AttackType::Melee;
 
+    // Attack buffering: queue attack during cooldown
+    float attackBufferTimer = 0;
+    AttackType bufferedAttackType = AttackType::Melee;
+    Vec2 bufferedAttackDir{1, 0};
+    static constexpr float ATTACK_BUFFER_WINDOW = 0.08f;
+
     // Combo system
     int comboCount = 0;
     float comboTimer = 0;
@@ -110,8 +116,19 @@ struct CombatComponent : public Component {
 
     bool canAttack() const { return cooldownTimer <= 0 && !isAttacking; }
 
+    // Buffer an attack if we can't attack right now
+    void bufferAttack(AttackType type, Vec2 direction) {
+        if (type == AttackType::Dash) return; // dash is instant, no buffering
+        attackBufferTimer = ATTACK_BUFFER_WINDOW;
+        bufferedAttackType = type;
+        bufferedAttackDir = direction;
+    }
+
     void startAttack(AttackType type, Vec2 direction) {
-        if (type != AttackType::Dash && !canAttack()) return;
+        if (type != AttackType::Dash && !canAttack()) {
+            bufferAttack(type, direction);
+            return;
+        }
         currentAttack = type;
         isAttacking = true;
         attackDirection = direction;
@@ -143,6 +160,14 @@ struct CombatComponent : public Component {
             if (attackTimer <= 0) isAttacking = false;
         }
         if (cooldownTimer > 0) cooldownTimer -= dt;
+        // Attack buffer: execute buffered attack when cooldown ends
+        if (attackBufferTimer > 0) {
+            attackBufferTimer -= dt;
+            if (canAttack()) {
+                startAttack(bufferedAttackType, bufferedAttackDir);
+                attackBufferTimer = 0;
+            }
+        }
         if (comboTimer > 0) {
             comboTimer -= dt;
             if (comboTimer <= 0) comboCount = 0;
