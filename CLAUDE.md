@@ -20,6 +20,14 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - Splash screen: larger glow rects, 1.5x press-any-key, 1s skip lock
 - ScreenEffects: GameState::SCREEN_WIDTH/HEIGHT instead of hardcoded values
 - Level complete iris transition banner scaled for 2K
+- Attack buffering: 80ms queue window during cooldown for snappier combat
+- Coyote time increased 0.10s → 0.12s, jump release multiplier 0.50 → 0.65
+- Small room spawning: min 1 enemy in rooms w<=6/h<=4 (prevents empty rooms)
+- Combat UI: all notification popups scaled (achievement, lore, unlock, kill streak)
+- Visual effects: speed lines, god rays, exit shafts, depth fog, foreground fog doubled
+- Chromatic aberration pixel shift doubled, vignette corner blocks doubled
+- Damage indicator edge thickness doubled (32→64px)
+- Off-screen enemy indicator size + margin doubled
 - Run intro narrative text positions + vignette border scaled
 - Boss intro title card: doubled cinematic bars, separator lines, text offsets
 - 6 commits, 35+ files changed, ~400 lines
