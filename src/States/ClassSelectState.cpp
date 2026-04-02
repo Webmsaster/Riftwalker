@@ -417,17 +417,17 @@ void ClassSelectState::renderClassPreview(SDL_Renderer* renderer, const ClassDat
     SDL_RenderFillRect(renderer, &body);
 
     // Eyes
-    int eyeY = cy - bh / 2 + 14;
+    int eyeY = cy - bh / 2 + 28;
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 200);
-    SDL_Rect eyeL = {cx - 8, eyeY, 5, 6};
-    SDL_Rect eyeR = {cx + 3, eyeY, 5, 6};
+    SDL_Rect eyeL = {cx - 16, eyeY, 10, 12};
+    SDL_Rect eyeR = {cx + 6, eyeY, 10, 12};
     SDL_RenderFillRect(renderer, &eyeL);
     SDL_RenderFillRect(renderer, &eyeR);
 
     // Pupils
     SDL_SetRenderDrawColor(renderer, 20, 15, 30, 255);
-    SDL_Rect pupilL = {cx - 6, eyeY + 2, 3, 3};
-    SDL_Rect pupilR = {cx + 5, eyeY + 2, 3, 3};
+    SDL_Rect pupilL = {cx - 12, eyeY + 4, 6, 6};
+    SDL_Rect pupilR = {cx + 10, eyeY + 4, 6, 6};
     SDL_RenderFillRect(renderer, &pupilL);
     SDL_RenderFillRect(renderer, &pupilR);
 
@@ -438,7 +438,7 @@ void ClassSelectState::renderClassPreview(SDL_Renderer* renderer, const ClassDat
         for (int ring = 0; ring < 3; ring++) {
             float pulse = 0.5f + 0.5f * std::sin(t * 3.0f + ring * 1.2f);
             Uint8 a = static_cast<Uint8>(60 * pulse);
-            int expand = 4 + ring * 5;
+            int expand = 8 + ring * 10;
             SDL_SetRenderDrawColor(renderer, 60, 120, 220, a);
             SDL_Rect aura = {cx - bw / 2 - expand, cy - bh / 2 - expand,
                              bw + expand * 2, bh + expand * 2};
@@ -448,7 +448,7 @@ void ClassSelectState::renderClassPreview(SDL_Renderer* renderer, const ClassDat
         // Rage lines emanating from body
         for (int i = 0; i < 6; i++) {
             float angle = t * 2.0f + i * 1.047f;
-            float len = 12.0f + 8.0f * std::sin(t * 4.0f + i);
+            float len = 24.0f + 16.0f * std::sin(t * 4.0f + i);
             int x1 = cx + static_cast<int>(std::cos(angle) * (bw / 2 + 2));
             int y1 = cy + static_cast<int>(std::sin(angle) * (bh / 2 + 2) * 0.5f);
             int x2 = cx + static_cast<int>(std::cos(angle) * (bw / 2 + len));
@@ -459,14 +459,14 @@ void ClassSelectState::renderClassPreview(SDL_Renderer* renderer, const ClassDat
         }
         // Shoulder pads
         SDL_SetRenderDrawColor(renderer, 180, 40, 40, 200);
-        SDL_Rect padL = {cx - bw / 2 - 6, cy - bh / 2 + 4, 8, 12};
-        SDL_Rect padR = {cx + bw / 2 - 2, cy - bh / 2 + 4, 8, 12};
+        SDL_Rect padL = {cx - bw / 2 - 12, cy - bh / 2 + 8, 16, 24};
+        SDL_Rect padR = {cx + bw / 2 - 4, cy - bh / 2 + 8, 16, 24};
         SDL_RenderFillRect(renderer, &padL);
         SDL_RenderFillRect(renderer, &padR);
     } else if (data.id == PlayerClass::Phantom) {
         // Shadow trail copies
         for (int i = 1; i <= 3; i++) {
-            float offset = i * 8.0f;
+            float offset = i * 16.0f;
             float phase = std::sin(t * 2.0f + i * 0.8f) * 3.0f;
             Uint8 a = static_cast<Uint8>(60 - i * 15);
             SDL_SetRenderDrawColor(renderer, data.color.r, data.color.g, data.color.b, a);
@@ -478,31 +478,31 @@ void ClassSelectState::renderClassPreview(SDL_Renderer* renderer, const ClassDat
         // Speed lines
         for (int i = 0; i < 4; i++) {
             int ly = cy - bh / 4 + i * (bh / 4);
-            int lx = cx + bw / 2 + 5;
-            float len = 15.0f + 10.0f * std::sin(t * 5.0f + i);
+            int lx = cx + bw / 2 + 10;
+            float len = 30.0f + 20.0f * std::sin(t * 5.0f + i);
             Uint8 a = static_cast<Uint8>(100 + 50 * std::sin(t * 3.0f + i));
             SDL_SetRenderDrawColor(renderer, 60, 220, 200, a);
             SDL_RenderDrawLine(renderer, lx, ly, lx + static_cast<int>(len), ly);
         }
     } else if (data.id == PlayerClass::Technomancer) {
         // Mini turret on the right side
-        int turretX = cx + bw / 2 + 10;
+        int turretX = cx + bw / 2 + 20;
         int turretY = cy + bh / 4;
         float turretPulse = 0.6f + 0.4f * std::sin(t * 4.0f);
         // Turret base
         SDL_SetRenderDrawColor(renderer, 180, 140, 40, 200);
-        SDL_Rect tBase = {turretX - 8, turretY + 4, 16, 6};
+        SDL_Rect tBase = {turretX - 16, turretY + 8, 32, 12};
         SDL_RenderFillRect(renderer, &tBase);
         // Turret body
         SDL_SetRenderDrawColor(renderer, 200, 160, 50, 220);
-        SDL_Rect tBody = {turretX - 6, turretY - 4, 12, 10};
+        SDL_Rect tBody = {turretX - 12, turretY - 8, 24, 20};
         SDL_RenderFillRect(renderer, &tBody);
         // Turret barrel (oscillates to track)
         float barrelAngle = std::sin(t * 2.5f) * 0.4f;
-        int bx2 = turretX + static_cast<int>(std::cos(barrelAngle) * 14);
-        int by2 = turretY + static_cast<int>(std::sin(barrelAngle) * 14) - 2;
+        int bx2 = turretX + static_cast<int>(std::cos(barrelAngle) * 28);
+        int by2 = turretY + static_cast<int>(std::sin(barrelAngle) * 28) - 4;
         SDL_SetRenderDrawColor(renderer, 230, 190, 60, 220);
-        SDL_RenderDrawLine(renderer, turretX + 4, turretY - 1, bx2, by2);
+        SDL_RenderDrawLine(renderer, turretX + 8, turretY - 2, bx2, by2);
         SDL_RenderDrawLine(renderer, turretX + 4, turretY, bx2, by2 + 1);
         // Muzzle flash
         SDL_SetRenderDrawColor(renderer, 255, 220, 80, static_cast<Uint8>(180 * turretPulse));
