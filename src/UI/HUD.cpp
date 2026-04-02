@@ -397,9 +397,9 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Class icon (small colored square with class initial)
     if (player) {
         const auto& classData = ClassSystem::getData(player->playerClass);
-        int iconSize = static_cast<int>(20 * g_hudScale);
+        int iconSize = static_cast<int>(40 * g_hudScale);
         int iconX = margin;
-        int iconY = margin - static_cast<int>(2 * g_hudScale);
+        int iconY = margin - static_cast<int>(4 * g_hudScale);
 
         // Icon background
         SDL_SetRenderDrawColor(renderer, classData.color.r, classData.color.g, classData.color.b, 200);
@@ -409,7 +409,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         // Class initial letter
         if (font) {
             char initial[2] = {classData.name[0], '\0'};
-            renderText(renderer, font, initial, iconX + 5, iconY + 2, {255, 255, 255, 255});
+            renderText(renderer, font, initial, iconX + 10, iconY + 4, {255, 255, 255, 255});
         }
 
         // Blood Rage indicator for Berserker
@@ -500,7 +500,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
     }
 
-    int hpBarOffset = static_cast<int>(26 * g_hudScale); // offset HP bar to the right of class icon
+    int hpBarOffset = static_cast<int>(52 * g_hudScale); // offset HP bar to the right of class icon (scaled for 2K)
 
     // HP Bar
     if (player && player->getEntity() && player->getEntity()->hasComponent<HealthComponent>()) {
@@ -942,8 +942,8 @@ void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
     if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>()) {
         auto& combat = player->getEntity()->getComponent<CombatComponent>();
         int abY = startY;
-        int iconSize = static_cast<int>(22 * g_hudScale);
-        int iconGap  = static_cast<int>(6 * g_hudScale);
+        int iconSize = static_cast<int>(44 * g_hudScale);
+        int iconGap  = static_cast<int>(12 * g_hudScale);
 
         struct AbilityInfo { float cooldownPct; SDL_Color readyColor; const char* label; };
 
