@@ -194,6 +194,66 @@ void PlayState::handleEvent(const SDL_Event& event) {
             return;
         }
     }
+
+    // Gamepad support for in-game menus (relic choice, NPC dialog, puzzle)
+    if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+        auto btn = event.cbutton.button;
+
+        if (btn == SDL_CONTROLLER_BUTTON_START) {
+            if (!m_showRelicChoice && !(m_activePuzzle && m_activePuzzle->isActive())) {
+                game->pushState(StateID::Pause);
+            }
+            return;
+        }
+
+        // Relic choice
+        if (m_showRelicChoice && !m_relicChoices.empty()) {
+            if (btn == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
+                m_relicChoiceSelected = (m_relicChoiceSelected - 1 + static_cast<int>(m_relicChoices.size()))
+                                        % static_cast<int>(m_relicChoices.size());
+            } else if (btn == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
+                m_relicChoiceSelected = (m_relicChoiceSelected + 1)
+                                        % static_cast<int>(m_relicChoices.size());
+            } else if (btn == SDL_CONTROLLER_BUTTON_A) {
+                selectRelic(m_relicChoiceSelected);
+            }
+            return;
+        }
+
+        // NPC dialog
+        if (m_showNPCDialog && m_nearNPCIndex >= 0) {
+            auto& npcs = m_level->getNPCs();
+            if (m_nearNPCIndex >= static_cast<int>(npcs.size())) { m_showNPCDialog = false; return; }
+            int stage = getNPCStoryStage(npcs[m_nearNPCIndex].type);
+            bool hasQuest = m_activeQuest.active || m_activeQuest.completed;
+            auto options = NPCSystem::getDialogOptions(npcs[m_nearNPCIndex].type, stage, hasQuest);
+            int optCount = static_cast<int>(options.size());
+            if (optCount == 0) { m_showNPCDialog = false; return; }
+            if (btn == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+                m_npcDialogChoice = (m_npcDialogChoice - 1 + optCount) % optCount;
+                AudioManager::instance().play(SFX::MenuSelect);
+            } else if (btn == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
+                m_npcDialogChoice = (m_npcDialogChoice + 1) % optCount;
+                AudioManager::instance().play(SFX::MenuSelect);
+            } else if (btn == SDL_CONTROLLER_BUTTON_A) {
+                handleNPCDialogChoice(m_nearNPCIndex, m_npcDialogChoice);
+            } else if (btn == SDL_CONTROLLER_BUTTON_B) {
+                m_showNPCDialog = false;
+            }
+            return;
+        }
+
+        // Puzzle input
+        if (m_activePuzzle && m_activePuzzle->isActive()) {
+            if (btn == SDL_CONTROLLER_BUTTON_DPAD_UP)    handlePuzzleInput(0);
+            if (btn == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) handlePuzzleInput(1);
+            if (btn == SDL_CONTROLLER_BUTTON_DPAD_DOWN)  handlePuzzleInput(2);
+            if (btn == SDL_CONTROLLER_BUTTON_DPAD_LEFT)  handlePuzzleInput(3);
+            if (btn == SDL_CONTROLLER_BUTTON_A)          handlePuzzleInput(4);
+            if (btn == SDL_CONTROLLER_BUTTON_B) m_activePuzzle.reset();
+            return;
+        }
+    }
 }
 
 void PlayState::update(float dt) {

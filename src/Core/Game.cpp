@@ -243,7 +243,7 @@ void Game::handleEvents() {
             m_window->onResize(event.window.data1, event.window.data2);
         }
 
-        // Map raw window mouse coordinates to logical (1280x720) space so all
+        // Map raw window mouse coordinates to logical (2560x1440) space so all
         // states work correctly regardless of current window size.
         SDL_Renderer* ren = m_window->getSDLRenderer();
         if (event.type == SDL_MOUSEMOTION) {
