@@ -577,18 +577,18 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
     // Dimension indicator
     if (dimMgr) {
-        int dimY = margin + (barH + 6) * 2 + xpExtraH;
+        int dimY = margin + (barH + 12) * 2 + xpExtraH;
         int dim = dimMgr->getCurrentDimension();
         SDL_Color dimColorA = dimMgr->getDimColorA();
         SDL_Color dimColorB = dimMgr->getDimColorB();
         SDL_Color activeColor = (dim == 1) ? dimColorA : dimColorB;
 
-        SDL_Rect dimBg = {margin, dimY, 50, 20};
+        SDL_Rect dimBg = {margin, dimY, 100, 40};
         SDL_SetRenderDrawColor(renderer, 20, 20, 30, 200);
         SDL_RenderFillRect(renderer, &dimBg);
 
-        SDL_Rect dimA = {margin + 1, dimY + 1, 23, 18};
-        SDL_Rect dimB = {margin + 26, dimY + 1, 23, 18};
+        SDL_Rect dimA = {margin + 2, dimY + 2, 46, 36};
+        SDL_Rect dimB = {margin + 52, dimY + 2, 46, 36};
         SDL_SetRenderDrawColor(renderer, dimColorA.r, dimColorA.g, dimColorA.b,
                                static_cast<Uint8>(dim == 1 ? 255 : 80));
         SDL_RenderFillRect(renderer, &dimA);
@@ -601,12 +601,12 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
         if (font) {
             const char* dimText = (dim == 1) ? "DIM-A" : "DIM-B";
-            renderText(renderer, font, dimText, margin + 56, dimY + 3,
+            renderText(renderer, font, dimText, margin + 112, dimY + 6,
                        {activeColor.r, activeColor.g, activeColor.b, 255});
 
             char switchText[32];
             std::snprintf(switchText, sizeof(switchText), "[E] x%d", dimMgr->getSwitchCount());
-            renderText(renderer, font, switchText, margin + 110, dimY + 3, {150, 150, 170, 180});
+            renderText(renderer, font, switchText, margin + 220, dimY + 6, {150, 150, 170, 180});
         }
 
         // Resonance bar (below dimension indicator)
@@ -635,7 +635,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 const char* resLabel = (tier >= 3) ? "RESONANCE MAX" :
                                        (tier >= 2) ? "RESONANCE++" :
                                        (tier >= 1) ? "RESONANCE+" : "RESONANCE";
-                renderText(renderer, font, resLabel, margin + resBarW + 6, resY - 1,
+                renderText(renderer, font, resLabel, margin + resBarW + 12, resY - 2,
                            {resColor.r, resColor.g, resColor.b, 200});
             }
         }
