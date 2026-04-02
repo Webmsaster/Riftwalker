@@ -330,20 +330,20 @@ void BestiaryState::render(SDL_Renderer* renderer) {
             float p = 0.5f + 0.5f * std::sin(m_time * 2.5f + typeIdx * 0.8f);
             Uint8 ba = static_cast<Uint8>(80 + 80 * p);
             SDL_SetRenderDrawColor(renderer, 255, 160, 40, ba);
-            SDL_Rect badgeDot = {LIST_X + LIST_W - 12, ey + ROW_H / 2 - 4, 8, 8};
+            SDL_Rect badgeDot = {LIST_X + LIST_W - 24, ey + ROW_H / 2 - 8, 16, 16};
             SDL_RenderFillRect(renderer, &badgeDot);
         }
     }
 
     // Scroll indicator dots
     if (m_totalEntries > VISIBLE) {
-        int dotsX = LIST_X + LIST_W + 4;
+        int dotsX = LIST_X + LIST_W + 8;
         int dotsAreaH = VISIBLE * (ROW_H + 4);
         for (int i = 0; i < m_totalEntries; i++) {
             int dotY = LIST_Y + static_cast<int>(dotsAreaH * i / static_cast<float>(m_totalEntries));
             bool isCur = (i == m_selected);
             SDL_SetRenderDrawColor(renderer, isCur ? 200 : 70, isCur ? 160 : 65, isCur ? 220 : 90, isCur ? 255 : 120);
-            SDL_Rect dot = {dotsX, dotY, isCur ? 4 : 2, isCur ? 8 : 4};
+            SDL_Rect dot = {dotsX, dotY, isCur ? 8 : 4, isCur ? 16 : 8};
             SDL_RenderFillRect(renderer, &dot);
         }
     }
