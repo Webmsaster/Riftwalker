@@ -1,4 +1,5 @@
 #include "InputManager.h"
+#include "SaveUtils.h"
 #include <algorithm>
 #include <cstring>
 #include <cstdlib>
@@ -271,14 +272,11 @@ void InputManager::resetToDefaults() {
 }
 
 bool InputManager::saveBindings(const std::string& filepath) const {
-    std::ofstream file(filepath);
-    if (!file.is_open()) return false;
-
-    for (auto& [action, scancode] : m_keyBindings) {
-        file << static_cast<int>(action) << " " << static_cast<int>(scancode) << "\n";
-    }
-    file.close();
-    return true;
+    return atomicSave(filepath, [&](std::ofstream& file) {
+        for (auto& [action, scancode] : m_keyBindings) {
+            file << static_cast<int>(action) << " " << static_cast<int>(scancode) << "\n";
+        }
+    });
 }
 
 bool InputManager::loadBindings(const std::string& filepath) {

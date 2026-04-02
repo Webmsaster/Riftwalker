@@ -1,8 +1,8 @@
 #include "Game/DailyRun.h"
 #include "Game/ChallengeMode.h"
+#include "Core/SaveUtils.h"
 #include <fstream>
 #include <algorithm>
-#include <cstdio>
 #include <cstring>
 #include <map>
 
@@ -133,21 +133,21 @@ void DailyRun::prune() {
 }
 
 void DailyRun::save(const std::string& path) const {
-    std::ofstream f(path);
-    if (!f) return;
-    f << "v2\n";
-    for (const auto& e : m_entries) {
-        f << e.date        << " "
-          << e.score       << " "
-          << e.floors      << " "
-          << e.kills       << " "
-          << e.rifts       << " "
-          << e.shards      << " "
-          << e.bestCombo   << " "
-          << e.runTime     << " "
-          << e.playerClass << " "
-          << e.deathCause  << "\n";
-    }
+    atomicSave(path, [&](std::ofstream& f) {
+        f << "v2\n";
+        for (const auto& e : m_entries) {
+            f << e.date        << " "
+              << e.score       << " "
+              << e.floors      << " "
+              << e.kills       << " "
+              << e.rifts       << " "
+              << e.shards      << " "
+              << e.bestCombo   << " "
+              << e.runTime     << " "
+              << e.playerClass << " "
+              << e.deathCause  << "\n";
+        }
+    });
 }
 
 void DailyRun::load(const std::string& path) {
