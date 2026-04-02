@@ -55,7 +55,7 @@ void PlayState::renderCollapseWarning(SDL_Renderer* renderer) {
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
-                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, 100, ts->w, ts->h};
+                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, 140, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }

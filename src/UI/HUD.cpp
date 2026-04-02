@@ -528,8 +528,8 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
     // XP Bar (thin, below HP bar)
     if (player) {
-        int xpBarH = static_cast<int>(8 * g_hudScale);  // Half the height of HP bar
-        int xpY = margin + barH + 2;
+        int xpBarH = static_cast<int>(16 * g_hudScale);  // Readable at 2K
+        int xpY = margin + barH + 4;
         float xpPct = player->getXPPercent();
 
         SDL_Color xpColor = {255, 215, 0, 255}; // Gold
@@ -549,7 +549,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     }
 
     // Extra vertical offset introduced by XP bar
-    int xpExtraH = static_cast<int>(8 * g_hudScale) + 4;
+    int xpExtraH = static_cast<int>(16 * g_hudScale) + 8;
 
     // Entropy Bar
     if (entropy) {
@@ -612,7 +612,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         // Resonance bar (below dimension indicator)
         float resonance = dimMgr->getResonance();
         if (resonance > 0.01f) {
-            int resY = dimY + 24;
+            int resY = dimY + 48;
             int resBarW = 220;
             int resBarH = 16;
 
