@@ -54,7 +54,7 @@ void PlayState::renderDeathSequence(SDL_Renderer* renderer) {
     }
 
     // Layer 3: Expanding dark vignette border (red edges closing in)
-    int borderW = static_cast<int>(20 + progress * 80);
+    int borderW = static_cast<int>(40 + progress * 160);
     Uint8 borderAlpha = static_cast<Uint8>(std::min(220.0f, progress * 270.0f));
     SDL_SetRenderDrawColor(renderer, 140, 10, 0, borderAlpha);
     SDL_Rect top = {0, 0, SCREEN_WIDTH, borderW};
@@ -66,7 +66,7 @@ void PlayState::renderDeathSequence(SDL_Renderer* renderer) {
     SDL_RenderFillRect(renderer, &lft);
     SDL_RenderFillRect(renderer, &rgt);
     // Softer inner vignette (darker, slightly smaller)
-    int innerW = std::max(0, borderW - 15);
+    int innerW = std::max(0, borderW - 30);
     Uint8 innerAlpha = static_cast<Uint8>(std::min(180.0f, progress * 220.0f));
     SDL_SetRenderDrawColor(renderer, 10, 0, 0, innerAlpha);
     SDL_Rect iTop = {0, 0, SCREEN_WIDTH, innerW};
