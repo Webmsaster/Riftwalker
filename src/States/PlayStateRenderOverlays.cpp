@@ -754,9 +754,9 @@ void PlayState::renderZoneTransition(SDL_Renderer* renderer, TTF_Font* font) {
     // Decorative horizontal line below tagline
     {
         float lineAlpha = alpha * 0.6f;
-        int lineW = static_cast<int>(180 * alpha);
+        int lineW = static_cast<int>(360 * alpha);
         SDL_SetRenderDrawColor(renderer, 160, 120, 220, static_cast<Uint8>(lineAlpha * 255));
-        SDL_Rect line = {centerX - lineW / 2, centerY + 44, lineW, 1};
+        SDL_Rect line = {centerX - lineW / 2, centerY + 88, lineW, 2};
         SDL_RenderFillRect(renderer, &line);
     }
 }
@@ -873,10 +873,10 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
     if (t > 0.8f && t < duration - 0.3f) {
         float lineAlpha = std::min(1.0f, (t - 0.8f) / 0.5f);
         if (t > duration - 0.8f) lineAlpha *= (duration - 0.3f - t) / 0.5f;
-        int lineW = static_cast<int>(200 * lineAlpha);
+        int lineW = static_cast<int>(400 * lineAlpha);
         Uint8 la = static_cast<Uint8>(lineAlpha * 120);
         SDL_SetRenderDrawColor(renderer, 120, 60, 160, la);
-        SDL_Rect line = {centerX - lineW / 2, centerY + 70, lineW, 1};
+        SDL_Rect line = {centerX - lineW / 2, centerY + 140, lineW, 2};
         SDL_RenderFillRect(renderer, &line);
     }
 }
