@@ -74,3 +74,21 @@
 - **Pattern**: bestRoomReached, totalEnemiesKilled, totalRiftsRepaired, milestonesUnlocked not clamped
 - **Impact**: Corrupted save files could inject negative/overflow values into game logic
 - **Fix**: Added bounds validation on all deserialized counters
+
+### 15. Missing Counter-Attack Implementations (EntropyScythe, ChainWhip)
+- **Pattern**: WeaponSystem::getCounterAttackChance() only handles 6 of 8 weapons
+- **Impact**: EntropyScythe and ChainWhip cannot perform counter-attacks despite having chance values
+- **Fix**: Added counter-attack handling for both weapons in getCounterAttackChance()
+
+## Session 2026-04-XX (Sprite Sheet Fixes)
+
+### 16. Enemy Sprite Frames Clipped or Misaligned
+- **Pattern**: Crawler 128×96 frames cut off Hurt/Dead animations; Swarmer 64×64 barely visible
+- **Impact**: Enemy death/damage animations incomplete or invisible, poor visual feedback
+- **Fix**: Centered frames in 128×128 cells (Crawler), applied 2× Lanczos upscale (Swarmer)
+- **Tool**: Created `tools/fix_sprite_sheets.py` for automated validation and repair of all 25 sprite sheets
+
+### 17. No Sprite Validation System
+- **Pattern**: Sprite mismatches (wrong dimensions, frame counts, scaling) not caught before load
+- **Impact**: Visual bugs discovered at runtime; no automated quality gate
+- **Fix**: Built `fix_sprite_sheets.py` to validate all sprites against SpriteConfig.cpp expectations

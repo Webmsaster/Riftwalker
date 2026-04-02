@@ -55,6 +55,95 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     if (sprite.flipX) flip = static_cast<SDL_RendererFlip>(flip | SDL_FLIP_HORIZONTAL);
     if (sprite.flipY) flip = static_cast<SDL_RendererFlip>(flip | SDL_FLIP_VERTICAL);
 
+    // Code-driven animation transforms (single-frame sprites animated via rect/angle)
+    double renderAngle = 0.0;
+    {
+        float t = SDL_GetTicks() * 0.001f; // Time in seconds
+        AnimState state = sprite.animState;
+
+        switch (state) {
+            case AnimState::Idle: {
+                // Gentle vertical bob (sine wave, ±2px at ~1.5Hz)
+                float bob = std::sin(t * 3.0f) * 2.0f;
+                rect.y += static_cast<int>(bob);
+                break;
+            }
+            case AnimState::Run: {
+                // Faster bob (±3px at 6Hz) + slight lean
+                float bob = std::sin(t * 12.0f) * 3.0f;
+                rect.y += static_cast<int>(bob);
+                renderAngle = std::sin(t * 6.0f) * 3.0; // ±3° tilt
+                break;
+            }
+            case AnimState::Jump: {
+                // Upward stretch: slightly taller, narrower (squash/stretch)
+                int stretchH = rect.h / 16;
+                int squashW = rect.w / 24;
+                rect.y -= stretchH;
+                rect.h += stretchH;
+                rect.x += squashW;
+                rect.w -= squashW * 2;
+                break;
+            }
+            case AnimState::Fall: {
+                // Downward squash: slightly wider, shorter
+                int squashH = rect.h / 16;
+                int stretchW = rect.w / 24;
+                rect.h -= squashH;
+                rect.x -= stretchW;
+                rect.w += stretchW * 2;
+                break;
+            }
+            case AnimState::Dash: {
+                // Horizontal stretch in movement direction
+                int stretch = rect.w / 6;
+                rect.w += stretch;
+                if (!sprite.flipX) rect.x -= stretch / 4;
+                else rect.x -= stretch * 3 / 4;
+                int squash = rect.h / 10;
+                rect.y += squash;
+                rect.h -= squash;
+                break;
+            }
+            case AnimState::WallSlide: {
+                // Slight vertical stretch, lean into wall
+                int stretchH = rect.h / 20;
+                rect.h += stretchH;
+                renderAngle = sprite.flipX ? -5.0 : 5.0; // Lean toward wall
+                break;
+            }
+            case AnimState::Attack: {
+                // Quick forward punch scale + rotation
+                float attackT = std::fmod(t * 8.0f, 1.0f); // Fast cycle
+                if (attackT < 0.3f) {
+                    float punch = attackT / 0.3f;
+                    int scaleW = static_cast<int>(rect.w * 0.15f * punch);
+                    rect.w += scaleW;
+                    if (!sprite.flipX) rect.x -= scaleW / 4;
+                    else rect.x -= scaleW * 3 / 4;
+                    renderAngle = (sprite.flipX ? 8.0 : -8.0) * punch;
+                }
+                break;
+            }
+            case AnimState::Hurt: {
+                // Rapid horizontal shake (±4px at 30Hz)
+                float shake = std::sin(t * 60.0f) * 4.0f;
+                rect.x += static_cast<int>(shake);
+                break;
+            }
+            case AnimState::Dead: {
+                // Slow tilt to ground + shrink
+                renderAngle = 90.0; // Fallen over
+                int shrink = rect.w / 8;
+                rect.x += shrink / 2;
+                rect.w -= shrink;
+                rect.y += shrink / 2;
+                rect.h -= shrink;
+                break;
+            }
+        }
+    }
+
     // Outline pass: draw sprite 4x in black at 1px offsets (Hollow Knight method)
     // Skip for tiny entities or low alpha
     if (alpha > 0.4f && rect.w >= 8 && rect.h >= 8) {
@@ -64,7 +153,7 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         static const int offsets[][2] = {{1,0},{-1,0},{0,1},{0,-1}};
         for (auto& off : offsets) {
             SDL_Rect outlineRect = {rect.x + off[0], rect.y + off[1], rect.w, rect.h};
-            SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &outlineRect, 0.0, nullptr, flip);
+            SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &outlineRect, renderAngle, nullptr, flip);
         }
     }
 
@@ -72,7 +161,7 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     SDL_SetTextureColorMod(sprite.texture, filteredColor.r, filteredColor.g, filteredColor.b);
     SDL_SetTextureAlphaMod(sprite.texture, static_cast<Uint8>(sprite.color.a * alpha));
     SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
-    SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &rect, 0.0, nullptr, flip);
+    SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &rect, renderAngle, nullptr, flip);
 
     // Additive white glow overlay during hit flash (makes hit POP visually)
     if (hitFlashIntensity > 0.3f) {
@@ -80,7 +169,7 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         Uint8 addA = static_cast<Uint8>(hitFlashIntensity * 150 * alpha);
         SDL_SetTextureColorMod(sprite.texture, 255, 255, 255);
         SDL_SetTextureAlphaMod(sprite.texture, addA);
-        SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &rect, 0.0, nullptr, flip);
+        SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &rect, renderAngle, nullptr, flip);
         // Restore blend mode
         SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
     }
@@ -277,16 +366,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         }
     }
 
-    // Idle breathing: subtle vertical scale oscillation when player is still
-    if (tag == "player" && !spawning) {
-        auto& sprite2 = entity.getComponent<SpriteComponent>();
-        if (sprite2.animState == AnimState::Idle) {
-            float breathe = std::sin(SDL_GetTicks() * 0.003f) * 0.02f; // ±2% at ~1.5Hz
-            int deltaH = static_cast<int>(screenRect.h * breathe);
-            screenRect.y -= deltaH;
-            screenRect.h += deltaH;
-        }
-    }
+    // Idle breathing now handled inside renderSprite() code-driven animation system
 
     // Hybrid rendering: try sprite first, fall back to procedural
     if (entity.getComponent<SpriteComponent>().texture) {

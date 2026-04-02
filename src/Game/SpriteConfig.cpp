@@ -2,14 +2,27 @@
 #include "Core/ResourceManager.h"
 #include <SDL2/SDL.h>
 
-// Disable AI-generated sprite sheets — use procedural rendering instead.
-// The ComfyUI sprites are too noisy/detailed for pixel-art style.
-// Set to true once proper pixel-art sprite sheets are available.
+// Use single-frame sprites with code-driven animations instead of spritesheets.
+// ComfyUI generates inconsistent frames per animation — single best frame + code transforms looks better.
 static constexpr bool kUseEntitySprites = true;
 
 static const float FRAME_DUR = 0.12f;  // Default frame duration
 static const float FAST_DUR  = 0.08f;  // Fast animations (attack, hurt)
 static const float SLOW_DUR  = 0.18f;  // Slow animations (idle)
+
+// Register all animation states as single-frame (same srcRect for every state).
+// Code-based transforms in RenderSystem handle the visual animation.
+static void addSingleFrameAnims(AnimationComponent& anim, int fw, int fh) {
+    const char* states[] = {
+        Anim::Idle, Anim::Run, Anim::Walk, Anim::Move,
+        Anim::Jump, Anim::Fall, Anim::Dash, Anim::WallSlide,
+        Anim::Attack, Anim::Attack1, Anim::Attack2, Anim::Attack3,
+        Anim::Hurt, Anim::Dead, Anim::PhaseTransition, Anim::Enrage
+    };
+    for (auto* name : states) {
+        anim.addSheetAnimation(name, 0, 1, fw, fh, 1.0f, true);
+    }
+}
 
 const char* SpriteConfig::animStateToName(AnimState state) {
     switch (state) {
@@ -28,9 +41,13 @@ const char* SpriteConfig::animStateToName(AnimState state) {
 
 bool SpriteConfig::setupPlayer(AnimationComponent& anim, SpriteComponent& sprite) {
     if (!kUseEntitySprites) return false; // Use procedural rendering
-    auto* tex = ResourceManager::instance().getTexture("assets/textures/player/player.png");
+    // Single-frame mode: load best frame from singles/, animate via code transforms
+    auto* tex = ResourceManager::instance().getTexture("assets/textures/singles/player/player.png");
     if (!tex) {
-        // Fall back to placeholder — procedural rendering remains active as next fallback
+        // Fallback: try original spritesheet (uses first frame only)
+        tex = ResourceManager::instance().getTexture("assets/textures/player/player.png");
+    }
+    if (!tex) {
         if (!applyPlayerPlaceholder(sprite)) {
             SDL_Log("Warning: Both texture and placeholder failed for player");
         }
@@ -38,18 +55,8 @@ bool SpriteConfig::setupPlayer(AnimationComponent& anim, SpriteComponent& sprite
     }
 
     sprite.texture = tex;
-    const int fw = 128, fh = 192;  // 4x Real-ESRGAN upscaled from 32x48
-
-    anim.addSheetAnimation(Anim::Idle,      0, 6, fw, fh, SLOW_DUR, true);
-    anim.addSheetAnimation(Anim::Run,       1, 8, fw, fh, FRAME_DUR, true);
-    anim.addSheetAnimation(Anim::Jump,      2, 3, fw, fh, FRAME_DUR, false);
-    anim.addSheetAnimation(Anim::Fall,      3, 3, fw, fh, FRAME_DUR, true);
-    anim.addSheetAnimation(Anim::Dash,      4, 4, fw, fh, FAST_DUR, false);
-    anim.addSheetAnimation(Anim::WallSlide, 5, 3, fw, fh, FRAME_DUR, true);
-    anim.addSheetAnimation(Anim::Attack,    6, 6, fw, fh, FAST_DUR, false);
-    anim.addSheetAnimation(Anim::Hurt,      7, 3, fw, fh, FAST_DUR, false);
-    anim.addSheetAnimation(Anim::Dead,      8, 5, fw, fh, FRAME_DUR, false);
-
+    const int fw = 128, fh = 192;  // Single frame dimensions
+    addSingleFrameAnims(anim, fw, fh);
     anim.play(Anim::Idle);
     return true;
 }
@@ -77,9 +84,14 @@ bool SpriteConfig::setupEnemy(AnimationComponent& anim, SpriteComponent& sprite,
         default:                     path = "assets/textures/enemies/walker.png";      break;
     }
 
-    auto* tex = ResourceManager::instance().getTexture(path);
+    // Single-frame mode: load best frame from singles/
+    std::string singlePath = "assets/textures/singles/" + path.substr(strlen("assets/textures/"));
+    auto* tex = ResourceManager::instance().getTexture(singlePath);
     if (!tex) {
-        // Fall back to placeholder; procedural rendering is still the final fallback
+        // Fallback: try original spritesheet (uses first frame only)
+        tex = ResourceManager::instance().getTexture(path);
+    }
+    if (!tex) {
         if (!applyEnemyPlaceholder(sprite, type)) {
             SDL_Log("Warning: Both texture and placeholder failed for enemy type %d", static_cast<int>(type));
         }
@@ -87,14 +99,8 @@ bool SpriteConfig::setupEnemy(AnimationComponent& anim, SpriteComponent& sprite,
     }
 
     sprite.texture = tex;
-    const int fw = 128, fh = 128;  // 4x Real-ESRGAN upscaled from 32x32
-
-    anim.addSheetAnimation(Anim::Idle,   0, 4, fw, fh, SLOW_DUR, true);
-    anim.addSheetAnimation(Anim::Walk,   1, 6, fw, fh, FRAME_DUR, true);
-    anim.addSheetAnimation(Anim::Attack, 2, 4, fw, fh, FAST_DUR, false);
-    anim.addSheetAnimation(Anim::Hurt,   3, 2, fw, fh, FAST_DUR, false);
-    anim.addSheetAnimation(Anim::Dead,   4, 4, fw, fh, FRAME_DUR, false);
-
+    const int fw = 128, fh = 128;
+    addSingleFrameAnims(anim, fw, fh);
     anim.play(Anim::Idle);
     return true;
 }
@@ -120,9 +126,13 @@ bool SpriteConfig::setupBoss(AnimationComponent& anim, SpriteComponent& sprite, 
         default: path = "assets/textures/bosses/rift_guardian.png"; break;
     }
 
-    auto* tex = ResourceManager::instance().getTexture(path);
+    // Single-frame mode: load best frame from singles/
+    std::string singlePath = "assets/textures/singles/" + path.substr(strlen("assets/textures/"));
+    auto* tex = ResourceManager::instance().getTexture(singlePath);
     if (!tex) {
-        // Fall back to placeholder; procedural rendering is still the final fallback
+        tex = ResourceManager::instance().getTexture(path);
+    }
+    if (!tex) {
         if (!applyBossPlaceholder(sprite, bossType)) {
             SDL_Log("Warning: Both texture and placeholder failed for boss type %d", bossType);
         }
@@ -130,17 +140,7 @@ bool SpriteConfig::setupBoss(AnimationComponent& anim, SpriteComponent& sprite, 
     }
 
     sprite.texture = tex;
-
-    anim.addSheetAnimation(Anim::Idle,            0, 6, fw, fh, SLOW_DUR, true);
-    anim.addSheetAnimation(Anim::Move,            1, 6, fw, fh, FRAME_DUR, true);
-    anim.addSheetAnimation(Anim::Attack1,         2, 6, fw, fh, FAST_DUR, false);
-    anim.addSheetAnimation(Anim::Attack2,         3, 6, fw, fh, FAST_DUR, false);
-    anim.addSheetAnimation(Anim::Attack3,         4, 6, fw, fh, FAST_DUR, false);
-    anim.addSheetAnimation(Anim::PhaseTransition, 5, 8, fw, fh, FRAME_DUR, false);
-    anim.addSheetAnimation(Anim::Hurt,            6, 3, fw, fh, FAST_DUR, false);
-    anim.addSheetAnimation(Anim::Enrage,          7, 6, fw, fh, FRAME_DUR, false);
-    anim.addSheetAnimation(Anim::Dead,            8, 8, fw, fh, FRAME_DUR, false);
-
+    addSingleFrameAnims(anim, fw, fh);
     anim.play(Anim::Idle);
     return true;
 }
