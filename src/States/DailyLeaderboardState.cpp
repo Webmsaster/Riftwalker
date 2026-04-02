@@ -203,7 +203,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
 
     if (m_todayEntries.empty()) {
         dlRenderTextCentered(renderer, font, "No runs recorded for today. Play a Daily Run!",
-                             tableX + tableW / 2, startRow + 20,
+                             tableX + tableW / 2, startRow + 40,
                              {100, 100, 130, alpha});
     }
 
@@ -296,8 +296,8 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
         std::snprintf(buf, sizeof(buf), "[W/S] %d/%d",
                       m_scrollOffset + 1, static_cast<int>(m_todayEntries.size()));
         dlRenderText(renderer, font, buf,
-                     tableX + tableW / 2 - 30,
-                     startRow + maxVisible * rowH + 4,
+                     tableX + tableW / 2 - 60,
+                     startRow + maxVisible * rowH + 8,
                      {100, 100, 130, alpha});
     }
 
@@ -307,38 +307,38 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
         Uint8 ba = static_cast<Uint8>(230 * pulse * m_fadeIn);
 
         SDL_SetRenderDrawColor(renderer, 255, 200, 50, static_cast<Uint8>(ba * 0.15f));
-        SDL_Rect banner = {SCREEN_WIDTH - 230, 20, 210, 36};
+        SDL_Rect banner = {SCREEN_WIDTH - 460, 40, 420, 72};
         SDL_RenderFillRect(renderer, &banner);
         SDL_SetRenderDrawColor(renderer, 255, 220, 80, ba);
         SDL_RenderDrawRect(renderer, &banner);
 
         SDL_Color newBestColor = {255, 220, 50, ba};
-        dlRenderTextCentered(renderer, font, "NEW BEST!", SCREEN_WIDTH - 125, 31, newBestColor);
+        dlRenderTextCentered(renderer, font, "NEW BEST!", SCREEN_WIDTH - 250, 62, newBestColor);
 
         // Orbiting sparkles
         for (int i = 0; i < 6; i++) {
             float angle = m_newBestPulse * 0.8f + i * (6.283185f / 6);
-            int sx = SCREEN_WIDTH - 125 + static_cast<int>(std::cos(angle) * 90);
-            int sy = 38 + static_cast<int>(std::sin(angle) * 12);
+            int sx = SCREEN_WIDTH - 250 + static_cast<int>(std::cos(angle) * 180);
+            int sy = 76 + static_cast<int>(std::sin(angle) * 24);
             Uint8 spa = static_cast<Uint8>(ba * (0.5f + 0.5f * std::sin(m_newBestPulse + i * 1.2f)));
             SDL_SetRenderDrawColor(renderer, 255, 230, 100, spa);
-            SDL_Rect spark = {sx - 1, sy - 1, 3, 3};
+            SDL_Rect spark = {sx - 2, sy - 2, 5, 5};
             SDL_RenderFillRect(renderer, &spark);
         }
     }
 
     // --- Previous days' best scores (compact list on the right) ---
     {
-        int prevX = tableX + tableW + 30;
-        int prevY = 100;
+        int prevX = tableX + tableW + 60;
+        int prevY = 200;
 
         SDL_Color sectionHeader = {160, 140, 200, alpha};
         dlRenderText(renderer, font, "Previous Days", prevX, prevY, sectionHeader);
-        prevY += 20;
+        prevY += 40;
 
         SDL_SetRenderDrawColor(renderer, 100, 80, 160, static_cast<Uint8>(alpha * 0.4f));
-        SDL_RenderDrawLine(renderer, prevX, prevY, prevX + 270, prevY);
-        prevY += 8;
+        SDL_RenderDrawLine(renderer, prevX, prevY, prevX + 540, prevY);
+        prevY += 16;
 
         bool anyPrev = false;
         int shown = 0;
@@ -347,7 +347,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
             char buf[64];
             std::snprintf(buf, sizeof(buf), "%s  %d", ds.date.c_str(), ds.bestScore);
             dlRenderText(renderer, font, buf, prevX, prevY, {160, 155, 185, alpha});
-            prevY += 18;
+            prevY += 36;
             anyPrev = true;
             if (++shown >= 6) break;
         }
@@ -357,7 +357,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
     }
 
     // Back hint
-    dlRenderText(renderer, font, "[ESC] Back", 20, SCREEN_HEIGHT - 28, {100, 100, 130, alpha});
+    dlRenderText(renderer, font, "[ESC] Back", 40, SCREEN_HEIGHT - 56, {100, 100, 130, alpha});
 
     // Fade-in overlay
     if (m_fadeIn < 1.f) {

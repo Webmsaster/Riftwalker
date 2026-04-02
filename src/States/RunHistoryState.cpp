@@ -206,15 +206,15 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
     if (static_cast<int>(history.size()) > maxVisible) {
         std::snprintf(buf, sizeof(buf), "[W/S to scroll - %d/%d]",
                       clampedScroll + 1, static_cast<int>(history.size()));
-        renderText(renderer, font, buf, screenW / 2 - 80, screenH - 30, {120, 120, 150, 180});
+        renderText(renderer, font, buf, screenW / 2 - 160, screenH - 60, {120, 120, 150, 180});
     }
 
     // Empty state
     if (history.empty()) {
         renderText(renderer, font, "No runs recorded yet. Play some runs!",
-                   screenW / 2 - 130, screenH / 2, {120, 120, 150, 200});
+                   screenW / 2 - 260, screenH / 2, {120, 120, 150, 200});
     }
 
     // Back hint
-    renderText(renderer, font, "[ESC] Back", 20, screenH - 30, {100, 100, 120, 180});
+    renderText(renderer, font, "[ESC] Back", 40, screenH - 60, {100, 100, 120, 180});
 }
