@@ -15,7 +15,8 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **DailyRun legacy load**: Fixed reset that zeroed score/kills after reading v1 leaderboard entries
 - **ItemDrop**: Added missing hasComponent<TransformComponent>() check on health orb pickup
 - **Level.h**: Initialized m_spawnPoint and m_exitPoint to {0,0}
-- 3 commits, 11 files changed
+- **Settings validation**: All loaded settings clamped to valid ranges (volumes 0-1, hudScale 0.5-2, window 640-7680×480-4320)
+- 5 commits, 13 files changed
 
 **Previous Updates (2026-04-02 bugfix + polish session):**
 - **RunSummaryState**: Fixed NG+ badge, death cause, and grade overlapping at y=344 (dynamic Y cursor)
