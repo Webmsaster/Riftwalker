@@ -250,7 +250,7 @@ void ChallengeSelectState::renderChallengeCard(SDL_Renderer* renderer, TTF_Font*
     SDL_Color accentColor = {220, 160, 60, 255};
     Uint8 accentA = selected ? 220 : 60;
     SDL_SetRenderDrawColor(renderer, accentColor.r, accentColor.g, accentColor.b, accentA);
-    SDL_Rect accent = {x, y, 4, h};
+    SDL_Rect accent = {x, y, 8, h};
     SDL_RenderFillRect(renderer, &accent);
 
     if (selected) {
@@ -265,7 +265,7 @@ void ChallengeSelectState::renderChallengeCard(SDL_Renderer* renderer, TTF_Font*
     if (ns) {
         SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
         if (nt) {
-            SDL_Rect nr = {x + 15, y + 10, ns->w, ns->h};
+            SDL_Rect nr = {x + 30, y + 20, ns->w, ns->h};
             SDL_RenderCopy(renderer, nt, nullptr, &nr);
             SDL_DestroyTexture(nt);
         }
@@ -277,7 +277,7 @@ void ChallengeSelectState::renderChallengeCard(SDL_Renderer* renderer, TTF_Font*
     if (ds) {
         SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
         if (dt) {
-            SDL_Rect dr = {x + 17, y + 38, ds->w, ds->h};
+            SDL_Rect dr = {x + 34, y + 76, ds->w, ds->h};
             SDL_RenderCopy(renderer, dt, nullptr, &dr);
             SDL_DestroyTexture(dt);
         }
@@ -294,12 +294,12 @@ void ChallengeSelectState::renderMutatorToggle(SDL_Renderer* renderer, TTF_Font*
     SDL_RenderFillRect(renderer, &card);
 
     // Checkbox
-    SDL_Rect check = {x + 8, y + h / 2 - 7, 14, 14};
+    SDL_Rect check = {x + 16, y + h / 2 - 14, 28, 28};
     SDL_SetRenderDrawColor(renderer, 120, 110, 150, focused ? static_cast<Uint8>(200) : static_cast<Uint8>(100));
     SDL_RenderDrawRect(renderer, &check);
     if (active) {
         SDL_SetRenderDrawColor(renderer, 100, 220, 100, 220);
-        SDL_Rect fill = {check.x + 2, check.y + 2, 10, 10};
+        SDL_Rect fill = {check.x + 4, check.y + 4, 20, 20};
         SDL_RenderFillRect(renderer, &fill);
     }
 
@@ -316,7 +316,7 @@ void ChallengeSelectState::renderMutatorToggle(SDL_Renderer* renderer, TTF_Font*
     if (ns) {
         SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
         if (nt) {
-            SDL_Rect nr = {x + 30, y + 5, ns->w, ns->h};
+            SDL_Rect nr = {x + 60, y + 10, ns->w, ns->h};
             SDL_RenderCopy(renderer, nt, nullptr, &nr);
             SDL_DestroyTexture(nt);
         }
@@ -328,7 +328,7 @@ void ChallengeSelectState::renderMutatorToggle(SDL_Renderer* renderer, TTF_Font*
     if (ds) {
         SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
         if (dt) {
-            SDL_Rect dr = {x + 32, y + 26, ds->w, ds->h};
+            SDL_Rect dr = {x + 64, y + 52, ds->w, ds->h};
             SDL_RenderCopy(renderer, dt, nullptr, &dr);
             SDL_DestroyTexture(dt);
         }
