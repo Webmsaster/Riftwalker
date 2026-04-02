@@ -1088,17 +1088,9 @@ void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
 
 void HUD::renderCombatOverlay(SDL_Renderer* renderer, TTF_Font* font,
                               const Player* player, int screenW, int screenH) {
-    int margin = static_cast<int>(30 * g_hudScale);
-
-    // Weapon names (bottom-left, always visible)
-    if (player && player->getEntity() && player->getEntity()->hasComponent<CombatComponent>() && font) {
-        auto& combat = player->getEntity()->getComponent<CombatComponent>();
-        const auto& meleeData = WeaponSystem::getWeaponData(combat.currentMelee);
-        const auto& rangedData = WeaponSystem::getWeaponData(combat.currentRanged);
-        char weaponText[64];
-        std::snprintf(weaponText, sizeof(weaponText), "[Q] %s  [R] %s", meleeData.name, rangedData.name);
-        renderText(renderer, font, weaponText, margin, screenH - 44, {180, 180, 200, 180});
-    }
+    // Weapon names now shown via renderWeaponPanel (visual card with icons)
+    // No duplicate text rendering needed
+    (void)renderer; (void)font; (void)player; (void)screenW; (void)screenH;
 }
 
 void HUD::renderWeaponPanel(SDL_Renderer* renderer, TTF_Font* font,
