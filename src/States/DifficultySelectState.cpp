@@ -123,7 +123,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
-                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 60, cs->w, cs->h};
+                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 120, cs->w, cs->h};
                 SDL_RenderCopy(renderer, ct, nullptr, &cr);
                 SDL_DestroyTexture(ct);
             }

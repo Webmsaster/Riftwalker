@@ -369,7 +369,7 @@ void BestiaryState::render(SDL_Renderer* renderer) {
 
     // ---- Navigation hint ----
     drawTextCentered(renderer, font, "W/S  Navigate     ESC  Back",
-                     SCREEN_WIDTH / 2, 692, {60, 55, 85, 140});
+                     SCREEN_WIDTH / 2, SCREEN_HEIGHT - 50, {60, 55, 85, 140});
 }
 
 // ---- Discovered detail panel ----

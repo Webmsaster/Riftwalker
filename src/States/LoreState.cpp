@@ -52,7 +52,7 @@ void LoreState::render(SDL_Renderer* renderer) {
         SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, "~ CODEX ~", white);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 30, surf->w, surf->h};
+            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 60, surf->w, surf->h};
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
             SDL_DestroyTexture(tex);
             SDL_FreeSurface(surf);
