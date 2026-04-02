@@ -300,12 +300,12 @@ void BestiaryState::render(SDL_Renderer* renderer) {
                 }
             }
             SDL_SetRenderDrawColor(renderer, swatchColor.r, swatchColor.g, swatchColor.b, swatchColor.a);
-            SDL_Rect swatch = {LIST_X + 6, ey + 6, 8, ROW_H - 12};
+            SDL_Rect swatch = {LIST_X + 12, ey + 12, 16, ROW_H - 24};
             SDL_RenderFillRect(renderer, &swatch);
         }
 
         // Name text
-        int textX = LIST_X + 20;
+        int textX = LIST_X + 40;
         const char* displayName = entry.discovered ? entry.name : (isBoss ? "??? [BOSS]" : "???");
         SDL_Color nameColor = entry.discovered ?
             (isBoss ? SDL_Color{255, 190, 90, 255} : SDL_Color{210, 195, 220, 255}) :
@@ -314,15 +314,15 @@ void BestiaryState::render(SDL_Renderer* renderer) {
             nameColor.r = static_cast<Uint8>(std::min(255, nameColor.r + 25));
             nameColor.a = 255;
         }
-        drawText(renderer, font, displayName, textX, ey + 5, nameColor);
+        drawText(renderer, font, displayName, textX, ey + 10, nameColor);
 
         // Kill count sub-line
         if (entry.discovered) {
             char killText[32];
             std::snprintf(killText, sizeof(killText), "Kills: %d", entry.killCount);
-            drawText(renderer, font, killText, textX, ey + 24, {100, 95, 120, 140});
+            drawText(renderer, font, killText, textX, ey + 48, {100, 95, 120, 140});
         } else {
-            drawText(renderer, font, "Unencountered", textX, ey + 24, {65, 60, 80, 100});
+            drawText(renderer, font, "Unencountered", textX, ey + 48, {65, 60, 80, 100});
         }
 
         // Boss badge
@@ -378,7 +378,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     // Preview on the left sub-panel
     {
         SDL_SetRenderDrawColor(renderer, 10, 8, 22, 100);
-        SDL_Rect previewPanel = {DETAIL_X + 8, DETAIL_Y + 8, 240, DETAIL_H - 16};
+        SDL_Rect previewPanel = {DETAIL_X + 16, DETAIL_Y + 16, 480, DETAIL_H - 32};
         SDL_RenderFillRect(renderer, &previewPanel);
         SDL_SetRenderDrawColor(renderer, 50, 45, 75, 80);
         SDL_RenderDrawRect(renderer, &previewPanel);
@@ -402,36 +402,36 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     }
 
     // ---- Right: stats + info ----
-    int infoX  = DETAIL_X + 260;
-    int infoY  = DETAIL_Y + 14;
-    int infoW  = DETAIL_W - 268;
+    int infoX  = DETAIL_X + 520;
+    int infoY  = DETAIL_Y + 28;
+    int infoW  = DETAIL_W - 536;
 
     // Name header
     SDL_Color nameColor = isBoss ? SDL_Color{255, 195, 90, 255} : SDL_Color{225, 210, 235, 255};
     drawText(renderer, font, entry.name, infoX, infoY, nameColor, 1.4f);
 
     // Divider line
-    int divY = infoY + 36;
+    int divY = infoY + 72;
     SDL_SetRenderDrawColor(renderer, 90, 75, 120, 100);
-    SDL_RenderDrawLine(renderer, infoX, divY, DETAIL_X + DETAIL_W - 16, divY);
+    SDL_RenderDrawLine(renderer, infoX, divY, DETAIL_X + DETAIL_W - 32, divY);
 
     // Lore section header
-    int loreY = divY + 8;
+    int loreY = divY + 16;
     drawText(renderer, font, "LORE:", infoX, loreY, {120, 100, 160, 200});
-    loreY += 20;
+    loreY += 40;
 
     // Word-wrapped lore body
-    int loreMaxW = infoW - 10;
+    int loreMaxW = infoW - 20;
     int loreUsedH = drawTextWrapped(renderer, font, entry.lore,
                                     infoX, loreY, loreMaxW,
                                     {140, 130, 160, 175}, 3);
 
     // ---- Stat bars ----
     // Add a small gap after lore, minimum to keep stats visible
-    int statsY = loreY + loreUsedH + 8;
-    const int barW  = infoW - 10;
-    const int barH  = 12;
-    const int rowSp = 30;
+    int statsY = loreY + loreUsedH + 16;
+    const int barW  = infoW - 20;
+    const int barH  = 24;
+    const int rowSp = 60;
 
     // HP bar
     {
@@ -439,7 +439,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
         std::snprintf(hpLabel, sizeof(hpLabel), "HP:  %.0f", entry.baseHP);
         drawText(renderer, font, hpLabel, infoX, statsY, {160, 220, 160, 220});
         float fraction = std::min(entry.baseHP / 400.0f, 1.0f);
-        drawBar(renderer, infoX + 110, statsY + 3, barW - 110, barH, fraction,
+        drawBar(renderer, infoX + 220, statsY + 3, barW - 220, barH, fraction,
                 {80, 200, 90, 200}, {20, 30, 20, 120});
     }
 
@@ -449,7 +449,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
         std::snprintf(dmgLabel, sizeof(dmgLabel), "DMG: %.0f", entry.baseDMG);
         drawText(renderer, font, dmgLabel, infoX, statsY + rowSp, {220, 140, 140, 220});
         float fraction = std::min(entry.baseDMG / 30.0f, 1.0f);
-        drawBar(renderer, infoX + 110, statsY + rowSp + 3, barW - 110, barH, fraction,
+        drawBar(renderer, infoX + 220, statsY + rowSp + 3, barW - 220, barH, fraction,
                 {220, 80, 80, 200}, {30, 20, 20, 120});
     }
 
@@ -462,7 +462,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
             std::snprintf(spLabel, sizeof(spLabel), "SPD: ---");
         drawText(renderer, font, spLabel, infoX, statsY + rowSp * 2, {140, 180, 230, 220});
         float fraction = std::min(entry.baseSpeed / 200.0f, 1.0f);
-        drawBar(renderer, infoX + 110, statsY + rowSp * 2 + 3, barW - 110, barH, fraction,
+        drawBar(renderer, infoX + 220, statsY + rowSp * 2 + 3, barW - 220, barH, fraction,
                 {80, 140, 220, 200}, {20, 25, 35, 120});
     }
 
@@ -479,19 +479,19 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
             Uint8 ia = static_cast<Uint8>(150 + 100 * pulse);
             SDL_SetRenderDrawColor(renderer, elColor.r, elColor.g, elColor.b, ia);
             for (int k = 0; k < 3; k++) {
-                SDL_Rect sq = {infoX + 110 + k * 16, statsY + rowSp * 3 + 2, 10, 10};
+                SDL_Rect sq = {infoX + 220 + k * 32, statsY + rowSp * 3 + 4, 20, 20};
                 SDL_RenderFillRect(renderer, &sq);
             }
         }
     }
 
     // Divider
-    int div2Y = statsY + rowSp * 4 + 4;
+    int div2Y = statsY + rowSp * 4 + 8;
     SDL_SetRenderDrawColor(renderer, 70, 60, 100, 80);
-    SDL_RenderDrawLine(renderer, infoX, div2Y, DETAIL_X + DETAIL_W - 16, div2Y);
+    SDL_RenderDrawLine(renderer, infoX, div2Y, DETAIL_X + DETAIL_W - 32, div2Y);
 
     // Abilities
-    int infoBlockY = div2Y + 8;
+    int infoBlockY = div2Y + 16;
 
     drawText(renderer, font, "ABILITIES:", infoX, infoBlockY, {160, 130, 200, 200});
     {
@@ -499,9 +499,9 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
         if (as) {
             SDL_Texture* at = SDL_CreateTextureFromSurface(renderer, as);
             if (at) {
-                int maxW = infoW - 10;
+                int maxW = infoW - 20;
                 float scale = (as->w > maxW) ? static_cast<float>(maxW) / as->w : 1.0f;
-                SDL_Rect ar = {infoX, infoBlockY + 20, static_cast<int>(as->w * scale), static_cast<int>(as->h * scale)};
+                SDL_Rect ar = {infoX, infoBlockY + 40, static_cast<int>(as->w * scale), static_cast<int>(as->h * scale)};
                 SDL_RenderCopy(renderer, at, nullptr, &ar);
                 SDL_DestroyTexture(at);
             }
@@ -510,16 +510,16 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     }
 
     // Weakness
-    int weakY = infoBlockY + 50;
+    int weakY = infoBlockY + 100;
     drawText(renderer, font, "WEAKNESS:", infoX, weakY, {255, 200, 80, 210});
     {
         SDL_Surface* ws = TTF_RenderText_Blended(font, entry.weakness, {230, 210, 160, 190});
         if (ws) {
             SDL_Texture* wt = SDL_CreateTextureFromSurface(renderer, ws);
             if (wt) {
-                int maxW = infoW - 10;
+                int maxW = infoW - 20;
                 float scale = (ws->w > maxW) ? static_cast<float>(maxW) / ws->w : 1.0f;
-                SDL_Rect wr = {infoX, weakY + 20, static_cast<int>(ws->w * scale), static_cast<int>(ws->h * scale)};
+                SDL_Rect wr = {infoX, weakY + 40, static_cast<int>(ws->w * scale), static_cast<int>(ws->h * scale)};
                 SDL_RenderCopy(renderer, wt, nullptr, &wr);
                 SDL_DestroyTexture(wt);
             }
@@ -528,16 +528,16 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     }
 
     // Effective weapons
-    int effY = weakY + 50;
+    int effY = weakY + 100;
     drawText(renderer, font, "EFFECTIVE VS:", infoX, effY, {100, 220, 160, 210});
     {
         SDL_Surface* es = TTF_RenderText_Blended(font, entry.effectiveWeapons, {160, 215, 185, 185});
         if (es) {
             SDL_Texture* et = SDL_CreateTextureFromSurface(renderer, es);
             if (et) {
-                int maxW = infoW - 10;
+                int maxW = infoW - 20;
                 float scale = (es->w > maxW) ? static_cast<float>(maxW) / es->w : 1.0f;
-                SDL_Rect er = {infoX, effY + 20, static_cast<int>(es->w * scale), static_cast<int>(es->h * scale)};
+                SDL_Rect er = {infoX, effY + 40, static_cast<int>(es->w * scale), static_cast<int>(es->h * scale)};
                 SDL_RenderCopy(renderer, et, nullptr, &er);
                 SDL_DestroyTexture(et);
             }
@@ -552,7 +552,7 @@ void BestiaryState::renderUndiscoveredDetail(SDL_Renderer* renderer, TTF_Font* f
     // Silhouette preview in the left sub-panel
     {
         SDL_SetRenderDrawColor(renderer, 8, 6, 18, 100);
-        SDL_Rect previewPanel = {DETAIL_X + 8, DETAIL_Y + 8, 240, DETAIL_H - 16};
+        SDL_Rect previewPanel = {DETAIL_X + 16, DETAIL_Y + 16, 480, DETAIL_H - 32};
         SDL_RenderFillRect(renderer, &previewPanel);
         SDL_SetRenderDrawColor(renderer, 40, 35, 60, 80);
         SDL_RenderDrawRect(renderer, &previewPanel);
@@ -566,32 +566,32 @@ void BestiaryState::renderUndiscoveredDetail(SDL_Renderer* renderer, TTF_Font* f
     drawTextCentered(renderer, font, "?", PREVIEW_CX, PREVIEW_CY - 10, {100, 90, 120, qa}, 2.5f);
 
     // Right: mystery text
-    int infoX = DETAIL_X + 260;
-    int infoY = DETAIL_Y + 14;
+    int infoX = DETAIL_X + 520;
+    int infoY = DETAIL_Y + 28;
 
     // Unknown name with boss hint
     const char* unknownName = isBoss ? "Unknown Boss" : "Unknown Enemy";
     drawText(renderer, font, unknownName, infoX, infoY, {90, 80, 110, 180}, 1.4f);
 
-    int divY = infoY + 36;
+    int divY = infoY + 72;
     SDL_SetRenderDrawColor(renderer, 60, 50, 85, 80);
-    SDL_RenderDrawLine(renderer, infoX, divY, DETAIL_X + DETAIL_W - 16, divY);
+    SDL_RenderDrawLine(renderer, infoX, divY, DETAIL_X + DETAIL_W - 32, divY);
 
     drawText(renderer, font, "Encounter this enemy to reveal its data.",
-             infoX, divY + 14, {80, 75, 100, 160});
+             infoX, divY + 28, {80, 75, 100, 160});
     drawText(renderer, font, "Defeat it to permanently unlock its entry.",
-             infoX, divY + 34, {75, 70, 95, 140});
+             infoX, divY + 68, {75, 70, 95, 140});
 
     // Hidden stat bars (blacked out with question marks)
-    int statsY = divY + 70;
-    const int barW  = DETAIL_W - 270;
-    const int barH  = 12;
-    const int rowSp = 30;
+    int statsY = divY + 140;
+    const int barW  = DETAIL_W - 540;
+    const int barH  = 24;
+    const int rowSp = 60;
     const char* labels[] = {"HP:  ???", "DMG: ???", "SPD: ???", "ELEM: ???"};
     SDL_Color labelColor = {65, 60, 80, 120};
     for (int i = 0; i < 4; i++) {
         drawText(renderer, font, labels[i], infoX, statsY + i * rowSp, labelColor);
-        drawBar(renderer, infoX + 110, statsY + i * rowSp + 3, barW - 110, barH, 0.0f,
+        drawBar(renderer, infoX + 220, statsY + i * rowSp + 3, barW - 220, barH, 0.0f,
                 {0, 0, 0, 0}, {20, 18, 28, 100});
         // Draw diagonal lines over bar to indicate locked
         SDL_SetRenderDrawColor(renderer, 40, 35, 55, 80);
@@ -604,11 +604,11 @@ void BestiaryState::renderUndiscoveredDetail(SDL_Renderer* renderer, TTF_Font* f
     }
 
     // Hint about how to unlock
-    int hintY = statsY + rowSp * 4 + 16;
+    int hintY = statsY + rowSp * 4 + 32;
     SDL_SetRenderDrawColor(renderer, 50, 45, 70, 80);
-    SDL_RenderDrawLine(renderer, infoX, hintY, DETAIL_X + DETAIL_W - 16, hintY);
-    drawText(renderer, font, "ABILITIES:   [ LOCKED ]", infoX, hintY + 8, {60, 55, 80, 120});
-    drawText(renderer, font, "WEAKNESS:  [ LOCKED ]", infoX, hintY + 38, {60, 55, 80, 120});
+    SDL_RenderDrawLine(renderer, infoX, hintY, DETAIL_X + DETAIL_W - 32, hintY);
+    drawText(renderer, font, "ABILITIES:   [ LOCKED ]", infoX, hintY + 16, {60, 55, 80, 120});
+    drawText(renderer, font, "WEAKNESS:  [ LOCKED ]", infoX, hintY + 76, {60, 55, 80, 120});
 }
 
 // ---- Enemy preview (discovered) ----
