@@ -210,8 +210,8 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
                 int baseY = ((i * 8731 + 2917) % 1000) - 200;
                 int nx = ((baseX - nOffX) % 2000 + 2000) % 2000 - 400;
                 int ny = ((baseY - nOffY / 2) % 900 + 900) % 900 - 100;
-                int cloudW = 120 + (i * 37) % 180;
-                int cloudH = 40 + (i * 23) % 60;
+                int cloudW = 240 + (i * 37) % 360;
+                int cloudH = 80 + (i * 23) % 120;
                 float drift = std::sin(ticks * 0.0004f + i * 1.3f) * 15.0f;
                 nx += static_cast<int>(drift);
                 // Draw as overlapping semi-transparent circles
@@ -230,7 +230,7 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
 
         // Layer 2: Grid lines (medium parallax, gives depth)
         float gridParallax = 0.15f;
-        int gridSpacing = 120;
+        int gridSpacing = 240;
         int gridOffX = static_cast<int>(camPos.x * gridParallax) % gridSpacing;
         int gridOffY = static_cast<int>(camPos.y * gridParallax) % gridSpacing;
 
