@@ -41,7 +41,7 @@ void HUD::renderFlash(SDL_Renderer* renderer, int screenW, int screenH) {
     // Red vignette flash
     for (int i = 0; i < 3; i++) {
         SDL_SetRenderDrawColor(renderer, 255, 20, 0, static_cast<Uint8>(alpha / (i + 1)));
-        SDL_Rect border = {i * 4, i * 4, screenW - i * 8, screenH - i * 8};
+        SDL_Rect border = {i * 8, i * 8, screenW - i * 16, screenH - i * 16};
         SDL_RenderDrawRect(renderer, &border);
     }
     // Top/bottom red bars
