@@ -19,6 +19,7 @@ public:
     void toggleFullscreen();
     void setTitle(const std::string& title);
     void onResize(int w, int h);
+    void setResolution(int w, int h);
 
 private:
     SDL_Window* m_window;

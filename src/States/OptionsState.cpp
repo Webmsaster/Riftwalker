@@ -3,10 +3,34 @@
 #include "Core/AudioManager.h"
 #include "Core/InputManager.h"
 #include "Core/Localization.h"
+#include "Core/Window.h"
 #include <cmath>
 #include <cstdio>
 #include <algorithm>
 #include <string>
+
+// Available window resolutions (windowed mode only)
+struct Resolution { int w, h; const char* label; };
+static const Resolution s_resolutions[] = {
+    {1280,  720, "1280x720 (720p)"},
+    {1600,  900, "1600x900"},
+    {1920, 1080, "1920x1080 (1080p)"},
+    {2560, 1440, "2560x1440 (2K)"},
+    {3840, 2160, "3840x2160 (4K)"},
+};
+static constexpr int NUM_RESOLUTIONS = sizeof(s_resolutions) / sizeof(s_resolutions[0]);
+
+static int findCurrentResolution() {
+    int w = Game::WINDOW_WIDTH, h = Game::WINDOW_HEIGHT;
+    for (int i = 0; i < NUM_RESOLUTIONS; i++) {
+        if (s_resolutions[i].w == w && s_resolutions[i].h == h) return i;
+    }
+    // Default to closest match
+    for (int i = NUM_RESOLUTIONS - 1; i >= 0; i--) {
+        if (s_resolutions[i].w <= w && s_resolutions[i].h <= h) return i;
+    }
+    return 2; // 1080p fallback
+}
 
 // Indices for option items (must match order in enter())
 static constexpr int OPT_MASTER   = 0;
@@ -14,8 +38,9 @@ static constexpr int OPT_SFX      = 1;
 static constexpr int OPT_MUSIC    = 2;
 static constexpr int OPT_MUTE     = 3;
 static constexpr int OPT_FULLSCR  = 4;
-static constexpr int OPT_SHAKE    = 5;
-static constexpr int OPT_HUD_OPAC   = 6;
+static constexpr int OPT_RESOLUTION = 5;
+static constexpr int OPT_SHAKE    = 6;
+static constexpr int OPT_HUD_OPAC   = 7;
 static constexpr int OPT_RUMBLE     = OPT_HUD_OPAC + 1;
 static constexpr int OPT_COLORBLIND = OPT_HUD_OPAC + 2;
 static constexpr int OPT_HUDSCALE   = OPT_HUD_OPAC + 3;
@@ -33,6 +58,7 @@ void OptionsState::enter() {
     m_options.push_back({LOC("options.music_volume"),  static_cast<int>(g_musicVolume * 100.0f), 0, 100, 5, false});
     m_options.push_back({LOC("options.mute"),          audio.isMuted() ? 1 : 0, 0, 1, 1, true});
     m_options.push_back({LOC("options.fullscreen"),    (game->getWindow() && game->getWindow()->isFullscreen()) ? 1 : 0, 0, 1, 1, true});
+    m_options.push_back({"Resolution", findCurrentResolution(), 0, NUM_RESOLUTIONS - 1, 1, false});
     m_options.push_back({LOC("options.screen_shake"),  static_cast<int>(g_shakeIntensity * 100.0f), 0, 200, 10, false});
     m_options.push_back({LOC("options.hud_opacity"),   static_cast<int>(g_hudOpacity * 100.0f), 50, 100, 5, false});
     m_options.push_back({LOC("options.rumble"), game->getInput().isRumbleEnabled() ? 1 : 0, 0, 1, 1, true});
@@ -127,6 +153,7 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     m_options[OPT_MUSIC].value    = 60;  // 60% — music behind SFX
                     m_options[OPT_MUTE].value     = 0;
                     m_options[OPT_FULLSCR].value  = 0;
+                    m_options[OPT_RESOLUTION].value = findCurrentResolution();
                     m_options[OPT_SHAKE].value    = 100;
                     m_options[OPT_HUD_OPAC].value = 90;  // 90% — slightly transparent
                     m_options[OPT_RUMBLE].value     = 1;   // Rumble on
@@ -188,6 +215,16 @@ void OptionsState::applyOption(int index) {
                 }
             }
             break;
+        case OPT_RESOLUTION:
+            if (game->getWindow() && !game->getWindow()->isFullscreen()) {
+                int idx = m_options[OPT_RESOLUTION].value;
+                if (idx >= 0 && idx < NUM_RESOLUTIONS) {
+                    game->getWindow()->setResolution(s_resolutions[idx].w, s_resolutions[idx].h);
+                    Game::WINDOW_WIDTH = s_resolutions[idx].w;
+                    Game::WINDOW_HEIGHT = s_resolutions[idx].h;
+                }
+            }
+            break;
         case OPT_SHAKE:
             g_shakeIntensity = m_options[OPT_SHAKE].value / 100.0f;
             break;
@@ -217,6 +254,12 @@ std::string OptionsState::getValueText(int index) const {
     auto& opt = m_options[index];
     if (opt.isToggle) {
         return opt.value ? LOC("options.on") : LOC("options.off");
+    }
+    // Resolution: show resolution label
+    if (index == OPT_RESOLUTION) {
+        int idx = opt.value;
+        if (idx >= 0 && idx < NUM_RESOLUTIONS) return s_resolutions[idx].label;
+        return "Unknown";
     }
     // Language: show language name
     if (index == OPT_LANGUAGE) {
@@ -315,6 +358,7 @@ void OptionsState::update(float dt) {
             m_options[OPT_MUSIC].value    = 60;
             m_options[OPT_MUTE].value     = 0;
             m_options[OPT_FULLSCR].value  = 0;
+            m_options[OPT_RESOLUTION].value = findCurrentResolution();
             m_options[OPT_SHAKE].value    = 100;
             m_options[OPT_HUD_OPAC].value = 90;
             m_options[OPT_RUMBLE].value     = 1;

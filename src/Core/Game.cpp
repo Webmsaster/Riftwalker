@@ -86,8 +86,8 @@ bool Game::init() {
     AudioManager::instance().init();
 
     m_window = std::make_unique<Window>("Riftwalker", WINDOW_WIDTH, WINDOW_HEIGHT);
-    // Logical resolution stays at 1280x720 (all UI coordinates are hardcoded for this),
-    // physical window renders at native display resolution for maximum visual quality
+    // Logical resolution: 2560x1440 (all UI coordinates scaled for 2K)
+    // Physical window renders at selected/native resolution, SDL scales automatically
     SDL_RenderSetLogicalSize(m_window->getSDLRenderer(), SCREEN_WIDTH, SCREEN_HEIGHT);
     ResourceManager::instance().init(m_window->getSDLRenderer());
 
@@ -503,8 +503,14 @@ void Game::loadSaveData() {
             else if (key == "rumble")          { m_input.setRumbleEnabled(static_cast<int>(value) != 0); }
             else if (key == "language")        { Localization::instance().setLanguage(static_cast<int>(value) == 1 ? Lang::DE : Lang::EN); }
             else if (key == "crt_effect")      { g_crtEffect = (static_cast<int>(value) != 0); }
+            else if (key == "window_width")    { WINDOW_WIDTH = static_cast<int>(value); }
+            else if (key == "window_height")   { WINDOW_HEIGHT = static_cast<int>(value); }
         }
         cfg.close();
+        // Apply loaded window resolution (before fullscreen check)
+        if (m_window && !m_window->isFullscreen()) {
+            m_window->setResolution(WINDOW_WIDTH, WINDOW_HEIGHT);
+        }
     }
     // Apply loaded volumes to AudioManager
     auto& audio = AudioManager::instance();
@@ -538,6 +544,8 @@ void Game::saveSettings() {
         cfg << "rumble "           << (m_input.isRumbleEnabled() ? 1 : 0) << "\n";
         cfg << "language "         << static_cast<int>(Localization::instance().getLanguage()) << "\n";
         cfg << "crt_effect "       << (g_crtEffect ? 1 : 0) << "\n";
+        cfg << "window_width "     << WINDOW_WIDTH  << "\n";
+        cfg << "window_height "    << WINDOW_HEIGHT << "\n";
         cfg.close();
     }
 }

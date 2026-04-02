@@ -121,3 +121,11 @@ void Window::onResize(int w, int h) {
     m_width  = w;
     m_height = h;
 }
+
+void Window::setResolution(int w, int h) {
+    if (m_fullscreen) return; // Fullscreen uses desktop res
+    SDL_SetWindowSize(m_window, w, h);
+    SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    m_width = w;
+    m_height = h;
+}
