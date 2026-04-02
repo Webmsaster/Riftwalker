@@ -227,7 +227,7 @@ void PauseState::render(SDL_Renderer* renderer) {
             SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
             if (gt) {
                 SDL_SetTextureBlendMode(gt, SDL_BLENDMODE_ADD);
-                SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w - 2, 218, gs->w * 2 + 4, gs->h * 2 + 4};
+                SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w - 2, 436, gs->w * 2 + 4, gs->h * 2 + 4};
                 SDL_RenderCopy(renderer, gt, nullptr, &gr);
                 SDL_DestroyTexture(gt);
             }
@@ -240,7 +240,7 @@ void PauseState::render(SDL_Renderer* renderer) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w, 220, s->w * 2, s->h * 2};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w, 440, s->w * 2, s->h * 2};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -249,7 +249,7 @@ void PauseState::render(SDL_Renderer* renderer) {
 
         // Separator line under title
         SDL_SetRenderDrawColor(renderer, 100, 70, 180, 80);
-        SDL_RenderDrawLine(renderer, 400, 290, 880, 290);
+        SDL_RenderDrawLine(renderer, 800, 580, 1760, 580);
     }
 
     // Buttons
@@ -294,7 +294,7 @@ void PauseState::render(SDL_Renderer* renderer) {
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
-                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, SCREEN_HEIGHT - 30, hs->w, hs->h};
+                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, SCREEN_HEIGHT - 60, hs->w, hs->h};
                 SDL_RenderCopy(renderer, ht, nullptr, &hr);
                 SDL_DestroyTexture(ht);
             }
@@ -329,14 +329,14 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_Color accentCol = {180, 140, 255, 255};
 
     // === Left panel: Run Overview ===
-    int lx = 85;
-    int ly = 200;
+    int lx = 170;
+    int ly = 400;
 
     renderStatText(renderer, font, LOC("pause.run_stats"), lx, ly, accentCol);
-    ly += 22;
+    ly += 44;
     SDL_SetRenderDrawColor(renderer, 100, 80, 160, 80);
-    SDL_RenderDrawLine(renderer, lx, ly, lx + 200, ly);
-    ly += 8;
+    SDL_RenderDrawLine(renderer, lx, ly, lx + 400, ly);
+    ly += 16;
 
     // Floor / Zone
     {
@@ -344,7 +344,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
         int zone  = std::clamp((floor - 1) / 6, 0, 4) + 1;
         std::snprintf(buf, sizeof(buf), LOC("pause.floor"), floor, zone);
         renderStatText(renderer, font, buf, lx, ly, valCol);
-        ly += 18;
+        ly += 36;
     }
 
     // Difficulty
@@ -357,7 +357,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
     // Boss level indicator
     if (playState->isBossLevel()) {
         renderStatText(renderer, font, LOC("pause.boss_floor"), lx, ly, {255, 80, 80, 255});
-        ly += 18;
+        ly += 36;
     }
 
     // Run time
@@ -391,7 +391,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
     if (g_newGamePlusLevel > 0) {
         std::snprintf(buf, sizeof(buf), "New Game+ %d", g_newGamePlusLevel);
         renderStatText(renderer, font, buf, lx, ly, {200, 120, 255, 255});
-        ly += 18;
+        ly += 36;
     }
 
     // === Middle panel: Equipment ===
@@ -399,13 +399,13 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
     if (player && player->getEntity()) {
         Entity& pe = *player->getEntity();
 
-        int mx = 340;
-        int my = 200;
+        int mx = 680;
+        int my = 400;
         renderStatText(renderer, font, LOC("pause.equipment"), mx, my, accentCol);
-        my += 22;
+        my += 44;
         SDL_SetRenderDrawColor(renderer, 100, 80, 160, 80);
-        SDL_RenderDrawLine(renderer, mx, my, mx + 200, my);
-        my += 8;
+        SDL_RenderDrawLine(renderer, mx, my, mx + 400, my);
+        my += 16;
 
         // Class
         PlayerClass pc = player->playerClass;

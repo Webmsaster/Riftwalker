@@ -191,7 +191,7 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
 
             float twinkle = 0.5f + 0.5f * std::sin(ticks * 0.002f + i * 1.7f);
             Uint8 brightness = static_cast<Uint8>(30 + 40 * twinkle);
-            int size = (i % 3 == 0) ? 2 : 1;
+            int size = (i % 3 == 0) ? 4 : 2; // scaled for 2K visibility
             SDL_SetRenderDrawColor(renderer, brightness, brightness,
                                    static_cast<Uint8>(brightness + 30), 255);
             SDL_Rect star = {sx, sy, size, size};
