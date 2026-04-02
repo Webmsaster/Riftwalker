@@ -53,7 +53,7 @@ void DifficultySelectState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x, my = event.motion.y;
         for (int i = 0; i < 3; i++) {
-            int y = startY + i * (cardH + 15);
+            int y = startY + i * (cardH + 30);
             if (mx >= cardX && mx < cardX + cardW && my >= y && my < y + cardH) {
                 if (i != m_selected) {
                     m_selected = i;
@@ -67,7 +67,7 @@ void DifficultySelectState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         int mx = event.button.x, my = event.button.y;
         for (int i = 0; i < 3; i++) {
-            int y = startY + i * (cardH + 15);
+            int y = startY + i * (cardH + 30);
             if (mx >= cardX && mx < cardX + cardW && my >= y && my < y + cardH) {
                 m_selected = i;
                 handleConfirm();
@@ -165,7 +165,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
     int cardX = SCREEN_WIDTH / 2 - cardW / 2;
 
     for (int i = 0; i < 3; i++) {
-        int y = startY + i * (cardH + 15);
+        int y = startY + i * (cardH + 30);
         bool selected = (i == m_selected);
 
         // Card background
@@ -177,7 +177,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
         // Left accent
         SDL_SetRenderDrawColor(renderer, options[i].color.r, options[i].color.g,
                                options[i].color.b, selected ? static_cast<Uint8>(220) : static_cast<Uint8>(80));
-        SDL_Rect accent = {cardX, y, 4, cardH};
+        SDL_Rect accent = {cardX, y, 8, cardH};
         SDL_RenderFillRect(renderer, &accent);
 
         // Selection border
@@ -200,7 +200,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
             if (nt) {
                 int nw = static_cast<int>(ns->w * 1.3f);
                 int nh = static_cast<int>(ns->h * 1.3f);
-                SDL_Rect nr = {cardX + 20, y + 15, nw, nh};
+                SDL_Rect nr = {cardX + 40, y + 30, nw, nh};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }
@@ -213,7 +213,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
-                SDL_Rect dr = {cardX + 22, y + 58, ds->w, ds->h};
+                SDL_Rect dr = {cardX + 44, y + 116, ds->w, ds->h};
                 SDL_RenderCopy(renderer, dt, nullptr, &dr);
                 SDL_DestroyTexture(dt);
             }
