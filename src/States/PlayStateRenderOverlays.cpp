@@ -358,7 +358,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             SDL_SetTextureAlphaMod(tex, alpha);
             int tx = (SCREEN_WIDTH - surf->w) / 2;
-            int ty = 50 + static_cast<int>((1.0f - slideIn) * -20);
+            int ty = 100 + static_cast<int>((1.0f - slideIn) * -40);
             SDL_Rect r = {tx, ty, surf->w, surf->h};
             SDL_RenderCopy(renderer, tex, nullptr, &r);
             SDL_DestroyTexture(tex);
@@ -379,7 +379,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
             SDL_SetTextureAlphaMod(titleTex, alpha);
             int tx = (SCREEN_WIDTH - titleSurf->w) / 2;
-            int ty = 100;
+            int ty = 200;
             SDL_Rect r = {tx, ty, titleSurf->w, titleSurf->h};
             SDL_RenderCopy(renderer, titleTex, nullptr, &r);
             SDL_DestroyTexture(titleTex);
@@ -395,7 +395,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Texture* rewTex = SDL_CreateTextureFromSurface(renderer, rewSurf);
             SDL_SetTextureAlphaMod(rewTex, alpha);
             int rx = (SCREEN_WIDTH - rewSurf->w) / 2;
-            int ry = 125;
+            int ry = 250;
             SDL_Rect r = {rx, ry, rewSurf->w, rewSurf->h};
             SDL_RenderCopy(renderer, rewTex, nullptr, &r);
             SDL_DestroyTexture(rewTex);
