@@ -52,9 +52,11 @@ void LoreState::render(SDL_Renderer* renderer) {
         SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, "~ CODEX ~", white);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 60, surf->w, surf->h};
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
+            if (tex) {
+                SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 60, surf->w, surf->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
             SDL_FreeSurface(surf);
         }
     }
@@ -67,9 +69,11 @@ void LoreState::render(SDL_Renderer* renderer) {
         SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, buf, gray);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 170, surf->w, surf->h};
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
+            if (tex) {
+                SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 170, surf->w, surf->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
             SDL_FreeSurface(surf);
         }
     }
@@ -95,9 +99,11 @@ void LoreState::render(SDL_Renderer* renderer) {
             SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, title, col);
             if (surf) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                SDL_Rect dst = {listX, listY + i * 64, surf->w, surf->h};
-                SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                SDL_DestroyTexture(tex);
+                if (tex) {
+                    SDL_Rect dst = {listX, listY + i * 64, surf->w, surf->h};
+                    SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                    SDL_DestroyTexture(tex);
+                }
                 SDL_FreeSurface(surf);
             }
         }
@@ -120,9 +126,11 @@ void LoreState::render(SDL_Renderer* renderer) {
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, frag.title.c_str(), purple);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                    SDL_Rect dst = {panelX + 40, panelY + 30, surf->w, surf->h};
-                    SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                    SDL_DestroyTexture(tex);
+                    if (tex) {
+                        SDL_Rect dst = {panelX + 40, panelY + 30, surf->w, surf->h};
+                        SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                        SDL_DestroyTexture(tex);
+                    }
                     SDL_FreeSurface(surf);
                 }
             }
@@ -161,9 +169,11 @@ void LoreState::render(SDL_Renderer* renderer) {
                     SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, line.c_str(), textCol);
                     if (surf) {
                         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                        SDL_Rect dst = {panelX + 40, lineY, surf->w, surf->h};
-                        SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                        SDL_DestroyTexture(tex);
+                        if (tex) {
+                            SDL_Rect dst = {panelX + 40, lineY, surf->w, surf->h};
+                            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                            SDL_DestroyTexture(tex);
+                        }
                         SDL_FreeSurface(surf);
                     }
                     lineY += 44;
@@ -176,9 +186,11 @@ void LoreState::render(SDL_Renderer* renderer) {
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, "This fragment has not been discovered yet.", dim);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                    SDL_Rect dst = {panelX + panelW / 2 - surf->w / 2, panelY + panelH / 2 - 20, surf->w, surf->h};
-                    SDL_RenderCopy(renderer, tex, nullptr, &dst);
-                    SDL_DestroyTexture(tex);
+                    if (tex) {
+                        SDL_Rect dst = {panelX + panelW / 2 - surf->w / 2, panelY + panelH / 2 - 20, surf->w, surf->h};
+                        SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                        SDL_DestroyTexture(tex);
+                    }
                     SDL_FreeSurface(surf);
                 }
             }
@@ -191,9 +203,11 @@ void LoreState::render(SDL_Renderer* renderer) {
         SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, "W/S: Navigate   ESC: Back", hint);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, SCREEN_HEIGHT - 60, surf->w, surf->h};
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
+            if (tex) {
+                SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, SCREEN_HEIGHT - 60, surf->w, surf->h};
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
             SDL_FreeSurface(surf);
         }
     }
