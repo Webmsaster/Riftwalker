@@ -260,7 +260,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, runTitle, gold);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 80, surf->w, surf->h};
+                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 160, surf->w, surf->h};
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                     SDL_FreeSurface(surf);
@@ -291,7 +291,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                     SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, statLines[i], col);
                     if (surf) {
                         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                        SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 180 + i * 45, surf->w, surf->h};
+                        SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 360 + i * 90, surf->w, surf->h};
                         SDL_RenderCopy(renderer, tex, nullptr, &dst);
                         SDL_DestroyTexture(tex);
                         SDL_FreeSurface(surf);
@@ -310,7 +310,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, "Press SPACE to continue", hint);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 500, surf->w, surf->h};
+                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 1000, surf->w, surf->h};
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                     SDL_FreeSurface(surf);
@@ -334,7 +334,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, "Thank You for Playing", col);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 200, surf->w, surf->h};
+                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 400, surf->w, surf->h};
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                     SDL_FreeSurface(surf);
@@ -351,7 +351,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, "The Rift awaits your return... Ascend higher.", col);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 300, surf->w, surf->h};
+                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 600, surf->w, surf->h};
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                     SDL_FreeSurface(surf);
@@ -368,7 +368,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, "Press any key to return to menu", hint);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 500, surf->w, surf->h};
+                    SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 1000, surf->w, surf->h};
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                     SDL_FreeSurface(surf);
