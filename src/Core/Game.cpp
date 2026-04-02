@@ -492,21 +492,21 @@ void Game::loadSaveData() {
         std::string key;
         float value;
         while (cfg >> key >> value) {
-            if (key == "sfx_volume")           g_sfxVolume      = value;
-            else if (key == "music_volume")    g_musicVolume    = value;
-            else if (key == "shake_intensity") g_shakeIntensity = value;
-            else if (key == "hud_opacity")     g_hudOpacity     = value;
-            else if (key == "color_blind")     g_colorBlindMode = static_cast<int>(value);
-            else if (key == "hud_scale")       g_hudScale       = value;
-            else if (key == "master_volume")   { AudioManager::instance().setMasterVolume(value); }
+            if (key == "sfx_volume")           g_sfxVolume      = std::clamp(value, 0.0f, 1.0f);
+            else if (key == "music_volume")    g_musicVolume    = std::clamp(value, 0.0f, 1.0f);
+            else if (key == "shake_intensity") g_shakeIntensity = std::clamp(value, 0.0f, 2.0f);
+            else if (key == "hud_opacity")     g_hudOpacity     = std::clamp(value, 0.0f, 1.0f);
+            else if (key == "color_blind")     g_colorBlindMode = std::clamp(static_cast<int>(value), 0, 3);
+            else if (key == "hud_scale")       g_hudScale       = std::clamp(value, 0.5f, 2.0f);
+            else if (key == "master_volume")   { AudioManager::instance().setMasterVolume(std::clamp(value, 0.0f, 1.0f)); }
             else if (key == "fullscreen")      { if (m_window && static_cast<int>(value) != 0 && !m_window->isFullscreen()) m_window->toggleFullscreen(); }
             else if (key == "rumble")          { m_input.setRumbleEnabled(static_cast<int>(value) != 0); }
             else if (key == "language")        { Localization::instance().setLanguage(static_cast<int>(value) == 1 ? Lang::DE : Lang::EN); }
             else if (key == "muted")           { if (static_cast<int>(value) != 0 && !AudioManager::instance().isMuted()) AudioManager::instance().toggleMute();
                                                    else if (static_cast<int>(value) == 0 && AudioManager::instance().isMuted()) AudioManager::instance().toggleMute(); }
             else if (key == "crt_effect")      { g_crtEffect = (static_cast<int>(value) != 0); }
-            else if (key == "window_width")    { WINDOW_WIDTH = static_cast<int>(value); }
-            else if (key == "window_height")   { WINDOW_HEIGHT = static_cast<int>(value); }
+            else if (key == "window_width")    { int w = static_cast<int>(value); if (w >= 640 && w <= 7680) WINDOW_WIDTH = w; }
+            else if (key == "window_height")   { int h = static_cast<int>(value); if (h >= 480 && h <= 4320) WINDOW_HEIGHT = h; }
         }
         cfg.close();
         // Apply loaded window resolution (before fullscreen check)
