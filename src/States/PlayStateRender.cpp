@@ -671,12 +671,12 @@ void PlayState::render(SDL_Renderer* renderer) {
             for (int i = 0; i < 6; i++) {
                 // Deterministic but varied positions
                 int lineY = ((i * 9137 + ticks / 50) % SCREEN_HEIGHT);
-                int lineLen = 40 + (i * 31) % 80;
-                int lineX = movingRight ? SCREEN_WIDTH - lineLen - (i * 113 + ticks / 30) % 200
-                                        : (i * 113 + ticks / 30) % 200;
+                int lineLen = 80 + (i * 31) % 160;
+                int lineX = movingRight ? SCREEN_WIDTH - lineLen - (i * 113 + ticks / 30) % 400
+                                        : (i * 113 + ticks / 30) % 400;
                 Uint8 lineA = static_cast<Uint8>(intensity * (8 + i % 5));
                 SDL_SetRenderDrawColor(renderer, 200, 220, 255, lineA);
-                SDL_Rect speedLine = {lineX, lineY, lineLen, 1};
+                SDL_Rect speedLine = {lineX, lineY, lineLen, 2};
                 SDL_RenderFillRect(renderer, &speedLine);
             }
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -754,9 +754,9 @@ void PlayState::render(SDL_Renderer* renderer) {
                 // 3 converging light bands upward from rift
                 for (int band = 0; band < 3; band++) {
                     float drift = std::sin(ticks * 0.0008f + i * 2.0f + band * 1.2f) * 15.0f;
-                    int bx = static_cast<int>(rx + drift + (band - 1) * 12);
-                    int bw = 6 + band * 2;
-                    int bh = 100 + band * 40;
+                    int bx = static_cast<int>(rx + drift + (band - 1) * 24);
+                    int bw = 12 + band * 4;
+                    int bh = 200 + band * 80;
                     Uint8 shaftA = static_cast<Uint8>(8 + 4 * std::sin(ticks * 0.002f + band));
                     int reqDim = m_level->getRiftRequiredDimension(i);
                     if (reqDim == 2) {
@@ -793,8 +793,8 @@ void PlayState::render(SDL_Renderer* renderer) {
                         Uint8 sg = static_cast<Uint8>(std::max(0.0f, eg * segFade));
                         Uint8 sb = static_cast<Uint8>(std::max(0.0f, eb * segFade));
                         SDL_SetRenderDrawColor(renderer, sa, sg, sb, static_cast<Uint8>(sa));
-                        int shaftW = 12 + seg * 2; // Widens upward
-                        SDL_Rect shaft = {static_cast<int>(ex - shaftW / 2), static_cast<int>(ey - seg * 25 - 25), shaftW, 25};
+                        int shaftW = 24 + seg * 4; // Widens upward (scaled for 2K)
+                        SDL_Rect shaft = {static_cast<int>(ex - shaftW / 2), static_cast<int>(ey - seg * 50 - 50), shaftW, 50};
                         SDL_RenderFillRect(renderer, &shaft);
                     }
                 }

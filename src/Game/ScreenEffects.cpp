@@ -90,7 +90,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
         int cornerW = edgeW;
         int cornerH = edgeH;
         Uint8 cornerMaxA = static_cast<Uint8>(std::min(255, static_cast<int>(vigA) * 3 / 4));
-        constexpr int kCornerBlock = 6; // Block size for corner fill
+        constexpr int kCornerBlock = 12; // Block size for corner fill (scaled for 2K)
         int cornerPositions[4][2] = {
             {0, 0}, {screenW - cornerW, 0},
             {0, screenH - cornerH}, {screenW - cornerW, screenH - cornerH}
@@ -566,7 +566,7 @@ void ScreenEffects::renderVignette(SDL_Renderer* renderer, int screenW, int scre
     }
 
     // Corner extra darkening (elliptical, 4 corners with coarse blocks)
-    constexpr int kCornerBlock = 8;
+    constexpr int kCornerBlock = 16;
     const int cornerW = marginW;
     const int cornerH = marginH;
     const Uint8 cornerMaxA = static_cast<Uint8>(kMaxEdgeAlpha * 0.9f);

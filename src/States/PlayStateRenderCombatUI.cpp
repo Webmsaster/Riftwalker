@@ -89,9 +89,9 @@ void PlayState::renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font) {
     float alpha = slideIn * fadeOut;
     Uint8 a = static_cast<Uint8>(alpha * 230);
 
-    int popW = 320, popH = 44;
+    int popW = 640, popH = 88;
     int popX = SCREEN_WIDTH / 2 - popW / 2;
-    int popY = 20 + static_cast<int>((1.0f - slideIn) * 30);
+    int popY = 40 + static_cast<int>((1.0f - slideIn) * 60);
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 25, 15, 40, a);
@@ -147,7 +147,7 @@ void PlayState::renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font) {
 void PlayState::renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font) {
     if (!font) return;
     // Stack popups in top-center
-    int baseY = 60;
+    int baseY = 120;
     for (int i = 0; i < MAX_UNLOCK_NOTIFS; i++) {
         int idx = (m_unlockNotifHead + i) % MAX_UNLOCK_NOTIFS;
         auto& n = m_unlockNotifs[idx];
@@ -159,9 +159,9 @@ void PlayState::renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font
         float alpha = slideIn * fadeOut;
         Uint8 a = static_cast<Uint8>(alpha * 240);
 
-        int popW = 280, popH = 32;
+        int popW = 560, popH = 64;
         int popX = SCREEN_WIDTH / 2 - popW / 2;
-        int popY = baseY + static_cast<int>((1.0f - slideIn) * 20);
+        int popY = baseY + static_cast<int>((1.0f - slideIn) * 40);
 
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 30, 25, 10, a);
@@ -206,7 +206,7 @@ void PlayState::renderKillStreak(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         Uint8 glowA = static_cast<Uint8>(alpha * 40);
         SDL_SetRenderDrawColor(renderer, 255, 30, 30, glowA);
-        int glowW = 320, glowH = 60;
+        int glowW = 640, glowH = 120;
         SDL_Rect glow = {SCREEN_WIDTH / 2 - glowW / 2, SCREEN_HEIGHT / 4 - glowH / 2, glowW, glowH};
         SDL_RenderFillRect(renderer, &glow);
     }
@@ -229,10 +229,10 @@ void PlayState::renderKillStreak(SDL_Renderer* renderer, TTF_Font* font) {
 
     if (a > 30) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        int lineW = static_cast<int>(160 * alpha * pulse);
+        int lineW = static_cast<int>(320 * alpha * pulse);
         SDL_SetRenderDrawColor(renderer, m_killStreakColor.r, m_killStreakColor.g,
                                m_killStreakColor.b, static_cast<Uint8>(a * 0.6f));
-        SDL_Rect line = {SCREEN_WIDTH / 2 - lineW / 2, SCREEN_HEIGHT / 4 + 18, lineW, 2};
+        SDL_Rect line = {SCREEN_WIDTH / 2 - lineW / 2, SCREEN_HEIGHT / 4 + 36, lineW, 4};
         SDL_RenderFillRect(renderer, &line);
     }
 }
@@ -358,8 +358,8 @@ void PlayState::renderDamageIndicators(SDL_Renderer* renderer) {
     if (m_damageIndicators.empty()) return;
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    constexpr int kEdgeThickness = 32;
-    constexpr int kEdgeFadeInner = 20;
+    constexpr int kEdgeThickness = 64;
+    constexpr int kEdgeFadeInner = 40;
 
     for (auto& ind : m_damageIndicators) {
         float alpha = ind.timer / ind.maxTimer;
