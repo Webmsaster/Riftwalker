@@ -30,7 +30,7 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - Off-screen enemy indicator size + margin doubled
 - Run intro narrative text positions + vignette border scaled
 - Boss intro title card: doubled cinematic bars, separator lines, text offsets
-- 33 commits, 41+ files changed, ~700 lines
+- 68 commits, 44 files changed, ~1900 lines total
 - Deep-dived into every card internal: Bestiary stat bars/icons/lore, Challenge checkboxes,
   NG+ card text/badges, Difficulty card names/descriptions, Relic selection orbs/labels
 - Also scaled: speed lines, god rays, exit shafts, depth fog, foreground fog particles,
