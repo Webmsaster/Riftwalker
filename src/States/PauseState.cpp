@@ -412,7 +412,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
         if (pc >= PlayerClass::Voidwalker && pc < PlayerClass::COUNT) {
             std::snprintf(buf, sizeof(buf), LOC("pause.class"), ClassSystem::getData(pc).name);
             renderStatText(renderer, font, buf, mx, my, valCol);
-            my += 18;
+            my += 36;
         }
 
         // Weapons
@@ -422,10 +422,10 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
             const char* rName = WeaponSystem::getWeaponName(combat.currentRanged);
             std::snprintf(buf, sizeof(buf), LOC("pause.melee"), mName);
             renderStatText(renderer, font, buf, mx, my, {255, 180, 80, 255});
-            my += 18;
+            my += 36;
             std::snprintf(buf, sizeof(buf), LOC("pause.ranged"), rName);
             renderStatText(renderer, font, buf, mx, my, {80, 200, 255, 255});
-            my += 18;
+            my += 36;
 
             // Weapon mastery
             auto& cs = playState->getCombatSystem();
@@ -436,19 +436,19 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
             if (mTier != MasteryTier::None) {
                 std::snprintf(buf, sizeof(buf), "  [%s] %d kills", WeaponSystem::getMasteryTierName(mTier), mKills);
                 renderStatText(renderer, font, buf, mx, my, {255, 200, 100, 200});
-                my += 16;
+                my += 32;
             }
             if (rTier != MasteryTier::None) {
                 std::snprintf(buf, sizeof(buf), "  [%s] %d kills", WeaponSystem::getMasteryTierName(rTier), rKills);
                 renderStatText(renderer, font, buf, mx, my, {100, 200, 255, 200});
-                my += 16;
+                my += 32;
             }
         }
 
         // Player level / XP
         std::snprintf(buf, sizeof(buf), LOC("pause.level"), player->level, player->xp, player->xpToNextLevel);
         renderStatText(renderer, font, buf, mx, my, {180, 220, 255, 255});
-        my += 18;
+        my += 36;
 
         // HP
         if (pe.hasComponent<HealthComponent>()) {
@@ -456,19 +456,19 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
             std::snprintf(buf, sizeof(buf), LOC("pause.hp"), hp.currentHP, hp.maxHP);
             SDL_Color hpCol = (hp.getPercent() < 0.3f) ? SDL_Color{255, 80, 80, 255} : SDL_Color{80, 255, 80, 255};
             renderStatText(renderer, font, buf, mx, my, hpCol);
-            my += 20;
+            my += 40;
         }
 
         // Relics
         if (pe.hasComponent<RelicComponent>()) {
             auto& relics = pe.getComponent<RelicComponent>();
             if (!relics.relics.empty()) {
-                my += 4;
+                my += 8;
                 renderStatText(renderer, font, LOC("pause.relics"), mx, my, accentCol);
-                my += 22;
+                my += 44;
                 SDL_SetRenderDrawColor(renderer, 100, 80, 160, 80);
-                SDL_RenderDrawLine(renderer, mx, my, mx + 200, my);
-                my += 6;
+                SDL_RenderDrawLine(renderer, mx, my, mx + 400, my);
+                my += 12;
 
                 for (auto& r : relics.relics) {
                     if (r.consumed) continue;
@@ -477,8 +477,8 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
                     if (data.tier == RelicTier::Rare) rCol = {100, 180, 255, 255};
                     else if (data.tier == RelicTier::Legendary) rCol = {255, 200, 50, 255};
                     renderStatText(renderer, font, data.name, mx, my, rCol);
-                    my += 16;
-                    if (my > 620) break; // Don't overflow panel
+                    my += 32;
+                    if (my > SCREEN_HEIGHT - 200) break; // Don't overflow panel
                 }
             }
         }
