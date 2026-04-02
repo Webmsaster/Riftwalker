@@ -290,7 +290,7 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
             } else {
                 SDL_SetRenderDrawColor(renderer, 120, 200, 255, 180);
             }
-            SDL_Rect pr = {playerMX - 2, playerMY - 2, 5, 5};
+            SDL_Rect pr = {playerMX - 4, playerMY - 4, 9, 9};
             SDL_RenderFillRect(renderer, &pr);
             // Bright center pixel
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
