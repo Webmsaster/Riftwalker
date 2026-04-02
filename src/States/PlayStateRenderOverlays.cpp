@@ -383,12 +383,14 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Surface* titleSurf = TTF_RenderText_Blended(font, "CHAIN COMPLETE!", goldCol);
         if (titleSurf) {
             SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
-            SDL_SetTextureAlphaMod(titleTex, alpha);
-            int tx = (SCREEN_WIDTH - titleSurf->w) / 2;
-            int ty = 200;
-            SDL_Rect r = {tx, ty, titleSurf->w, titleSurf->h};
-            SDL_RenderCopy(renderer, titleTex, nullptr, &r);
-            SDL_DestroyTexture(titleTex);
+            if (titleTex) {
+                SDL_SetTextureAlphaMod(titleTex, alpha);
+                int tx = (SCREEN_WIDTH - titleSurf->w) / 2;
+                int ty = 200;
+                SDL_Rect r = {tx, ty, titleSurf->w, titleSurf->h};
+                SDL_RenderCopy(renderer, titleTex, nullptr, &r);
+                SDL_DestroyTexture(titleTex);
+            }
             SDL_FreeSurface(titleSurf);
         }
 
@@ -399,12 +401,14 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Surface* rewSurf = TTF_RenderText_Blended(font, rewardText, rewCol);
         if (rewSurf) {
             SDL_Texture* rewTex = SDL_CreateTextureFromSurface(renderer, rewSurf);
-            SDL_SetTextureAlphaMod(rewTex, alpha);
-            int rx = (SCREEN_WIDTH - rewSurf->w) / 2;
-            int ry = 250;
-            SDL_Rect r = {rx, ry, rewSurf->w, rewSurf->h};
-            SDL_RenderCopy(renderer, rewTex, nullptr, &r);
-            SDL_DestroyTexture(rewTex);
+            if (rewTex) {
+                SDL_SetTextureAlphaMod(rewTex, alpha);
+                int rx = (SCREEN_WIDTH - rewSurf->w) / 2;
+                int ry = 250;
+                SDL_Rect r = {rx, ry, rewSurf->w, rewSurf->h};
+                SDL_RenderCopy(renderer, rewTex, nullptr, &r);
+                SDL_DestroyTexture(rewTex);
+            }
             SDL_FreeSurface(rewSurf);
         }
     }

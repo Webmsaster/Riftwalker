@@ -175,7 +175,6 @@ void DailyRun::load(const std::string& path) {
         }
         std::string dateStr;
         while (f >> dateStr >> e.score >> e.kills >> difficulty) {
-            e = DailyLeaderboardEntry{};
             snprintf(e.date, sizeof(e.date), "%s", dateStr.c_str());
             m_entries.push_back(e);
         }
