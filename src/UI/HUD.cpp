@@ -809,8 +809,8 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
     // Floor / Zone + Rift Shards — compact info strip below minimap
     {
-        const int infoX = screenW - 170;
-        const int infoY = m_showMinimap ? 130 : 12;
+        const int infoX = screenW - 340;
+        const int infoY = m_showMinimap ? 260 : 24;
         const int zone  = std::clamp((m_currentFloor - 1) / 6, 0, 4) + 1;
 
         // Background panel
@@ -838,20 +838,20 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 std::snprintf(extraText, sizeof(extraText), "K:%d NG+%d", m_killCount, g_newGamePlusLevel);
             else
                 std::snprintf(extraText, sizeof(extraText), "K:%d", m_killCount);
-            renderText(renderer, font, extraText, infoX + 100, infoY, {200, 160, 160, 150});
+            renderText(renderer, font, extraText, infoX + 200, infoY, {200, 160, 160, 150});
 
             // Line 2: diamond icon + shard count
-            int iy2 = infoY + 17;
-            int ix = infoX + 6, iy = iy2 + 6;
+            int iy2 = infoY + 34;
+            int ix = infoX + 12, iy = iy2 + 12;
             SDL_SetRenderDrawColor(renderer, 180, 130, 255, 200);
-            SDL_RenderDrawLine(renderer, ix, iy - 5, ix + 5, iy);
-            SDL_RenderDrawLine(renderer, ix + 5, iy, ix, iy + 5);
-            SDL_RenderDrawLine(renderer, ix, iy + 5, ix - 5, iy);
-            SDL_RenderDrawLine(renderer, ix - 5, iy, ix, iy - 5);
+            SDL_RenderDrawLine(renderer, ix, iy - 10, ix + 10, iy);
+            SDL_RenderDrawLine(renderer, ix + 10, iy, ix, iy + 10);
+            SDL_RenderDrawLine(renderer, ix, iy + 10, ix - 10, iy);
+            SDL_RenderDrawLine(renderer, ix - 10, iy, ix, iy - 10);
 
             char shardText[32];
             std::snprintf(shardText, sizeof(shardText), "%d", riftShards);
-            renderText(renderer, font, shardText, infoX + 16, iy2, {200, 170, 255, 180});
+            renderText(renderer, font, shardText, infoX + 32, iy2, {200, 170, 255, 180});
 
             // Run timer — pulses gold under 10:00 (speedrun territory)
             int mins = static_cast<int>(m_runTime) / 60;
@@ -864,7 +864,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 Uint8 a = static_cast<Uint8>(200 * pulse);
                 timerCol = {255, 215, 80, a};
             }
-            renderText(renderer, font, timerText, infoX + 100, iy2, timerCol);
+            renderText(renderer, font, timerText, infoX + 200, iy2, timerCol);
         }
     }
 
@@ -874,7 +874,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     if (font) {
         char fpsText[16];
         std::snprintf(fpsText, sizeof(fpsText), "%d FPS", fps);
-        renderText(renderer, font, fpsText, screenW - 75, screenH - 30, {80, 80, 90, 150});
+        renderText(renderer, font, fpsText, screenW - 150, screenH - 60, {80, 80, 90, 150});
     }
 
     // NG+ tier indicator (gold number, top-right corner)
