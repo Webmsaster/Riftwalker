@@ -99,7 +99,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
-                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, 30, ts->w, ts->h};
+                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, 60, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }
