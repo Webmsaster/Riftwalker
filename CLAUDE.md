@@ -30,7 +30,13 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - Off-screen enemy indicator size + margin doubled
 - Run intro narrative text positions + vignette border scaled
 - Boss intro title card: doubled cinematic bars, separator lines, text offsets
-- 6 commits, 35+ files changed, ~400 lines
+- 33 commits, 41+ files changed, ~700 lines
+- Deep-dived into every card internal: Bestiary stat bars/icons/lore, Challenge checkboxes,
+  NG+ card text/badges, Difficulty card names/descriptions, Relic selection orbs/labels
+- Also scaled: speed lines, god rays, exit shafts, depth fog, foreground fog particles,
+  chromatic aberration, vignette corners, void storm border, entropy glitch blocks,
+  ambient particles, damage indicators, off-screen enemy arrows, kill streak glow,
+  wave clear underlines, event chain progress dots, menu portal effects
 
 **Previous Updates (2026-04-01 high-end visual overhaul session):**
 - **COMPLETE SPRITE OVERHAUL**: All 17 enemies + player regenerated via v3 pipeline
