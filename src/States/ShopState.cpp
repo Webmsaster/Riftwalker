@@ -409,25 +409,25 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         switch (buff.id) {
             case RunBuffID::MaxHPBoost:
                 // Heart shape (two rects + triangle)
-                SDL_RenderDrawLine(renderer, iconCX, iconCY - 8, iconCX - 8, iconCY);
-                SDL_RenderDrawLine(renderer, iconCX - 8, iconCY, iconCX, iconCY + 10);
-                SDL_RenderDrawLine(renderer, iconCX, iconCY + 10, iconCX + 8, iconCY);
-                SDL_RenderDrawLine(renderer, iconCX + 8, iconCY, iconCX, iconCY - 8);
+                SDL_RenderDrawLine(renderer, iconCX, iconCY - 16, iconCX - 16, iconCY);
+                SDL_RenderDrawLine(renderer, iconCX - 16, iconCY, iconCX, iconCY + 20);
+                SDL_RenderDrawLine(renderer, iconCX, iconCY + 20, iconCX + 16, iconCY);
+                SDL_RenderDrawLine(renderer, iconCX + 16, iconCY, iconCX, iconCY - 16);
                 break;
             case RunBuffID::FireWeapon:
                 // Flame
                 SDL_SetRenderDrawColor(renderer, 255, 120, 30, 200);
-                SDL_RenderDrawLine(renderer, iconCX, iconCY - 10, iconCX - 5, iconCY + 5);
-                SDL_RenderDrawLine(renderer, iconCX - 5, iconCY + 5, iconCX, iconCY + 2);
-                SDL_RenderDrawLine(renderer, iconCX, iconCY + 2, iconCX + 5, iconCY + 5);
-                SDL_RenderDrawLine(renderer, iconCX + 5, iconCY + 5, iconCX, iconCY - 10);
+                SDL_RenderDrawLine(renderer, iconCX, iconCY - 20, iconCX - 10, iconCY + 10);
+                SDL_RenderDrawLine(renderer, iconCX - 10, iconCY + 10, iconCX, iconCY + 4);
+                SDL_RenderDrawLine(renderer, iconCX, iconCY + 4, iconCX + 10, iconCY + 10);
+                SDL_RenderDrawLine(renderer, iconCX + 10, iconCY + 10, iconCX, iconCY - 20);
                 break;
             default:
                 // Generic diamond
-                SDL_RenderDrawLine(renderer, iconCX, iconCY - 10, iconCX + 10, iconCY);
-                SDL_RenderDrawLine(renderer, iconCX + 10, iconCY, iconCX, iconCY + 10);
-                SDL_RenderDrawLine(renderer, iconCX, iconCY + 10, iconCX - 10, iconCY);
-                SDL_RenderDrawLine(renderer, iconCX - 10, iconCY, iconCX, iconCY - 10);
+                SDL_RenderDrawLine(renderer, iconCX, iconCY - 20, iconCX + 20, iconCY);
+                SDL_RenderDrawLine(renderer, iconCX + 20, iconCY, iconCX, iconCY + 20);
+                SDL_RenderDrawLine(renderer, iconCX, iconCY + 20, iconCX - 20, iconCY);
+                SDL_RenderDrawLine(renderer, iconCX - 20, iconCY, iconCX, iconCY - 20);
                 break;
         }
 
