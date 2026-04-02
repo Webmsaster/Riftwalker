@@ -56,7 +56,8 @@ void PlayState::updateDimensionSwitch() {
             }
         });
         if (dimLocked) {
-            m_camera.shake(3.0f, 0.1f); // Feedback: can't switch
+            m_camera.shake(3.0f, 0.1f);
+            AudioManager::instance().play(SFX::RiftFail); // Audio feedback: can't switch
         } else if (m_dimManager.switchDimension()) {
             m_dimensionSwitches++; // Track total dimension switches for run summary
             // Dimension Dancer: 50 dimension switches in one run

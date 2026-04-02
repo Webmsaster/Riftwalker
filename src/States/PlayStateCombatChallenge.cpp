@@ -192,6 +192,8 @@ void PlayState::checkExitReached() {
         if (!m_collapsing) {
             // Show hint to player that exit is locked
             m_exitLockedHintTimer = 2.0f;
+            AudioManager::instance().play(SFX::RiftFail);
+            m_camera.shake(2.0f, 0.1f);
             return;
         }
         m_levelComplete = true;

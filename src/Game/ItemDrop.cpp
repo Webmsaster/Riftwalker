@@ -302,7 +302,7 @@ Entity& ItemDrop::spawnWeaponDrop(EntityManager& entities, Vec2 pos, int dimensi
     col.layer = LAYER_PICKUP;
     col.mask = LAYER_TILE | LAYER_PLAYER;
     col.type = ColliderType::Trigger;
-    col.onTrigger = [weapon, player](Entity* self, Entity* other) {
+    col.onTrigger = [weapon, player, melee](Entity* self, Entity* other) {
         if (other->getTag() == "player" && other->hasComponent<CombatComponent>() && player) {
             auto& combat = other->getComponent<CombatComponent>();
             if (WeaponSystem::isMelee(weapon))
@@ -312,6 +312,12 @@ Entity& ItemDrop::spawnWeaponDrop(EntityManager& entities, Vec2 pos, int dimensi
             player->applyWeaponStats();
             player->weaponPickupPending = static_cast<int>(weapon);
             AudioManager::instance().play(SFX::ShrineBlessing);
+            // Particle burst on weapon pickup (orange=melee, cyan=ranged)
+            if (player->particles && other->hasComponent<TransformComponent>()) {
+                auto& st = other->getComponent<TransformComponent>();
+                SDL_Color c = melee ? SDL_Color{255, 180, 60, 255} : SDL_Color{60, 200, 255, 255};
+                player->particles->burst(st.getCenter(), 10, c, 130.0f);
+            }
             self->destroy();
         }
     };
