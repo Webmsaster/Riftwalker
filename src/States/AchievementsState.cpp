@@ -140,9 +140,9 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         // Skip if off-screen
         if (y + itemH < 180 || y > SCREEN_HEIGHT - 80) continue;
 
-        int cardX = 190;
-        int cardW = 900;
-        int cardH = 52;
+        int cardX = 380;
+        int cardW = 1800;
+        int cardH = 104;
 
         // Card background
         if (a.unlocked) {
@@ -163,24 +163,24 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         SDL_RenderDrawRect(renderer, &card);
 
         // Icon placeholder (checkmark or lock)
-        int iconX = cardX + 12;
-        int iconY = y + 10;
+        int iconX = cardX + 24;
+        int iconY = y + 20;
         if (a.unlocked) {
             // Green checkmark
             SDL_SetRenderDrawColor(renderer, 80, 220, 100, 255);
-            SDL_Rect check = {iconX, iconY, 24, 24};
+            SDL_Rect check = {iconX, iconY, 48, 48};
             SDL_RenderFillRect(renderer, &check);
             SDL_SetRenderDrawColor(renderer, 20, 60, 30, 255);
             // V shape
-            SDL_RenderDrawLine(renderer, iconX + 5, iconY + 12, iconX + 10, iconY + 18);
-            SDL_RenderDrawLine(renderer, iconX + 10, iconY + 18, iconX + 19, iconY + 7);
+            SDL_RenderDrawLine(renderer, iconX + 10, iconY + 24, iconX + 20, iconY + 36);
+            SDL_RenderDrawLine(renderer, iconX + 20, iconY + 36, iconX + 38, iconY + 14);
         } else {
             // Gray lock
             SDL_SetRenderDrawColor(renderer, 80, 70, 90, 200);
-            SDL_Rect lock = {iconX, iconY, 24, 24};
+            SDL_Rect lock = {iconX, iconY, 48, 48};
             SDL_RenderFillRect(renderer, &lock);
             SDL_SetRenderDrawColor(renderer, 50, 40, 60, 255);
-            SDL_Rect lockInner = {iconX + 6, iconY + 10, 12, 10};
+            SDL_Rect lockInner = {iconX + 12, iconY + 20, 24, 20};
             SDL_RenderFillRect(renderer, &lockInner);
         }
 
@@ -190,7 +190,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {cardX + 48, y + 8, ns->w, ns->h};
+                SDL_Rect nr = {cardX + 96, y + 16, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }
@@ -203,7 +203,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
-                SDL_Rect dr = {cardX + 48, y + 28, ds->w, ds->h};
+                SDL_Rect dr = {cardX + 96, y + 56, ds->w, ds->h};
                 SDL_RenderCopy(renderer, dt, nullptr, &dr);
                 SDL_DestroyTexture(dt);
             }
