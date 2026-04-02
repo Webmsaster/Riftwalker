@@ -1,8 +1,7 @@
 #include "ChallengeMode.h"
+#include "Core/SaveUtils.h"
 #include <vector>
 #include <fstream>
-#include <cstdio>
-#include <SDL.h>
 
 static std::vector<ChallengeData> s_challenges;
 static std::vector<MutatorData> s_mutators;
@@ -76,23 +75,15 @@ void ChallengeMode::recordResult(ChallengeID id, int score, float time, int floo
 }
 
 void ChallengeMode::save(const std::string& filepath) {
-    // Backup existing file
-    {
-        std::ifstream src(filepath, std::ios::binary);
-        if (src) {
-            std::ofstream dst(filepath + ".bak", std::ios::binary);
-            if (dst) dst << src.rdbuf();
+    atomicSave(filepath, [](std::ofstream& f) {
+        f << "CHALLENGE_SCORES_V1\n";
+        for (int i = 1; i < static_cast<int>(ChallengeID::COUNT); i++) {
+            auto& b = bestScores[i];
+            f << i << " " << (b.completed ? 1 : 0) << " "
+              << b.bestScore << " " << b.bestTime << " "
+              << b.bestFloor << " " << b.bestKills << "\n";
         }
-    }
-    std::ofstream f(filepath);
-    if (!f) return;
-    f << "CHALLENGE_SCORES_V1\n";
-    for (int i = 1; i < static_cast<int>(ChallengeID::COUNT); i++) {
-        auto& b = bestScores[i];
-        f << i << " " << (b.completed ? 1 : 0) << " "
-          << b.bestScore << " " << b.bestTime << " "
-          << b.bestFloor << " " << b.bestKills << "\n";
-    }
+    });
 }
 
 void ChallengeMode::load(const std::string& filepath) {

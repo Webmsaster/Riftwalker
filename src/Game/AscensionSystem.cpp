@@ -1,7 +1,7 @@
 #include "AscensionSystem.h"
+#include "Core/SaveUtils.h"
 #include <vector>
 #include <fstream>
-#include <SDL.h>
 
 static std::vector<AscensionLevel> s_levels;
 static bool s_init = false;
@@ -68,17 +68,9 @@ const AscensionLevel& AscensionSystem::getLevel(int level) {
 int AscensionSystem::getMaxLevel() { return 10; }
 
 void AscensionSystem::save(const std::string& filepath) {
-    // Backup existing file
-    {
-        std::ifstream src(filepath, std::ios::binary);
-        if (src) {
-            std::ofstream dst(filepath + ".bak", std::ios::binary);
-            if (dst) dst << src.rdbuf();
-        }
-    }
-    std::ofstream f(filepath);
-    if (!f) return;
-    f << currentLevel << "\n" << riftCores << "\n";
+    atomicSave(filepath, [](std::ofstream& f) {
+        f << currentLevel << "\n" << riftCores << "\n";
+    });
 }
 
 void AscensionSystem::load(const std::string& filepath) {

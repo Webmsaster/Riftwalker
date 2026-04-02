@@ -24,6 +24,7 @@
 #include "States/SplashState.h"
 #include "ScreenCapture.h"
 #include "VisualTest.h"
+#include "SaveUtils.h"
 #include <SDL2/SDL_image.h>
 #include <fstream>
 #include <sstream>
@@ -33,22 +34,6 @@ bool g_screenshotRequested = false;
 // Runtime-initialized from display resolution
 int Game::WINDOW_WIDTH = 1920;
 int Game::WINDOW_HEIGHT = 1080;
-
-static void backupFile(const std::string& path) {
-    std::ifstream src(path, std::ios::binary);
-    if (!src) return;
-    std::ofstream dst(path + ".bak", std::ios::binary);
-    if (dst) dst << src.rdbuf();
-}
-
-static std::ifstream openWithBackupFallback(const std::string& path) {
-    std::ifstream file(path);
-    if (file.is_open() && file.peek() != std::ifstream::traits_type::eof()) return file;
-    file.close();
-    file.open(path + ".bak");
-    if (file.is_open()) SDL_Log("Using backup save: %s.bak", path.c_str());
-    return file;
-}
 
 Game::Game() {}
 
@@ -521,36 +506,32 @@ void Game::loadSaveData() {
 }
 
 void Game::saveSaveData() {
-    backupFile("riftwalker_save.dat");
-    std::ofstream file("riftwalker_save.dat");
-    if (file.is_open()) {
-        file << m_upgrades.serialize();
-        file.close();
-    }
+    std::string data = m_upgrades.serialize();
+    atomicSave("riftwalker_save.dat", [&](std::ofstream& f) {
+        f << data;
+    });
 
     // Save audio/visual settings
     saveSettings();
 }
 
 void Game::saveSettings() {
-    std::ofstream cfg("riftwalker_settings.cfg");
-    if (cfg.is_open()) {
-        cfg << "master_volume "   << AudioManager::instance().getMasterVolume() << "\n";
-        cfg << "sfx_volume "      << g_sfxVolume       << "\n";
-        cfg << "music_volume "    << g_musicVolume      << "\n";
-        cfg << "shake_intensity " << g_shakeIntensity   << "\n";
-        cfg << "hud_opacity "     << g_hudOpacity       << "\n";
-        cfg << "color_blind "     << g_colorBlindMode   << "\n";
-        cfg << "hud_scale "       << g_hudScale         << "\n";
-        cfg << "fullscreen "      << (m_window ? (m_window->isFullscreen() ? 1 : 0) : 0) << "\n";
-        cfg << "rumble "           << (m_input.isRumbleEnabled() ? 1 : 0) << "\n";
-        cfg << "language "         << static_cast<int>(Localization::instance().getLanguage()) << "\n";
-        cfg << "muted "             << (AudioManager::instance().isMuted() ? 1 : 0) << "\n";
-        cfg << "crt_effect "       << (g_crtEffect ? 1 : 0) << "\n";
-        cfg << "window_width "     << WINDOW_WIDTH  << "\n";
-        cfg << "window_height "    << WINDOW_HEIGHT << "\n";
-        cfg.close();
-    }
+    atomicSave("riftwalker_settings.cfg", [&](std::ofstream& f) {
+        f << "master_volume "   << AudioManager::instance().getMasterVolume() << "\n";
+        f << "sfx_volume "      << g_sfxVolume       << "\n";
+        f << "music_volume "    << g_musicVolume      << "\n";
+        f << "shake_intensity " << g_shakeIntensity   << "\n";
+        f << "hud_opacity "     << g_hudOpacity       << "\n";
+        f << "color_blind "     << g_colorBlindMode   << "\n";
+        f << "hud_scale "       << g_hudScale         << "\n";
+        f << "fullscreen "      << (m_window ? (m_window->isFullscreen() ? 1 : 0) : 0) << "\n";
+        f << "rumble "           << (m_input.isRumbleEnabled() ? 1 : 0) << "\n";
+        f << "language "         << static_cast<int>(Localization::instance().getLanguage()) << "\n";
+        f << "muted "             << (AudioManager::instance().isMuted() ? 1 : 0) << "\n";
+        f << "crt_effect "       << (g_crtEffect ? 1 : 0) << "\n";
+        f << "window_width "     << WINDOW_WIDTH  << "\n";
+        f << "window_height "    << WINDOW_HEIGHT << "\n";
+    });
 }
 
 void Game::shutdown() {

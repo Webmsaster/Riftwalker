@@ -1,7 +1,7 @@
 #include "Bestiary.h"
+#include "Core/SaveUtils.h"
 #include <vector>
 #include <fstream>
-#include <SDL2/SDL.h>
 
 static std::vector<BestiaryEntry> s_entries;
 static std::vector<BestiaryEntry> s_bossEntries;
@@ -293,23 +293,15 @@ int Bestiary::getTotalCount() {
 
 void Bestiary::save(const std::string& filepath) {
     init();
-    // Backup existing save before overwriting
-    {
-        std::ifstream src(filepath, std::ios::binary);
-        if (src) {
-            std::ofstream dst(filepath + ".bak", std::ios::binary);
-            if (dst) dst << src.rdbuf();
+    atomicSave(filepath, [](std::ofstream& f) {
+        for (auto& e : s_entries) {
+            f << static_cast<int>(e.type) << " " << e.killCount << " " << (e.discovered ? 1 : 0) << "\n";
         }
-    }
-    std::ofstream f(filepath);
-    if (!f) return;
-    for (auto& e : s_entries) {
-        f << static_cast<int>(e.type) << " " << e.killCount << " " << (e.discovered ? 1 : 0) << "\n";
-    }
-    f << "BOSS\n";
-    for (int i = 0; i < static_cast<int>(s_bossEntries.size()); i++) {
-        f << i << " " << s_bossEntries[i].killCount << " " << (s_bossEntries[i].discovered ? 1 : 0) << "\n";
-    }
+        f << "BOSS\n";
+        for (int i = 0; i < static_cast<int>(s_bossEntries.size()); i++) {
+            f << i << " " << s_bossEntries[i].killCount << " " << (s_bossEntries[i].discovered ? 1 : 0) << "\n";
+        }
+    });
 }
 
 void Bestiary::load(const std::string& filepath) {
