@@ -58,7 +58,7 @@ void OptionsState::enter() {
     m_options.push_back({LOC("options.music_volume"),  static_cast<int>(g_musicVolume * 100.0f), 0, 100, 5, false});
     m_options.push_back({LOC("options.mute"),          audio.isMuted() ? 1 : 0, 0, 1, 1, true});
     m_options.push_back({LOC("options.fullscreen"),    (game->getWindow() && game->getWindow()->isFullscreen()) ? 1 : 0, 0, 1, 1, true});
-    m_options.push_back({"Resolution", findCurrentResolution(), 0, NUM_RESOLUTIONS - 1, 1, false});
+    m_options.push_back({LOC("options.resolution"), findCurrentResolution(), 0, NUM_RESOLUTIONS - 1, 1, false});
     m_options.push_back({LOC("options.screen_shake"),  static_cast<int>(g_shakeIntensity * 100.0f), 0, 200, 10, false});
     m_options.push_back({LOC("options.hud_opacity"),   static_cast<int>(g_hudOpacity * 100.0f), 50, 100, 5, false});
     m_options.push_back({LOC("options.rumble"), game->getInput().isRumbleEnabled() ? 1 : 0, 0, 1, 1, true});
@@ -419,8 +419,8 @@ void OptionsState::render(SDL_Renderer* renderer) {
     }
 
     // Options
-    int startY = 340;
-    int itemH = 70;
+    int startY = 300;
+    int itemH = 64;
     int cardW = 1000;
     int cardX = SCREEN_WIDTH / 2 - cardW / 2;
 

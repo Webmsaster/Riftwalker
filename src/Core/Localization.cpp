@@ -83,6 +83,7 @@ void Localization::loadStrings() {
     m_en["options.music_volume"]   = "Music Volume";
     m_en["options.mute"]           = "Mute";
     m_en["options.fullscreen"]     = "Fullscreen";
+    m_en["options.resolution"]     = "Resolution";
     m_en["options.screen_shake"]   = "Screen Shake";
     m_en["options.hud_opacity"]    = "HUD Opacity";
     m_en["options.rumble"]         = "Controller Rumble";
@@ -196,6 +197,7 @@ void Localization::loadStrings() {
     m_de["options.music_volume"]   = "Musiklautstaerke";
     m_de["options.mute"]           = "Stummschalten";
     m_de["options.fullscreen"]     = "Vollbild";
+    m_de["options.resolution"]     = "Aufloesung";
     m_de["options.screen_shake"]   = "Bildschirmwackeln";
     m_de["options.hud_opacity"]    = "HUD-Transparenz";
     m_de["options.rumble"]         = "Controller-Vibration";

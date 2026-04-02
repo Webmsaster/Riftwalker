@@ -445,6 +445,36 @@ void Player::emitCounterParticles(int weaponId, Vec2 pos, Vec2 dir) {
             count = 24;
             speed = 400.0f;
             break;
+        case WeaponID::EntropyScythe:
+            color = {200, 40, 255, 255};  // Purple-pink entropy
+            count = 28;
+            speed = 220.0f;
+            break;
+        case WeaponID::ChainWhip:
+            color = {255, 200, 100, 255}; // Warm chain sparks
+            count = 22;
+            speed = 320.0f;
+            break;
+        case WeaponID::GravityGauntlet:
+            color = {120, 60, 200, 255};  // Dark gravity purple
+            count = 26;
+            speed = 150.0f;
+            break;
+        case WeaponID::GrapplingHook:
+            color = {200, 200, 220, 255}; // Steel grey-white
+            count = 20;
+            speed = 380.0f;
+            break;
+        case WeaponID::DimLauncher:
+            color = {100, 180, 255, 255}; // Dimensional blue
+            count = 30;
+            speed = 260.0f;
+            break;
+        case WeaponID::RiftCrossbow:
+            color = {160, 255, 200, 255}; // Teal-green bolt
+            count = 22;
+            speed = 350.0f;
+            break;
         default:
             color = {255, 215, 0, 255};   // Gold fallback
             break;
@@ -466,6 +496,12 @@ float Player::getDurationForCounter(int weaponId) const {
         case WeaponID::ShardPistol:  return 0.20f; // Quick burst fire
         case WeaponID::RiftShotgun:  return 0.20f; // Point blank blast
         case WeaponID::VoidBeam:     return 0.25f; // Overcharge beam
+        case WeaponID::EntropyScythe: return 0.30f; // Wide entropy reap
+        case WeaponID::ChainWhip:    return 0.20f; // Rapid chain lash
+        case WeaponID::GravityGauntlet: return 0.35f; // Gravity slam pull
+        case WeaponID::GrapplingHook: return 0.20f; // Quick hook strike
+        case WeaponID::DimLauncher:  return 0.30f; // Dual-dimension blast
+        case WeaponID::RiftCrossbow: return 0.25f; // Piercing bolt barrage
         default:                     return 0.25f;
     }
 }

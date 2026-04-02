@@ -170,6 +170,9 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_FreeSurface(is);
         }
 
+        // Dynamic Y cursor for stacked header elements (avoids overlap)
+        int headerY = 344;
+
         // NG+ tier badge (golden, shown below info line when tier > 0)
         if (ngPlusTier > 0) {
             static const char* s_ngpTitles[] = {
@@ -190,55 +193,56 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
                     SDL_SetTextureAlphaMod(nt, ngA);
                     int nw = static_cast<int>(ns->w * 1.1f);
                     int nh = static_cast<int>(ns->h * 1.1f);
-                    SDL_Rect nr = {SCREEN_WIDTH / 2 - nw / 2, 344, nw, nh};
+                    SDL_Rect nr = {SCREEN_WIDTH / 2 - nw / 2, headerY, nw, nh};
                     SDL_RenderCopy(renderer, nt, nullptr, &nr);
+                    headerY += nh + 8;
                     SDL_DestroyTexture(nt);
                 }
                 SDL_FreeSurface(ns);
             }
         }
-    }
 
-    // Death cause
-    if (deathCause > 0) {
-        const char* causeText = UpgradeSystem::getDeathCauseName(deathCause);
-        SDL_Color causeColor = (deathCause == 5)
-            ? SDL_Color{100, 255, 100, alpha}   // Victory: green
-            : SDL_Color{255, 120, 80, alpha};    // Death: red-orange
-        char causeLine[64];
-        std::snprintf(causeLine, sizeof(causeLine), LOC("summary.cause"), causeText);
-        SDL_Surface* cs = TTF_RenderText_Blended(font, causeLine, causeColor);
-        if (cs) {
-            SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
-            if (ct) {
-                SDL_SetTextureAlphaMod(ct, alpha);
-                SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, 344, cs->w, cs->h};
-                SDL_RenderCopy(renderer, ct, nullptr, &cr);
-                SDL_DestroyTexture(ct);
+        // Death cause
+        if (deathCause > 0) {
+            const char* causeText = UpgradeSystem::getDeathCauseName(deathCause);
+            SDL_Color causeColor = (deathCause == 5)
+                ? SDL_Color{100, 255, 100, alpha}   // Victory: green
+                : SDL_Color{255, 120, 80, alpha};    // Death: red-orange
+            char causeLine[64];
+            std::snprintf(causeLine, sizeof(causeLine), LOC("summary.cause"), causeText);
+            SDL_Surface* cs = TTF_RenderText_Blended(font, causeLine, causeColor);
+            if (cs) {
+                SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
+                if (ct) {
+                    SDL_SetTextureAlphaMod(ct, alpha);
+                    SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, headerY, cs->w, cs->h};
+                    SDL_RenderCopy(renderer, ct, nullptr, &cr);
+                    headerY += cs->h + 8;
+                    SDL_DestroyTexture(ct);
+                }
+                SDL_FreeSurface(cs);
             }
-            SDL_FreeSurface(cs);
         }
-    }
 
-    // Grade
-    const char* grade = getGrade(roomsCleared, enemiesKilled, riftsRepaired);
-    SDL_Color gradeColor = getGradeColor(grade);
-    gradeColor.a = alpha;
+        // Grade
+        const char* grade = getGrade(roomsCleared, enemiesKilled, riftsRepaired);
+        SDL_Color gradeColor = getGradeColor(grade);
+        gradeColor.a = alpha;
 
-    if (m_statsTimer > 0.2f) {
-        char gradeText[16];
-        std::snprintf(gradeText, sizeof(gradeText), LOC("summary.grade"), grade);
-        SDL_Surface* gs = TTF_RenderText_Blended(font, gradeText, gradeColor);
-        if (gs) {
-            SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
-            if (gt) {
-                SDL_SetTextureAlphaMod(gt, alpha);
-                // Render grade larger
-                SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w, 356, gs->w * 2, gs->h * 2};
-                SDL_RenderCopy(renderer, gt, nullptr, &gr);
-                SDL_DestroyTexture(gt);
+        if (m_statsTimer > 0.2f) {
+            char gradeText[16];
+            std::snprintf(gradeText, sizeof(gradeText), LOC("summary.grade"), grade);
+            SDL_Surface* gs = TTF_RenderText_Blended(font, gradeText, gradeColor);
+            if (gs) {
+                SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
+                if (gt) {
+                    SDL_SetTextureAlphaMod(gt, alpha);
+                    SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w, headerY, gs->w * 2, gs->h * 2};
+                    SDL_RenderCopy(renderer, gt, nullptr, &gr);
+                    SDL_DestroyTexture(gt);
+                }
+                SDL_FreeSurface(gs);
             }
-            SDL_FreeSurface(gs);
         }
     }
 

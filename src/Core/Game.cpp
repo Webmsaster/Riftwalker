@@ -502,6 +502,8 @@ void Game::loadSaveData() {
             else if (key == "fullscreen")      { if (m_window && static_cast<int>(value) != 0 && !m_window->isFullscreen()) m_window->toggleFullscreen(); }
             else if (key == "rumble")          { m_input.setRumbleEnabled(static_cast<int>(value) != 0); }
             else if (key == "language")        { Localization::instance().setLanguage(static_cast<int>(value) == 1 ? Lang::DE : Lang::EN); }
+            else if (key == "muted")           { if (static_cast<int>(value) != 0 && !AudioManager::instance().isMuted()) AudioManager::instance().toggleMute();
+                                                   else if (static_cast<int>(value) == 0 && AudioManager::instance().isMuted()) AudioManager::instance().toggleMute(); }
             else if (key == "crt_effect")      { g_crtEffect = (static_cast<int>(value) != 0); }
             else if (key == "window_width")    { WINDOW_WIDTH = static_cast<int>(value); }
             else if (key == "window_height")   { WINDOW_HEIGHT = static_cast<int>(value); }
@@ -543,6 +545,7 @@ void Game::saveSettings() {
         cfg << "fullscreen "      << (m_window ? (m_window->isFullscreen() ? 1 : 0) : 0) << "\n";
         cfg << "rumble "           << (m_input.isRumbleEnabled() ? 1 : 0) << "\n";
         cfg << "language "         << static_cast<int>(Localization::instance().getLanguage()) << "\n";
+        cfg << "muted "             << (AudioManager::instance().isMuted() ? 1 : 0) << "\n";
         cfg << "crt_effect "       << (g_crtEffect ? 1 : 0) << "\n";
         cfg << "window_width "     << WINDOW_WIDTH  << "\n";
         cfg << "window_height "    << WINDOW_HEIGHT << "\n";

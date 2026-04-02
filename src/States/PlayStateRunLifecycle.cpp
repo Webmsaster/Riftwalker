@@ -107,6 +107,10 @@ void PlayState::startNewRun() {
     m_dashKillsThisRun = 0;
     m_chargedKillsThisRun = 0;
     m_tookDamageThisLevel = false;
+    m_parryCountThisRun = 0;
+    m_tookDamageThisBoss = false;
+    m_rangedOnlyFloors = 0;
+    m_usedMeleeThisFloor = false;
     m_usedNonScytheMelee = false;
     m_questsCompletedTotal = 0;
     m_dimensionSwitches = 0;
