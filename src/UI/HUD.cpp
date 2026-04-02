@@ -417,7 +417,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.012f);
             Uint8 a = static_cast<Uint8>(180 * pulse);
             SDL_SetRenderDrawColor(renderer, 255, 60, 30, a);
-            SDL_Rect rageRect = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
+            SDL_Rect rageRect = {iconX - 4, iconY - 4, iconSize + 8, iconSize + 8};
             SDL_RenderDrawRect(renderer, &rageRect);
         }
 
@@ -445,7 +445,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             float timerPct = player->momentumTimer / player->momentumDuration;
             int timerW = static_cast<int>(24 * timerPct);
             SDL_SetRenderDrawColor(renderer, 255, 120, 40, 160);
-            SDL_Rect timerBar = {iconX, mY + 6, timerW, 2};
+            SDL_Rect timerBar = {iconX, mY + 12, timerW, 4};
             SDL_RenderFillRect(renderer, &timerBar);
 
             // Pulsing border at high stacks
@@ -453,7 +453,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.01f);
                 Uint8 a = static_cast<Uint8>(150 * pulse);
                 SDL_SetRenderDrawColor(renderer, 255, 100, 30, a);
-                SDL_Rect glowRect = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
+                SDL_Rect glowRect = {iconX - 4, iconY - 4, iconSize + 8, iconSize + 8};
                 SDL_RenderDrawRect(renderer, &glowRect);
             }
 
@@ -461,7 +461,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 char momText[16];
                 std::snprintf(momText, sizeof(momText), "x%d", player->momentumStacks);
                 SDL_Color momColor = {255, clampU8(180 - 100 * intensity), 40, 220};
-                renderText(renderer, font, momText, iconX + 26, mY - 1, momColor);
+                renderText(renderer, font, momText, iconX + 52, mY - 2, momColor);
             }
         }
 
@@ -470,9 +470,9 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.025f);
             Uint8 a = static_cast<Uint8>(220 * pulse);
             SDL_SetRenderDrawColor(renderer, 60, 220, 200, a);
-            SDL_Rect phaseRect = {iconX - 3, iconY - 3, iconSize + 6, iconSize + 6};
+            SDL_Rect phaseRect = {iconX - 6, iconY - 6, iconSize + 12, iconSize + 12};
             SDL_RenderDrawRect(renderer, &phaseRect);
-            SDL_Rect phaseRect2 = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
+            SDL_Rect phaseRect2 = {iconX - 4, iconY - 4, iconSize + 8, iconSize + 8};
             SDL_RenderDrawRect(renderer, &phaseRect2);
         }
         // Post-dash invis timer for Phantom
@@ -480,7 +480,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             float pct = player->postDashInvisTimer / ClassSystem::getData(PlayerClass::Phantom).postDashInvisTime;
             int barW2 = static_cast<int>(iconSize * pct);
             SDL_SetRenderDrawColor(renderer, 60, 220, 200, 160);
-            SDL_Rect invisBar = {iconX, iconY + iconSize + 2, barW2, 3};
+            SDL_Rect invisBar = {iconX, iconY + iconSize + 4, barW2, 6};
             SDL_RenderFillRect(renderer, &invisBar);
         }
 
@@ -490,12 +490,12 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.015f);
             Uint8 a = static_cast<Uint8>(200 * pulse);
             SDL_SetRenderDrawColor(renderer, 80, 160, 255, a);
-            SDL_Rect chargeRect = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
+            SDL_Rect chargeRect = {iconX - 4, iconY - 4, iconSize + 8, iconSize + 8};
             SDL_RenderDrawRect(renderer, &chargeRect);
             // Small timer bar below class icon
             int chargeBarW = static_cast<int>(iconSize * pct);
             SDL_SetRenderDrawColor(renderer, 80, 160, 255, 200);
-            SDL_Rect chargeBar = {iconX, iconY + iconSize + 2, chargeBarW, 3};
+            SDL_Rect chargeBar = {iconX, iconY + iconSize + 4, chargeBarW, 6};
             SDL_RenderFillRect(renderer, &chargeBar);
         }
     }
