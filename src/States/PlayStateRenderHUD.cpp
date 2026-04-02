@@ -879,8 +879,8 @@ void PlayState::renderRelicBar(SDL_Renderer* renderer, TTF_Font* font) {
 void PlayState::renderKillFeed(SDL_Renderer* renderer, TTF_Font* font) {
     if (!font) return;
 
-    int x = SCREEN_WIDTH - 20;
-    int y = SCREEN_HEIGHT - 140;
+    int x = SCREEN_WIDTH - 40;
+    int y = SCREEN_HEIGHT - 280;
 
     // Collect active entries in display order (newest at bottom)
     struct DisplayEntry { const char* text; SDL_Color color; float timer; };
@@ -899,7 +899,7 @@ void PlayState::renderKillFeed(SDL_Renderer* renderer, TTF_Font* font) {
         // Slide-in animation: new entries slide from right
         float slideProgress = std::min(display[i].timer / 0.15f, 1.0f);
         float eased = 1.0f - (1.0f - slideProgress) * (1.0f - slideProgress); // ease-out
-        int slideOffset = static_cast<int>((1.0f - eased) * 60);
+        int slideOffset = static_cast<int>((1.0f - eased) * 120);
 
         SDL_Color c = display[i].color;
         Uint8 a = static_cast<Uint8>(c.a * alpha);
@@ -907,20 +907,20 @@ void PlayState::renderKillFeed(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Surface* surf = TTF_RenderText_Blended(font, display[i].text, {c.r, c.g, c.b, 255});
         if (surf) {
             int entryX = x - surf->w + slideOffset;
-            int entryW = surf->w + 16;
+            int entryW = surf->w + 32;
 
             // Background panel with gradient
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(70 * alpha));
-            SDL_Rect bgRect = {entryX - 10, y - 1, entryW + 10, surf->h + 2};
+            SDL_Rect bgRect = {entryX - 20, y - 2, entryW + 20, surf->h + 4};
             SDL_RenderFillRect(renderer, &bgRect);
             // Left accent bar (colored)
             SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(180 * alpha));
-            SDL_Rect accentBar = {entryX - 12, y - 1, 2, surf->h + 2};
+            SDL_Rect accentBar = {entryX - 24, y - 2, 4, surf->h + 4};
             SDL_RenderFillRect(renderer, &accentBar);
 
             // Kill dot (small colored circle)
             SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, a);
-            SDL_Rect dot = {entryX - 8, y + surf->h / 2 - 2, 4, 4};
+            SDL_Rect dot = {entryX - 16, y + surf->h / 2 - 4, 8, 8};
             SDL_RenderFillRect(renderer, &dot);
 
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
@@ -932,7 +932,7 @@ void PlayState::renderKillFeed(SDL_Renderer* renderer, TTF_Font* font) {
             }
             SDL_FreeSurface(surf);
         }
-        y += 20;
+        y += 40;
     }
 }
 
