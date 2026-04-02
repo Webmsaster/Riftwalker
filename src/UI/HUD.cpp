@@ -1196,7 +1196,7 @@ void HUD::renderBar(SDL_Renderer* renderer, int x, int y, int w, int h,
 
         // Glass-like specular highlight (1px bright line near top)
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 60);
-        SDL_Rect specular = {x + 1, y + 1, fillW - 2, 1};
+        SDL_Rect specular = {x + 2, y + 2, fillW - 4, 2};
         SDL_RenderFillRect(renderer, &specular);
 
         // Animated shimmer (subtle moving highlight)
@@ -1204,7 +1204,7 @@ void HUD::renderBar(SDL_Renderer* renderer, int x, int y, int w, int h,
         int shimmerX = x + static_cast<int>((ticks % 3000) * fillW / 3000.0f);
         if (shimmerX < x + fillW - 16) {
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 25);
-            SDL_Rect shimmer = {shimmerX, y + 1, 16, h - 2};
+            SDL_Rect shimmer = {shimmerX, y + 2, 16, h - 4};
             SDL_RenderFillRect(renderer, &shimmer);
         }
     }
