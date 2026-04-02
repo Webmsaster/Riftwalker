@@ -466,6 +466,7 @@ void Level::renderOneWayTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& ti
 }
 
 void Level::renderSpikeTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile) const {
+    if (sr.w < 3 || sr.h <= 2) return; // Degenerate tile size guard
     // Always use procedural rendering (tileset spike tile doesn't match)
     // Procedural: Draw triangular spikes
     int spikeCount = 3;

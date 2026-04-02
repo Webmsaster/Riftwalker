@@ -175,7 +175,7 @@ void Player::updateGrappleSwing(float dt) {
     Vec2 newToAttach = hookAttachPoint - newCenter;
     float newDist = std::sqrt(newToAttach.x * newToAttach.x + newToAttach.y * newToAttach.y);
 
-    if (newDist > hookRopeLength) {
+    if (newDist > hookRopeLength && newDist > 1.0f) {
         // Pull back to rope length
         Vec2 constrainedDir = {newToAttach.x / newDist, newToAttach.y / newDist};
         Vec2 constrainedPos = hookAttachPoint - constrainedDir * hookRopeLength;
@@ -224,8 +224,8 @@ void Player::updateHookPull(float dt) {
     Vec2 toPlayer = playerCenter - enemyCenter;
     float dist = std::sqrt(toPlayer.x * toPlayer.x + toPlayer.y * toPlayer.y);
 
-    if (dist < 32.0f) {
-        // Close enough, stop pulling
+    if (dist < 32.0f || dist < 1.0f) {
+        // Close enough or degenerate, stop pulling
         hookPulledEnemy = nullptr;
         hookPullTimer = 0;
         return;
