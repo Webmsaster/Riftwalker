@@ -5,7 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-02 deep code audit + hardening session):**
+**Recent Updates (2026-04-02 single-frame sprites + save hardening + polish session):**
+- **Single-frame sprite system**: Replaced inconsistent multi-frame spritesheets with best-frame extraction + code-driven animations (bob, tilt, squash-stretch, punch, shake, rotation)
+- **Frame extraction tool**: `tools/extract_best_frames.py` scores frames by coverage/centering/compactness, saves to `assets/textures/singles/`
+- **Atomic save system**: New `SaveUtils.h` — all 9 save points now write to `.tmp`, flush, then rename (crash-safe). Eliminated 3 duplicated `backupFile()` and 3 duplicated `openWithBackupFallback()` functions.
+- **Collision grid fix**: `cellHash` changed from `int` to `int64_t` with prime multiplier (overflow prevention at large coords)
+- **HUD boss floor fix**: Used `isBossFloor()`/`isMidBossFloor()` instead of `floor%3==0` — distinguishes zone boss (red "BOSS") from mid-boss (orange "MINI-BOSS")
+- **Gameplay polish**: Weapon pickup particle burst, dimension-switch-locked SFX, exit-locked SFX+shake
+- **Afterimage init**: Default-initialize all primitive members (was garbage values)
+- 6 commits, 40+ files changed
+
+**Previous Updates (2026-04-02 deep code audit + hardening session):**
 - **AnimationComponent**: Bounds-check currentFrame in getCurrentSrcRect() (OOB crash fix)
 - **Null texture guards**: 19 SDL_CreateTextureFromSurface calls now null-checked (PlayStateRenderOverlays, EndingState, LoreState)
 - **Game::shutdown**: Added missing save calls for Bestiary, AscensionSystem, ChallengeMode (data loss prevention)
