@@ -976,10 +976,10 @@ void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
             SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
             int cx = ix + iconSize / 2, cy = abY + iconSize / 2;
             switch (i) {
-                case 0: SDL_RenderDrawLine(renderer, cx-5,cy+5,cx+5,cy-5); SDL_RenderDrawLine(renderer, cx-5,cy+4,cx+5,cy-6); SDL_RenderDrawLine(renderer, cx-3,cy-1,cx+3,cy+1); break;
-                case 1: SDL_RenderDrawLine(renderer, cx-6,cy,cx-2,cy); SDL_RenderDrawLine(renderer, cx-5,cy-1,cx-2,cy-1); { SDL_Rect dot={cx,cy-3,6,6}; SDL_RenderFillRect(renderer,&dot); } break;
-                case 2: SDL_RenderDrawLine(renderer, cx-6,cy,cx+4,cy); SDL_RenderDrawLine(renderer, cx+4,cy,cx,cy-4); SDL_RenderDrawLine(renderer, cx+4,cy,cx,cy+4); SDL_RenderDrawLine(renderer, cx-6,cy-1,cx+4,cy-1); break;
-                case 3: { SDL_Rect sq1={cx-5,cy-5,7,7}, sq2={cx-1,cy-1,7,7}; SDL_RenderDrawRect(renderer,&sq1); SDL_RenderDrawRect(renderer,&sq2); } break;
+                case 0: SDL_RenderDrawLine(renderer, cx-10,cy+10,cx+10,cy-10); SDL_RenderDrawLine(renderer, cx-10,cy+8,cx+10,cy-12); SDL_RenderDrawLine(renderer, cx-6,cy-2,cx+6,cy+2); break;
+                case 1: SDL_RenderDrawLine(renderer, cx-12,cy,cx-4,cy); SDL_RenderDrawLine(renderer, cx-10,cy-2,cx-4,cy-2); { SDL_Rect dot={cx,cy-6,12,12}; SDL_RenderFillRect(renderer,&dot); } break;
+                case 2: SDL_RenderDrawLine(renderer, cx-12,cy,cx+8,cy); SDL_RenderDrawLine(renderer, cx+8,cy,cx,cy-8); SDL_RenderDrawLine(renderer, cx+8,cy,cx,cy+8); SDL_RenderDrawLine(renderer, cx-12,cy-2,cx+8,cy-2); break;
+                case 3: { SDL_Rect sq1={cx-10,cy-10,14,14}, sq2={cx-2,cy-2,14,14}; SDL_RenderDrawRect(renderer,&sq1); SDL_RenderDrawRect(renderer,&sq2); } break;
             }
             if (!ready) {
                 int coverH = static_cast<int>(iconSize * (1.0f - abilities[i].cooldownPct));
@@ -990,14 +990,14 @@ void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
                     float remain = 0;
                     if (i==0) remain=combat.cooldownTimer; else if (i==1) remain=combat.cooldownTimer;
                     else if (i==2) remain=player->dashCooldownTimer; else if (i==3&&dimMgr) remain=dimMgr->getCooldownTimer();
-                    if (remain>0.05f) { char cdTxt[8]; std::snprintf(cdTxt,sizeof(cdTxt),"%.1f",remain); renderText(renderer,font,cdTxt,ix+2,abY+iconSize/2-5,{255,255,255,220}); }
+                    if (remain>0.05f) { char cdTxt[8]; std::snprintf(cdTxt,sizeof(cdTxt),"%.1f",remain); renderText(renderer,font,cdTxt,ix+4,abY+iconSize/2-10,{255,255,255,220}); }
                 }
             }
             if (ready) { float pulse=0.5f+0.5f*std::sin(SDL_GetTicks()*0.006f); SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,static_cast<Uint8>(140+60*pulse)); }
             else SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,60);
             SDL_RenderDrawRect(renderer, &bg);
-            if (m_abilityReadyFlash[i]>0) { float flashT=m_abilityReadyFlash[i]/0.35f; Uint8 flashA=static_cast<Uint8>(180*flashT); auto& rc=abilities[i].readyColor; SDL_SetRenderDrawColor(renderer,rc.r,rc.g,rc.b,flashA); SDL_Rect flashRect={ix-2,abY-2,iconSize+4,iconSize+4}; SDL_RenderFillRect(renderer,&flashRect); }
-            if (font) renderText(renderer,font,abilities[i].label,ix+4,abY+iconSize+1,{c.r,c.g,c.b,static_cast<Uint8>(ready?200:80)});
+            if (m_abilityReadyFlash[i]>0) { float flashT=m_abilityReadyFlash[i]/0.35f; Uint8 flashA=static_cast<Uint8>(180*flashT); auto& rc=abilities[i].readyColor; SDL_SetRenderDrawColor(renderer,rc.r,rc.g,rc.b,flashA); SDL_Rect flashRect={ix-4,abY-4,iconSize+8,iconSize+8}; SDL_RenderFillRect(renderer,&flashRect); }
+            if (font) renderText(renderer,font,abilities[i].label,ix+8,abY+iconSize+2,{c.r,c.g,c.b,static_cast<Uint8>(ready?200:80)});
         }
     }
 
@@ -1005,9 +1005,9 @@ void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
     if (player) {
         int buffY = startY + static_cast<int>(36 * g_hudScale);
         int buffX = margin;
-        int buffSize = static_cast<int>(12 * g_hudScale);
-        int buffGap  = static_cast<int>(3 * g_hudScale);
-        int timerBarH2 = static_cast<int>(3 * g_hudScale);
+        int buffSize = static_cast<int>(24 * g_hudScale);
+        int buffGap  = static_cast<int>(6 * g_hudScale);
+        int timerBarH2 = static_cast<int>(6 * g_hudScale);
 
         auto drawBuff = [&](const char* label, float timer, float maxTime, SDL_Color color) {
             if (timer<=0) return;
