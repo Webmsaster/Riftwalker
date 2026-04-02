@@ -898,7 +898,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 int nx = screenW - nw - 24;
                 int ny = 20;
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 120);
-                SDL_Rect bg = {nx - 6, ny - 3, nw + 12, nh + 6};
+                SDL_Rect bg = {nx - 12, ny - 6, nw + 24, nh + 12};
                 SDL_RenderFillRect(renderer, &bg);
                 SDL_SetRenderDrawColor(renderer, ngR, ngG, ngB, 160);
                 SDL_RenderDrawRect(renderer, &bg);
