@@ -226,6 +226,8 @@ Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victo
 - `tools/upscale_sprites_v2.py` — Upscales sprites 4× using Real-ESRGAN (GPU-accelerated)
 
 ## Rules
+- **UI Coordinates**: Logical resolution is 2560x1440. ALL pixel values in UI/HUD/overlay code must be designed for this resolution. Never use 720p values. When unsure, use `SCREEN_WIDTH/HEIGHT` relative values or multiply intended 720p value by 2.
+- **New UI elements**: Always use SCREEN_WIDTH/HEIGHT relative positioning (percentages, division) instead of hardcoded pixel values where possible.
 - New features always via ECS pattern (Component for data + System for logic)
 - No heap allocations in game loops (use pools, stack allocation)
 - No auto-save of game assets (can be large)
