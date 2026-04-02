@@ -67,7 +67,7 @@ void LoreState::render(SDL_Renderer* renderer) {
         SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, buf, gray);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 130, surf->w, surf->h};
+            SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 170, surf->w, surf->h};
             SDL_RenderCopy(renderer, tex, nullptr, &dst);
             SDL_DestroyTexture(tex);
             SDL_FreeSurface(surf);
@@ -120,7 +120,7 @@ void LoreState::render(SDL_Renderer* renderer) {
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, frag.title.c_str(), purple);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                    SDL_Rect dst = {panelX + 20, panelY + 15, surf->w, surf->h};
+                    SDL_Rect dst = {panelX + 40, panelY + 30, surf->w, surf->h};
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                     SDL_FreeSurface(surf);
@@ -132,9 +132,9 @@ void LoreState::render(SDL_Renderer* renderer) {
                 SDL_Color textCol = {180, 170, 200, 255};
                 // Simple line splitting at ~55 chars
                 std::string text = frag.text;
-                int lineY = panelY + 60;
-                int maxLineW = panelW - 40;
-                while (!text.empty() && lineY < panelY + panelH - 20) {
+                int lineY = panelY + 120;
+                int maxLineW = panelW - 80;
+                while (!text.empty() && lineY < panelY + panelH - 40) {
                     std::string line;
                     if (m_fontBody) {
                         // Find how many chars fit
@@ -161,12 +161,12 @@ void LoreState::render(SDL_Renderer* renderer) {
                     SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, line.c_str(), textCol);
                     if (surf) {
                         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                        SDL_Rect dst = {panelX + 20, lineY, surf->w, surf->h};
+                        SDL_Rect dst = {panelX + 40, lineY, surf->w, surf->h};
                         SDL_RenderCopy(renderer, tex, nullptr, &dst);
                         SDL_DestroyTexture(tex);
                         SDL_FreeSurface(surf);
                     }
-                    lineY += 22;
+                    lineY += 44;
                 }
             }
         } else {
@@ -176,7 +176,7 @@ void LoreState::render(SDL_Renderer* renderer) {
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, "This fragment has not been discovered yet.", dim);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-                    SDL_Rect dst = {panelX + panelW / 2 - surf->w / 2, panelY + panelH / 2 - 10, surf->w, surf->h};
+                    SDL_Rect dst = {panelX + panelW / 2 - surf->w / 2, panelY + panelH / 2 - 20, surf->w, surf->h};
                     SDL_RenderCopy(renderer, tex, nullptr, &dst);
                     SDL_DestroyTexture(tex);
                     SDL_FreeSurface(surf);
