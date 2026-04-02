@@ -156,8 +156,8 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
 
     // Grid
     SDL_SetRenderDrawColor(renderer, 22, 18, 35, 20);
-    for (int x = 0; x < SCREEN_WIDTH; x += 80) SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
-    for (int y = 0; y < SCREEN_HEIGHT; y += 80) SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
+    for (int x = 0; x < SCREEN_WIDTH; x += 160) SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
+    for (int y = 0; y < SCREEN_HEIGHT; y += 160) SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
 
     TTF_Font* font = game->getFont();
     if (!font) return;

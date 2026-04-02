@@ -74,8 +74,8 @@ void SplashState::render(SDL_Renderer* renderer) {
         Uint8 ga = static_cast<Uint8>(glowAlpha * 50);
 
         // Soft glow rectangle behind title area
-        int glowW = 1000;
-        int glowH = 160;
+        int glowW = 1200;
+        int glowH = 180;
         int cx = SCREEN_WIDTH / 2;
         int cy = SCREEN_HEIGHT / 2 - 30;
         SDL_Rect glowRect = { cx - glowW / 2, cy - glowH / 2, glowW, glowH };
@@ -83,8 +83,8 @@ void SplashState::render(SDL_Renderer* renderer) {
         SDL_RenderFillRect(renderer, &glowRect);
 
         // Slightly smaller, brighter inner glow
-        int innerW = 760;
-        int innerH = 100;
+        int innerW = 900;
+        int innerH = 120;
         SDL_Rect innerRect = { cx - innerW / 2, cy - innerH / 2, innerW, innerH };
         Uint8 ia = static_cast<Uint8>(glowAlpha * 30);
         SDL_SetRenderDrawColor(renderer, gr, gg, gb, ia);

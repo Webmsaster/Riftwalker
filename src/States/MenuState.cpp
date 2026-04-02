@@ -327,8 +327,8 @@ void MenuState::render(SDL_Renderer* renderer) {
 
     // Subtle grid pattern
     SDL_SetRenderDrawColor(renderer, 22, 18, 35, 25);
-    for (int x = 0; x < SCREEN_WIDTH; x += 80) SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
-    for (int y = 0; y < SCREEN_HEIGHT; y += 80) SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
+    for (int x = 0; x < SCREEN_WIDTH; x += 160) SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
+    for (int y = 0; y < SCREEN_HEIGHT; y += 160) SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
 
     // Background particles
     for (auto& p : m_bgParticles) {

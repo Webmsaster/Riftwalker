@@ -161,9 +161,9 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
 
     // Subtle grid background
     SDL_SetRenderDrawColor(renderer, 22, 18, 35, 18);
-    for (int x = 0; x < SCREEN_WIDTH; x += 80)
+    for (int x = 0; x < SCREEN_WIDTH; x += 160)
         SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
-    for (int y = 0; y < SCREEN_HEIGHT; y += 80)
+    for (int y = 0; y < SCREEN_HEIGHT; y += 160)
         SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
 
     TTF_Font* font = game->getFont();
