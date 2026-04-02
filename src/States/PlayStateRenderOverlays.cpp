@@ -275,10 +275,10 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
 
     // Active chain: show progress tracker at top-left
     if (m_eventChain.stage > 0 && !m_eventChain.completed) {
-        int panelX = 10;
-        int panelY = 90; // Below existing HUD elements
-        int panelW = 220;
-        int panelH = 50;
+        int panelX = 20;
+        int panelY = 180; // Below existing HUD elements (scaled for 2K)
+        int panelW = 440;
+        int panelH = 100;
 
         // Background
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -292,9 +292,9 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
 
         // Chain icon: linked circles
         for (int i = 0; i < m_eventChain.maxStages; i++) {
-            int cx = panelX + 15 + i * 18;
-            int cy = panelY + 14;
-            int r = 5;
+            int cx = panelX + 30 + i * 36;
+            int cy = panelY + 28;
+            int r = 10;
             if (i < m_eventChain.stage) {
                 // Filled circle for completed stages
                 SDL_Rect dot = {cx - r, cy - r, r * 2, r * 2};
@@ -310,7 +310,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
             if (i < m_eventChain.maxStages - 1) {
                 SDL_SetRenderDrawColor(renderer, cc.r, cc.g, cc.b,
                     static_cast<Uint8>(i < m_eventChain.stage - 1 ? 200 : 60));
-                SDL_RenderDrawLine(renderer, cx + r + 1, cy, cx + 13 - r, cy);
+                SDL_RenderDrawLine(renderer, cx + r + 1, cy, cx + 26 - r, cy);
             }
         }
 
@@ -319,7 +319,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Surface* nameSurf = TTF_RenderText_Blended(font, m_eventChain.getName(), white);
         if (nameSurf) {
             SDL_Texture* nameTex = SDL_CreateTextureFromSurface(renderer, nameSurf);
-            SDL_Rect nameR = {panelX + 70, panelY + 4, nameSurf->w, nameSurf->h};
+            SDL_Rect nameR = {panelX + 140, panelY + 8, nameSurf->w, nameSurf->h};
             SDL_RenderCopy(renderer, nameTex, nullptr, &nameR);
             SDL_DestroyTexture(nameTex);
             SDL_FreeSurface(nameSurf);
@@ -332,10 +332,10 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Surface* descSurf = TTF_RenderText_Blended(font, desc, dimWhite);
             if (descSurf) {
                 SDL_Texture* descTex = SDL_CreateTextureFromSurface(renderer, descSurf);
-                int maxW = panelW - 10;
+                int maxW = panelW - 20;
                 int dw = std::min(descSurf->w, maxW);
                 int dh = descSurf->h * dw / std::max(descSurf->w, 1);
-                SDL_Rect descR = {panelX + 5, panelY + 26, dw, dh};
+                SDL_Rect descR = {panelX + 10, panelY + 52, dw, dh};
                 SDL_RenderCopy(renderer, descTex, nullptr, &descR);
                 SDL_DestroyTexture(descTex);
                 SDL_FreeSurface(descSurf);
