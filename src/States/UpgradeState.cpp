@@ -63,7 +63,7 @@ void UpgradeState::handleEvent(const SDL_Event& event) {
     // Mouse hover: update selection
     if (event.type == SDL_MOUSEMOTION && total > 0) {
         int mx = event.motion.x, my = event.motion.y;
-        const int margin = 100, itemH = 65, startY = 105;
+        const int margin = UPGRADE_MARGIN, itemH = UPGRADE_ITEM_H, startY = UPGRADE_START_Y;
         int endIdx = std::min(m_scrollOffset + VISIBLE_ITEMS, total);
         for (int i = m_scrollOffset; i < endIdx; i++) {
             int y = startY + (i - m_scrollOffset) * itemH;
@@ -81,7 +81,7 @@ void UpgradeState::handleEvent(const SDL_Event& event) {
     // Mouse click: select + purchase
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && total > 0) {
         int mx = event.button.x, my = event.button.y;
-        const int margin = 100, itemH = 65, startY = 105;
+        const int margin = UPGRADE_MARGIN, itemH = UPGRADE_ITEM_H, startY = UPGRADE_START_Y;
         int endIdx = std::min(m_scrollOffset + VISIBLE_ITEMS, total);
         for (int i = m_scrollOffset; i < endIdx; i++) {
             int y = startY + (i - m_scrollOffset) * itemH;
@@ -257,9 +257,9 @@ void UpgradeState::render(SDL_Renderer* renderer) {
         }
 
         // Upgrade icon (procedural shape based on ID)
-        int iconX = margin + 12;
-        int iconY = y + 12;
-        int iconSize = 28;
+        int iconX = margin + 24;
+        int iconY = y + 24;
+        int iconSize = 56;
         Uint8 iconAlpha = selected ? static_cast<Uint8>(220) : static_cast<Uint8>(140);
         SDL_SetRenderDrawColor(renderer, 140, 100, 220, iconAlpha);
         SDL_Rect iconBg = {iconX, iconY, iconSize, iconSize};
@@ -267,46 +267,46 @@ void UpgradeState::render(SDL_Renderer* renderer) {
         // Inner pattern varies by upgrade
         int pattern = i % 4;
         if (pattern == 0) { // Cross
-            SDL_RenderDrawLine(renderer, iconX + 6, iconY + 14, iconX + 22, iconY + 14);
-            SDL_RenderDrawLine(renderer, iconX + 14, iconY + 6, iconX + 14, iconY + 22);
+            SDL_RenderDrawLine(renderer, iconX + 12, iconY + 28, iconX + 44, iconY + 28);
+            SDL_RenderDrawLine(renderer, iconX + 28, iconY + 12, iconX + 28, iconY + 44);
         } else if (pattern == 1) { // Diamond
-            int cx = iconX + 14, cy = iconY + 14;
-            SDL_RenderDrawLine(renderer, cx, cy - 8, cx + 8, cy);
-            SDL_RenderDrawLine(renderer, cx + 8, cy, cx, cy + 8);
-            SDL_RenderDrawLine(renderer, cx, cy + 8, cx - 8, cy);
-            SDL_RenderDrawLine(renderer, cx - 8, cy, cx, cy - 8);
+            int cx = iconX + 28, cy = iconY + 28;
+            SDL_RenderDrawLine(renderer, cx, cy - 16, cx + 16, cy);
+            SDL_RenderDrawLine(renderer, cx + 16, cy, cx, cy + 16);
+            SDL_RenderDrawLine(renderer, cx, cy + 16, cx - 16, cy);
+            SDL_RenderDrawLine(renderer, cx - 16, cy, cx, cy - 16);
         } else if (pattern == 2) { // Arrow up
-            int cx = iconX + 14;
-            SDL_RenderDrawLine(renderer, cx, iconY + 6, cx + 7, iconY + 16);
-            SDL_RenderDrawLine(renderer, cx, iconY + 6, cx - 7, iconY + 16);
-            SDL_RenderDrawLine(renderer, cx, iconY + 6, cx, iconY + 22);
+            int cx = iconX + 28;
+            SDL_RenderDrawLine(renderer, cx, iconY + 12, cx + 14, iconY + 32);
+            SDL_RenderDrawLine(renderer, cx, iconY + 12, cx - 14, iconY + 32);
+            SDL_RenderDrawLine(renderer, cx, iconY + 12, cx, iconY + 44);
         } else { // Circle (octagon)
-            int cx = iconX + 14, cy = iconY + 14;
+            int cx = iconX + 28, cy = iconY + 28;
             for (int s = 0; s < 8; s++) {
                 float a1 = s * 0.785398f;
                 float a2 = (s + 1) * 0.785398f;
                 SDL_RenderDrawLine(renderer,
-                    cx + static_cast<int>(std::cos(a1) * 9),
-                    cy + static_cast<int>(std::sin(a1) * 9),
-                    cx + static_cast<int>(std::cos(a2) * 9),
-                    cy + static_cast<int>(std::sin(a2) * 9));
+                    cx + static_cast<int>(std::cos(a1) * 18),
+                    cy + static_cast<int>(std::sin(a1) * 18),
+                    cx + static_cast<int>(std::cos(a2) * 18),
+                    cy + static_cast<int>(std::sin(a2) * 18));
             }
         }
 
         // Name
-        int textX = margin + 50;
+        int textX = margin + 100;
         SDL_Color nameColor = selected ? SDL_Color{235, 230, 250, 255} : SDL_Color{200, 195, 220, 255};
-        renderText(renderer, font, u.name.c_str(), textX, y + 6, nameColor);
+        renderText(renderer, font, u.name.c_str(), textX, y + 12, nameColor);
 
         // Description
         SDL_Color descColor = {140, 135, 165, 180};
-        renderText(renderer, font, u.description.c_str(), textX, y + 28, descColor);
+        renderText(renderer, font, u.description.c_str(), textX, y + 56, descColor);
 
         // Progress bar for level
-        int barX = SCREEN_WIDTH - margin - 220;
-        int barY = y + 10;
-        int barW = 100;
-        int barH = 10;
+        int barX = SCREEN_WIDTH - margin - 440;
+        int barY = y + 20;
+        int barW = 200;
+        int barH = 20;
         float progress = u.maxLevel > 0 ? static_cast<float>(u.currentLevel) / u.maxLevel : 0.0f;
 
         // Bar background
@@ -331,7 +331,7 @@ void UpgradeState::render(SDL_Renderer* renderer) {
         char levelText[32];
         std::snprintf(levelText, sizeof(levelText), "Lv %d/%d", u.currentLevel, u.maxLevel);
         SDL_Color lvColor = maxed ? SDL_Color{100, 240, 100, 255} : SDL_Color{190, 185, 210, 255};
-        renderText(renderer, font, levelText, barX, barY + 14, lvColor);
+        renderText(renderer, font, levelText, barX, barY + 28, lvColor);
 
         // Cost
         if (!maxed) {
@@ -340,9 +340,9 @@ void UpgradeState::render(SDL_Renderer* renderer) {
             bool canAfford = u.canPurchase(upgrades.getRiftShards());
             SDL_Color costColor = canAfford ?
                 SDL_Color{180, 140, 255, 255} : SDL_Color{140, 70, 70, 200};
-            renderText(renderer, font, costText, barX, barY + 34, costColor);
+            renderText(renderer, font, costText, barX, barY + 68, costColor);
         } else {
-            renderText(renderer, font, "MAXED", barX + 20, barY + 34, {80, 200, 80, 200});
+            renderText(renderer, font, "MAXED", barX + 40, barY + 68, {80, 200, 80, 200});
         }
     }
 
@@ -350,15 +350,15 @@ void UpgradeState::render(SDL_Renderer* renderer) {
     if (m_scrollOffset > 0) {
         SDL_SetRenderDrawColor(renderer, 140, 100, 220, 150);
         int cx = SCREEN_WIDTH / 2;
-        SDL_RenderDrawLine(renderer, cx - 8, startY - 8, cx, startY - 14);
-        SDL_RenderDrawLine(renderer, cx, startY - 14, cx + 8, startY - 8);
+        SDL_RenderDrawLine(renderer, cx - 16, startY - 16, cx, startY - 28);
+        SDL_RenderDrawLine(renderer, cx, startY - 28, cx + 16, startY - 16);
     }
     if (endIdx < static_cast<int>(upgradeList.size())) {
         SDL_SetRenderDrawColor(renderer, 140, 100, 220, 150);
         int cx = SCREEN_WIDTH / 2;
         int botY = startY + VISIBLE_ITEMS * itemH;
-        SDL_RenderDrawLine(renderer, cx - 8, botY + 2, cx, botY + 8);
-        SDL_RenderDrawLine(renderer, cx, botY + 8, cx + 8, botY + 2);
+        SDL_RenderDrawLine(renderer, cx - 16, botY + 4, cx, botY + 16);
+        SDL_RenderDrawLine(renderer, cx, botY + 16, cx + 16, botY + 4);
     }
 
     // Purchase flash overlay
