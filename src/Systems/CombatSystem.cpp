@@ -119,9 +119,9 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
         Vec2 targetCenter = targetTransform.getCenter();
         float dx = targetCenter.x - attackCenter.x;
         float dy = targetCenter.y - attackCenter.y;
-        float dist = std::sqrt(dx * dx + dy * dy);
+        float distSq = dx * dx + dy * dy;
 
-        if (dist < attackRadius) {
+        if (distSq < attackRadius * attackRadius) {
             // Phantom Phase Through: negate enemy hits during dash
             if (!isPlayer && target.getTag() == "player" && m_player && m_player->isPhaseThrough()) {
                 // Deal phase damage back to the attacker
@@ -721,15 +721,16 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     if (chainDmg > 0) {
                         Vec2 attackerPos = attacker.getComponent<TransformComponent>().getCenter();
                         int chainsLeft = 2;
+                        constexpr float chainRadiusSq = 150.0f * 150.0f;
                         entities.forEach([&](Entity& e) {
                             if (chainsLeft <= 0) return;
                             if (!e.isAlive() || &e == &attacker) return;
                             if (!e.hasComponent<AIComponent>() || !e.hasComponent<HealthComponent>()
                                 || !e.hasComponent<TransformComponent>()) return;
                             Vec2 ePos = e.getComponent<TransformComponent>().getCenter();
-                            float dist = std::sqrt((ePos.x - attackerPos.x) * (ePos.x - attackerPos.x) +
-                                                   (ePos.y - attackerPos.y) * (ePos.y - attackerPos.y));
-                            if (dist < 150.0f) {
+                            float dx = ePos.x - attackerPos.x;
+                            float dy = ePos.y - attackerPos.y;
+                            if (dx * dx + dy * dy < chainRadiusSq) {
                                 e.getComponent<HealthComponent>().takeDamage(chainDmg);
                                 m_damageEvents.push_back({ePos, chainDmg, false, false});
                                 if (m_particles) {
@@ -760,8 +761,8 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 auto& relics = attacker.getComponent<RelicComponent>();
                 float chainDmg = RelicSystem::getChainLightningDamage(relics);
                 if (chainDmg > 0) {
-                    // Find nearest enemy and deal chain damage
-                    float nearestDist = 150.0f;
+                    // Find nearest enemy and deal chain damage (squared distance avoids sqrt)
+                    float nearestDistSq = 150.0f * 150.0f;
                     Entity* nearestTarget = nullptr;
                     entities.forEach([&](Entity& nearby) {
                         if (&nearby == &target || !nearby.isAlive()) return;
@@ -771,9 +772,9 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         auto& nt = nearby.getComponent<TransformComponent>();
                         float dx2 = nt.getCenter().x - targetCenter.x;
                         float dy2 = nt.getCenter().y - targetCenter.y;
-                        float dist2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
-                        if (dist2 < nearestDist) {
-                            nearestDist = dist2;
+                        float distSq = dx2 * dx2 + dy2 * dy2;
+                        if (distSq < nearestDistSq) {
+                            nearestDistSq = distSq;
                             nearestTarget = &nearby;
                         }
                     });
@@ -861,7 +862,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     if (RelicSynergy::isChainReactionActive(relics, combat.currentMelee)) {
                         float chainDmg = RelicSystem::getChainLightningDamage(relics);
                         if (chainDmg <= 0) chainDmg = 15.0f; // Fallback if relic not owned standalone
-                        float nearestDist = 150.0f;
+                        float nearestDistSq = 150.0f * 150.0f;
                         Entity* nearestTarget = nullptr;
                         entities.forEach([&](Entity& nearby) {
                             if (&nearby == &target || !nearby.isAlive()) return;
@@ -871,9 +872,9 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                             auto& nt = nearby.getComponent<TransformComponent>();
                             float dx2 = nt.getCenter().x - targetCenter.x;
                             float dy2 = nt.getCenter().y - targetCenter.y;
-                            float dist2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
-                            if (dist2 < nearestDist) {
-                                nearestDist = dist2;
+                            float distSq = dx2 * dx2 + dy2 * dy2;
+                            if (distSq < nearestDistSq) {
+                                nearestDistSq = distSq;
                                 nearestTarget = &nearby;
                             }
                         });
