@@ -350,8 +350,8 @@ void PlayState::writeBalanceSnapshot() {
     // --- Weapon mastery ---
     int meleeIdx = static_cast<int>(combat.currentMelee);
     int rangedIdx = static_cast<int>(combat.currentRanged);
-    int meleeKills = m_combatSystem.weaponKills[meleeIdx];
-    int rangedKills = m_combatSystem.weaponKills[rangedIdx];
+    int meleeKills = (meleeIdx >= 0 && meleeIdx < static_cast<int>(WeaponID::COUNT)) ? m_combatSystem.weaponKills[meleeIdx] : 0;
+    int rangedKills = (rangedIdx >= 0 && rangedIdx < static_cast<int>(WeaponID::COUNT)) ? m_combatSystem.weaponKills[rangedIdx] : 0;
     auto meleeBonus = WeaponSystem::getMasteryBonus(meleeKills);
     auto rangedBonus = WeaponSystem::getMasteryBonus(rangedKills);
 

@@ -165,9 +165,11 @@ void Player::handleAttack(const InputManager& input) {
             combat.startAttack(AttackType::Dash, dashDir);
             // Weapon mastery: reduce cooldown
             if (combatSystemRef) {
-                MasteryBonus mb = WeaponSystem::getMasteryBonus(
-                    combatSystemRef->weaponKills[static_cast<int>(combat.currentMelee)]);
-                combat.cooldownTimer *= mb.cooldownMult;
+                int wIdx = static_cast<int>(combat.currentMelee);
+                if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT)) {
+                    MasteryBonus mb = WeaponSystem::getMasteryBonus(combatSystemRef->weaponKills[wIdx]);
+                    combat.cooldownTimer *= mb.cooldownMult;
+                }
             }
             AudioManager::instance().play(SFX::MeleeSwing);
             if (particles) {
@@ -180,9 +182,11 @@ void Player::handleAttack(const InputManager& input) {
             combat.startAttack(AttackType::Melee, dir);
             // Weapon mastery: reduce cooldown
             if (combatSystemRef) {
-                MasteryBonus mb = WeaponSystem::getMasteryBonus(
-                    combatSystemRef->weaponKills[static_cast<int>(combat.currentMelee)]);
-                combat.cooldownTimer *= mb.cooldownMult;
+                int wIdx = static_cast<int>(combat.currentMelee);
+                if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT)) {
+                    MasteryBonus mb = WeaponSystem::getMasteryBonus(combatSystemRef->weaponKills[wIdx]);
+                    combat.cooldownTimer *= mb.cooldownMult;
+                }
             }
             // Melee attack lunge: brief forward push scaling with combo
             if (std::abs(dir.x) > 0.5f) {
@@ -216,9 +220,11 @@ void Player::handleAttack(const InputManager& input) {
             combat.startAttack(AttackType::Ranged, dir);
             // Weapon mastery: reduce cooldown
             if (combatSystemRef) {
-                MasteryBonus mb = WeaponSystem::getMasteryBonus(
-                    combatSystemRef->weaponKills[static_cast<int>(combat.currentRanged)]);
-                combat.cooldownTimer *= mb.cooldownMult;
+                int wIdx = static_cast<int>(combat.currentRanged);
+                if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT)) {
+                    MasteryBonus mb = WeaponSystem::getMasteryBonus(combatSystemRef->weaponKills[wIdx]);
+                    combat.cooldownTimer *= mb.cooldownMult;
+                }
             }
         }
     }

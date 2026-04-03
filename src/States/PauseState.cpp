@@ -429,8 +429,10 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
 
             // Weapon mastery
             auto& cs = playState->getCombatSystem();
-            int mKills = cs.weaponKills[static_cast<int>(combat.currentMelee)];
-            int rKills = cs.weaponKills[static_cast<int>(combat.currentRanged)];
+            int mIdx = static_cast<int>(combat.currentMelee);
+            int rIdx = static_cast<int>(combat.currentRanged);
+            int mKills = (mIdx >= 0 && mIdx < static_cast<int>(WeaponID::COUNT)) ? cs.weaponKills[mIdx] : 0;
+            int rKills = (rIdx >= 0 && rIdx < static_cast<int>(WeaponID::COUNT)) ? cs.weaponKills[rIdx] : 0;
             MasteryTier mTier = WeaponSystem::getMasteryTier(mKills);
             MasteryTier rTier = WeaponSystem::getMasteryTier(rKills);
             if (mTier != MasteryTier::None) {
