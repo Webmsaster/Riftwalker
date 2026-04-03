@@ -13,6 +13,7 @@ riftwalker_challenges.dat
 
 # Debug/test output
 *.log
+visual_report.html
 playtest_results/
 dist/
 balance_snapshots.csv
