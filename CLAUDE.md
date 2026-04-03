@@ -5,7 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-02 single-frame sprites + save hardening + polish session):**
+**Recent Updates (2026-04-03 deep audit + hardening + perf session):**
+- **weaponKills bounds checks**: 7 unchecked array accesses now bounds-validated (PlayerCombat, PauseState, PlayStateCombatChallenge) — prevented OOB crash on corrupted WeaponID
+- **UpgradeSystem deserialize hardened**: Stream state validated after initial extraction; corrupted/truncated saves reset to defaults instead of leaving partial garbage
+- **Combat sqrt optimization**: 4 hot-path distance checks replaced with squared-distance comparisons (hit detection, ChainLightning, ChainReaction, ChainThorns) — eliminates sqrt per-entity in nested forEach loops
+- **PauseState zone consistency**: Replaced inline zone calculation with shared `getZone()` helper from DimensionShiftBalance.h
+- **Verified clean**: No resource leaks, no compiler warnings, all 6 boss systems correct, all 22 synergies functional, localization complete (98 EN + 98 DE), particle pool pre-allocated (2000)
+- 3 commits, 4 files changed
+
+**Previous Updates (2026-04-02 single-frame sprites + save hardening + polish session):**
 - **Single-frame sprite system**: Replaced inconsistent multi-frame spritesheets with best-frame extraction + code-driven animations (bob, tilt, squash-stretch, punch, shake, rotation)
 - **Frame extraction tool**: `tools/extract_best_frames.py` scores frames by coverage/centering/compactness, saves to `assets/textures/singles/`
 - **Atomic save system**: New `SaveUtils.h` — all 9 save points now write to `.tmp`, flush, then rename (crash-safe). Eliminated 3 duplicated `backupFile()` and 3 duplicated `openWithBackupFallback()` functions.
