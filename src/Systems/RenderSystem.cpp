@@ -24,6 +24,18 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         srcRect = anim.getCurrentSrcRect();
     }
 
+    // Preserve sprite aspect ratio: fit into entity rect, anchor at bottom-center
+    if (srcRect.w > 0 && srcRect.h > 0 && rect.w > 0 && rect.h > 0) {
+        float spriteAR = static_cast<float>(srcRect.w) / srcRect.h;
+        float rectAR = static_cast<float>(rect.w) / rect.h;
+        if (std::abs(spriteAR - rectAR) > 0.05f) {
+            // Fit by height, adjust width to preserve aspect ratio
+            int newW = static_cast<int>(rect.h * spriteAR);
+            rect.x -= (newW - rect.w) / 2; // Center horizontally
+            rect.w = newW;
+        }
+    }
+
     // Apply color modulation and alpha (run through color-blind filter)
     SDL_Color filteredColor = applyColorBlind(sprite.color);
 

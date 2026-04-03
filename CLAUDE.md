@@ -5,13 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-03 deep audit + hardening + perf session):**
+**Recent Updates (2026-04-03 deep audit + hardening + perf + visual regression session):**
 - **weaponKills bounds checks**: 7 unchecked array accesses now bounds-validated (PlayerCombat, PauseState, PlayStateCombatChallenge) — prevented OOB crash on corrupted WeaponID
 - **UpgradeSystem deserialize hardened**: Stream state validated after initial extraction; corrupted/truncated saves reset to defaults instead of leaving partial garbage
 - **Combat sqrt optimization**: 4 hot-path distance checks replaced with squared-distance comparisons (hit detection, ChainLightning, ChainReaction, ChainThorns) — eliminates sqrt per-entity in nested forEach loops
 - **PauseState zone consistency**: Replaced inline zone calculation with shared `getZone()` helper from DimensionShiftBalance.h
+- **Visual Regression System Upgraded**: HTML5 side-by-side diff reports (Reference / Actual / Diff), automated baseline capture + pixelmatch pixel-level comparison, `.gitignore` updated for test artifacts
 - **Verified clean**: No resource leaks, no compiler warnings, all 6 boss systems correct, all 22 synergies functional, localization complete (98 EN + 98 DE), particle pool pre-allocated (2000)
-- 3 commits, 4 files changed
+- 6 commits, 5 files changed
 
 **Previous Updates (2026-04-02 single-frame sprites + save hardening + polish session):**
 - **Single-frame sprite system**: Replaced inconsistent multi-frame spritesheets with best-frame extraction + code-driven animations (bob, tilt, squash-stretch, punch, shake, rotation)

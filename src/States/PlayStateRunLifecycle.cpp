@@ -606,7 +606,8 @@ void PlayState::applyUpgrades() {
     auto& upgrades = game->getUpgradeSystem();
     auto achBonus = game->getAchievements().getUnlockedBonuses();
 
-    m_player->moveSpeed = 250.0f * upgrades.getMoveSpeedMultiplier() * achBonus.moveSpeedMult;
+    float classSpeed = ClassSystem::getData(g_selectedClass).baseSpeed;
+    m_player->moveSpeed = classSpeed * upgrades.getMoveSpeedMultiplier() * achBonus.moveSpeedMult;
     m_player->jumpForce = -420.0f * upgrades.getJumpMultiplier();
     m_player->dashCooldown = 0.5f * upgrades.getDashCooldownMultiplier() * achBonus.dashCooldownMult;
     m_player->maxJumps = 2 + upgrades.getExtraJumps();

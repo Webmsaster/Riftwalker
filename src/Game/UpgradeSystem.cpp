@@ -60,7 +60,7 @@ void UpgradeSystem::resetAll() {
 }
 
 float UpgradeSystem::getMaxHPBonus() const { return getUpgradeLevel(UpgradeID::MaxHP) * 20.0f; }
-float UpgradeSystem::getMoveSpeedMultiplier() const { return 1.0f + getUpgradeLevel(UpgradeID::MoveSpeed) * 0.1f; }
+float UpgradeSystem::getMoveSpeedMultiplier() const { return 1.0f + getUpgradeLevel(UpgradeID::MoveSpeed) * 0.05f; }
 float UpgradeSystem::getDashCooldownMultiplier() const { return 1.0f - getUpgradeLevel(UpgradeID::DashCooldown) * 0.15f; }
 float UpgradeSystem::getMeleeDamageMultiplier() const { return 1.0f + getUpgradeLevel(UpgradeID::MeleeDamage) * 0.15f; }
 float UpgradeSystem::getRangedDamageMultiplier() const { return 1.0f + getUpgradeLevel(UpgradeID::RangedDamage) * 0.15f; }
