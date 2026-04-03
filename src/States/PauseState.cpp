@@ -6,6 +6,7 @@
 #include "Game/WeaponSystem.h"
 #include "Game/RelicSystem.h"
 #include "Game/ClassSystem.h"
+#include "Game/DimensionShiftBalance.h"
 #include "Components/RelicComponent.h"
 #include "Components/CombatComponent.h"
 #include "Components/HealthComponent.h"
@@ -341,7 +342,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
     // Floor / Zone
     {
         int floor = playState->roomsCleared + 1;
-        int zone  = std::clamp((floor - 1) / 6, 0, 4) + 1;
+        int zone  = getZone(floor) + 1;
         std::snprintf(buf, sizeof(buf), LOC("pause.floor"), floor, zone);
         renderStatText(renderer, font, buf, lx, ly, valCol);
         ly += 36;
