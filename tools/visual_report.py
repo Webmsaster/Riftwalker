@@ -90,109 +90,34 @@ def run_diff(diff_tool: str, ref_path: str, actual_path: str,
 
 
 def build_html(results: list, timestamp: str) -> str:
-    """Build a self-contained HTML report string from comparison results."""
+    """Build a self-contained HTML report with interactive comparison modes."""
+    import json
+
     total = len(results)
     passed = sum(1 for r in results if r["passed"])
     failed = sum(1 for r in results if not r["passed"] and r["error"] is None)
     errors = sum(1 for r in results if r["error"] is not None)
-
     all_passed = failed == 0 and errors == 0
 
-    # Build the card rows
-    cards_html = []
-    for r in results:
-        name = r["name"]
-        if r["error"]:
-            border_color = "#f59e0b"  # amber for errors
-            badge_bg = "#f59e0b"
-            badge_text = "ERROR"
-            status_detail = f'<span style="color:#f59e0b;">{r["error"]}</span>'
-        elif r["passed"]:
-            border_color = "#22c55e"
-            badge_bg = "#22c55e"
-            badge_text = "PASS"
-            status_detail = (
-                f'<span style="color:#22c55e;">Diff: {r["diff_percent"]:.2f}%'
-                f' ({r["diff_pixels"]} px)</span>'
-            )
-        else:
-            border_color = "#ef4444"
-            badge_bg = "#ef4444"
-            badge_text = "FAIL"
-            status_detail = (
-                f'<span style="color:#ef4444;">Diff: {r["diff_percent"]:.2f}%'
-                f' ({r["diff_pixels"]} px)</span>'
-            )
+    # Build JSON data for JavaScript
+    js_data = []
+    for i, r in enumerate(results):
+        js_data.append({
+            "id": i,
+            "name": r["name"],
+            "passed": r["passed"],
+            "error": r["error"],
+            "diff_pixels": r["diff_pixels"],
+            "diff_percent": round(r["diff_percent"], 2),
+            "width": r["width"],
+            "height": r["height"],
+            "ref": r.get("ref_b64", ""),
+            "actual": r.get("actual_b64", ""),
+            "diff": r.get("diff_b64", ""),
+        })
 
-        # Image cells
-        ref_img = (
-            f'<img src="{r["ref_b64"]}" alt="Reference" '
-            f'style="max-width:100%;height:auto;border-radius:4px;">'
-            if r.get("ref_b64") else
-            '<span style="color:#888;">N/A</span>'
-        )
-        actual_img = (
-            f'<img src="{r["actual_b64"]}" alt="Actual" '
-            f'style="max-width:100%;height:auto;border-radius:4px;">'
-            if r.get("actual_b64") else
-            '<span style="color:#888;">N/A</span>'
-        )
-        diff_img = (
-            f'<img src="{r["diff_b64"]}" alt="Diff" '
-            f'style="max-width:100%;height:auto;border-radius:4px;">'
-            if r.get("diff_b64") else
-            '<span style="color:#888;">No diff image</span>'
-        )
+    data_json = json.dumps(js_data)
 
-        size_info = ""
-        if r["width"] and r["height"]:
-            size_info = f' &mdash; {r["width"]}x{r["height"]}'
-
-        card = f"""
-        <div style="border:3px solid {border_color};border-radius:8px;
-                    margin-bottom:24px;background:#1e1e2e;overflow:hidden;">
-          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;
-                      background:#2a2a3e;border-bottom:1px solid #333;">
-            <span style="background:{badge_bg};color:#fff;font-weight:700;
-                         padding:3px 10px;border-radius:4px;font-size:13px;">
-              {badge_text}
-            </span>
-            <span style="font-weight:600;font-size:15px;color:#e0e0e0;">
-              {name}
-            </span>
-            <span style="margin-left:auto;font-size:13px;">
-              {status_detail}{size_info}
-            </span>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;
-                      padding:16px;">
-            <div style="text-align:center;">
-              <div style="font-size:12px;color:#888;margin-bottom:6px;
-                          text-transform:uppercase;letter-spacing:1px;">
-                Reference
-              </div>
-              {ref_img}
-            </div>
-            <div style="text-align:center;">
-              <div style="font-size:12px;color:#888;margin-bottom:6px;
-                          text-transform:uppercase;letter-spacing:1px;">
-                Actual
-              </div>
-              {actual_img}
-            </div>
-            <div style="text-align:center;">
-              <div style="font-size:12px;color:#888;margin-bottom:6px;
-                          text-transform:uppercase;letter-spacing:1px;">
-                Diff
-              </div>
-              {diff_img}
-            </div>
-          </div>
-        </div>
-        """
-        cards_html.append(card)
-
-    # Summary bar colors
     if all_passed:
         summary_bg = "#064e3b"
         summary_border = "#22c55e"
@@ -215,16 +140,34 @@ def build_html(results: list, timestamp: str) -> str:
   body {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                  "Helvetica Neue", Arial, sans-serif;
-    background: #121220;
-    color: #e0e0e0;
-    padding: 24px 32px;
-    line-height: 1.5;
+    background: #121220; color: #e0e0e0;
+    padding: 24px 32px; line-height: 1.5;
   }}
   h1 {{ font-size: 22px; font-weight: 700; margin-bottom: 4px; }}
-  .subtitle {{ font-size: 13px; color: #888; margin-bottom: 20px; }}
+  .subtitle {{ font-size: 13px; color: #888; margin-bottom: 16px; }}
+
+  /* Toolbar */
+  .toolbar {{
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    margin-bottom: 20px; padding: 10px 14px;
+    background: #1e1e2e; border-radius: 8px; border: 1px solid #333;
+  }}
+  .toolbar label {{ font-size: 12px; color: #888; text-transform: uppercase;
+                    letter-spacing: 1px; margin-right: 4px; }}
+  .btn {{
+    padding: 5px 12px; border-radius: 4px; border: 1px solid #444;
+    background: #2a2a3e; color: #ccc; font-size: 12px; cursor: pointer;
+    transition: all .15s;
+  }}
+  .btn:hover {{ background: #3a3a4e; color: #fff; }}
+  .btn.active {{ background: #6366f1; color: #fff; border-color: #818cf8; }}
+  .sep {{ width: 1px; height: 24px; background: #333; margin: 0 6px; }}
+  .kbd {{ font-size: 10px; color: #666; margin-left: 2px; }}
+
+  /* Summary */
   .summary {{
     display: flex; align-items: center; gap: 16px;
-    padding: 14px 20px; border-radius: 8px; margin-bottom: 28px;
+    padding: 14px 20px; border-radius: 8px; margin-bottom: 20px;
     background: {summary_bg}; border: 2px solid {summary_border};
   }}
   .summary-icon {{ font-size: 22px; }}
@@ -237,6 +180,80 @@ def build_html(results: list, timestamp: str) -> str:
   .stat-pass {{ background: #064e3b; color: #4ade80; }}
   .stat-fail {{ background: #450a0a; color: #f87171; }}
   .stat-error {{ background: #451a03; color: #fbbf24; }}
+
+  /* Card */
+  .card {{
+    border: 3px solid #333; border-radius: 8px;
+    margin-bottom: 24px; background: #1e1e2e; overflow: hidden;
+  }}
+  .card.pass {{ border-color: #22c55e; }}
+  .card.fail {{ border-color: #ef4444; }}
+  .card.error {{ border-color: #f59e0b; }}
+  .card-header {{
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    background: #2a2a3e; border-bottom: 1px solid #333; cursor: pointer;
+  }}
+  .card-header:hover {{ background: #323248; }}
+  .badge {{
+    color: #fff; font-weight: 700; padding: 3px 10px;
+    border-radius: 4px; font-size: 13px;
+  }}
+  .badge-pass {{ background: #22c55e; }}
+  .badge-fail {{ background: #ef4444; }}
+  .badge-error {{ background: #f59e0b; }}
+  .card-body {{ padding: 16px; }}
+
+  /* Side-by-side grid */
+  .grid3 {{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }}
+  .grid3 img {{ max-width: 100%; height: auto; border-radius: 4px; cursor: zoom-in; }}
+  .img-label {{
+    font-size: 11px; color: #666; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 4px; text-align: center;
+  }}
+
+  /* Slider mode */
+  .slider-wrap {{
+    position: relative; overflow: hidden; border-radius: 4px;
+    cursor: col-resize; user-select: none;
+  }}
+  .slider-wrap img {{
+    display: block; width: 100%; height: auto;
+    pointer-events: none;
+  }}
+  .slider-actual {{
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+  }}
+  .slider-line {{
+    position: absolute; top: 0; bottom: 0; width: 3px;
+    background: #fff; z-index: 10; pointer-events: none;
+    box-shadow: 0 0 8px rgba(0,0,0,.5);
+  }}
+  .slider-label {{
+    position: absolute; top: 8px; padding: 2px 8px;
+    background: rgba(0,0,0,.7); color: #fff; font-size: 11px;
+    border-radius: 3px; pointer-events: none; z-index: 11;
+  }}
+  .slider-label-l {{ left: 8px; }}
+  .slider-label-r {{ right: 8px; }}
+
+  /* Toggle flicker */
+  .toggle-wrap {{ position: relative; border-radius: 4px; overflow: hidden; }}
+  .toggle-wrap img {{ display: block; width: 100%; height: auto; }}
+  .toggle-badge {{
+    position: absolute; top: 8px; left: 8px; padding: 3px 10px;
+    background: rgba(0,0,0,.7); color: #fff; font-size: 12px;
+    font-weight: 600; border-radius: 4px; z-index: 5;
+  }}
+
+  /* Zoom overlay */
+  .zoom-overlay {{
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.9); z-index: 1000;
+    cursor: zoom-out; overflow: auto;
+  }}
+  .zoom-overlay.active {{ display: flex; align-items: center; justify-content: center; }}
+  .zoom-overlay img {{ max-width: 95vw; max-height: 95vh; border-radius: 4px; }}
 </style>
 </head>
 <body>
@@ -254,12 +271,225 @@ def build_html(results: list, timestamp: str) -> str:
     </span>
   </div>
 
-  {"".join(cards_html)}
+  <div class="toolbar">
+    <label>View:</label>
+    <button class="btn active" onclick="setMode('side')" id="btn-side">Side-by-Side <span class="kbd">1</span></button>
+    <button class="btn" onclick="setMode('slider')" id="btn-slider">Slider <span class="kbd">2</span></button>
+    <button class="btn" onclick="setMode('toggle')" id="btn-toggle">Flicker <span class="kbd">3</span></button>
+    <button class="btn" onclick="setMode('diff')" id="btn-diff">Diff Only <span class="kbd">4</span></button>
+    <div class="sep"></div>
+    <label>Filter:</label>
+    <button class="btn active" onclick="setFilter('all')" id="btn-all">All</button>
+    <button class="btn" onclick="setFilter('fail')" id="btn-fail-f">Failed</button>
+    <button class="btn" onclick="setFilter('pass')" id="btn-pass-f">Passed</button>
+  </div>
+
+  <div id="cards"></div>
+
+  <div class="zoom-overlay" id="zoom" onclick="closeZoom()">
+    <img id="zoom-img" src="" alt="Zoom">
+  </div>
 
   <div style="text-align:center;font-size:12px;color:#555;margin-top:32px;
               padding-top:16px;border-top:1px solid #2a2a3e;">
     Generated by visual_report.py &mdash; Riftwalker Visual Regression
   </div>
+
+<script>
+const DATA = {data_json};
+let currentMode = 'side';
+let currentFilter = 'all';
+let flickerTimers = {{}};
+
+function setMode(mode) {{
+  currentMode = mode;
+  document.querySelectorAll('.toolbar .btn').forEach(b => {{
+    if (b.id.startsWith('btn-side') || b.id.startsWith('btn-slider') ||
+        b.id.startsWith('btn-toggle') || b.id.startsWith('btn-diff'))
+      b.classList.toggle('active', b.id === 'btn-' + mode);
+  }});
+  stopAllFlickers();
+  renderCards();
+}}
+
+function setFilter(f) {{
+  currentFilter = f;
+  document.querySelectorAll('.toolbar .btn').forEach(b => {{
+    if (b.id === 'btn-all' || b.id === 'btn-fail-f' || b.id === 'btn-pass-f')
+      b.classList.toggle('active',
+        (f === 'all' && b.id === 'btn-all') ||
+        (f === 'fail' && b.id === 'btn-fail-f') ||
+        (f === 'pass' && b.id === 'btn-pass-f'));
+  }});
+  stopAllFlickers();
+  renderCards();
+}}
+
+function stopAllFlickers() {{
+  Object.values(flickerTimers).forEach(clearInterval);
+  flickerTimers = {{}};
+}}
+
+function filtered() {{
+  return DATA.filter(d => {{
+    if (currentFilter === 'fail') return !d.passed;
+    if (currentFilter === 'pass') return d.passed && !d.error;
+    return true;
+  }});
+}}
+
+function renderCards() {{
+  const container = document.getElementById('cards');
+  container.innerHTML = '';
+  filtered().forEach(d => container.appendChild(buildCard(d)));
+}}
+
+function buildCard(d) {{
+  const card = document.createElement('div');
+  card.className = 'card ' + (d.error ? 'error' : d.passed ? 'pass' : 'fail');
+
+  const badgeClass = d.error ? 'badge-error' : d.passed ? 'badge-pass' : 'badge-fail';
+  const badgeText = d.error ? 'ERROR' : d.passed ? 'PASS' : 'FAIL';
+  const statusColor = d.error ? '#f59e0b' : d.passed ? '#22c55e' : '#ef4444';
+  const statusText = d.error ? d.error
+    : `Diff: ${{d.diff_percent}}% (${{d.diff_pixels}} px)`;
+  const sizeText = (d.width && d.height) ? ` &mdash; ${{d.width}}x${{d.height}}` : '';
+
+  const header = document.createElement('div');
+  header.className = 'card-header';
+  header.innerHTML = `
+    <span class="badge ${{badgeClass}}">${{badgeText}}</span>
+    <span style="font-weight:600;font-size:15px;">${{d.name}}</span>
+    <span style="margin-left:auto;font-size:13px;">
+      <span style="color:${{statusColor}}">${{statusText}}</span>${{sizeText}}
+    </span>`;
+  card.appendChild(header);
+
+  if (d.error || !d.ref || !d.actual) {{ return card; }}
+
+  const body = document.createElement('div');
+  body.className = 'card-body';
+
+  if (currentMode === 'side') {{
+    body.innerHTML = buildSideView(d);
+  }} else if (currentMode === 'slider') {{
+    body.innerHTML = buildSliderView(d);
+    requestAnimationFrame(() => initSlider(d.id));
+  }} else if (currentMode === 'toggle') {{
+    body.innerHTML = buildToggleView(d);
+    requestAnimationFrame(() => initFlicker(d.id));
+  }} else if (currentMode === 'diff') {{
+    body.innerHTML = buildDiffView(d);
+  }}
+
+  card.appendChild(body);
+  return card;
+}}
+
+function buildSideView(d) {{
+  const diffCell = d.diff
+    ? `<img src="${{d.diff}}" alt="Diff" onclick="openZoom(this.src)">`
+    : '<span style="color:#666;">No diff</span>';
+  return `<div class="grid3">
+    <div><div class="img-label">Reference</div>
+      <img src="${{d.ref}}" alt="Reference" onclick="openZoom(this.src)"></div>
+    <div><div class="img-label">Actual</div>
+      <img src="${{d.actual}}" alt="Actual" onclick="openZoom(this.src)"></div>
+    <div><div class="img-label">Diff</div>${{diffCell}}</div>
+  </div>`;
+}}
+
+function buildSliderView(d) {{
+  return `<div class="slider-wrap" id="slider-${{d.id}}" style="max-width:100%;">
+    <img src="${{d.ref}}" alt="Reference" style="width:100%;display:block;">
+    <div class="slider-actual" id="slider-clip-${{d.id}}">
+      <img src="${{d.actual}}" alt="Actual" style="width:100%;display:block;">
+    </div>
+    <div class="slider-line" id="slider-line-${{d.id}}"></div>
+    <span class="slider-label slider-label-l">Reference</span>
+    <span class="slider-label slider-label-r">Actual</span>
+  </div>`;
+}}
+
+function initSlider(id) {{
+  const wrap = document.getElementById('slider-' + id);
+  if (!wrap) return;
+  const clip = document.getElementById('slider-clip-' + id);
+  const line = document.getElementById('slider-line-' + id);
+  let pos = 0.5;
+
+  function update(x) {{
+    const rect = wrap.getBoundingClientRect();
+    pos = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+    clip.style.clipPath = `inset(0 0 0 ${{pos * 100}}%)`;
+    line.style.left = (pos * 100) + '%';
+  }}
+
+  update(wrap.getBoundingClientRect().left + wrap.offsetWidth * 0.5);
+
+  let dragging = false;
+  wrap.addEventListener('mousedown', e => {{ dragging = true; update(e.clientX); }});
+  document.addEventListener('mousemove', e => {{ if (dragging) update(e.clientX); }});
+  document.addEventListener('mouseup', () => {{ dragging = false; }});
+  wrap.addEventListener('touchstart', e => {{ update(e.touches[0].clientX); }});
+  wrap.addEventListener('touchmove', e => {{ update(e.touches[0].clientX); e.preventDefault(); }});
+}}
+
+function buildToggleView(d) {{
+  return `<div class="toggle-wrap" id="toggle-${{d.id}}">
+    <span class="toggle-badge" id="toggle-label-${{d.id}}">Reference</span>
+    <img id="toggle-img-${{d.id}}" src="${{d.ref}}" alt="Toggle" onclick="openZoom(this.src)">
+  </div>
+  <div style="text-align:center;margin-top:8px;font-size:12px;color:#666;">
+    Flickers every 500ms &mdash; click image to zoom
+  </div>`;
+}}
+
+function initFlicker(id) {{
+  let showRef = true;
+  const img = document.getElementById('toggle-img-' + id);
+  const label = document.getElementById('toggle-label-' + id);
+  const d = DATA[id];
+  if (!img || !d) return;
+  flickerTimers[id] = setInterval(() => {{
+    showRef = !showRef;
+    img.src = showRef ? d.ref : d.actual;
+    label.textContent = showRef ? 'Reference' : 'Actual';
+    label.style.background = showRef ? 'rgba(34,197,94,.7)' : 'rgba(99,102,241,.7)';
+  }}, 500);
+}}
+
+function buildDiffView(d) {{
+  if (!d.diff) return '<div style="text-align:center;color:#666;padding:20px;">No differences detected</div>';
+  return `<div style="text-align:center;">
+    <img src="${{d.diff}}" alt="Diff" style="max-width:100%;border-radius:4px;cursor:zoom-in;"
+         onclick="openZoom(this.src)">
+    <div style="font-size:12px;color:#666;margin-top:8px;">
+      Red = changed pixels, Yellow = anti-aliased
+    </div>
+  </div>`;
+}}
+
+function openZoom(src) {{
+  const overlay = document.getElementById('zoom');
+  document.getElementById('zoom-img').src = src;
+  overlay.classList.add('active');
+}}
+
+function closeZoom() {{
+  document.getElementById('zoom').classList.remove('active');
+}}
+
+document.addEventListener('keydown', e => {{
+  if (e.key === '1') setMode('side');
+  else if (e.key === '2') setMode('slider');
+  else if (e.key === '3') setMode('toggle');
+  else if (e.key === '4') setMode('diff');
+  else if (e.key === 'Escape') closeZoom();
+}});
+
+renderCards();
+</script>
 </body>
 </html>"""
     return html
