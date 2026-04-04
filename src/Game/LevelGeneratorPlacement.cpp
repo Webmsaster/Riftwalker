@@ -668,7 +668,6 @@ void LevelGenerator::addEnemySpawns(Level& level, int startX, int startY,
         }
 
         // Zone-based enemy type gating (gradual unlock over 30 floors)
-        int zone = std::clamp((difficulty - 1) / 6, 0, 4);
         int fiz = ((difficulty - 1) % 6) + 1;
         if (zone == 0 && fiz <= 2) type = std::min(type, 2);        // Zone1 F1-2: Walker, Flyer, Turret
         else if (zone == 0 && fiz <= 4) type = std::min(type, 4);   // Zone1 F3-4: +Charger, Phaser

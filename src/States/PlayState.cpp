@@ -90,6 +90,11 @@ void PlayState::exit() {
     m_dimATestBackground = nullptr;
     m_dimBTestBackground = nullptr;
     m_bossTestBackground = nullptr;
+    for (auto& d : m_damageNumbers) {
+        if (d.cachedText)   SDL_DestroyTexture(d.cachedText);
+        if (d.cachedShadow) SDL_DestroyTexture(d.cachedShadow);
+    }
+    m_damageNumbers.clear();
     m_entities.clear();
     m_particles.clear();
     m_player.reset();

@@ -42,6 +42,11 @@ struct FloatingDamageNumber {
     bool isShard = false;
     bool isBuff = false;
     const char* buffText = nullptr; // label for buff pickups
+    // Cached textures (created once on first render, reused with alpha mod)
+    SDL_Texture* cachedText = nullptr;
+    SDL_Texture* cachedShadow = nullptr;
+    int texW = 0, texH = 0;
+    float baseScale = 1.0f;
 };
 
 // Dynamic level events (random mid-level occurrences)

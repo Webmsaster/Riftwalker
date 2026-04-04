@@ -466,7 +466,13 @@ void PlayState::updateDamageNumbers(float dt) {
         dn.lifetime -= dt;
         dn.position.y -= 60.0f * dt; // Float upward
     }
-    // Remove expired
+    // Destroy cached textures of expired numbers, then remove
+    for (auto& d : m_damageNumbers) {
+        if (d.lifetime <= 0) {
+            if (d.cachedText)   { SDL_DestroyTexture(d.cachedText);   d.cachedText = nullptr; }
+            if (d.cachedShadow) { SDL_DestroyTexture(d.cachedShadow); d.cachedShadow = nullptr; }
+        }
+    }
     m_damageNumbers.erase(
         std::remove_if(m_damageNumbers.begin(), m_damageNumbers.end(),
             [](const FloatingDamageNumber& d) { return d.lifetime <= 0; }),

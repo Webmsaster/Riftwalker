@@ -91,6 +91,25 @@ endif()
 
 # Visual regression test tool
 FetchContent_MakeAvailable(pixelmatch-cpp17)
+
+# Fix pixelmatch targets for MSVC: remove GCC-only flags, add /EHsc
+if(MSVC)
+    foreach(tgt pixelmatch_third_party_stb_image pixelmatch_third_party_stb_image_write)
+        if(TARGET ${tgt})
+            get_target_property(_opts ${tgt} COMPILE_OPTIONS)
+            if(_opts)
+                list(REMOVE_ITEM _opts -Wno-unused-function -Wno-self-assign)
+                set_target_properties(${tgt} PROPERTIES COMPILE_OPTIONS "${_opts}")
+            endif()
+        endif()
+    endforeach()
+    foreach(tgt pixelmatch-cpp17 image_utils)
+        if(TARGET ${tgt})
+            target_compile_options(${tgt} PRIVATE /EHsc)
+        endif()
+    endforeach()
+endif()
+
 add_executable(visual_diff tools/visual_diff.cpp src/Core/ScreenCapture.cpp)
 target_include_directories(visual_diff PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(visual_diff PRIVATE

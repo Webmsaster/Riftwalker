@@ -252,6 +252,10 @@ void PlayState::startNewRun() {
 void PlayState::generateLevel() {
     m_entities.clear();
     m_particles.clear();
+    for (auto& d : m_damageNumbers) {
+        if (d.cachedText)   SDL_DestroyTexture(d.cachedText);
+        if (d.cachedShadow) SDL_DestroyTexture(d.cachedShadow);
+    }
     m_damageNumbers.clear();
     m_damageIndicators.clear();
     m_trails.clear();

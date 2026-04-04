@@ -943,100 +943,101 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
         float t = dn.lifetime / dn.maxLifetime; // 1.0 -> 0.0
         Uint8 alpha = static_cast<Uint8>(255 * t);
 
-        // Color: green for heals, purple for shards, cyan for buffs, red for player damage, orange for crits, yellow for normal
-        SDL_Color color;
-        if (dn.isShard) {
-            color = {200, 150, 255, alpha};
-        } else if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
-            color = {255, 225, 80, alpha}; // bright gold for parry
-        } else if (dn.isBuff) {
-            color = {100, 220, 255, alpha};
-        } else if (dn.isHeal) {
-            color = {50, 255, 80, alpha};
-        } else if (dn.isPlayerDamage) {
-            color = {255, 60, 40, alpha};
-        } else if (dn.isCritical) {
-            color = {255, 215, 50, alpha}; // bright gold
-        } else {
-            color = {255, 240, 100, alpha};
+        // Lazy-init: create and cache textures on first render frame
+        if (!dn.cachedText) {
+            // Determine base color (full alpha — modulated per frame)
+            SDL_Color color;
+            if (dn.isShard) {
+                color = {200, 150, 255, 255};
+            } else if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
+                color = {255, 225, 80, 255};
+            } else if (dn.isBuff) {
+                color = {100, 220, 255, 255};
+            } else if (dn.isHeal) {
+                color = {50, 255, 80, 255};
+            } else if (dn.isPlayerDamage) {
+                color = {255, 60, 40, 255};
+            } else if (dn.isCritical) {
+                color = {255, 215, 50, 255};
+            } else {
+                color = {255, 240, 100, 255};
+            }
+
+            char buf[32];
+            if (dn.isShard) {
+                std::snprintf(buf, sizeof(buf), "+%.0f", dn.value);
+            } else if (dn.isBuff && dn.buffText) {
+                std::snprintf(buf, sizeof(buf), "%s", dn.buffText);
+            } else if (dn.isHeal) {
+                std::snprintf(buf, sizeof(buf), "+%.0f", dn.value);
+            } else if (dn.isCritical) {
+                std::snprintf(buf, sizeof(buf), "CRIT! %.0f", dn.value);
+            } else {
+                std::snprintf(buf, sizeof(buf), "%.0f", dn.value);
+            }
+
+            // Compute base scale once
+            if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
+                dn.baseScale = 1.8f;
+            } else if (dn.isCritical) {
+                dn.baseScale = 1.8f;
+            } else if (dn.value > 20) {
+                dn.baseScale = 1.3f;
+            }
+
+            // Create and cache text texture
+            SDL_Surface* surface = TTF_RenderText_Blended(font, buf, color);
+            if (surface) {
+                dn.texW = surface->w;
+                dn.texH = surface->h;
+                dn.cachedText = SDL_CreateTextureFromSurface(renderer, surface);
+                SDL_FreeSurface(surface);
+            }
+            // Create and cache shadow texture
+            SDL_Color black = {0, 0, 0, 255};
+            SDL_Surface* shadowSurf = TTF_RenderText_Blended(font, buf, black);
+            if (shadowSurf) {
+                dn.cachedShadow = SDL_CreateTextureFromSurface(renderer, shadowSurf);
+                SDL_FreeSurface(shadowSurf);
+            }
         }
 
-        char buf[32];
-        if (dn.isShard) {
-            std::snprintf(buf, sizeof(buf), "+%.0f", dn.value);
-        } else if (dn.isBuff && dn.buffText) {
-            std::snprintf(buf, sizeof(buf), "%s", dn.buffText);
-        } else if (dn.isHeal) {
-            std::snprintf(buf, sizeof(buf), "+%.0f", dn.value);
-        } else if (dn.isCritical) {
-            std::snprintf(buf, sizeof(buf), "CRIT! %.0f", dn.value);
-        } else {
-            std::snprintf(buf, sizeof(buf), "%.0f", dn.value);
-        }
+        if (!dn.cachedText) continue;
 
         // Convert world position to screen position
         SDL_FRect worldRect = {dn.position.x - 10, dn.position.y - 8, 20, 16};
         SDL_Rect screenRect = m_camera.worldToScreen(worldRect);
 
         // Pop-in scale animation: starts large, settles to target scale
-        float lifeProgress = 1.0f - t; // 0 at birth, 1 at death
+        float lifeProgress = 1.0f - t;
         float popScale = 1.0f;
         if (lifeProgress < 0.15f) {
-            // Pop-in: scale from 1.6 to 1.0 in first 15% of life
             float popT = lifeProgress / 0.15f;
             popScale = 1.6f - 0.6f * popT;
         }
+        float finalScale = dn.baseScale * popScale;
 
-        float baseScale = 1.0f;
-        if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
-            baseScale = 1.8f;
-        } else if (dn.isCritical) {
-            baseScale = 1.8f;
-        } else if (dn.value > 20) {
-            baseScale = 1.3f;
-        }
-        float finalScale = baseScale * popScale;
+        int sw = static_cast<int>(dn.texW * finalScale);
+        int sh = static_cast<int>(dn.texH * finalScale);
+        int dx = screenRect.x - sw / 2;
+        int dy = screenRect.y;
 
-        // Render text with outline shadow for readability
-        // Shadow pass (dark outline)
-        SDL_Color shadowColor = {0, 0, 0, static_cast<Uint8>(alpha * 0.8f)};
-        SDL_Surface* shadowSurf = TTF_RenderText_Blended(font, buf, shadowColor);
-        SDL_Surface* surface = TTF_RenderText_Blended(font, buf, color);
-        if (surface) {
-            int sw = static_cast<int>(surface->w * finalScale);
-            int sh = static_cast<int>(surface->h * finalScale);
-            int dx = screenRect.x - sw / 2;
-            int dy = screenRect.y;
-
-            // Shadow (4 offset copies for thick outline)
-            if (shadowSurf) {
-                SDL_Texture* shadowTex = SDL_CreateTextureFromSurface(renderer, shadowSurf);
-                if (shadowTex) {
-                    SDL_SetTextureAlphaMod(shadowTex, static_cast<Uint8>(alpha * 0.7f));
-                    for (int ox = -1; ox <= 1; ox++) {
-                        for (int oy = -1; oy <= 1; oy++) {
-                            if (ox == 0 && oy == 0) continue;
-                            SDL_Rect sdst = {dx + ox, dy + oy, sw, sh};
-                            SDL_RenderCopy(renderer, shadowTex, nullptr, &sdst);
-                        }
-                    }
-                    SDL_DestroyTexture(shadowTex);
+        // Shadow outline (8 offset copies) — reuse cached shadow texture
+        if (dn.cachedShadow) {
+            SDL_SetTextureAlphaMod(dn.cachedShadow, static_cast<Uint8>(alpha * 0.7f));
+            for (int ox = -1; ox <= 1; ox++) {
+                for (int oy = -1; oy <= 1; oy++) {
+                    if (ox == 0 && oy == 0) continue;
+                    SDL_Rect sdst = {dx + ox, dy + oy, sw, sh};
+                    SDL_RenderCopy(renderer, dn.cachedShadow, nullptr, &sdst);
                 }
-                SDL_FreeSurface(shadowSurf);
             }
-
-            // Main text
-            SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-            if (texture) {
-                SDL_Rect dst = {dx, dy, sw, sh};
-                SDL_SetTextureAlphaMod(texture, alpha);
-                SDL_RenderCopy(renderer, texture, nullptr, &dst);
-                SDL_DestroyTexture(texture);
-            }
-            SDL_FreeSurface(surface);
-        } else if (shadowSurf) {
-            SDL_FreeSurface(shadowSurf);
         }
+
+        // Main text — reuse cached text texture
+        SDL_SetTextureAlphaMod(dn.cachedText, alpha);
+        SDL_Rect dst = {dx, dy, sw, sh};
+        SDL_RenderCopy(renderer, dn.cachedText, nullptr, &dst);
     }
 }
 
