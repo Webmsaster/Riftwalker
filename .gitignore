@@ -35,6 +35,11 @@ riftwalker_settings.cfg
 assets/ai/
 assets/comfyui_concepts/
 
+# Music source files (MIDI/WAV for LMMS editing, keep OGGs in git)
+assets/music/midi/
+assets/music/lmms_projects/
+assets/music/*.wav
+
 # Git worktrees
 Riftwalker-bugfix/
 Riftwalker-feature/

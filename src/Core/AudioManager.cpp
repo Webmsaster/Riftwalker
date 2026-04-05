@@ -10,7 +10,7 @@ AudioManager& AudioManager::instance() {
 }
 
 void AudioManager::init() {
-    if (Mix_OpenAudio(44100, AUDIO_S16SYS, 1, 2048) < 0) {
+    if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 2048) < 0) {
         SDL_Log("SDL_mixer init failed: %s", Mix_GetError());
         return;
     }
