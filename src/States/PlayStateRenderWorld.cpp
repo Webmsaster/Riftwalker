@@ -94,26 +94,65 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
         }
     }
 
-    // Text banner (fades in quickly)
+    // Text banner with gameplay tip (fades in quickly)
     if (progress < 0.85f) {
         float textAlpha = std::min(1.0f, progress * 3.0f);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(160 * textAlpha));
-        SDL_Rect banner = {0, 660, SCREEN_WIDTH, 120};
+        SDL_Rect banner = {0, 640, SCREEN_WIDTH, 160};
         SDL_RenderFillRect(renderer, &banner);
 
         TTF_Font* font = game->getFont();
         if (font) {
             Uint8 ta = static_cast<Uint8>(textAlpha * 255);
+
+            // Main transition text
             SDL_Color c = {140, 255, 180, ta};
             SDL_Surface* s = TTF_RenderText_Blended(font, "RIFT STABILIZED - Warping to next dimension...", c);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 696, s->w, s->h};
+                    SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, 668, s->w, s->h};
                     SDL_RenderCopy(renderer, t, nullptr, &r);
                     SDL_DestroyTexture(t);
                 }
                 SDL_FreeSurface(s);
+            }
+
+            // Gameplay tip (seeded by current floor for consistency)
+            static const char* tips[] = {
+                "TIP: Dimension B has tougher enemies but better shard rewards.",
+                "TIP: Parrying at the right moment triggers a powerful counter-attack.",
+                "TIP: Wall-slide by holding toward a wall while airborne.",
+                "TIP: Repairing rifts in Dimension B grants bonus shards and reduces entropy.",
+                "TIP: Relics can combine into powerful synergies — check the pause menu.",
+                "TIP: Crates sometimes drop health orbs and shards.",
+                "TIP: Each class has a unique ability — use it often, it recharges quickly.",
+                "TIP: Entropy increases over time. Repair rifts and switch dimensions to manage it.",
+                "TIP: Elite enemies glow and have special modifiers. They drop better rewards.",
+                "TIP: The minimap (M key) shows rift locations and the exit.",
+                "TIP: Dashing through enemies grants brief invincibility frames.",
+                "TIP: Bosses have 3 phases — their attacks change at 66% and 33% HP.",
+                "TIP: Weapon mastery increases with kills. Higher mastery unlocks bonuses.",
+                "TIP: Check the bestiary to learn enemy weaknesses and attack patterns.",
+                "TIP: Some relics are cursed — powerful effects with dangerous drawbacks.",
+            };
+            constexpr int NUM_TIPS = sizeof(tips) / sizeof(tips[0]);
+            int tipIdx = (m_currentDifficulty + m_runSeed) % NUM_TIPS;
+
+            Uint8 tipAlpha = static_cast<Uint8>(textAlpha * 160);
+            SDL_Color tipColor = {160, 150, 180, tipAlpha};
+            SDL_Surface* ts = TTF_RenderText_Blended(font, tips[tipIdx], tipColor);
+            if (ts) {
+                SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
+                if (tt) {
+                    // Render at 75% scale for a subtler look
+                    int tipW = ts->w * 3 / 4;
+                    int tipH = ts->h * 3 / 4;
+                    SDL_Rect tr = {SCREEN_WIDTH / 2 - tipW / 2, 738, tipW, tipH};
+                    SDL_RenderCopy(renderer, tt, nullptr, &tr);
+                    SDL_DestroyTexture(tt);
+                }
+                SDL_FreeSurface(ts);
             }
         }
     }

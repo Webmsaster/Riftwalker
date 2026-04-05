@@ -33,6 +33,14 @@
 #include <algorithm>
 #include <string>
 
+// Music track paths (shared with PlayState.cpp)
+static const char* const ZONE_TRACKS[] = {
+    "assets/music/zone1.ogg",
+    "assets/music/zone2.ogg",
+    "assets/music/zone3.ogg",
+};
+static constexpr const char* BOSS_TRACK = "assets/music/boss_theme.ogg";
+
 extern bool g_smokeRegression;
 extern int g_forcedRunSeed;
 extern int g_smokeCompletedFloor;
@@ -197,7 +205,7 @@ void PlayState::startNewRun() {
     AudioManager::instance().playThemeAmbient(static_cast<int>(m_themeA.id));
 
     // Start zone music (zone 1 for new runs)
-    AudioManager::instance().playMusic("assets/music/zone1.ogg");
+    AudioManager::instance().playMusic(ZONE_TRACKS[0]);
 
     // Start procedural theme music
     m_musicSystem.setTheme(static_cast<int>(m_themeA.id), m_dimManager.getCurrentDimension());
@@ -664,7 +672,7 @@ void PlayState::spawnBoss() {
     if (!m_level) return;
 
     // Switch to boss music
-    AudioManager::instance().playMusic("assets/music/boss_theme.ogg");
+    AudioManager::instance().playMusic(BOSS_TRACK);
 
     // Spawn boss near the center of the level
     Vec2 exitPos = m_level->getExitPoint();

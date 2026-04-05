@@ -28,6 +28,14 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdarg>
+
+// Centralized music track paths
+static const char* const ZONE_TRACKS[] = {
+    "assets/music/zone1.ogg",
+    "assets/music/zone2.ogg",
+    "assets/music/zone3.ogg",
+};
+static constexpr const char* BOSS_TRACK = "assets/music/boss_theme.ogg";
 #include <algorithm>
 #include <string>
 
@@ -770,14 +778,8 @@ void PlayState::update(float dt) {
             m_bossDefeated = true;
             // Resume zone music after boss kill
             {
-                int zone = getZone(m_currentDifficulty);
-                const char* zoneTracks[] = {
-                    "assets/music/zone1.ogg",
-                    "assets/music/zone2.ogg",
-                    "assets/music/zone3.ogg",
-                };
-                int trackIdx = std::clamp(zone - 1, 0, 2);
-                AudioManager::instance().playMusic(zoneTracks[trackIdx]);
+                int trackIdx = std::clamp(getZone(m_currentDifficulty) - 1, 0, 2);
+                AudioManager::instance().playMusic(ZONE_TRACKS[trackIdx]);
             }
             // Dramatic zoom-in on boss kill
             m_camera.zoomTarget = 5.6f;
@@ -1099,13 +1101,8 @@ void PlayState::update(float dt) {
 
             // Zone-based music (switch track on zone change)
             if (newZone != prevZone) {
-                const char* zoneTracks[] = {
-                    "assets/music/zone1.ogg",
-                    "assets/music/zone2.ogg",
-                    "assets/music/zone3.ogg",
-                };
                 int trackIdx = std::clamp(newZone - 1, 0, 2);
-                AudioManager::instance().playMusic(zoneTracks[trackIdx]);
+                AudioManager::instance().playMusic(ZONE_TRACKS[trackIdx]);
             }
 
             // Trigger zone transition banner when entering a new zone
