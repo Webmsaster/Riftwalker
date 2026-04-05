@@ -51,9 +51,9 @@ public:
     void shutdown();
     void generateSounds(); // create all procedural SFX
 
-    // Music
-    void playMusic(const std::string& path, int loops = -1);
-    void stopMusic();
+    // Music (with crossfade support)
+    void playMusic(const std::string& path, int loops = -1, int fadeMs = 500);
+    void stopMusic(int fadeMs = 300);
     void pauseMusic();
     void resumeMusic();
     void setMusicVolume(int volume); // 0-128

@@ -156,18 +156,26 @@ void AudioManager::shutdown() {
     }
 }
 
-void AudioManager::playMusic(const std::string& path, int loops) {
+void AudioManager::playMusic(const std::string& path, int loops, int fadeMs) {
     if (!m_initialized || m_muted) return;
     Mix_Music* music = ResourceManager::instance().getMusic(path);
     if (music) {
-        Mix_PlayMusic(music, loops);
+        // Fade out any currently playing music, then fade in the new track
+        if (Mix_PlayingMusic() && fadeMs > 0) {
+            Mix_FadeOutMusic(fadeMs / 2);
+        }
+        Mix_FadeInMusic(music, loops, fadeMs);
         Mix_VolumeMusic(static_cast<int>(m_musicVolume * m_masterVolume));
     }
 }
 
-void AudioManager::stopMusic() {
+void AudioManager::stopMusic(int fadeMs) {
     if (!m_initialized) return;
-    Mix_HaltMusic();
+    if (fadeMs > 0 && Mix_PlayingMusic()) {
+        Mix_FadeOutMusic(fadeMs);
+    } else {
+        Mix_HaltMusic();
+    }
 }
 
 void AudioManager::pauseMusic() {

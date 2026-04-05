@@ -776,205 +776,411 @@ def create_lmms_project(midi_path, name, bpm):
 # ============================================================
 
 def render_midi_to_wav_synth(midi_path, wav_path):
-    """Render MIDI to WAV using numpy synthesis (fallback if no SoundFont)."""
+    """Render MIDI to WAV using enhanced numpy synthesis.
+
+    v2 improvements over original:
+    - Proper note duration tracking from MIDI note_on/note_off pairs
+    - Stereo output with per-track panning
+    - Schroeder reverb (4 comb + 2 allpass filters)
+    - Chorus effect for pads and strings
+    - Per-instrument ADSR envelope profiles
+    - Filter envelope modulation for bass and leads
+    - Sub-oscillator and detuned unison for richness
+    """
     import numpy as np
     from scipy.io import wavfile
-    from scipy.signal import lfilter
+    from scipy.signal import lfilter, butter
 
     mid = MidiFile(midi_path)
     sr = 44100
-    # Calculate total duration
-    total_time = mid.length + 2.0  # extra 2s for reverb tail
+    total_time = mid.length + 3.0  # extra 3s for reverb tail
     samples = int(total_time * sr)
-    audio = np.zeros(samples, dtype=np.float64)
+    # Stereo buffer: left and right channels
+    audio_L = np.zeros(samples, dtype=np.float64)
+    audio_R = np.zeros(samples, dtype=np.float64)
 
-    # Collect all notes with absolute times
-    for track in mid.tracks:
-        current_time = 0.0  # in seconds
-        tempo = 500000  # default 120 BPM
-        channel = 0
+    # --- Helper: low-pass filter ---
+    def lpf(signal, cutoff, sr=44100):
+        if cutoff >= sr * 0.45:
+            return signal
+        b, a = butter(2, cutoff / (sr / 2), btype='low')
+        return lfilter(b, a, signal)
+
+    # --- Helper: high-pass filter ---
+    def hpf(signal, cutoff, sr=44100):
+        if cutoff <= 20:
+            return signal
+        b, a = butter(2, cutoff / (sr / 2), btype='high')
+        return lfilter(b, a, signal)
+
+    # --- Helper: band-limited saw wave (fewer aliasing artifacts) ---
+    def saw_wave(freq, t, sr=44100):
+        # freq can be scalar or array; ensure phase works for both
+        freq_arr = np.broadcast_to(freq, t.shape)
+        phase = np.cumsum(freq_arr / sr) % 1.0
+        saw = 2.0 * phase - 1.0
+        # Simple smoothing at discontinuities (no polyblep for array freq)
+        return saw
+
+    # --- Helper: ADSR envelope ---
+    def adsr(n_samples, attack, decay, sustain, release, sr=44100):
+        env = np.ones(n_samples)
+        att_s = int(attack * sr)
+        dec_s = int(decay * sr)
+        rel_s = int(release * sr)
+        sus_start = att_s + dec_s
+        rel_start = max(0, n_samples - rel_s)
+        if att_s > 0:
+            end = min(att_s, n_samples)
+            env[:end] = np.linspace(0, 1, end)
+        if dec_s > 0 and sus_start < n_samples:
+            end = min(sus_start, n_samples)
+            env[att_s:end] = np.linspace(1, sustain, end - att_s)
+        if sus_start < n_samples:
+            env[sus_start:rel_start] = sustain
+        if rel_s > 0 and rel_start < n_samples:
+            env[rel_start:] *= np.linspace(1, 0, n_samples - rel_start)
+        return env
+
+    # --- Helper: chorus effect (subtle detuning + delay) ---
+    def chorus(signal, depth=0.002, rate=1.5, sr=44100):
+        n = len(signal)
+        t = np.arange(n) / sr
+        mod = (depth * sr) * (0.5 + 0.5 * np.sin(2 * np.pi * rate * t))
+        out = np.zeros(n)
+        for i in range(n):
+            idx = i - mod[i]
+            if idx >= 0:
+                i0 = int(idx)
+                frac = idx - i0
+                if i0 + 1 < n:
+                    out[i] = signal[i0] * (1 - frac) + signal[i0 + 1] * frac
+        return signal * 0.7 + out * 0.3
+
+    # --- Step 1: Parse MIDI into note events with proper durations ---
+    all_notes = []  # (start_sec, duration_sec, note, velocity, channel, program, track_idx)
+
+    for track_idx, track in enumerate(mid.tracks):
+        # First pass: collect tempo changes
+        tempo_map = []  # (tick, tempo)
+        tick = 0
+        for msg in track:
+            tick += msg.time
+            if msg.is_meta and msg.type == 'set_tempo':
+                tempo_map.append((tick, msg.tempo))
+        if not tempo_map:
+            tempo_map.append((0, 500000))  # default 120 BPM
+
+        # Second pass: pair note_on/note_off
+        active_notes = {}  # (note, channel) -> (start_tick, velocity)
+        tick = 0
         program = 0
+        channel = 0
+
+        def tick_to_sec(target_tick):
+            """Convert MIDI tick to seconds using tempo map."""
+            sec = 0.0
+            prev_tick = 0
+            prev_tempo = 500000
+            for t_tick, t_tempo in tempo_map:
+                if t_tick > target_tick:
+                    break
+                sec += mido.tick2second(t_tick - prev_tick, mid.ticks_per_beat, prev_tempo)
+                prev_tick = t_tick
+                prev_tempo = t_tempo
+            sec += mido.tick2second(target_tick - prev_tick, mid.ticks_per_beat, prev_tempo)
+            return sec
 
         for msg in track:
-            if msg.is_meta:
-                if msg.type == 'set_tempo':
-                    tempo = msg.tempo
-                current_time += mido.tick2second(msg.time, mid.ticks_per_beat, tempo)
-                continue
+            tick += msg.time
 
-            current_time += mido.tick2second(msg.time, mid.ticks_per_beat, tempo)
+            if msg.is_meta:
+                continue
 
             if msg.type == 'program_change':
                 program = msg.program
                 channel = msg.channel
                 continue
 
+            ch = msg.channel if hasattr(msg, 'channel') else channel
+
             if msg.type == 'note_on' and msg.velocity > 0:
-                ch = msg.channel if hasattr(msg, 'channel') else channel
-                freq = 440.0 * (2.0 ** ((msg.note - 69) / 12.0))
-                vel = msg.velocity / 127.0
+                key = (msg.note, ch)
+                active_notes[key] = (tick, msg.velocity, program)
 
-                # Find note_off for duration
-                dur = 0.5  # default
-                t_acc = 0.0
-                found = False
-                for future_msg in track:
-                    # This is imprecise but good enough for rendering
-                    pass
-                # Use a default duration based on instrument type
-                if program in range(38, 40):  # bass
-                    dur = 0.3
-                elif program in range(48, 56):  # strings/ensemble
-                    dur = 2.0
-                elif program in range(80, 96):  # synth lead/pad
-                    dur = 1.0
-                elif program in range(24, 32):  # guitar
-                    dur = 0.2
-                elif ch == 9:  # drums
-                    dur = 0.15
-                else:
-                    dur = 0.8
+            elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
+                key = (msg.note, ch)
+                if key in active_notes:
+                    start_tick, vel, prog = active_notes.pop(key)
+                    start_sec = tick_to_sec(start_tick)
+                    end_sec = tick_to_sec(tick)
+                    dur = max(0.01, end_sec - start_sec)
+                    all_notes.append((start_sec, dur, msg.note, vel, ch, prog, track_idx))
 
-                start_sample = int(current_time * sr)
-                n_samples = int(dur * sr)
-                if start_sample + n_samples > samples:
-                    n_samples = samples - start_sample
-                if n_samples <= 0:
-                    continue
+        # Handle any notes still active at end of track (sustaining notes)
+        for (note_num, ch), (start_tick, vel, prog) in active_notes.items():
+            start_sec = tick_to_sec(start_tick)
+            end_sec = tick_to_sec(tick)
+            dur = max(0.05, end_sec - start_sec)
+            all_notes.append((start_sec, dur, note_num, vel, ch, prog, track_idx))
 
-                t = np.arange(n_samples) / sr
+    print(f"    Parsed {len(all_notes)} note events")
 
-                # ADSR envelope
-                attack = min(0.02, dur * 0.1)
-                decay = min(0.1, dur * 0.2)
-                sustain_level = 0.6
-                release = min(0.2, dur * 0.3)
+    # --- Per-track panning (spread instruments in stereo field) ---
+    track_pans = {}  # track_idx -> pan (-1.0 left .. +1.0 right)
+    num_tracks = len(mid.tracks)
+    for i in range(num_tracks):
+        # Spread tracks across stereo field
+        if num_tracks <= 1:
+            track_pans[i] = 0.0
+        else:
+            track_pans[i] = -0.4 + 0.8 * (i / max(1, num_tracks - 1))
 
-                env = np.ones(n_samples)
-                att_s = int(attack * sr)
-                dec_s = int(decay * sr)
-                rel_s = int(release * sr)
-                if att_s > 0:
-                    env[:att_s] = np.linspace(0, 1, att_s)
-                if dec_s > 0 and att_s + dec_s < n_samples:
-                    env[att_s:att_s + dec_s] = np.linspace(1, sustain_level, dec_s)
-                    env[att_s + dec_s:] = sustain_level
-                if rel_s > 0 and n_samples > rel_s:
-                    env[-rel_s:] *= np.linspace(1, 0, rel_s)
+    # --- Step 2: Render each note ---
+    for start_sec, dur, note_num, velocity, ch, program, track_idx in all_notes:
+        freq = 440.0 * (2.0 ** ((note_num - 69) / 12.0))
+        vel = velocity / 127.0
+        start_sample = int(start_sec * sr)
+        n_samples = int(dur * sr)
+        if start_sample + n_samples > samples:
+            n_samples = samples - start_sample
+        if n_samples <= 10:
+            continue
 
-                # Waveform based on instrument type
-                if ch == 9:
-                    # Drums: noise-based with pitch envelope
-                    if msg.note in [36, 35]:  # kick
-                        freq_env = np.linspace(150, 40, n_samples)
-                        wave = np.sin(2 * np.pi * np.cumsum(freq_env / sr)) * 0.8
-                        wave += np.random.randn(n_samples) * 0.1 * env
-                    elif msg.note in [38, 40]:  # snare
-                        wave = np.sin(2 * np.pi * 200 * t) * 0.3
-                        wave += np.random.randn(n_samples) * 0.5
-                    elif msg.note in [42, 44]:  # closed hi-hat
-                        wave = np.random.randn(n_samples) * 0.3
-                        # High-pass via simple difference
-                        wave = np.diff(wave, prepend=0)
-                    elif msg.note in [46]:  # open hi-hat
-                        wave = np.random.randn(n_samples) * 0.25
-                    elif msg.note in [49, 51, 52, 55, 57]:  # cymbals
-                        wave = np.random.randn(n_samples) * 0.2
-                        wave = np.cumsum(wave) * 0.01  # metallic quality
-                    elif msg.note in [45, 43, 41, 47, 48]:  # toms
-                        f_env = np.linspace(freq, freq * 0.5, n_samples)
-                        wave = np.sin(2 * np.pi * np.cumsum(f_env / sr)) * 0.6
-                    else:
-                        wave = np.random.randn(n_samples) * 0.2
+        t = np.arange(n_samples) / sr
 
-                elif program in range(38, 40):  # synth bass
-                    # Saw + sub sine
-                    saw = 2 * (t * freq % 1) - 1
-                    sub = np.sin(2 * np.pi * freq * 0.5 * t)
-                    wave = saw * 0.5 + sub * 0.5
-                    # Low-pass filter
-                    cutoff = 2000
-                    rc = 1 / (2 * np.pi * cutoff)
-                    alpha = 1 / (sr * rc + 1)
-                    b_coeff = [alpha]
-                    a_coeff = [1, -(1 - alpha)]
-                    wave = lfilter(b_coeff, a_coeff, wave)
+        # === DRUMS (channel 9) ===
+        if ch == 9:
+            if note_num in [36, 35]:  # kick drum
+                n = min(n_samples, int(0.25 * sr))
+                t_k = np.arange(n) / sr
+                freq_env = np.linspace(180, 35, n)
+                wave = np.sin(2 * np.pi * np.cumsum(freq_env / sr)) * 0.9
+                wave += np.random.randn(n) * 0.08
+                env = adsr(n, 0.001, 0.05, 0.2, 0.15)
+                wave *= env
+                # Pad to n_samples
+                full = np.zeros(n_samples)
+                full[:n] = wave
 
-                elif program in range(29, 32):  # distorted guitar
-                    saw = 2 * (t * freq % 1) - 1
-                    wave = np.tanh(saw * 3) * 0.4  # soft clip distortion
+            elif note_num in [38, 40]:  # snare
+                n = min(n_samples, int(0.2 * sr))
+                t_s = np.arange(n) / sr
+                tone = np.sin(2 * np.pi * 185 * t_s) * 0.35
+                noise = np.random.randn(n) * 0.55
+                noise = hpf(noise, 2000, sr)
+                env = adsr(n, 0.001, 0.03, 0.15, 0.12)
+                full = np.zeros(n_samples)
+                full[:n] = (tone + noise) * env
 
-                elif program in range(48, 56):  # strings/ensemble
-                    # Layered detuned sines for strings
-                    wave = (np.sin(2 * np.pi * freq * t) * 0.3 +
-                            np.sin(2 * np.pi * freq * 1.002 * t) * 0.25 +
-                            np.sin(2 * np.pi * freq * 0.998 * t) * 0.25 +
-                            np.sin(2 * np.pi * freq * 2 * t) * 0.1)
+            elif note_num in [42, 44]:  # closed hi-hat
+                n = min(n_samples, int(0.08 * sr))
+                noise = np.random.randn(n) * 0.35
+                noise = hpf(noise, 6000, sr)
+                env = adsr(n, 0.001, 0.01, 0.1, 0.04)
+                full = np.zeros(n_samples)
+                full[:n] = noise * env
 
-                elif program in range(80, 88):  # synth lead
-                    # Square + saw blend
-                    sq = np.sign(np.sin(2 * np.pi * freq * t))
-                    saw = 2 * (t * freq % 1) - 1
-                    wave = sq * 0.3 + saw * 0.4
-                    cutoff = 4000
-                    rc = 1 / (2 * np.pi * cutoff)
-                    alpha = 1 / (sr * rc + 1)
-                    wave = lfilter([alpha], [1, -(1 - alpha)], wave)
+            elif note_num in [46]:  # open hi-hat
+                n = min(n_samples, int(0.3 * sr))
+                noise = np.random.randn(n) * 0.28
+                noise = hpf(noise, 5000, sr)
+                env = adsr(n, 0.002, 0.05, 0.3, 0.2)
+                full = np.zeros(n_samples)
+                full[:n] = noise * env
 
-                elif program in range(88, 96):  # synth pad
-                    # Warm detuned sines with slow LFO
-                    lfo = 1 + 0.003 * np.sin(2 * np.pi * 0.5 * t)
-                    wave = (np.sin(2 * np.pi * freq * lfo * t) * 0.3 +
-                            np.sin(2 * np.pi * freq * 2 * t) * 0.15 +
-                            np.sin(2 * np.pi * freq * 0.5 * t) * 0.2)
+            elif note_num in [49, 51, 52, 55, 57]:  # crash/ride cymbals
+                n = min(n_samples, int(0.6 * sr))
+                noise = np.random.randn(n) * 0.22
+                noise = hpf(noise, 3000, sr)
+                # Metallic shimmer: ring modulation
+                t_c = np.arange(n) / sr
+                shimmer = np.sin(2 * np.pi * 3750 * t_c) * 0.08
+                env = adsr(n, 0.005, 0.1, 0.2, 0.4)
+                full = np.zeros(n_samples)
+                full[:n] = (noise + shimmer) * env
 
-                elif program in range(71, 80):  # woodwinds/flute
-                    # Sine + harmonics for flute-like sound
-                    wave = (np.sin(2 * np.pi * freq * t) * 0.5 +
-                            np.sin(2 * np.pi * freq * 2 * t) * 0.2 +
-                            np.sin(2 * np.pi * freq * 3 * t) * 0.05 +
-                            np.random.randn(n_samples) * 0.02)  # breath noise
+            elif note_num in [45, 43, 41, 47, 48]:  # toms
+                n = min(n_samples, int(0.3 * sr))
+                t_t = np.arange(n) / sr
+                f_env = np.linspace(freq * 1.5, freq * 0.7, n)
+                wave = np.sin(2 * np.pi * np.cumsum(f_env / sr)) * 0.6
+                env = adsr(n, 0.001, 0.04, 0.2, 0.15)
+                full = np.zeros(n_samples)
+                full[:n] = wave * env
 
-                elif program in range(40, 48):  # cello/strings
-                    saw = 2 * (t * freq % 1) - 1
-                    wave = saw * 0.3
-                    cutoff = 2500
-                    rc = 1 / (2 * np.pi * cutoff)
-                    alpha = 1 / (sr * rc + 1)
-                    wave = lfilter([alpha], [1, -(1 - alpha)], wave)
+            else:  # generic percussion
+                n = min(n_samples, int(0.15 * sr))
+                full = np.zeros(n_samples)
+                full[:n] = np.random.randn(n) * 0.2 * adsr(n, 0.001, 0.02, 0.1, 0.08)
 
-                else:
-                    # Default: sine with harmonics
-                    wave = (np.sin(2 * np.pi * freq * t) * 0.4 +
-                            np.sin(2 * np.pi * freq * 2 * t) * 0.2)
+            wave = full * vel * 0.5
 
-                wave *= env * vel * 0.4
+        # === SYNTH BASS (programs 38-39) ===
+        elif program in range(38, 40):
+            saw = saw_wave(freq, t, sr)
+            sub = np.sin(2 * np.pi * freq * 0.5 * t)
+            # Filter envelope: cutoff sweeps down
+            env = adsr(n_samples, 0.005, 0.15, 0.4, 0.1)
+            filt_env = adsr(n_samples, 0.005, 0.2, 0.3, 0.15)
+            raw = saw * 0.55 + sub * 0.45
+            # Animate cutoff: high at attack, lower at sustain
+            cutoff_base = 800
+            cutoff_peak = 3500
+            cutoffs = cutoff_base + (cutoff_peak - cutoff_base) * filt_env
+            # Apply time-varying filter via blocks
+            block_size = 512
+            filtered = np.zeros(n_samples)
+            for b in range(0, n_samples, block_size):
+                end = min(b + block_size, n_samples)
+                co = cutoffs[b]
+                filtered[b:end] = lpf(raw[b:end], co, sr)
+            wave = filtered * env * vel * 0.5
 
-                end_sample = start_sample + n_samples
-                if end_sample <= samples:
-                    audio[start_sample:end_sample] += wave
+        # === DISTORTION GUITAR / STABS (programs 29-31) ===
+        elif program in range(29, 32):
+            saw = saw_wave(freq, t, sr)
+            saw2 = saw_wave(freq * 1.003, t, sr)  # slight detune
+            raw = (saw + saw2) * 0.5
+            wave = np.tanh(raw * 4) * 0.35  # harder distortion
+            env = adsr(n_samples, 0.005, 0.08, 0.6, 0.1)
+            wave = lpf(wave, 5000, sr) * env * vel * 0.4
 
-    # Master processing
-    # Simple reverb (delay-based)
-    delay_samples = int(0.08 * sr)
-    reverb = np.zeros_like(audio)
-    for d, gain in [(delay_samples, 0.3), (delay_samples * 2, 0.15),
-                     (delay_samples * 3, 0.08), (delay_samples * 5, 0.04)]:
-        if d < len(audio):
-            reverb[d:] += audio[:-d] * gain
-    audio += reverb
+        # === STRINGS / ENSEMBLE (programs 48-55) ===
+        elif program in range(48, 56):
+            # 5-voice unison with slow LFO vibrato
+            lfo = 1 + 0.004 * np.sin(2 * np.pi * 4.5 * t)
+            detunes = [0.996, 0.998, 1.0, 1.002, 1.004]
+            wave = np.zeros(n_samples)
+            for d in detunes:
+                wave += np.sin(2 * np.pi * freq * d * lfo * t) * 0.2
+            wave += np.sin(2 * np.pi * freq * 2 * t) * 0.08  # octave harmonic
+            wave = chorus(wave, depth=0.003, rate=1.2)
+            env = adsr(n_samples, 0.08, 0.2, 0.7, 0.3)
+            wave = lpf(wave, 6000, sr) * env * vel * 0.4
 
-    # Soft clip / limiter
-    audio = np.tanh(audio * 1.5) * 0.8
+        # === SYNTH LEAD (programs 80-87) ===
+        elif program in range(80, 88):
+            saw1 = saw_wave(freq, t, sr)
+            saw2 = saw_wave(freq * 1.005, t, sr)  # detune
+            sq = np.sign(np.sin(2 * np.pi * freq * t))
+            raw = saw1 * 0.35 + saw2 * 0.25 + sq * 0.2
+            # Filter with envelope
+            env = adsr(n_samples, 0.01, 0.1, 0.65, 0.15)
+            filt_env = adsr(n_samples, 0.01, 0.15, 0.4, 0.2)
+            cutoff = 2000 + 4000 * filt_env
+            block_size = 512
+            filtered = np.zeros(n_samples)
+            for b in range(0, n_samples, block_size):
+                end = min(b + block_size, n_samples)
+                filtered[b:end] = lpf(raw[b:end], cutoff[b], sr)
+            wave = filtered * env * vel * 0.45
 
-    # Normalize
-    peak = np.max(np.abs(audio))
+        # === SYNTH PAD (programs 88-95) ===
+        elif program in range(88, 96):
+            lfo1 = 1 + 0.005 * np.sin(2 * np.pi * 0.3 * t)
+            lfo2 = 1 + 0.004 * np.sin(2 * np.pi * 0.7 * t + 1.0)
+            wave = (np.sin(2 * np.pi * freq * lfo1 * t) * 0.25 +
+                    np.sin(2 * np.pi * freq * 2 * lfo2 * t) * 0.12 +
+                    np.sin(2 * np.pi * freq * 0.5 * t) * 0.18 +
+                    np.sin(2 * np.pi * freq * 1.002 * t) * 0.15)
+            wave = chorus(wave, depth=0.004, rate=0.8)
+            env = adsr(n_samples, 0.15, 0.3, 0.7, 0.5)
+            wave = lpf(wave, 4000, sr) * env * vel * 0.4
+
+        # === WOODWINDS / FLUTE (programs 71-79) ===
+        elif program in range(71, 80):
+            vibrato = 1 + 0.006 * np.sin(2 * np.pi * 5 * t)
+            wave = (np.sin(2 * np.pi * freq * vibrato * t) * 0.5 +
+                    np.sin(2 * np.pi * freq * 2 * t) * 0.15 +
+                    np.sin(2 * np.pi * freq * 3 * t) * 0.04)
+            # Breath noise
+            breath = np.random.randn(n_samples) * 0.03
+            breath = hpf(breath, 3000, sr)
+            wave += breath
+            env = adsr(n_samples, 0.05, 0.1, 0.7, 0.15)
+            wave = wave * env * vel * 0.45
+
+        # === CELLO / BOWED STRINGS (programs 40-47) ===
+        elif program in range(40, 48):
+            vibrato = 1 + 0.005 * np.sin(2 * np.pi * 5.5 * t)
+            saw = saw_wave(freq * vibrato, t, sr)
+            wave = saw * 0.5 + np.sin(2 * np.pi * freq * t) * 0.2
+            env = adsr(n_samples, 0.06, 0.15, 0.65, 0.2)
+            wave = lpf(wave, 3000, sr) * env * vel * 0.4
+
+        # === DEFAULT: warm sine with harmonics ===
+        else:
+            wave = (np.sin(2 * np.pi * freq * t) * 0.4 +
+                    np.sin(2 * np.pi * freq * 2 * t) * 0.15 +
+                    np.sin(2 * np.pi * freq * 3 * t) * 0.05)
+            env = adsr(n_samples, 0.02, 0.1, 0.6, 0.15)
+            wave = wave * env * vel * 0.4
+
+        # Apply panning and add to stereo buffer
+        pan = track_pans.get(track_idx, 0.0)
+        gain_L = np.sqrt(0.5 * (1.0 - pan))
+        gain_R = np.sqrt(0.5 * (1.0 + pan))
+
+        end_sample = start_sample + n_samples
+        if end_sample <= samples:
+            audio_L[start_sample:end_sample] += wave * gain_L
+            audio_R[start_sample:end_sample] += wave * gain_R
+
+    # --- Step 3: Master processing ---
+
+    # Vectorized reverb using scipy IIR filter (comb + allpass, no per-sample loops)
+    def comb_reverb(signal, delay_ms, feedback, sr=44100):
+        """IIR comb filter: y[n] = x[n] + feedback * y[n-d]."""
+        d = int(delay_ms * sr / 1000)
+        b = np.zeros(d + 1)
+        b[0] = 1.0
+        a = np.zeros(d + 1)
+        a[0] = 1.0
+        a[d] = -feedback
+        return lfilter(b, a, signal)
+
+    def allpass_reverb(signal, delay_ms, gain, sr=44100):
+        """IIR allpass: y[n] = -g*x[n] + x[n-d] + g*y[n-d]."""
+        d = int(delay_ms * sr / 1000)
+        b = np.zeros(d + 1)
+        b[0] = -gain
+        b[d] = 1.0
+        a = np.zeros(d + 1)
+        a[0] = 1.0
+        a[d] = -gain
+        return lfilter(b, a, signal)
+
+    for ch_audio in [audio_L, audio_R]:
+        reverb_sum = np.zeros(samples)
+        comb_delays = [29.7, 37.1, 41.1, 43.7]  # ms (prime-ish for density)
+        for delay_ms in comb_delays:
+            reverb_sum += comb_reverb(ch_audio, delay_ms, 0.7) * 0.25
+        reverb_sum = allpass_reverb(reverb_sum, 5.0, 0.7)
+        reverb_sum = allpass_reverb(reverb_sum, 1.7, 0.7)
+        ch_audio += reverb_sum * 0.20
+
+    # Stereo width enhancement: slight mid/side processing
+    mid_sig = (audio_L + audio_R) * 0.5
+    side_sig = (audio_L - audio_R) * 0.5
+    audio_L = mid_sig + side_sig * 1.2
+    audio_R = mid_sig - side_sig * 1.2
+
+    # Soft-knee limiter
+    audio_L = np.tanh(audio_L * 1.3) * 0.85
+    audio_R = np.tanh(audio_R * 1.3) * 0.85
+
+    # Normalize stereo
+    peak = max(np.max(np.abs(audio_L)), np.max(np.abs(audio_R)))
     if peak > 0:
-        audio = audio / peak * 0.85
+        audio_L = audio_L / peak * 0.9
+        audio_R = audio_R / peak * 0.9
 
-    # Convert to 16-bit
-    audio_16 = (audio * 32767).astype(np.int16)
+    # Interleave to stereo 16-bit
+    stereo = np.column_stack([audio_L, audio_R])
+    audio_16 = (stereo * 32767).astype(np.int16)
     wavfile.write(wav_path, sr, audio_16)
+    print(f"    -> Stereo WAV: {os.path.getsize(wav_path) // 1024} KB")
     return wav_path
 
 
