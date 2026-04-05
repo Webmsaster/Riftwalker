@@ -119,30 +119,18 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
                 SDL_FreeSurface(s);
             }
 
-            // Gameplay tip (seeded by current floor for consistency)
-            static const char* tips[] = {
-                "TIP: Dimension B has tougher enemies but better shard rewards.",
-                "TIP: Parrying at the right moment triggers a powerful counter-attack.",
-                "TIP: Wall-slide by holding toward a wall while airborne.",
-                "TIP: Repairing rifts in Dimension B grants bonus shards and reduces entropy.",
-                "TIP: Relics can combine into powerful synergies — check the pause menu.",
-                "TIP: Crates sometimes drop health orbs and shards.",
-                "TIP: Each class has a unique ability — use it often, it recharges quickly.",
-                "TIP: Entropy increases over time. Repair rifts and switch dimensions to manage it.",
-                "TIP: Elite enemies glow and have special modifiers. They drop better rewards.",
-                "TIP: The minimap (M key) shows rift locations and the exit.",
-                "TIP: Dashing through enemies grants brief invincibility frames.",
-                "TIP: Bosses have 3 phases — their attacks change at 66% and 33% HP.",
-                "TIP: Weapon mastery increases with kills. Higher mastery unlocks bonuses.",
-                "TIP: Check the bestiary to learn enemy weaknesses and attack patterns.",
-                "TIP: Some relics are cursed — powerful effects with dangerous drawbacks.",
+            // Gameplay tip (seeded by current floor for consistency, localized)
+            static const char* tipKeys[] = {
+                "tip.0", "tip.1", "tip.2", "tip.3", "tip.4",
+                "tip.5", "tip.6", "tip.7", "tip.8", "tip.9",
+                "tip.10", "tip.11", "tip.12", "tip.13", "tip.14",
             };
-            constexpr int NUM_TIPS = sizeof(tips) / sizeof(tips[0]);
+            constexpr int NUM_TIPS = sizeof(tipKeys) / sizeof(tipKeys[0]);
             int tipIdx = (m_currentDifficulty + m_runSeed) % NUM_TIPS;
 
             Uint8 tipAlpha = static_cast<Uint8>(textAlpha * 160);
             SDL_Color tipColor = {160, 150, 180, tipAlpha};
-            SDL_Surface* ts = TTF_RenderText_Blended(font, tips[tipIdx], tipColor);
+            SDL_Surface* ts = TTF_RenderText_Blended(font, LOC(tipKeys[tipIdx]), tipColor);
             if (ts) {
                 SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
                 if (tt) {

@@ -142,6 +142,23 @@ void Localization::loadStrings() {
     m_en["hud.chain_complete"]     = "CHAIN COMPLETE!";
     m_en["hud.rift_stabilized"]    = "RIFT STABILIZED - Warping to next dimension...";
 
+    // Gameplay tips (shown during level transitions)
+    m_en["tip.0"]  = "TIP: Dimension B has tougher enemies but better shard rewards.";
+    m_en["tip.1"]  = "TIP: Parrying at the right moment triggers a powerful counter-attack.";
+    m_en["tip.2"]  = "TIP: Wall-slide by holding toward a wall while airborne.";
+    m_en["tip.3"]  = "TIP: Repairing rifts in Dimension B grants bonus shards and reduces entropy.";
+    m_en["tip.4"]  = "TIP: Relics can combine into powerful synergies - check the pause menu.";
+    m_en["tip.5"]  = "TIP: Crates sometimes drop health orbs and shards.";
+    m_en["tip.6"]  = "TIP: Each class has a unique ability - use it often, it recharges quickly.";
+    m_en["tip.7"]  = "TIP: Entropy increases over time. Repair rifts and switch dimensions to manage it.";
+    m_en["tip.8"]  = "TIP: Elite enemies glow and have special modifiers. They drop better rewards.";
+    m_en["tip.9"]  = "TIP: The minimap (M key) shows rift locations and the exit.";
+    m_en["tip.10"] = "TIP: Dashing through enemies grants brief invincibility frames.";
+    m_en["tip.11"] = "TIP: Bosses have 3 phases - their attacks change at 66% and 33% HP.";
+    m_en["tip.12"] = "TIP: Weapon mastery increases with kills. Higher mastery unlocks bonuses.";
+    m_en["tip.13"] = "TIP: Check the bestiary to learn enemy weaknesses and attack patterns.";
+    m_en["tip.14"] = "TIP: Some relics are cursed - powerful effects with dangerous drawbacks.";
+
     // ===== GERMAN =====
 
     // Main Menu
@@ -260,4 +277,21 @@ void Localization::loadStrings() {
     m_de["hud.lore_discovered"]    = "WISSEN ENTDECKT";
     m_de["hud.chain_complete"]     = "KETTE ABGESCHLOSSEN!";
     m_de["hud.rift_stabilized"]    = "RISS STABILISIERT - Sprung zur naechsten Dimension...";
+
+    // Gameplay tips
+    m_de["tip.0"]  = "TIPP: Dimension B hat staerkere Gegner aber bessere Splitter-Belohnungen.";
+    m_de["tip.1"]  = "TIPP: Rechtzeitiges Parieren loest einen starken Gegenangriff aus.";
+    m_de["tip.2"]  = "TIPP: An einer Wand rutschen: Halte zur Wand waehrend du in der Luft bist.";
+    m_de["tip.3"]  = "TIPP: Risse in Dimension B reparieren gibt Bonus-Splitter und senkt Entropie.";
+    m_de["tip.4"]  = "TIPP: Relikte koennen sich zu Synergien verbinden - pruefe das Pausenmenue.";
+    m_de["tip.5"]  = "TIPP: Kisten enthalten manchmal Heilkugeln und Splitter.";
+    m_de["tip.6"]  = "TIPP: Jede Klasse hat eine einzigartige Faehigkeit - nutze sie oft, sie laedt schnell.";
+    m_de["tip.7"]  = "TIPP: Entropie steigt ueber Zeit. Repariere Risse und wechsle Dimensionen.";
+    m_de["tip.8"]  = "TIPP: Elite-Gegner leuchten und haben Spezialmodifikatoren. Bessere Beute!";
+    m_de["tip.9"]  = "TIPP: Die Minikarte (M-Taste) zeigt Riss-Positionen und den Ausgang.";
+    m_de["tip.10"] = "TIPP: Durch Gegner dashen gewaehrt kurze Unverwundbarkeit.";
+    m_de["tip.11"] = "TIPP: Bosse haben 3 Phasen - ihre Angriffe aendern sich bei 66% und 33% HP.";
+    m_de["tip.12"] = "TIPP: Waffenmeisterschaft steigt mit Kills. Hoehere Stufen geben Boni.";
+    m_de["tip.13"] = "TIPP: Im Bestiarium findest du Schwaechen und Angriffsmuster der Gegner.";
+    m_de["tip.14"] = "TIPP: Manche Relikte sind verflucht - starke Effekte mit gefaehrlichen Nachteilen.";
 }
