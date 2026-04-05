@@ -1,6 +1,7 @@
 // PlayStateRenderWorld.cpp -- Split from PlayStateRender.cpp (world entities, NPCs, events)
 #include "PlayState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/Enemy.h"
 #include "Components/TransformComponent.h"
 #include "Components/HealthComponent.h"
@@ -107,7 +108,7 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
 
             // Main transition text
             SDL_Color c = {140, 255, 180, ta};
-            SDL_Surface* s = TTF_RenderText_Blended(font, "RIFT STABILIZED - Warping to next dimension...", c);
+            SDL_Surface* s = TTF_RenderText_Blended(font, LOC("hud.rift_stabilized"), c);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {

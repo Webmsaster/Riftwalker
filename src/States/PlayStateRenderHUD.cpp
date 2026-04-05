@@ -300,7 +300,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             TTF_Font* font = game->getFont();
             if (font) {
                 SDL_Color labelColor = {gr, gg, 60, pa};
-                SDL_Surface* ls = TTF_RenderText_Blended(font, "EXIT", labelColor);
+                SDL_Surface* ls = TTF_RenderText_Blended(font, LOC("hud.exit"), labelColor);
                 if (ls) {
                     SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
                     if (lt) {

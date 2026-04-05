@@ -380,7 +380,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
 
         // "CHAIN COMPLETE" title
         SDL_Color goldCol = {255, 215, 60, alpha};
-        SDL_Surface* titleSurf = TTF_RenderText_Blended(font, "CHAIN COMPLETE!", goldCol);
+        SDL_Surface* titleSurf = TTF_RenderText_Blended(font, LOC("hud.chain_complete"), goldCol);
         if (titleSurf) {
             SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
             if (titleTex) {

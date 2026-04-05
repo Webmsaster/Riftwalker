@@ -136,6 +136,11 @@ void Localization::loadStrings() {
 
     // HUD
     m_en["hud.collapse"]           = "COLLAPSE: %d.%d";
+    m_en["hud.exit"]               = "EXIT";
+    m_en["hud.level_up"]           = "LEVEL UP!";
+    m_en["hud.lore_discovered"]    = "LORE DISCOVERED";
+    m_en["hud.chain_complete"]     = "CHAIN COMPLETE!";
+    m_en["hud.rift_stabilized"]    = "RIFT STABILIZED - Warping to next dimension...";
 
     // ===== GERMAN =====
 
@@ -250,4 +255,9 @@ void Localization::loadStrings() {
 
     // HUD
     m_de["hud.collapse"]           = "KOLLAPS: %d.%d";
+    m_de["hud.exit"]               = "AUSGANG";
+    m_de["hud.level_up"]           = "LEVEL UP!";
+    m_de["hud.lore_discovered"]    = "WISSEN ENTDECKT";
+    m_de["hud.chain_complete"]     = "KETTE ABGESCHLOSSEN!";
+    m_de["hud.rift_stabilized"]    = "RISS STABILISIERT - Sprung zur naechsten Dimension...";
 }

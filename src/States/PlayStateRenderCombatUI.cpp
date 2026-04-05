@@ -3,6 +3,7 @@
 // damage indicators, offscreen enemy arrows)
 #include "PlayState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/AchievementSystem.h"
 #include "Game/LoreSystem.h"
 #include "Components/TransformComponent.h"
@@ -117,7 +118,7 @@ void PlayState::renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font) {
 
     // "LORE DISCOVERED" label
     SDL_Color labelColor = {140, 110, 200, a};
-    SDL_Surface* labelSurf = TTF_RenderText_Blended(font, "LORE DISCOVERED", labelColor);
+    SDL_Surface* labelSurf = TTF_RenderText_Blended(font, LOC("hud.lore_discovered"), labelColor);
     if (labelSurf) {
         SDL_Texture* labelTex = SDL_CreateTextureFromSurface(renderer, labelSurf);
         if (labelTex) {
@@ -295,7 +296,7 @@ void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
 
     float pulse = 1.0f + 0.05f * std::sin(m_levelUpTimer * 12.0f);
     SDL_Color gold = {255, 215, 0, a};
-    SDL_Surface* surf = TTF_RenderText_Blended(font, "LEVEL UP!", gold);
+    SDL_Surface* surf = TTF_RenderText_Blended(font, LOC("hud.level_up"), gold);
     if (surf) {
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
         if (tex) {
