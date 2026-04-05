@@ -5,7 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-03 deep audit + hardening + perf + visual regression session):**
+**Recent Updates (2026-04-05 music + UI textures + release packaging session):**
+- **Music System**: 7 OGG tracks (menu_theme, zone1/2/3, boss_theme, victory, gameover) with MIDI compositions + Python synth renderer
+- **Zone-based Music Playback**: Music switches dynamically on zone transitions, boss spawns, boss kills, state changes (menu/gameover/victory/credits)
+- **UI Texture System**: 11 textures (panel_dark, panel_light, bar_frame, minimap_frame, 3 buttons, divider, icon_frame, glow_orb, noise) with 9-slice rendering via `UITextures.h`
+- **All UI States Textured**: 20+ state files use texture-based panels instead of raw SDL_RenderFillRect — with procedural fallback
+- **Stereo Audio**: Fixed Mix_OpenAudio from mono (1) to stereo (2) for proper OGG playback
+- **Release Packager**: Updated DLL copying (auto-detect), asset filtering (dev-only exclusion), 52 MB release package
+- **Cleanup**: Deleted .bak files, comfyui_temp dirs, unused tool scripts
+- 3 commits, 28 files changed, +1200 lines
+
+**Previous Updates (2026-04-03 deep audit + hardening + perf + visual regression session):**
 - **weaponKills bounds checks**: 7 unchecked array accesses now bounds-validated (PlayerCombat, PauseState, PlayStateCombatChallenge) — prevented OOB crash on corrupted WeaponID
 - **UpgradeSystem deserialize hardened**: Stream state validated after initial extraction; corrupted/truncated saves reset to defaults instead of leaving partial garbage
 - **Combat sqrt optimization**: 4 hot-path distance checks replaced with squared-distance comparisons (hit detection, ChainLightning, ChainReaction, ChainThorns) — eliminates sqrt per-entity in nested forEach loops
