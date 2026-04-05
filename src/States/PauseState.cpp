@@ -3,6 +3,7 @@
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
 #include "Core/Localization.h"
+#include "UI/UITextures.h"
 #include "Game/WeaponSystem.h"
 #include "Game/RelicSystem.h"
 #include "Game/ClassSystem.h"
@@ -193,28 +194,26 @@ void PauseState::render(SDL_Renderer* renderer) {
     SDL_RenderFillRect(renderer, &topBar);
     SDL_RenderFillRect(renderer, &botBar);
 
-    // Central panel background (wider to include stats)
+    // Central panel background (texture-based with 9-slice)
     SDL_Rect panelBg = {PANEL_X, PANEL_Y, PANEL_W, PANEL_H};
-    SDL_SetRenderDrawColor(renderer, 10, 10, 20, 200);
-    SDL_RenderFillRect(renderer, &panelBg);
-    SDL_SetRenderDrawColor(renderer, 80, 60, 140, 100);
-    SDL_RenderDrawRect(renderer, &panelBg);
+    if (!renderPanelBg(renderer, panelBg)) {
+        SDL_SetRenderDrawColor(renderer, 10, 10, 20, 200);
+        SDL_RenderFillRect(renderer, &panelBg);
+        SDL_SetRenderDrawColor(renderer, 80, 60, 140, 100);
+        SDL_RenderDrawRect(renderer, &panelBg);
+    }
 
-    // Corner accents
+    // Corner accents (overlay on texture for extra flair)
     int cornerSize = 12;
     int panelBot   = PANEL_Y + PANEL_H;
     int panelRight = PANEL_X + PANEL_W;
     SDL_SetRenderDrawColor(renderer, 150, 100, 255, static_cast<Uint8>(100 + 50 * pulse));
-    // Top-left
     SDL_RenderDrawLine(renderer, PANEL_X, PANEL_Y, PANEL_X + cornerSize, PANEL_Y);
     SDL_RenderDrawLine(renderer, PANEL_X, PANEL_Y, PANEL_X, PANEL_Y + cornerSize);
-    // Top-right
     SDL_RenderDrawLine(renderer, panelRight, PANEL_Y, panelRight - cornerSize, PANEL_Y);
     SDL_RenderDrawLine(renderer, panelRight, PANEL_Y, panelRight, PANEL_Y + cornerSize);
-    // Bottom-left
     SDL_RenderDrawLine(renderer, PANEL_X, panelBot, PANEL_X + cornerSize, panelBot);
     SDL_RenderDrawLine(renderer, PANEL_X, panelBot, PANEL_X, panelBot - cornerSize);
-    // Bottom-right
     SDL_RenderDrawLine(renderer, panelRight, panelBot, panelRight - cornerSize, panelBot);
     SDL_RenderDrawLine(renderer, panelRight, panelBot, panelRight, panelBot - cornerSize);
 

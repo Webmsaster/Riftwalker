@@ -1,4 +1,5 @@
 #include "Button.h"
+#include "Core/ResourceManager.h"
 
 Button::Button(int x, int y, int w, int h, const std::string& text)
     : m_rect{x, y, w, h}, m_text(text) {}
@@ -21,30 +22,37 @@ void Button::render(SDL_Renderer* renderer, TTF_Font* font) {
     // Use render X for visual position (entrance animation), hitbox stays at baseX
     int rx = getRenderX();
 
-    // Background gradient (3 bands)
-    int thirdH = m_rect.h / 3;
-    SDL_Rect top = {rx, m_rect.y, m_rect.w, thirdH};
-    SDL_Rect mid = {rx, m_rect.y + thirdH, m_rect.w, thirdH};
-    SDL_Rect bot = {rx, m_rect.y + thirdH * 2, m_rect.w, m_rect.h - thirdH * 2};
-
+    // Texture-based button background
+    SDL_Rect btnDst = {rx, m_rect.y, m_rect.w, m_rect.h};
+    const char* texPath = "assets/textures/ui/button_normal.png";
     if (!enabled) {
-        SDL_SetRenderDrawColor(renderer, 30, 28, 38, 220);
-        SDL_RenderFillRect(renderer, &m_rect);
-    } else {
-        // Smooth blend between unselected and selected colors
-        float b = m_hoverBlend;
-        auto lerp = [](Uint8 a, Uint8 c, float t) -> Uint8 {
-            return static_cast<Uint8>(a + (c - a) * t);
-        };
-        SDL_SetRenderDrawColor(renderer, lerp(48, 90, b), lerp(42, 55, b), lerp(65, 155, b), lerp(220, 240, b));
-        SDL_RenderFillRect(renderer, &top);
-        SDL_SetRenderDrawColor(renderer, lerp(38, 70, b), lerp(33, 40, b), lerp(55, 130, b), lerp(220, 240, b));
-        SDL_RenderFillRect(renderer, &mid);
-        SDL_SetRenderDrawColor(renderer, lerp(30, 55, b), lerp(26, 30, b), lerp(45, 110, b), lerp(220, 240, b));
-        SDL_RenderFillRect(renderer, &bot);
+        texPath = "assets/textures/ui/button_normal.png"; // dimmed via alpha
+    } else if (m_hoverBlend > 0.5f) {
+        texPath = "assets/textures/ui/button_hover.png";
     }
 
-    // Glow border (smooth blend)
+    SDL_Texture* btnTex = ResourceManager::instance().getTexture(texPath);
+    if (btnTex) {
+        SDL_SetTextureBlendMode(btnTex, SDL_BLENDMODE_BLEND);
+        if (!enabled) {
+            SDL_SetTextureAlphaMod(btnTex, 140);
+            SDL_SetTextureColorMod(btnTex, 120, 120, 130);
+        } else {
+            SDL_SetTextureAlphaMod(btnTex, 255);
+            SDL_SetTextureColorMod(btnTex, 255, 255, 255);
+        }
+        SDL_RenderCopy(renderer, btnTex, nullptr, &btnDst);
+        if (!enabled) {
+            SDL_SetTextureAlphaMod(btnTex, 255);
+            SDL_SetTextureColorMod(btnTex, 255, 255, 255);
+        }
+    } else {
+        // Fallback: simple fill
+        SDL_SetRenderDrawColor(renderer, 35, 30, 55, 220);
+        SDL_RenderFillRect(renderer, &btnDst);
+    }
+
+    // Glow border (smooth blend) on hover
     if (m_hoverBlend > 0.01f && enabled) {
         for (int i = 3; i >= 0; i--) {
             Uint8 ga = static_cast<Uint8>((50 - i * 12) * m_hoverBlend);
@@ -61,18 +69,6 @@ void Button::render(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_RenderDrawLine(renderer, rx - 7, midY - 5, rx - 2, midY);
         SDL_RenderDrawLine(renderer, rx - 2, midY, rx - 7, midY + 5);
         SDL_RenderDrawLine(renderer, rx - 7, midY + 5, rx - 12, midY);
-    } else {
-        SDL_SetRenderDrawColor(renderer, 70, 60, 90, 150);
-        SDL_Rect renderRect = {rx, m_rect.y, m_rect.w, m_rect.h};
-        SDL_RenderDrawRect(renderer, &renderRect);
-    }
-
-    // Top highlight line
-    if (enabled) {
-        Uint8 ha = m_selected ? static_cast<Uint8>(100) : static_cast<Uint8>(35);
-        SDL_SetRenderDrawColor(renderer, 180, 160, 220, ha);
-        SDL_RenderDrawLine(renderer, rx + 1, m_rect.y,
-                          rx + m_rect.w - 1, m_rect.y);
     }
 
     // Text with shadow

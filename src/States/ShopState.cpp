@@ -2,6 +2,7 @@
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
 #include "Game/AscensionSystem.h"
+#include "UI/UITextures.h"
 #include <SDL2/SDL_ttf.h>
 #include <cstdio>
 #include <cmath>
@@ -349,10 +350,12 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         y -= static_cast<int>(std::sin(SDL_GetTicks() * 0.005f) * 4);
     }
 
-    // Card background
-    SDL_SetRenderDrawColor(renderer, 20, 15, 35, 240);
+    // Card background (texture-based)
     SDL_Rect bg = {x, y, w, h};
-    SDL_RenderFillRect(renderer, &bg);
+    if (!renderPanelBg(renderer, bg, 240, "assets/textures/ui/panel_light.png")) {
+        SDL_SetRenderDrawColor(renderer, 20, 15, 35, 240);
+        SDL_RenderFillRect(renderer, &bg);
+    }
 
     // Tier-colored border
     Uint8 borderA = selected ? 255 : 120;

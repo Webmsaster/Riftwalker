@@ -15,6 +15,7 @@
 #include "Systems/CombatSystem.h"
 #include "Components/RelicComponent.h"
 #include "Game/RelicSynergy.h"
+#include "UI/UITextures.h"
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
@@ -68,11 +69,6 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
     const int mapY = 20;
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-    // Outer border frame
-    SDL_SetRenderDrawColor(renderer, 60, 60, 90, 200);
-    SDL_Rect outerBorder = {mapX - 3, mapY - 3, mapW + 6, mapH + 6};
-    SDL_RenderFillRect(renderer, &outerBorder);
 
     // Dark background
     SDL_SetRenderDrawColor(renderer, 8, 8, 18, 220);
@@ -322,21 +318,26 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
         }
     }
 
-    // --- Minimap border (dimension-tinted) ---
-    if (dim == 1) {
-        SDL_SetRenderDrawColor(renderer, 60, 100, 200, 180);
+    // --- Minimap frame (texture-based) ---
+    SDL_Texture* mmFrame = ResourceManager::instance().getTexture("assets/textures/ui/minimap_frame.png");
+    if (mmFrame) {
+        SDL_SetTextureBlendMode(mmFrame, SDL_BLENDMODE_BLEND);
+        // Dimension tint: blue for A, red for B
+        if (dim == 1)
+            SDL_SetTextureColorMod(mmFrame, 180, 200, 255);
+        else
+            SDL_SetTextureColorMod(mmFrame, 255, 180, 180);
+        SDL_Rect frameDst = {mapX - 10, mapY - 10, mapW + 20, mapH + 20};
+        SDL_RenderCopy(renderer, mmFrame, nullptr, &frameDst);
+        SDL_SetTextureColorMod(mmFrame, 255, 255, 255); // reset
     } else {
-        SDL_SetRenderDrawColor(renderer, 200, 60, 60, 180);
+        // Fallback: simple border
+        if (dim == 1)
+            SDL_SetRenderDrawColor(renderer, 60, 100, 200, 180);
+        else
+            SDL_SetRenderDrawColor(renderer, 200, 60, 60, 180);
+        SDL_RenderDrawRect(renderer, &bg);
     }
-    SDL_RenderDrawRect(renderer, &bg);
-    // Double border for polish
-    SDL_Rect outerLine = {mapX - 1, mapY - 1, mapW + 2, mapH + 2};
-    SDL_SetRenderDrawColor(renderer, 30, 30, 50, 140);
-    SDL_RenderDrawRect(renderer, &outerLine);
-
-    // --- "M: MAP" hint label in corner ---
-    // Small label at bottom-right of minimap to remind player of toggle key
-    // (rendered without font dependency - just a tiny colored marker)
 }
 
 void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
@@ -369,31 +370,19 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     int barW   = static_cast<int>(440 * g_hudScale);
     int barH   = static_cast<int>(36 * g_hudScale);
 
-    // Professional HUD backing panel with gradient and border
+    // Professional HUD backing panel (texture-based with 9-slice)
     SDL_Rect hudBg = {margin - 10, margin - 10, barW + 40, barH * 4 + 140 + static_cast<int>(16 * g_hudScale) + 8};
-    // Multi-layer gradient: darker at top, lighter at bottom
-    int panelH = hudBg.h;
-    int bands = 4;
-    for (int b = 0; b < bands; b++) {
-        int bandY = hudBg.y + (panelH * b) / bands;
-        int bandH = panelH / bands + 1;
-        // Fade from alpha 100 (top) to 60 (bottom)
-        Uint8 ba = static_cast<Uint8>(100 - b * 10);
-        SDL_SetRenderDrawColor(renderer, 5 + b * 3, 5 + b * 2, 12 + b * 4, ba);
-        SDL_Rect bandR = {hudBg.x, bandY, hudBg.w, bandH};
-        SDL_RenderFillRect(renderer, &bandR);
+    SDL_Texture* panelTex = ResourceManager::instance().getTexture("assets/textures/ui/panel_dark.png");
+    if (panelTex) {
+        SDL_SetTextureBlendMode(panelTex, SDL_BLENDMODE_BLEND);
+        renderNineSlice(renderer, panelTex, hudBg, 16);
+    } else {
+        // Fallback: simple dark fill
+        SDL_SetRenderDrawColor(renderer, 8, 8, 18, 200);
+        SDL_RenderFillRect(renderer, &hudBg);
+        SDL_SetRenderDrawColor(renderer, 70, 60, 100, 80);
+        SDL_RenderDrawRect(renderer, &hudBg);
     }
-    // Subtle inner highlight at top edge
-    SDL_SetRenderDrawColor(renderer, 120, 110, 160, 30);
-    SDL_Rect topHighlight = {hudBg.x + 1, hudBg.y, hudBg.w - 2, 1};
-    SDL_RenderFillRect(renderer, &topHighlight);
-    // Outer border (subtle purple-gray)
-    SDL_SetRenderDrawColor(renderer, 70, 60, 100, 80);
-    SDL_RenderDrawRect(renderer, &hudBg);
-    // Inner border for depth
-    SDL_Rect innerBorder = {hudBg.x + 1, hudBg.y + 1, hudBg.w - 2, hudBg.h - 2};
-    SDL_SetRenderDrawColor(renderer, 40, 35, 60, 50);
-    SDL_RenderDrawRect(renderer, &innerBorder);
 
     // Class icon (small colored square with class initial)
     if (player) {
@@ -402,10 +391,16 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         int iconX = margin;
         int iconY = margin - static_cast<int>(4 * g_hudScale);
 
-        // Icon background
+        // Icon background with textured frame
         SDL_SetRenderDrawColor(renderer, classData.color.r, classData.color.g, classData.color.b, 200);
         SDL_Rect iconRect = {iconX, iconY, iconSize, iconSize};
         SDL_RenderFillRect(renderer, &iconRect);
+        SDL_Texture* iconFrame = ResourceManager::instance().getTexture("assets/textures/ui/icon_frame.png");
+        if (iconFrame) {
+            SDL_SetTextureBlendMode(iconFrame, SDL_BLENDMODE_BLEND);
+            SDL_Rect frameDst = {iconX - 2, iconY - 2, iconSize + 4, iconSize + 4};
+            SDL_RenderCopy(renderer, iconFrame, nullptr, &frameDst);
+        }
 
         // Class initial letter
         if (font) {
@@ -814,10 +809,18 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         const int infoY = m_showMinimap ? 260 : 24;
         const int zone  = std::clamp((m_currentFloor - 1) / 6, 0, 4) + 1;
 
-        // Background panel
+        // Background panel (texture-based)
         SDL_Rect infoBg = {infoX - 5, infoY - 2, 170, 36};
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 90);
-        SDL_RenderFillRect(renderer, &infoBg);
+        SDL_Texture* infoPanelTex = ResourceManager::instance().getTexture("assets/textures/ui/panel_dark.png");
+        if (infoPanelTex) {
+            SDL_SetTextureBlendMode(infoPanelTex, SDL_BLENDMODE_BLEND);
+            SDL_SetTextureAlphaMod(infoPanelTex, 180);
+            renderNineSlice(renderer, infoPanelTex, infoBg, 12);
+            SDL_SetTextureAlphaMod(infoPanelTex, 255);
+        } else {
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 90);
+            SDL_RenderFillRect(renderer, &infoBg);
+        }
 
         if (font) {
             // Line 1: "F12 / Zone 2"  (boss floors pulse red, mid-boss pulse orange)
@@ -1216,13 +1219,21 @@ void HUD::renderBar(SDL_Renderer* renderer, int x, int y, int w, int h,
         }
     }
 
-    // Inner border highlight (top-left bright, bottom-right dark)
-    SDL_SetRenderDrawColor(renderer, 160, 155, 180, 50);
-    SDL_RenderDrawLine(renderer, x, y, x + w - 1, y); // top
-    SDL_RenderDrawLine(renderer, x, y, x, y + h - 1); // left
-    SDL_SetRenderDrawColor(renderer, 30, 30, 40, 80);
-    SDL_RenderDrawLine(renderer, x, y + h - 1, x + w - 1, y + h - 1); // bottom
-    SDL_RenderDrawLine(renderer, x + w - 1, y, x + w - 1, y + h - 1); // right
+    // Bar frame overlay (texture-based)
+    SDL_Texture* barFrame = ResourceManager::instance().getTexture("assets/textures/ui/bar_frame.png");
+    if (barFrame) {
+        SDL_SetTextureBlendMode(barFrame, SDL_BLENDMODE_BLEND);
+        SDL_Rect frameDst = {x - 2, y - 2, w + 4, h + 4};
+        SDL_RenderCopy(renderer, barFrame, nullptr, &frameDst);
+    } else {
+        // Fallback: simple border highlights
+        SDL_SetRenderDrawColor(renderer, 160, 155, 180, 50);
+        SDL_RenderDrawLine(renderer, x, y, x + w - 1, y);
+        SDL_RenderDrawLine(renderer, x, y, x, y + h - 1);
+        SDL_SetRenderDrawColor(renderer, 30, 30, 40, 80);
+        SDL_RenderDrawLine(renderer, x, y + h - 1, x + w - 1, y + h - 1);
+        SDL_RenderDrawLine(renderer, x + w - 1, y, x + w - 1, y + h - 1);
+    }
 
     // Quarter notch marks (subtle)
     SDL_SetRenderDrawColor(renderer, 80, 80, 100, 40);

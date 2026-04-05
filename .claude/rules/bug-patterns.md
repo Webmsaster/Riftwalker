@@ -92,3 +92,11 @@
 - **Pattern**: Sprite mismatches (wrong dimensions, frame counts, scaling) not caught before load
 - **Impact**: Visual bugs discovered at runtime; no automated quality gate
 - **Fix**: Built `fix_sprite_sheets.py` to validate all sprites against SpriteConfig.cpp expectations
+
+## Session 2026-04-04 (Final Release Assessment)
+
+### 18. Sprite Aspect Ratio Distortion + Player Speed Bug
+- **Pattern**: Sprite rendering used non-uniform scaling; player movement calculations affected
+- **Impact**: Visual distortion in sprite rendering, player movement inconsistency
+- **Fix**: Corrected aspect ratio handling and player speed calculations
+- **Related**: Identified missing music composition and onboarding tutorial as release blockers

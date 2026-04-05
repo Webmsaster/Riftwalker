@@ -2,6 +2,7 @@
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
 #include "Core/Localization.h"
+#include "UI/UITextures.h"
 #include "Game/Bestiary.h"
 #include "Game/DailyRun.h"
 #include "Game/ChallengeMode.h"
@@ -559,13 +560,15 @@ void MenuState::renderCareerStats(SDL_Renderer* renderer, TTF_Font* font) {
 
     Uint8 alpha = static_cast<Uint8>(120 * m_fadeIn);
 
-    // Panel background
+    // Panel background (texture-based)
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, 12, 8, 24, alpha);
     SDL_Rect bg = {panelX, panelY, panelW, panelH};
-    SDL_RenderFillRect(renderer, &bg);
-    SDL_SetRenderDrawColor(renderer, 60, 45, 100, static_cast<Uint8>(80 * m_fadeIn));
-    SDL_RenderDrawRect(renderer, &bg);
+    if (!renderPanelBg(renderer, bg, alpha)) {
+        SDL_SetRenderDrawColor(renderer, 12, 8, 24, alpha);
+        SDL_RenderFillRect(renderer, &bg);
+        SDL_SetRenderDrawColor(renderer, 60, 45, 100, static_cast<Uint8>(80 * m_fadeIn));
+        SDL_RenderDrawRect(renderer, &bg);
+    }
 
     int tx = panelX + 16;
     int ty = panelY + 12;

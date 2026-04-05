@@ -3,6 +3,7 @@
 #include "Core/AudioManager.h"
 #include "Game/Bestiary.h"
 #include "Components/AIComponent.h"
+#include "UI/UITextures.h"
 #include <cmath>
 #include <cstdio>
 #include <string>
@@ -232,11 +233,13 @@ void BestiaryState::render(SDL_Renderer* renderer) {
 
     // ---- Left: list panel ----
     {
-        SDL_SetRenderDrawColor(renderer, 15, 12, 28, 120);
         SDL_Rect panelBg = {LIST_X - 4, LIST_Y - 4, LIST_W + 8, VISIBLE * (ROW_H + 4) + 8};
-        SDL_RenderFillRect(renderer, &panelBg);
-        SDL_SetRenderDrawColor(renderer, 60, 50, 90, 60);
-        SDL_RenderDrawRect(renderer, &panelBg);
+        if (!renderPanelBg(renderer, panelBg, 200)) {
+            SDL_SetRenderDrawColor(renderer, 15, 12, 28, 120);
+            SDL_RenderFillRect(renderer, &panelBg);
+            SDL_SetRenderDrawColor(renderer, 60, 50, 90, 60);
+            SDL_RenderDrawRect(renderer, &panelBg);
+        }
     }
 
     int regularCount = static_cast<int>(EnemyType::COUNT) - 1; // exclude Boss sentinel

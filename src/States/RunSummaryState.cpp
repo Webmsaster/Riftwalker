@@ -1,6 +1,7 @@
 #include "RunSummaryState.h"
 #include "Core/Game.h"
 #include "Core/Localization.h"
+#include "UI/UITextures.h"
 #include "Game/AchievementSystem.h"
 #include "Game/ClassSystem.h"
 #include "Game/UpgradeSystem.h"
@@ -465,9 +466,11 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         int px = 1900, py = 140;
         int pw = 600, ph = 120;
 
-        SDL_SetRenderDrawColor(renderer, 20, 14, 35, static_cast<Uint8>(sa * 0.85f));
         SDL_Rect panelBg = {px, py, pw, ph};
-        SDL_RenderFillRect(renderer, &panelBg);
+        if (!renderPanelBg(renderer, panelBg, static_cast<Uint8>(sa * 0.85f))) {
+            SDL_SetRenderDrawColor(renderer, 20, 14, 35, static_cast<Uint8>(sa * 0.85f));
+            SDL_RenderFillRect(renderer, &panelBg);
+        }
 
         if (isNewDailyBest) {
             float bpulse = 0.6f + 0.4f * std::sin(m_time * 5.0f);
