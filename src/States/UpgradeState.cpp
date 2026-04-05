@@ -2,6 +2,7 @@
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
 #include "Game/UpgradeSystem.h"
+#include "UI/UITextures.h"
 #include <cstdio>
 #include <cmath>
 
@@ -231,17 +232,21 @@ void UpgradeState::render(SDL_Renderer* renderer) {
         // Card background with gradient
         SDL_Rect card = {margin, y, SCREEN_WIDTH - margin * 2, itemH - 4};
         if (selected) {
-            // Top half
-            SDL_SetRenderDrawColor(renderer, 65, 40, 110, 230);
-            SDL_Rect topH = {card.x, card.y, card.w, card.h / 2};
-            SDL_RenderFillRect(renderer, &topH);
-            // Bottom half
-            SDL_SetRenderDrawColor(renderer, 50, 30, 90, 230);
-            SDL_Rect botH = {card.x, card.y + card.h / 2, card.w, card.h - card.h / 2};
-            SDL_RenderFillRect(renderer, &botH);
+            if (!renderPanelBg(renderer, card, 230, "assets/textures/ui/panel_light.png")) {
+                // Top half
+                SDL_SetRenderDrawColor(renderer, 65, 40, 110, 230);
+                SDL_Rect topH = {card.x, card.y, card.w, card.h / 2};
+                SDL_RenderFillRect(renderer, &topH);
+                // Bottom half
+                SDL_SetRenderDrawColor(renderer, 50, 30, 90, 230);
+                SDL_Rect botH = {card.x, card.y + card.h / 2, card.w, card.h - card.h / 2};
+                SDL_RenderFillRect(renderer, &botH);
+            }
         } else {
-            SDL_SetRenderDrawColor(renderer, 25, 20, 40, 180);
-            SDL_RenderFillRect(renderer, &card);
+            if (!renderPanelBg(renderer, card, 180)) {
+                SDL_SetRenderDrawColor(renderer, 25, 20, 40, 180);
+                SDL_RenderFillRect(renderer, &card);
+            }
         }
 
         // Card border
@@ -370,9 +375,11 @@ void UpgradeState::render(SDL_Renderer* renderer) {
     }
 
     // Instructions
-    SDL_SetRenderDrawColor(renderer, 60, 40, 90, 80);
     SDL_Rect instrBg = {0, SCREEN_HEIGHT - 50, SCREEN_WIDTH, 50};
-    SDL_RenderFillRect(renderer, &instrBg);
+    if (!renderPanelBg(renderer, instrBg, 80)) {
+        SDL_SetRenderDrawColor(renderer, 60, 40, 90, 80);
+        SDL_RenderFillRect(renderer, &instrBg);
+    }
     renderText(renderer, font, "W/S: Navigate    ENTER: Purchase    ESC: Back",
                SCREEN_WIDTH / 2 - 400, SCREEN_HEIGHT - 74, {120, 110, 150, 180});
 }

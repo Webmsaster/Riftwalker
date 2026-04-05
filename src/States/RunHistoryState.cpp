@@ -3,6 +3,7 @@
 #include "Core/AudioManager.h"
 #include "Game/UpgradeSystem.h"
 #include "Game/ClassSystem.h"
+#include "UI/UITextures.h"
 #include <cstdio>
 #include <cmath>
 
@@ -91,9 +92,11 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
     // Lifetime stats panel
     int panelX = 80;
     int panelY = 130;
-    SDL_SetRenderDrawColor(renderer, 30, 25, 50, 200);
     SDL_Rect statsBg = {panelX - 10, panelY - 5, 1000, 110};
-    SDL_RenderFillRect(renderer, &statsBg);
+    if (!renderPanelBg(renderer, statsBg, 200)) {
+        SDL_SetRenderDrawColor(renderer, 30, 25, 50, 200);
+        SDL_RenderFillRect(renderer, &statsBg);
+    }
     SDL_SetRenderDrawColor(renderer, 100, 80, 160, 120);
     SDL_RenderDrawRect(renderer, &statsBg);
 
@@ -112,9 +115,11 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
 
     // Table header
     int tableY = 270;
-    SDL_SetRenderDrawColor(renderer, 40, 35, 60, 220);
     SDL_Rect headerBg = {panelX - 10, tableY - 3, screenW - 160, 44};
-    SDL_RenderFillRect(renderer, &headerBg);
+    if (!renderPanelBg(renderer, headerBg, 220)) {
+        SDL_SetRenderDrawColor(renderer, 40, 35, 60, 220);
+        SDL_RenderFillRect(renderer, &headerBg);
+    }
 
     SDL_Color headerCol = {160, 150, 200, 255};
     renderText(renderer, font, "#",    panelX,        tableY, headerCol);

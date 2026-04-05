@@ -4,6 +4,7 @@
 #include "Core/InputManager.h"
 #include "Core/Localization.h"
 #include "Core/Window.h"
+#include "UI/UITextures.h"
 #include <cmath>
 #include <cstdio>
 #include <algorithm>
@@ -434,9 +435,11 @@ void OptionsState::render(SDL_Renderer* renderer) {
 
         // Card background
         Uint8 bgA = selected ? 60 : 25;
-        SDL_SetRenderDrawColor(renderer, 30, 25, 50, bgA);
         SDL_Rect card = {cardX, y, cardW, itemH - 8};
-        SDL_RenderFillRect(renderer, &card);
+        if (!renderPanelBg(renderer, card, bgA)) {
+            SDL_SetRenderDrawColor(renderer, 30, 25, 50, bgA);
+            SDL_RenderFillRect(renderer, &card);
+        }
 
         // Selection border
         if (selected) {

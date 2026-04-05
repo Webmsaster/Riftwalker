@@ -768,6 +768,17 @@ void PlayState::update(float dt) {
         });
         if (!bossAlive) {
             m_bossDefeated = true;
+            // Resume zone music after boss kill
+            {
+                int zone = getZone(m_currentDifficulty);
+                const char* zoneTracks[] = {
+                    "assets/music/zone1.ogg",
+                    "assets/music/zone2.ogg",
+                    "assets/music/zone3.ogg",
+                };
+                int trackIdx = std::clamp(zone - 1, 0, 2);
+                AudioManager::instance().playMusic(zoneTracks[trackIdx]);
+            }
             // Dramatic zoom-in on boss kill
             m_camera.zoomTarget = 5.6f;
             m_camera.zoomSpeed = 3.0f;
@@ -1084,6 +1095,17 @@ void PlayState::update(float dt) {
                 m_themeB = themes.second;
                 m_dimManager.setDimColors(m_themeA.colors.background, m_themeB.colors.background);
                 AudioManager::instance().playThemeAmbient(static_cast<int>(m_themeA.id));
+            }
+
+            // Zone-based music (switch track on zone change)
+            if (newZone != prevZone) {
+                const char* zoneTracks[] = {
+                    "assets/music/zone1.ogg",
+                    "assets/music/zone2.ogg",
+                    "assets/music/zone3.ogg",
+                };
+                int trackIdx = std::clamp(newZone - 1, 0, 2);
+                AudioManager::instance().playMusic(zoneTracks[trackIdx]);
             }
 
             // Trigger zone transition banner when entering a new zone

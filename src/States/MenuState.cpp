@@ -17,6 +17,11 @@ void MenuState::enter() {
     Bestiary::load("bestiary_save.dat");
     ChallengeMode::load("riftwalker_challenges.dat");
 
+    // Menu music
+    AudioManager::instance().stopAmbient();
+    AudioManager::instance().stopMusicLayers();
+    AudioManager::instance().playMusic("assets/music/menu_theme.ogg");
+
     int cx = SCREEN_WIDTH / 2;
     int btnW = 520;
     int btnH = 60;

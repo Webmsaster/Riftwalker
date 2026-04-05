@@ -40,26 +40,29 @@ def package_release(build_dir="build/Release", output_dir="dist/Riftwalker"):
     shutil.copy2(exe, out / "Riftwalker.exe")
     print(f"  [OK] Riftwalker.exe ({exe.stat().st_size // 1024} KB)")
 
-    # 2. Copy SDL2 DLLs
-    dlls = ["SDL2.dll", "SDL2_image.dll", "SDL2_mixer.dll", "SDL2_ttf.dll",
-            "libpng16-16.dll", "zlib1.dll", "libjpeg-9.dll",
-            "libfreetype-6.dll", "libharfbuzz-0.dll", "libbrotlidec.dll",
-            "libbrotlicommon.dll", "libogg-0.dll", "libvorbis-0.dll",
-            "libvorbisfile-3.dll", "libmpg123-0.dll", "libFLAC.dll",
-            "libopusfile-0.dll", "libopus-0.dll"]
+    # 2. Copy all DLLs from build directory (except debug/dev ones)
+    skip_dlls = {"TracyClient.dll"}
     dll_count = 0
-    for dll in dlls:
-        src = build / dll
-        if src.exists():
-            shutil.copy2(src, out / dll)
-            dll_count += 1
+    for dll in build.glob("*.dll"):
+        if dll.name in skip_dlls:
+            continue
+        shutil.copy2(dll, out / dll.name)
+        dll_count += 1
     print(f"  [OK] {dll_count} DLLs")
 
-    # 3. Copy assets
+    # 3. Copy assets (exclude dev-only files)
     assets_src = Path("assets")
     if assets_src.exists():
         shutil.copytree(assets_src, out / "assets",
-                       ignore=shutil.ignore_patterns("*.psd", "*.ai", "*.xcf"))
+                       ignore=shutil.ignore_patterns(
+                           "*.psd", "*.ai", "*.xcf", "*.bak", "*.tmp",
+                           "lmms_projects", "midi", "placeholders", "singles"
+                       ))
+        # Remove music WAVs (keep only OGGs for smaller package)
+        music_dir = out / "assets" / "music"
+        if music_dir.exists():
+            for wav in music_dir.glob("*.wav"):
+                wav.unlink()
         asset_count = sum(1 for _ in (out / "assets").rglob("*") if _.is_file())
         print(f"  [OK] {asset_count} asset files")
     else:

@@ -1,6 +1,7 @@
 #include "ChallengeSelectState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "UI/UITextures.h"
 #include <cmath>
 #include <cstdio>
 
@@ -243,9 +244,11 @@ void ChallengeSelectState::renderChallengeCard(SDL_Renderer* renderer, TTF_Font*
                                                 const ChallengeData& data, int x, int y,
                                                 int w, int h, bool selected) {
     Uint8 bgA = selected ? 80 : 30;
-    SDL_SetRenderDrawColor(renderer, 30, 25, 50, bgA);
     SDL_Rect card = {x, y, w, h};
-    SDL_RenderFillRect(renderer, &card);
+    if (!renderPanelBg(renderer, card, bgA, selected ? "assets/textures/ui/panel_light.png" : "assets/textures/ui/panel_dark.png")) {
+        SDL_SetRenderDrawColor(renderer, 30, 25, 50, bgA);
+        SDL_RenderFillRect(renderer, &card);
+    }
 
     SDL_Color accentColor = {220, 160, 60, 255};
     Uint8 accentA = selected ? 220 : 60;
@@ -289,9 +292,11 @@ void ChallengeSelectState::renderMutatorToggle(SDL_Renderer* renderer, TTF_Font*
                                                 const MutatorData& data, int x, int y,
                                                 int w, int h, bool active, bool focused) {
     Uint8 bgA = focused ? 60 : (active ? 50 : 20);
-    SDL_SetRenderDrawColor(renderer, active ? 30 : 20, active ? 40 : 15, active ? 25 : 30, bgA);
     SDL_Rect card = {x, y, w, h};
-    SDL_RenderFillRect(renderer, &card);
+    if (!renderPanelBg(renderer, card, bgA)) {
+        SDL_SetRenderDrawColor(renderer, active ? 30 : 20, active ? 40 : 15, active ? 25 : 30, bgA);
+        SDL_RenderFillRect(renderer, &card);
+    }
 
     // Checkbox
     SDL_Rect check = {x + 16, y + h / 2 - 14, 28, 28};

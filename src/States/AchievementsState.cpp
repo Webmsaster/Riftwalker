@@ -1,6 +1,7 @@
 #include "AchievementsState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "UI/UITextures.h"
 #include <cmath>
 
 void AchievementsState::enter() {
@@ -145,14 +146,20 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         int cardH = 104;
 
         // Card background
-        if (a.unlocked) {
-            float pulse = 0.03f * std::sin(m_animTimer * 2.0f + i * 0.5f);
-            SDL_SetRenderDrawColor(renderer, 30, 50, 40, static_cast<Uint8>(200 + 30 * pulse));
-        } else {
-            SDL_SetRenderDrawColor(renderer, 25, 20, 30, 180);
-        }
         SDL_Rect card = {cardX, y, cardW, cardH};
-        SDL_RenderFillRect(renderer, &card);
+        {
+            Uint8 cardAlpha = a.unlocked ? static_cast<Uint8>(200) : static_cast<Uint8>(180);
+            const char* cardTex = a.unlocked ? "assets/textures/ui/panel_light.png" : "assets/textures/ui/panel_dark.png";
+            if (!renderPanelBg(renderer, card, cardAlpha, cardTex)) {
+                if (a.unlocked) {
+                    float pulse = 0.03f * std::sin(m_animTimer * 2.0f + i * 0.5f);
+                    SDL_SetRenderDrawColor(renderer, 30, 50, 40, static_cast<Uint8>(200 + 30 * pulse));
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 25, 20, 30, 180);
+                }
+                SDL_RenderFillRect(renderer, &card);
+            }
+        }
 
         // Border
         if (a.unlocked) {

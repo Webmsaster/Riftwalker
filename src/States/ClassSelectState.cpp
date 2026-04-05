@@ -1,6 +1,7 @@
 #include "ClassSelectState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "UI/UITextures.h"
 #include <cmath>
 #include <cstdio>
 
@@ -179,9 +180,11 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
 
     // Card background
     Uint8 bgA = locked ? 20 : (selected ? 80 : 30);
-    SDL_SetRenderDrawColor(renderer, 20, 16, 35, bgA);
     SDL_Rect card = {x, y, w, h};
-    SDL_RenderFillRect(renderer, &card);
+    if (!renderPanelBg(renderer, card, bgA, selected ? "assets/textures/ui/panel_light.png" : "assets/textures/ui/panel_dark.png")) {
+        SDL_SetRenderDrawColor(renderer, 20, 16, 35, bgA);
+        SDL_RenderFillRect(renderer, &card);
+    }
 
     // Top accent bar in class color
     Uint8 accentA = locked ? 40 : (selected ? 220 : 80);

@@ -1,5 +1,6 @@
 #include "States/EndingState.h"
 #include "Core/Game.h"
+#include "Core/AudioManager.h"
 #include "Game/ClassSystem.h"
 #include <cmath>
 #include <cstdio>
@@ -12,6 +13,11 @@ void EndingState::enter() {
     m_fontSmall = TTF_OpenFont("assets/fonts/default.ttf", 28);
     m_phase = 0;
     m_phaseTimer = 0.0f;
+
+    // Victory music
+    AudioManager::instance().stopAmbient();
+    AudioManager::instance().stopMusicLayers();
+    AudioManager::instance().playMusic("assets/music/victory.ogg");
     m_time = 0.0f;
     m_storyScroll = 0.0f;
 

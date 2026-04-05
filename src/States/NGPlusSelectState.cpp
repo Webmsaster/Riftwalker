@@ -2,6 +2,7 @@
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
 #include "Game/UpgradeSystem.h"
+#include "UI/UITextures.h"
 #include <cmath>
 #include <cstdio>
 #include <algorithm>
@@ -226,9 +227,11 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
 
         // Card background
         Uint8 bgA = selected ? 90 : (unlocked ? 28 : 15);
-        SDL_SetRenderDrawColor(renderer, 20, 16, 36, bgA);
         SDL_Rect card = {cardX, y, cardW, cardH};
-        SDL_RenderFillRect(renderer, &card);
+        if (!renderPanelBg(renderer, card, bgA, selected ? "assets/textures/ui/panel_light.png" : "assets/textures/ui/panel_dark.png")) {
+            SDL_SetRenderDrawColor(renderer, 20, 16, 36, bgA);
+            SDL_RenderFillRect(renderer, &card);
+        }
 
         // Left accent bar
         Uint8 accentA = selected ? static_cast<Uint8>(240) : (unlocked ? static_cast<Uint8>(70) : static_cast<Uint8>(25));

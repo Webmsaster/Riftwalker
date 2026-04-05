@@ -3,6 +3,7 @@
 #include "Core/AudioManager.h"
 #include "Game/ClassSystem.h"
 #include "Game/UpgradeSystem.h"
+#include "UI/UITextures.h"
 #include <cmath>
 #include <cstdio>
 
@@ -170,9 +171,11 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
 
         // Card background
         Uint8 bgA = selected ? 80 : 30;
-        SDL_SetRenderDrawColor(renderer, 30, 25, 50, bgA);
         SDL_Rect card = {cardX, y, cardW, cardH};
-        SDL_RenderFillRect(renderer, &card);
+        if (!renderPanelBg(renderer, card, bgA, selected ? "assets/textures/ui/panel_light.png" : "assets/textures/ui/panel_dark.png")) {
+            SDL_SetRenderDrawColor(renderer, 30, 25, 50, bgA);
+            SDL_RenderFillRect(renderer, &card);
+        }
 
         // Left accent
         SDL_SetRenderDrawColor(renderer, options[i].color.r, options[i].color.g,

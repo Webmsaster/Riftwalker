@@ -3,6 +3,7 @@
 #include "Core/AudioManager.h"
 #include "Game/ClassSystem.h"
 #include "Game/DailyRun.h"
+#include "UI/UITextures.h"
 #include <SDL2/SDL_ttf.h>
 #include <cstdio>
 #include <cmath>
@@ -175,9 +176,11 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
     int rowH    = 52;
 
     // Table header background
-    SDL_SetRenderDrawColor(renderer, 25, 20, 45, 200);
     SDL_Rect headerBg = {tableX - 5, tableY - 3, tableW + 10, 44};
-    SDL_RenderFillRect(renderer, &headerBg);
+    if (!renderPanelBg(renderer, headerBg, 200)) {
+        SDL_SetRenderDrawColor(renderer, 25, 20, 45, 200);
+        SDL_RenderFillRect(renderer, &headerBg);
+    }
     SDL_SetRenderDrawColor(renderer, 220, 190, 80, static_cast<Uint8>(alpha * 0.6f));
     SDL_RenderDrawRect(renderer, &headerBg);
 
@@ -306,9 +309,11 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
         float pulse = 0.7f + 0.3f * std::sin(m_newBestPulse);
         Uint8 ba = static_cast<Uint8>(230 * pulse * m_fadeIn);
 
-        SDL_SetRenderDrawColor(renderer, 255, 200, 50, static_cast<Uint8>(ba * 0.15f));
         SDL_Rect banner = {SCREEN_WIDTH - 460, 40, 420, 72};
-        SDL_RenderFillRect(renderer, &banner);
+        if (!renderPanelBg(renderer, banner, static_cast<Uint8>(ba * 0.15f), "assets/textures/ui/panel_light.png")) {
+            SDL_SetRenderDrawColor(renderer, 255, 200, 50, static_cast<Uint8>(ba * 0.15f));
+            SDL_RenderFillRect(renderer, &banner);
+        }
         SDL_SetRenderDrawColor(renderer, 255, 220, 80, ba);
         SDL_RenderDrawRect(renderer, &banner);
 

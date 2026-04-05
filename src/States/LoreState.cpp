@@ -1,5 +1,6 @@
 #include "States/LoreState.h"
 #include "Core/Game.h"
+#include "UI/UITextures.h"
 #include <algorithm>
 #include <cmath>
 
@@ -86,9 +87,11 @@ void LoreState::render(SDL_Renderer* renderer) {
 
         // Background
         if (selected) {
-            SDL_SetRenderDrawColor(renderer, 60, 30, 80, 200);
             SDL_Rect bg = {listX - 5, listY + i * 64 - 2, 500, 56};
-            SDL_RenderFillRect(renderer, &bg);
+            if (!renderPanelBg(renderer, bg, 200, "assets/textures/ui/panel_light.png")) {
+                SDL_SetRenderDrawColor(renderer, 60, 30, 80, 200);
+                SDL_RenderFillRect(renderer, &bg);
+            }
         }
 
         if (m_fontSmall) {
@@ -111,9 +114,11 @@ void LoreState::render(SDL_Renderer* renderer) {
 
     // Detail panel on right
     int panelX = 620, panelY = 200, panelW = 920, panelH = 880;
-    SDL_SetRenderDrawColor(renderer, 20, 10, 30, 220);
     SDL_Rect panel = {panelX, panelY, panelW, panelH};
-    SDL_RenderFillRect(renderer, &panel);
+    if (!renderPanelBg(renderer, panel, 220)) {
+        SDL_SetRenderDrawColor(renderer, 20, 10, 30, 220);
+        SDL_RenderFillRect(renderer, &panel);
+    }
     SDL_SetRenderDrawColor(renderer, 80, 40, 120, 255);
     SDL_RenderDrawRect(renderer, &panel);
 

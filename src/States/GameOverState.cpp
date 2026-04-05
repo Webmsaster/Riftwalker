@@ -1,5 +1,6 @@
 #include "GameOverState.h"
 #include "Core/Game.h"
+#include "Core/AudioManager.h"
 #include "Core/Localization.h"
 #include <cmath>
 #include <cstdlib>
@@ -20,6 +21,11 @@ void GameOverState::enter() {
     }
     m_timer = 0;
     m_glitchIntensity = 1.0f;
+
+    // Game over music
+    AudioManager::instance().stopAmbient();
+    AudioManager::instance().stopMusicLayers();
+    AudioManager::instance().playMusic("assets/music/gameover.ogg", 0);
 
     // Select subtitle based on death cause
     switch (s_deathCause) {

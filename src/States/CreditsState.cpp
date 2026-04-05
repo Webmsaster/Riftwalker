@@ -1,5 +1,6 @@
 #include "States/CreditsState.h"
 #include "Core/Game.h"
+#include "Core/AudioManager.h"
 #include <cmath>
 #include <cstdlib>
 
@@ -9,6 +10,9 @@ void CreditsState::enter() {
     m_scrollY = 0.0f;
     m_time = 0.0f;
     m_particles.clear();
+
+    // Credits music (same as victory, or menu theme from menu context)
+    AudioManager::instance().playMusic("assets/music/victory.ogg");
 
     // Credits text — empty strings create blank lines for spacing
     m_lines = {
