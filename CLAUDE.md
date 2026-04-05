@@ -5,7 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-05 music + UI textures + release packaging session):**
+**Recent Updates (2026-04-05 music quality + crossfade + localization session):**
+- **Music Synth v2**: Proper MIDI note_on/note_off duration parsing (was guessing), stereo output with per-track panning, Schroeder reverb (4 comb + 2 allpass IIR), chorus for pads/strings, filter envelope modulation for bass/leads, band-limited saw waves
+- **Music Crossfade**: `playMusic()` uses `Mix_FadeInMusic(500ms)` / `stopMusic()` uses `Mix_FadeOutMusic(300ms)` — no more hard cuts on zone/boss/state transitions
+- **Gameplay Tips**: 15 rotating tips shown during level transition iris wipe (seeded by floor+run for consistency)
+- **Localization**: 5 hardcoded HUD strings moved to LOC() (EXIT, LEVEL UP!, LORE DISCOVERED, CHAIN COMPLETE!, RIFT STABILIZED) — 103 EN + 103 DE keys total
+- **Music Path Consolidation**: Zone/boss track paths as file-scope constants (was duplicated 3x)
+- 3 commits, 10 files changed
+
+**Previous Updates (2026-04-05 music + UI textures + release packaging session):**
 - **Music System**: 7 OGG tracks (menu_theme, zone1/2/3, boss_theme, victory, gameover) with MIDI compositions + Python synth renderer
 - **Zone-based Music Playback**: Music switches dynamically on zone transitions, boss spawns, boss kills, state changes (menu/gameover/victory/credits)
 - **UI Texture System**: 11 textures (panel_dark, panel_light, bar_frame, minimap_frame, 3 buttons, divider, icon_frame, glow_orb, noise) with 9-slice rendering via `UITextures.h`
