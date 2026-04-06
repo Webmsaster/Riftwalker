@@ -539,6 +539,21 @@ void Localization::loadStrings() {
     // Event chain / zone transition
     m_en["hud.chain_stage"]        = "CHAIN: Stage %d/%d";
     m_en["hud.zone"]               = "ZONE %d";
+    m_en["npc.nav_hint"]           = "[W/S] Navigate  [Enter] Select  [Esc] Close";
+
+    // Combat floating text
+    m_en["hud.parry"]              = "PARRY!";
+    m_en["hud.crit"]               = "CRIT! %.0f";
+    m_en["hud.level_display"]      = "Lv.%d";
+    m_en["hud.challenge_complete"] = "CHALLENGE COMPLETE! +%d Shards";
+    m_en["hud.rifts_counter"]      = "Rifts: %d / %d  [A:%d B:%d]";
+
+    // Bestiary stat labels
+    m_en["bestiary.stat_hp"]       = "HP:  %.0f";
+    m_en["bestiary.stat_dmg"]      = "DMG: %.0f";
+    m_en["bestiary.stat_spd"]      = "SPD: %.0f";
+    m_en["bestiary.stat_spd_na"]   = "SPD: ---";
+    m_en["bestiary.stat_elem"]     = "ELEM: %s";
 
     // ===== GERMAN =====
 
@@ -1056,4 +1071,19 @@ void Localization::loadStrings() {
     // Event chain / zone transition
     m_de["hud.chain_stage"]        = "KETTE: Stufe %d/%d";
     m_de["hud.zone"]               = "ZONE %d";
+    m_de["npc.nav_hint"]           = "[W/S] Navigieren  [Enter] Waehlen  [Esc] Schliessen";
+
+    // Combat floating text
+    m_de["hud.parry"]              = "PARIERT!";
+    m_de["hud.crit"]               = "KRIT! %.0f";
+    m_de["hud.level_display"]      = "Lv.%d";
+    m_de["hud.challenge_complete"] = "HERAUSFORDERUNG GESCHAFFT! +%d Splitter";
+    m_de["hud.rifts_counter"]      = "Risse: %d / %d  [A:%d B:%d]";
+
+    // Bestiary stat labels
+    m_de["bestiary.stat_hp"]       = "HP:  %.0f";
+    m_de["bestiary.stat_dmg"]      = "SCH: %.0f";
+    m_de["bestiary.stat_spd"]      = "GES: %.0f";
+    m_de["bestiary.stat_spd_na"]   = "GES: ---";
+    m_de["bestiary.stat_elem"]     = "ELEM: %s";
 }

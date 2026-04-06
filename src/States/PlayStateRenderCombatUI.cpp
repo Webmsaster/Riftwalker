@@ -313,7 +313,7 @@ void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
     }
 
     char lvlText[32];
-    std::snprintf(lvlText, sizeof(lvlText), "Lv.%d", m_levelUpDisplayLevel);
+    std::snprintf(lvlText, sizeof(lvlText), LOC("hud.level_display"), m_levelUpDisplayLevel);
     SDL_Color lvlColor = {255, 240, 180, static_cast<Uint8>(a * 0.8f)};
     SDL_Surface* lvlSurf = TTF_RenderText_Blended(font, lvlText, lvlColor);
     if (lvlSurf) {

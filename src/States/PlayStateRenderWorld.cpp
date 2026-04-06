@@ -1430,7 +1430,7 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
     }
 
     // Controls hint
-    SDL_Surface* hs = TTF_RenderText_Blended(font, "[W/S] Navigate  [Enter] Select  [Esc] Close",
+    SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("npc.nav_hint"),
                                               SDL_Color{120, 120, 140, 150});
     if (hs) {
         SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);

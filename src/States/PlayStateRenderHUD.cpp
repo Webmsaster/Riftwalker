@@ -81,7 +81,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             TTF_Font* font = game->getFont();
             if (font) {
                 char riftBuf[96];
-                std::snprintf(riftBuf, sizeof(riftBuf), "Rifts: %d / %d  [A:%d B:%d]",
+                std::snprintf(riftBuf, sizeof(riftBuf), LOC("hud.rifts_counter"),
                               m_levelRiftsRepaired, totalRifts, dimARemaining, dimBRemaining);
                 SDL_Color rc = {180, 130, 255, 200};
                 SDL_Surface* rs = TTF_RenderText_Blended(font, riftBuf, rc);
@@ -814,7 +814,7 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
         cy -= static_cast<int>(slideUp);
 
         char completeBuf[64];
-        std::snprintf(completeBuf, sizeof(completeBuf), "CHALLENGE COMPLETE! +%d Shards",
+        std::snprintf(completeBuf, sizeof(completeBuf), LOC("hud.challenge_complete"),
                      m_combatChallenge.shardReward);
         SDL_Color compColor = {255, 215, 0, a};
         SDL_Surface* cs = TTF_RenderText_Blended(font, completeBuf, compColor);
@@ -949,7 +949,7 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Color color;
             if (dn.isShard) {
                 color = {200, 150, 255, 255};
-            } else if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
+            } else if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, LOC("hud.parry")) == 0) {
                 color = {255, 225, 80, 255};
             } else if (dn.isBuff) {
                 color = {100, 220, 255, 255};
@@ -971,7 +971,7 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
             } else if (dn.isHeal) {
                 std::snprintf(buf, sizeof(buf), "+%.0f", dn.value);
             } else if (dn.isCritical) {
-                std::snprintf(buf, sizeof(buf), "CRIT! %.0f", dn.value);
+                std::snprintf(buf, sizeof(buf), LOC("hud.crit"), dn.value);
             } else {
                 std::snprintf(buf, sizeof(buf), "%.0f", dn.value);
             }

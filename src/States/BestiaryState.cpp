@@ -475,7 +475,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     // HP bar
     {
         char hpLabel[32];
-        std::snprintf(hpLabel, sizeof(hpLabel), "HP:  %.0f", entry.baseHP);
+        std::snprintf(hpLabel, sizeof(hpLabel), LOC("bestiary.stat_hp"), entry.baseHP);
         drawText(renderer, font, hpLabel, infoX, statsY, {160, 220, 160, 220});
         float fraction = std::min(entry.baseHP / 400.0f, 1.0f);
         drawBar(renderer, infoX + 220, statsY + 3, barW - 220, barH, fraction,
@@ -485,7 +485,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     // DMG bar
     {
         char dmgLabel[32];
-        std::snprintf(dmgLabel, sizeof(dmgLabel), "DMG: %.0f", entry.baseDMG);
+        std::snprintf(dmgLabel, sizeof(dmgLabel), LOC("bestiary.stat_dmg"), entry.baseDMG);
         drawText(renderer, font, dmgLabel, infoX, statsY + rowSp, {220, 140, 140, 220});
         float fraction = std::min(entry.baseDMG / 30.0f, 1.0f);
         drawBar(renderer, infoX + 220, statsY + rowSp + 3, barW - 220, barH, fraction,
@@ -496,9 +496,9 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     {
         char spLabel[32];
         if (entry.baseSpeed > 0)
-            std::snprintf(spLabel, sizeof(spLabel), "SPD: %.0f", entry.baseSpeed);
+            std::snprintf(spLabel, sizeof(spLabel), LOC("bestiary.stat_spd"), entry.baseSpeed);
         else
-            std::snprintf(spLabel, sizeof(spLabel), "SPD: ---");
+            std::snprintf(spLabel, sizeof(spLabel), "%s", LOC("bestiary.stat_spd_na"));
         drawText(renderer, font, spLabel, infoX, statsY + rowSp * 2, {140, 180, 230, 220});
         float fraction = std::min(entry.baseSpeed / 200.0f, 1.0f);
         drawBar(renderer, infoX + 220, statsY + rowSp * 2 + 3, barW - 220, barH, fraction,
@@ -509,7 +509,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     {
         SDL_Color elColor = elementColor(entry.element);
         char elLabel[32];
-        std::snprintf(elLabel, sizeof(elLabel), "ELEM: %s", elementName(entry.element));
+        std::snprintf(elLabel, sizeof(elLabel), LOC("bestiary.stat_elem"), elementName(entry.element));
         drawText(renderer, font, elLabel, infoX, statsY + rowSp * 3, elColor);
 
         // Small element icon squares

@@ -625,7 +625,7 @@ void PlayState::update(float dt) {
         num.position = {pe.position.x, pe.position.y - 20.0f};
         num.value = 0;
         num.isBuff = true;
-        num.buffText = "PARRY!";
+        num.buffText = LOC("hud.parry");
         num.lifetime = 1.0f;
         num.maxLifetime = 1.0f;
         num.isPlayerDamage = false;
