@@ -22,7 +22,9 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
   - EndingState + GameOver: mouse click support added
 - **Gameplay Tips**: 40 tips (was 35)
 - **Bug Fix**: HUD texture leak — destructor frees m_hudTarget
-- 16 commits, ~25 files changed
+- **Bug Fix**: BestiaryState dead mouse code — early return prevented mouse hover/click/wheel
+- **Navigation**: PageUp/PageDown/Home/End added to Bestiary, RunHistory, DailyLeaderboard, Upgrades
+- 22 commits, ~28 files changed, +700 lines
 
 *Wave 1 (earlier):*
 - **Complete Localization**: 408 EN + 408 DE string pairs — ALL player-facing UI strings use LOC() macro
