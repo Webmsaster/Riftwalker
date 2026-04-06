@@ -549,7 +549,7 @@ void MenuState::renderDailyInfo(SDL_Renderer* renderer, TTF_Font* font) {
     if (bestScore > 0)
         std::snprintf(scoreBuf, sizeof(scoreBuf), LOC("menu.daily_best"), bestScore);
     else
-        std::snprintf(scoreBuf, sizeof(scoreBuf), "Best: ---");
+        std::snprintf(scoreBuf, sizeof(scoreBuf), "%s", LOC("menu.daily_no_best"));
     drawLine(scoreBuf, {180, 180, 60, 255}, textY + lineH * 3);
 }
 
