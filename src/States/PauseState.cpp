@@ -389,7 +389,7 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
 
     // NG+ level
     if (g_newGamePlusLevel > 0) {
-        std::snprintf(buf, sizeof(buf), "New Game+ %d", g_newGamePlusLevel);
+        std::snprintf(buf, sizeof(buf), LOC("pause.ngplus"), g_newGamePlusLevel);
         renderStatText(renderer, font, buf, lx, ly, {200, 120, 255, 255});
         ly += 36;
     }

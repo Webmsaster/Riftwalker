@@ -454,7 +454,7 @@ void MenuState::render(SDL_Renderer* renderer) {
     // Version at bottom
     if (font) {
         SDL_Color c = {55, 50, 75, 100};
-        SDL_Surface* s = TTF_RenderText_Blended(font, "v0.1  -  Made with SDL2", c);
+        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("menu.version"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {

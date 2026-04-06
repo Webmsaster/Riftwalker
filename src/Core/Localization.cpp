@@ -164,6 +164,10 @@ void Localization::loadStrings() {
     m_en["hud.repair_rifts"]       = "Repair all rifts to unlock exit!";
     m_en["hud.rift_dimb"]          = "This rift stabilizes in DIM-B. +%d%% shards, -%.0f entropy on repair, +%.2f entropy/s.";
     m_en["hud.rift_dima"]          = "This rift stabilizes in DIM-A. Safer route, no DIM-B pressure.";
+    m_en["hud.wave_cleared"]       = "WAVE CLEARED";
+    m_en["relic.cursed"]           = "CURSED";
+    m_en["menu.version"]           = "v0.1  -  Made with SDL2";
+    m_en["pause.ngplus"]           = "New Game+ %d";
 
     // Class Select
     m_en["class.title"]            = "C H O O S E  Y O U R  C L A S S";
@@ -629,6 +633,10 @@ void Localization::loadStrings() {
     m_de["hud.repair_rifts"]       = "Repariere alle Risse um den Ausgang freizuschalten!";
     m_de["hud.rift_dimb"]          = "Dieser Riss stabilisiert in DIM-B. +%d%% Splitter, -%.0f Entropie bei Reparatur, +%.2f Entropie/s.";
     m_de["hud.rift_dima"]          = "Dieser Riss stabilisiert in DIM-A. Sicherere Route, kein DIM-B-Druck.";
+    m_de["hud.wave_cleared"]       = "WELLE GESCHAFFT";
+    m_de["relic.cursed"]           = "VERFLUCHT";
+    m_de["menu.version"]           = "v0.1  -  Erstellt mit SDL2";
+    m_de["pause.ngplus"]           = "New Game+ %d";
 
     // Class Select
     m_de["class.title"]            = "W A E H L E  D E I N E  K L A S S E";

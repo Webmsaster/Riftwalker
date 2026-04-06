@@ -6,6 +6,7 @@
 //   PlayStateRenderWorld.cpp    -- World entities, NPCs, events
 #include "PlayState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/Enemy.h"
 #include "Components/TransformComponent.h"
 #include "Components/HealthComponent.h"
@@ -980,7 +981,7 @@ void PlayState::render(SDL_Renderer* renderer) {
 
         // Cyan/white text "WAVE CLEARED"
         SDL_Color cyan = {0, 255, 255, a};
-        SDL_Surface* surf = TTF_RenderText_Blended(game->getFont(), "WAVE CLEARED", cyan);
+        SDL_Surface* surf = TTF_RenderText_Blended(game->getFont(), LOC("hud.wave_cleared"), cyan);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {

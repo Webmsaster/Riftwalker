@@ -187,12 +187,12 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
 
         // Tier text + CURSED label
         bool isCursedRelic = RelicSystem::isCursed(m_relicChoices[i]);
-        const char* tierText = "COMMON";
+        const char* tierText = LOC("shop.common");
         SDL_Color tierColor = {180, 180, 180, 255};
-        if (data.tier == RelicTier::Rare)      { tierText = "RARE";      tierColor = {80, 180, 255, 255}; }
-        else if (data.tier == RelicTier::Legendary) { tierText = "LEGENDARY"; tierColor = {255, 200, 50, 255}; }
+        if (data.tier == RelicTier::Rare)      { tierText = LOC("shop.rare");      tierColor = {80, 180, 255, 255}; }
+        else if (data.tier == RelicTier::Legendary) { tierText = LOC("shop.legendary"); tierColor = {255, 200, 50, 255}; }
         // CURSED override: override tier display with red "CURSED" label
-        if (isCursedRelic) { tierText = "CURSED"; tierColor = {255, 50, 50, 255}; }
+        if (isCursedRelic) { tierText = LOC("relic.cursed"); tierColor = {255, 50, 50, 255}; }
         {
             SDL_Surface* s = TTF_RenderText_Blended(font, tierText, tierColor);
             if (s) {
