@@ -224,6 +224,21 @@ void Localization::loadStrings() {
     m_en["upgrade.16.name"] = "Rift Amplifier";      m_en["upgrade.16.desc"] = "+20% Ability Damage";
     m_en["upgrade.17.name"] = "Barrier Core";        m_en["upgrade.17.desc"] = "+1 Shield Capacity";
 
+    // Challenge modes
+    m_en["challenge.1.name"] = "Speedrun";          m_en["challenge.1.desc"] = "10-minute timer. Beat the clock!";
+    m_en["challenge.2.name"] = "Glass Cannon";       m_en["challenge.2.desc"] = "1 HP, 3x DMG, no healing";
+    m_en["challenge.3.name"] = "Boss Rush";          m_en["challenge.3.desc"] = "Only boss fights";
+    m_en["challenge.4.name"] = "Endless Rift";       m_en["challenge.4.desc"] = "Infinite levels, rising difficulty";
+    m_en["challenge.5.name"] = "Dimension Lock";     m_en["challenge.5.desc"] = "No dimension switching";
+
+    // Mutators
+    m_en["mutator.1.name"] = "Big Head";             m_en["mutator.1.desc"] = "All hitboxes +50%";
+    m_en["mutator.2.name"] = "Fragile World";        m_en["mutator.2.desc"] = "All tiles breakable";
+    m_en["mutator.3.name"] = "Shard Storm";          m_en["mutator.3.desc"] = "3x shards, 2x enemies";
+    m_en["mutator.4.name"] = "Dim Flux";             m_en["mutator.4.desc"] = "Auto-switch every 15s";
+    m_en["mutator.5.name"] = "Bullet Hell";          m_en["mutator.5.desc"] = "All enemies shoot";
+    m_en["mutator.6.name"] = "Low Gravity";          m_en["mutator.6.desc"] = "Half gravity, high jumps";
+
     // Difficulty Select
     m_en["difficulty.title"]       = "S E L E C T  D I F F I C U L T Y";
     m_en["difficulty.easy"]        = "E A S Y";
@@ -798,6 +813,21 @@ void Localization::loadStrings() {
     m_de["upgrade.15.name"] = "Zeitfluss";            m_de["upgrade.15.desc"] = "-15% Faehigkeits-Abklingzeit";
     m_de["upgrade.16.name"] = "Rissverstaerker";      m_de["upgrade.16.desc"] = "+20% Faehigkeitsschaden";
     m_de["upgrade.17.name"] = "Barrierekern";         m_de["upgrade.17.desc"] = "+1 Schildkapazitaet";
+
+    // Challenge modes
+    m_de["challenge.1.name"] = "Speedrun";           m_de["challenge.1.desc"] = "10-Minuten-Timer. Schlag die Uhr!";
+    m_de["challenge.2.name"] = "Glaskanone";         m_de["challenge.2.desc"] = "1 HP, 3x SCH, keine Heilung";
+    m_de["challenge.3.name"] = "Boss-Ansturm";       m_de["challenge.3.desc"] = "Nur Bosskämpfe";
+    m_de["challenge.4.name"] = "Endloser Riss";      m_de["challenge.4.desc"] = "Unendliche Level, steigende Schwierigkeit";
+    m_de["challenge.5.name"] = "Dimensionssperre";   m_de["challenge.5.desc"] = "Kein Dimensionswechsel";
+
+    // Mutators
+    m_de["mutator.1.name"] = "Grosskopf";            m_de["mutator.1.desc"] = "Alle Hitboxen +50%";
+    m_de["mutator.2.name"] = "Zerbrechliche Welt";   m_de["mutator.2.desc"] = "Alle Kacheln zerstoerbar";
+    m_de["mutator.3.name"] = "Splittersturm";        m_de["mutator.3.desc"] = "3x Splitter, 2x Gegner";
+    m_de["mutator.4.name"] = "Dim-Fluss";            m_de["mutator.4.desc"] = "Auto-Wechsel alle 15s";
+    m_de["mutator.5.name"] = "Kugelhagel";           m_de["mutator.5.desc"] = "Alle Gegner schiessen";
+    m_de["mutator.6.name"] = "Niedrige Gravitation";  m_de["mutator.6.desc"] = "Halbe Schwerkraft, hohe Spruenge";
 
     // Difficulty Select
     m_de["difficulty.title"]       = "S C H W I E R I G K E I T";
