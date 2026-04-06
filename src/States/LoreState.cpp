@@ -243,6 +243,22 @@ void LoreState::handleEvent(const SDL_Event& event) {
                 m_selected = (m_selected + 1) % total;
                 AudioManager::instance().play(SFX::MenuSelect);
                 break;
+            case SDL_SCANCODE_PAGEUP:
+                m_selected = std::max(0, m_selected - 5);
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_PAGEDOWN:
+                m_selected = std::min(total - 1, m_selected + 5);
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_HOME:
+                m_selected = 0;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_END:
+                m_selected = total - 1;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
             default: break;
         }
     }
