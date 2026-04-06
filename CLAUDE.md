@@ -5,7 +5,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-06 massive localization + polish session):**
+**Recent Updates (2026-04-06 overnight autonomous session — 2 waves):**
+
+*Wave 2 (late night):*
+- **Deep Localization Pass**: 43 more EN+DE string pairs (451 EN + 451 DE total)
+  - Buff pickups (SHIELD/SPEED UP/DMG UP), PARRY!/CRIT! floating text
+  - 10 NG+ rank titles localized in RunSummaryState (was hardcoded English array)
+  - Balance summary stats (DMG/ATK/CD/VoidHunger) localized
+  - Bestiary stat labels (HP/DMG/SPD/ELEM), challenge complete, rift counter, zone label
+  - NPC dialog nav hint, event chain stage, level-up display
+- **Mouse UX Extended**: Right-click-back in 6 more states (14 total), mouse wheel in 5 more states
+  - ClassSelect, DifficultySelect, NGPlusSelect, ChallengeSelect, PauseState, ShopState
+  - ChallengeSelect: full mouse hover+click for challenges and mutator toggles (was keyboard-only)
+  - EndingState: mouse click to advance phases (was keyboard/gamepad only)
+  - GameOver: mouse click to return (was keyboard/gamepad only)
+- **Gameplay Tips**: 40 tips (was 35), 5 new: synergies, right-click hint, boss enrage, health orbs, mastery
+- **Bug Fix**: HUD texture leak — added destructor to free m_hudTarget on PlayState destroy
+- **Code Quality**: Fixed outdated comment in GameState.h (NG+ tiers 1-5 → 1-10)
+- 9 commits, ~20 files changed
+
+*Wave 1 (earlier):*
 - **Complete Localization**: 408 EN + 408 DE string pairs — ALL player-facing UI strings use LOC() macro
   - 29 source files with 333 LOC() call sites, 989-line Localization.cpp
   - 19 tutorial hints, 30 gameplay tips (doubled from 15), 3 ending narratives (35 lines)
