@@ -593,7 +593,7 @@ void MenuState::renderCareerStats(SDL_Renderer* renderer, TTF_Font* font) {
     };
 
     // Header
-    drawStat("CAREER STATS", {100, 85, 140, 255}, ty);
+    drawStat(LOC("menu.career_stats"), {100, 85, 140, 255}, ty);
 
     // Line 1: Runs | Best Floor
     char buf[96];

@@ -147,6 +147,7 @@ void Localization::loadStrings() {
     m_en["menu.daily_seed"]        = "Seed: %d";
     m_en["menu.daily_mutator"]     = "Mutator: %s";
     m_en["menu.daily_best"]        = "Best: %d";
+    m_en["menu.career_stats"]      = "CAREER STATS";
     m_en["menu.stats_runs"]        = "Runs: %d  |  Best Floor: %d";
     m_en["menu.stats_kills"]       = "Kills: %d  |  Rifts: %d";
     m_en["menu.stats_shards"]      = "Shards: %d";
@@ -561,6 +562,7 @@ void Localization::loadStrings() {
     m_de["menu.daily_seed"]        = "Seed: %d";
     m_de["menu.daily_mutator"]     = "Mutator: %s";
     m_de["menu.daily_best"]        = "Bestleistung: %d";
+    m_de["menu.career_stats"]      = "KARRIERE-STATISTIK";
     m_de["menu.stats_runs"]        = "Laeufe: %d  |  Beste Etage: %d";
     m_de["menu.stats_kills"]       = "Kills: %d  |  Risse: %d";
     m_de["menu.stats_shards"]      = "Splitter: %d";
