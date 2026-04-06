@@ -24,10 +24,73 @@ void ChallengeSelectState::handleEvent(const SDL_Event& event) {
         return;
     }
 
-    if (event.type != SDL_KEYDOWN) return;
-
+    // Mouse hover for challenges and mutators
     int challengeCount = ChallengeMode::getChallengeCount();
     int mutatorCount = ChallengeMode::getMutatorCount();
+
+    if (event.type == SDL_MOUSEMOTION) {
+        int mx = event.motion.x, my = event.motion.y;
+        // Challenge cards (left side)
+        for (int i = 0; i < challengeCount; i++) {
+            int y = 200 + i * 170;
+            if (mx >= 80 && mx < 1080 && my >= y && my < y + 160) {
+                if (m_inMutatorSection || i != m_selectedChallenge) {
+                    m_inMutatorSection = false;
+                    m_selectedChallenge = i;
+                    AudioManager::instance().play(SFX::MenuSelect);
+                }
+                return;
+            }
+        }
+        // Mutator cards (right side)
+        for (int i = 0; i < mutatorCount; i++) {
+            int y = 260 + i * 110;
+            if (mx >= 1400 && mx < 2440 && my >= y && my < y + 100) {
+                if (!m_inMutatorSection || i != m_focusedMutator) {
+                    m_inMutatorSection = true;
+                    m_focusedMutator = i;
+                    AudioManager::instance().play(SFX::MenuSelect);
+                }
+                return;
+            }
+        }
+    }
+
+    // Mouse click for challenges and mutators
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+        int mx = event.button.x, my = event.button.y;
+        for (int i = 0; i < challengeCount; i++) {
+            int y = 200 + i * 170;
+            if (mx >= 80 && mx < 1080 && my >= y && my < y + 160) {
+                m_inMutatorSection = false;
+                m_selectedChallenge = i;
+                g_activeChallenge = static_cast<ChallengeID>(m_selectedChallenge + 1);
+                AudioManager::instance().play(SFX::MenuConfirm);
+                game->changeState(StateID::ClassSelect);
+                return;
+            }
+        }
+        for (int i = 0; i < mutatorCount; i++) {
+            int y = 260 + i * 110;
+            if (mx >= 1400 && mx < 2440 && my >= y && my < y + 100) {
+                m_inMutatorSection = true;
+                m_focusedMutator = i;
+                MutatorID mid = static_cast<MutatorID>(i + 1);
+                bool isActive = (g_activeMutators[0] == mid || g_activeMutators[1] == mid);
+                if (isActive) {
+                    if (g_activeMutators[0] == mid) g_activeMutators[0] = MutatorID::None;
+                    if (g_activeMutators[1] == mid) g_activeMutators[1] = MutatorID::None;
+                } else {
+                    if (g_activeMutators[0] == MutatorID::None) g_activeMutators[0] = mid;
+                    else if (g_activeMutators[1] == MutatorID::None) g_activeMutators[1] = mid;
+                }
+                AudioManager::instance().play(SFX::MenuConfirm);
+                return;
+            }
+        }
+    }
+
+    if (event.type != SDL_KEYDOWN) return;
 
     switch (event.key.keysym.scancode) {
         case SDL_SCANCODE_W: case SDL_SCANCODE_UP:

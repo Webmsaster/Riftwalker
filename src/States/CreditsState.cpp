@@ -115,7 +115,14 @@ void CreditsState::handleEvent(const SDL_Event& event) {
         }
     }
 
-    // Also allow mouse click or gamepad to go back
+    // Mouse wheel scrolling (speed up/rewind credits)
+    if (event.type == SDL_MOUSEWHEEL) {
+        m_scrollY -= event.wheel.y * 80.0f;
+        if (m_scrollY < 0) m_scrollY = 0;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+
+    // Right-click or left-click to go back
     if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_CONTROLLERBUTTONDOWN) {
         if (game) game->changeState(StateID::Menu);
     }
