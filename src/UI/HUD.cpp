@@ -1,5 +1,6 @@
 #include "HUD.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/Player.h"
 #include "Game/SuitEntropy.h"
 #include "Game/DimensionManager.h"
@@ -539,7 +540,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
         if (font) {
             char xpText[32];
-            std::snprintf(xpText, sizeof(xpText), "Lv.%d  %d/%d", player->level, player->xp, player->xpToNextLevel);
+            std::snprintf(xpText, sizeof(xpText), LOC("hud.xp_bar"), player->level, player->xp, player->xpToNextLevel);
             renderText(renderer, font, xpText, margin + hpBarOffset + 10, xpY, {255, 230, 160, 220});
         }
     }

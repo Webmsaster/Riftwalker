@@ -1,6 +1,7 @@
 // PlayStateDynamicEvents.cpp -- Dynamic level events (dimension storm, elite invasion, time dilation)
 #include "PlayState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/Enemy.h"
 #include "Components/TransformComponent.h"
 #include "Components/HealthComponent.h"
@@ -40,20 +41,20 @@ void PlayState::triggerDynamicEvent() {
             m_dynamicEvent.duration = 15.0f;
             m_dynamicEvent.timer = 15.0f;
             m_dynamicEvent.effectTimer = 0;
-            m_dynamicEvent.name = "DIMENSION STORM";
+            m_dynamicEvent.name = LOC("event.dim_storm");
             m_dynamicEvent.color = {180, 80, 255, 255}; // purple
             break;
         case DynamicEventType::EliteInvasion:
             m_dynamicEvent.duration = 0; // one-shot
             m_dynamicEvent.timer = 0;
-            m_dynamicEvent.name = "ELITE INVASION";
+            m_dynamicEvent.name = LOC("event.elite_invasion");
             m_dynamicEvent.color = {255, 60, 60, 255}; // red
             break;
         case DynamicEventType::TimeDilation:
             m_dynamicEvent.duration = 10.0f;
             m_dynamicEvent.timer = 10.0f;
             m_dynamicEvent.effectTimer = 0;
-            m_dynamicEvent.name = "TIME DILATION";
+            m_dynamicEvent.name = LOC("event.time_dilation");
             m_dynamicEvent.color = {255, 215, 0, 255}; // golden
             break;
         default:

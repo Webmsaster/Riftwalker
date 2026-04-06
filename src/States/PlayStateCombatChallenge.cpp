@@ -1,6 +1,7 @@
 // PlayStateCombatChallenge.cpp -- Split from PlayState.cpp (combat challenges, rifts, balance tracking, waves)
 #include "PlayState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/Enemy.h"
 #include "Components/TransformComponent.h"
 #include "Components/HealthComponent.h"
@@ -552,40 +553,40 @@ void PlayState::startCombatChallenge() {
 
     switch (type) {
         case CombatChallengeType::AerialKill:
-            m_combatChallenge.name = "Aerial Kill";
-            m_combatChallenge.desc = "Kill an enemy while airborne";
+            m_combatChallenge.name = LOC("cc.aerial.name");
+            m_combatChallenge.desc = LOC("cc.aerial.desc");
             m_combatChallenge.targetCount = 1;
             m_combatChallenge.shardReward = 20;
             break;
         case CombatChallengeType::MultiKill:
-            m_combatChallenge.name = "Triple Kill";
-            m_combatChallenge.desc = "Kill 3 enemies within 4 seconds";
+            m_combatChallenge.name = LOC("cc.multi.name");
+            m_combatChallenge.desc = LOC("cc.multi.desc");
             m_combatChallenge.targetCount = 3;
             m_combatChallenge.timer = 4.0f;
             m_combatChallenge.maxTimer = 4.0f;
             m_combatChallenge.shardReward = 35;
             break;
         case CombatChallengeType::DashKill:
-            m_combatChallenge.name = "Dash Slayer";
-            m_combatChallenge.desc = "Kill an enemy with a dash attack";
+            m_combatChallenge.name = LOC("cc.dash.name");
+            m_combatChallenge.desc = LOC("cc.dash.desc");
             m_combatChallenge.targetCount = 1;
             m_combatChallenge.shardReward = 20;
             break;
         case CombatChallengeType::ComboFinisher:
-            m_combatChallenge.name = "Combo Finisher";
-            m_combatChallenge.desc = "Kill with a 3rd combo hit";
+            m_combatChallenge.name = LOC("cc.combo.name");
+            m_combatChallenge.desc = LOC("cc.combo.desc");
             m_combatChallenge.targetCount = 1;
             m_combatChallenge.shardReward = 25;
             break;
         case CombatChallengeType::ChargedKill:
-            m_combatChallenge.name = "Heavy Hitter";
-            m_combatChallenge.desc = "Kill with a charged attack";
+            m_combatChallenge.name = LOC("cc.charged.name");
+            m_combatChallenge.desc = LOC("cc.charged.desc");
             m_combatChallenge.targetCount = 1;
             m_combatChallenge.shardReward = 25;
             break;
         case CombatChallengeType::NoDamageWave:
-            m_combatChallenge.name = "Untouchable";
-            m_combatChallenge.desc = "Clear wave without taking damage";
+            m_combatChallenge.name = LOC("cc.nodmg.name");
+            m_combatChallenge.desc = LOC("cc.nodmg.desc");
             m_combatChallenge.targetCount = 1;
             m_combatChallenge.shardReward = 40;
             break;

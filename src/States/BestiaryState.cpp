@@ -452,7 +452,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     if (isBoss) {
         float p = 0.5f + 0.5f * std::sin(m_time * 2.0f);
         Uint8 a = static_cast<Uint8>(180 + 75 * p);
-        drawTextCentered(renderer, font, "[ BOSS ]", PREVIEW_CX, PREVIEW_CY + 130, {255, 180, 60, a});
+        drawTextCentered(renderer, font, LOC("bestiary.boss_label"), PREVIEW_CX, PREVIEW_CY + 130, {255, 180, 60, a});
     }
 
     // ---- Right: stats + info ----
@@ -641,7 +641,7 @@ void BestiaryState::renderUndiscoveredDetail(SDL_Renderer* renderer, TTF_Font* f
     const int barW  = DETAIL_W - 540;
     const int barH  = 24;
     const int rowSp = 60;
-    const char* labels[] = {"HP:  ???", "DMG: ???", "SPD: ???", "ELEM: ???"};
+    const char* labels[] = {LOC("bestiary.hp_locked"), LOC("bestiary.dmg_locked"), LOC("bestiary.spd_locked"), LOC("bestiary.elem_locked")};
     SDL_Color labelColor = {65, 60, 80, 120};
     for (int i = 0; i < 4; i++) {
         drawText(renderer, font, labels[i], infoX, statsY + i * rowSp, labelColor);

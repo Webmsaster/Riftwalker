@@ -618,7 +618,34 @@ void Localization::loadStrings() {
     // Event chain / zone transition
     m_en["hud.chain_stage"]        = "CHAIN: Stage %d/%d";
     m_en["hud.zone"]               = "ZONE %d";
+    m_en["hud.xp_bar"]            = "Lv.%d  %d/%d";
     m_en["npc.nav_hint"]           = "[W/S] Navigate  [Enter] Select  [Esc] Close";
+
+    // Combat challenges
+    m_en["cc.aerial.name"]         = "Aerial Kill";
+    m_en["cc.aerial.desc"]         = "Kill an enemy while airborne";
+    m_en["cc.multi.name"]          = "Triple Kill";
+    m_en["cc.multi.desc"]          = "Kill 3 enemies within 4 seconds";
+    m_en["cc.dash.name"]           = "Dash Slayer";
+    m_en["cc.dash.desc"]           = "Kill an enemy with a dash attack";
+    m_en["cc.combo.name"]          = "Combo Finisher";
+    m_en["cc.combo.desc"]          = "Kill with a 3rd combo hit";
+    m_en["cc.charged.name"]        = "Heavy Hitter";
+    m_en["cc.charged.desc"]        = "Kill with a charged attack";
+    m_en["cc.nodmg.name"]          = "Untouchable";
+    m_en["cc.nodmg.desc"]          = "Clear wave without taking damage";
+
+    // Dynamic events
+    m_en["event.dim_storm"]        = "DIMENSION STORM";
+    m_en["event.elite_invasion"]   = "ELITE INVASION";
+    m_en["event.time_dilation"]    = "TIME DILATION";
+
+    // Bestiary locked stat labels
+    m_en["bestiary.boss_label"]    = "[ BOSS ]";
+    m_en["bestiary.hp_locked"]     = "HP:  ???";
+    m_en["bestiary.dmg_locked"]    = "DMG: ???";
+    m_en["bestiary.spd_locked"]    = "SPD: ???";
+    m_en["bestiary.elem_locked"]   = "ELEM: ???";
 
     // Combat floating text
     m_en["hud.parry"]              = "PARRY!";
@@ -1312,7 +1339,34 @@ void Localization::loadStrings() {
     // Event chain / zone transition
     m_de["hud.chain_stage"]        = "KETTE: Stufe %d/%d";
     m_de["hud.zone"]               = "ZONE %d";
+    m_de["hud.xp_bar"]            = "Lv.%d  %d/%d";
     m_de["npc.nav_hint"]           = "[W/S] Navigieren  [Enter] Waehlen  [Esc] Schliessen";
+
+    // Combat challenges
+    m_de["cc.aerial.name"]         = "Luft-Kill";
+    m_de["cc.aerial.desc"]         = "Toete einen Gegner in der Luft";
+    m_de["cc.multi.name"]          = "Dreifach-Kill";
+    m_de["cc.multi.desc"]          = "Toete 3 Gegner innerhalb von 4 Sekunden";
+    m_de["cc.dash.name"]           = "Dash-Toeter";
+    m_de["cc.dash.desc"]           = "Toete einen Gegner per Dash-Angriff";
+    m_de["cc.combo.name"]          = "Kombo-Abschluss";
+    m_de["cc.combo.desc"]          = "Toete mit dem 3. Kombo-Treffer";
+    m_de["cc.charged.name"]        = "Schwerer Treffer";
+    m_de["cc.charged.desc"]        = "Toete mit einem Auflade-Angriff";
+    m_de["cc.nodmg.name"]          = "Unberuehrbar";
+    m_de["cc.nodmg.desc"]          = "Saeuber Welle ohne Schaden zu nehmen";
+
+    // Dynamic events
+    m_de["event.dim_storm"]        = "DIMENSIONSSTURM";
+    m_de["event.elite_invasion"]   = "ELITE-INVASION";
+    m_de["event.time_dilation"]    = "ZEITDEHNUNG";
+
+    // Bestiary locked stat labels
+    m_de["bestiary.boss_label"]    = "[ BOSS ]";
+    m_de["bestiary.hp_locked"]     = "HP:  ???";
+    m_de["bestiary.dmg_locked"]    = "SCH: ???";
+    m_de["bestiary.spd_locked"]    = "GES: ???";
+    m_de["bestiary.elem_locked"]   = "ELEM: ???";
 
     // Combat floating text
     m_de["hud.parry"]              = "PARIERT!";
