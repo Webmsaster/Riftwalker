@@ -829,6 +829,49 @@ void Localization::loadStrings() {
     m_de["mutator.5.name"] = "Kugelhagel";           m_de["mutator.5.desc"] = "Alle Gegner schiessen";
     m_de["mutator.6.name"] = "Niedrige Gravitation";  m_de["mutator.6.desc"] = "Halbe Schwerkraft, hohe Spruenge";
 
+    // Achievement names & descriptions (DE only — EN falls back to struct data)
+    m_de["ach.first_blood.name"]     = "Erstes Blut";        m_de["ach.first_blood.desc"]     = "Toete deinen ersten Gegner";
+    m_de["ach.rift_walker.name"]     = "Risswandler";        m_de["ach.rift_walker.desc"]     = "Repariere deinen ersten Riss";
+    m_de["ach.room_clearer.name"]    = "Raeumeraeumer";      m_de["ach.room_clearer.desc"]    = "Saeuber 10 Raeume in einem Lauf";
+    m_de["ach.boss_slayer.name"]     = "Bosstöter";          m_de["ach.boss_slayer.desc"]     = "Besiege einen Boss";
+    m_de["ach.wyrm_hunter.name"]     = "Wyrmjaeger";         m_de["ach.wyrm_hunter.desc"]     = "Besiege den Leere-Wyrm";
+    m_de["ach.combo_king.name"]      = "Kombokoenig";        m_de["ach.combo_king.desc"]      = "Erreiche eine 10-Treffer-Kombo";
+    m_de["ach.unstoppable.name"]     = "Unaufhaltsam";       m_de["ach.unstoppable.desc"]     = "Erreiche Schwierigkeit 5";
+    m_de["ach.shard_hoarder.name"]   = "Splitterhorter";     m_de["ach.shard_hoarder.desc"]   = "Sammle insgesamt 1000 Splitter";
+    m_de["ach.full_upgrade.name"]    = "Voll aufgeruestet";  m_de["ach.full_upgrade.desc"]    = "Maximiere ein Upgrade";
+    m_de["ach.mini_boss_hunter.name"]= "Mini-Boss-Jaeger";   m_de["ach.mini_boss_hunter.desc"]= "Besiege einen Mini-Boss";
+    m_de["ach.elemental_slayer.name"]= "Elementartoeter";    m_de["ach.elemental_slayer.desc"]= "Toete einen elementaren Gegner";
+    m_de["ach.dash_master.name"]     = "Dash-Meister";       m_de["ach.dash_master.desc"]     = "Dashe 100 mal in einem Lauf";
+    m_de["ach.dimension_hopper.name"]= "Dimensionsspringer"; m_de["ach.dimension_hopper.desc"]= "Wechsle insgesamt 50 mal die Dimension";
+    m_de["ach.grade_s.name"]         = "S-Rang";             m_de["ach.grade_s.desc"]         = "Erreiche Note S in einem Lauf";
+    m_de["ach.survivor.name"]        = "Ueberlebender";      m_de["ach.survivor.desc"]        = "Ueberlebe 20 Raeume in einem Lauf";
+    m_de["ach.aerial_ace.name"]      = "Luftakrobat";        m_de["ach.aerial_ace.desc"]      = "Toete 5 Gegner in der Luft in einem Lauf";
+    m_de["ach.flawless_floor.name"]  = "Makellos";           m_de["ach.flawless_floor.desc"]  = "Schliesse ein Level ohne Schaden ab";
+    m_de["ach.resonance_master.name"]= "Resonanzmeister";    m_de["ach.resonance_master.desc"]= "Erreiche die hoechste Resonanzstufe";
+    m_de["ach.combo_legend.name"]    = "Kombolegende";       m_de["ach.combo_legend.desc"]    = "Erreiche eine 15-Treffer-Kombo";
+    m_de["ach.dash_slayer.name"]     = "Dash-Toeter";        m_de["ach.dash_slayer.desc"]     = "Toete 10 Gegner per Dash in einem Lauf";
+    m_de["ach.charged_fury.name"]    = "Aufgeladene Wut";    m_de["ach.charged_fury.desc"]    = "Toete 3 Gegner mit Auflade-Angriffen in einem Lauf";
+    m_de["ach.entropy_master.name"]  = "Entropiemeister";    m_de["ach.entropy_master.desc"]  = "Schliesse ein Level nur mit Entropiensense ab";
+    m_de["ach.quest_helper.name"]    = "Hilfreicher Reisender"; m_de["ach.quest_helper.desc"] = "Schliesse 5 NPC-Quests ab";
+    m_de["ach.speed_demon.name"]     = "Geschwindigkeitsdaemon"; m_de["ach.speed_demon.desc"] = "Beende das Spiel in unter 10 Minuten";
+    m_de["ach.weapon_collector.name"]= "Waffenmeister";      m_de["ach.weapon_collector.desc"]= "Schalte alle 12 Waffen frei";
+    m_de["ach.dimension_dancer.name"]= "Dimensionstänzer";   m_de["ach.dimension_dancer.desc"]= "Wechsle 50 mal die Dimension in einem Lauf";
+    m_de["ach.void_mastery.name"]    = "Leeremeister";       m_de["ach.void_mastery.desc"]    = "Gewinne einen Lauf als Voidwalker";
+    m_de["ach.berserk_mastery.name"] = "Berserkerlord";      m_de["ach.berserk_mastery.desc"] = "Gewinne einen Lauf als Berserker";
+    m_de["ach.phantom_mastery.name"] = "Geisterprotokoll";   m_de["ach.phantom_mastery.desc"] = "Gewinne einen Lauf als Phantom";
+    m_de["ach.tech_mastery.name"]    = "Chefingenieur";      m_de["ach.tech_mastery.desc"]    = "Gewinne einen Lauf als Technomancer";
+    m_de["ach.all_classes.name"]     = "Alleskoenner";       m_de["ach.all_classes.desc"]     = "Gewinne einen Lauf mit jeder Klasse";
+    m_de["ach.relic_collector.name"] = "Relikthorter";       m_de["ach.relic_collector.desc"] = "Halte 6 Relikte in einem Lauf";
+    m_de["ach.synergy_hunter.name"]  = "Synergist";          m_de["ach.synergy_hunter.desc"]  = "Aktiviere 3 Relikt-Synergien in einem Lauf";
+    m_de["ach.cursed_survivor.name"] = "Fluchtraeger";       m_de["ach.cursed_survivor.desc"] = "Gewinne einen Lauf mit 3 verfluchten Relikten";
+    m_de["ach.parry_master.name"]    = "Parierkoenig";       m_de["ach.parry_master.desc"]    = "Pariere 20 Angriffe in einem Lauf";
+    m_de["ach.no_damage_boss.name"]  = "Unberuehrbar";       m_de["ach.no_damage_boss.desc"]  = "Besiege einen Boss ohne Schaden zu nehmen";
+    m_de["ach.kill_streak_50.name"]  = "Massaker";           m_de["ach.kill_streak_50.desc"]  = "Toete 50 Gegner in einem Level";
+    m_de["ach.ranged_only.name"]     = "Scharfschuetze";     m_de["ach.ranged_only.desc"]     = "Schliesse 5 Etagen nur mit Fernkampf ab";
+    m_de["ach.lore_hunter.name"]     = "Wissenhueter";       m_de["ach.lore_hunter.desc"]     = "Entdecke 12 Wissens-Fragmente";
+    m_de["ach.ascension_1.name"]     = "New Game Plus";      m_de["ach.ascension_1.desc"]     = "Schliesse Aufstiegsstufe 1 ab";
+    m_de["ach.ascension_5.name"]     = "Wahrer Risswandler"; m_de["ach.ascension_5.desc"]     = "Schliesse Aufstiegsstufe 5 ab";
+
     // Difficulty Select
     m_de["difficulty.title"]       = "S C H W I E R I G K E I T";
     m_de["difficulty.easy"]        = "L E I C H T";

@@ -4,6 +4,8 @@
 #include "Core/Localization.h"
 #include "UI/UITextures.h"
 #include <cmath>
+#include <cstdio>
+#include <cstring>
 
 void AchievementsState::enter() {
     m_scrollOffset = 0;
@@ -225,9 +227,17 @@ void AchievementsState::render(SDL_Renderer* renderer) {
             SDL_RenderFillRect(renderer, &lockInner);
         }
 
-        // Name
+        // Name (localized — falls back to struct field if no LOC key)
+        char achNameKey[64], achDescKey[64];
+        std::snprintf(achNameKey, sizeof(achNameKey), "ach.%s.name", a.id.c_str());
+        std::snprintf(achDescKey, sizeof(achDescKey), "ach.%s.desc", a.id.c_str());
+        const char* locName = LOC(achNameKey);
+        const char* displayName = (std::strcmp(locName, achNameKey) == 0) ? a.name.c_str() : locName;
+        const char* locDesc = LOC(achDescKey);
+        const char* displayDesc = (std::strcmp(locDesc, achDescKey) == 0) ? a.description.c_str() : locDesc;
+
         SDL_Color nameColor = a.unlocked ? SDL_Color{200, 255, 210, 255} : SDL_Color{100, 90, 110, 180};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, a.name.c_str(), nameColor);
+        SDL_Surface* ns = TTF_RenderText_Blended(font, displayName, nameColor);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -240,7 +250,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
 
         // Description
         SDL_Color descColor = a.unlocked ? SDL_Color{160, 200, 170, 200} : SDL_Color{80, 70, 90, 140};
-        SDL_Surface* ds = TTF_RenderText_Blended(font, a.description.c_str(), descColor);
+        SDL_Surface* ds = TTF_RenderText_Blended(font, displayDesc, descColor);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
