@@ -124,67 +124,32 @@ void EndingState::render(SDL_Renderer* renderer) {
             SDL_SetRenderDrawColor(renderer, 5, 2, 10, 255);
             SDL_RenderClear(renderer);
 
-            // Ending A: "The Healer" (default)
+            // Ending narratives via LOC() keys
             const char* linesHealer[] = {
-                "You stepped into the Rift seeking answers.",
-                "Instead, you found only more questions.",
-                "",
-                "Each dimension was a fragment of a broken world,",
-                "each enemy a shadow of what once was.",
-                "",
-                "The Void Sovereign was the last chain",
-                "binding the Rift to this reality.",
-                "",
-                "With its defeat, the wound begins to heal.",
-                "The dimensions slowly merge back together.",
-                "",
-                "But you know the truth now:",
-                "The Rift was never the enemy.",
-                "It was a mirror.",
-                "",
-                "And mirrors can never truly be shattered.",
-                "",
-                "Only understood."
+                LOC("ending.h.0"), LOC("ending.h.1"), "",
+                LOC("ending.h.2"), LOC("ending.h.3"), "",
+                LOC("ending.h.4"), LOC("ending.h.5"), "",
+                LOC("ending.h.6"), LOC("ending.h.7"), "",
+                LOC("ending.h.8"), LOC("ending.h.9"),
+                LOC("ending.h.10"), "",
+                LOC("ending.h.11"), "", LOC("ending.h.12")
             };
 
-            // Ending B: "The Destroyer" (200+ kills)
             const char* linesDestroyer[] = {
-                "You came to the Rift with purpose.",
-                "Not to understand. Not to heal.",
-                "But to destroy.",
-                "",
-                "Every enemy fell before you,",
-                "every dimension trembled at your approach.",
-                "",
-                "The Void Sovereign didn't stand a chance.",
-                "You didn't just seal the Rift --",
-                "you shattered it.",
-                "",
-                "The dimensions merge violently now.",
-                "Not healing. Collapsing.",
-                "",
-                "Perhaps destruction was always the answer.",
-                "Or perhaps the Rift needed a gentler hand.",
-                "",
-                "You'll never know."
+                LOC("ending.d.0"), LOC("ending.d.1"), LOC("ending.d.2"), "",
+                LOC("ending.d.3"), LOC("ending.d.4"), "",
+                LOC("ending.d.5"), LOC("ending.d.6"), LOC("ending.d.7"), "",
+                LOC("ending.d.8"), LOC("ending.d.9"), "",
+                LOC("ending.d.10"), LOC("ending.d.11"), "",
+                LOC("ending.d.12")
             };
 
-            // Ending C: "The Speedrunner" (under 600 seconds)
             const char* linesSpeedrunner[] = {
-                "Time bends around those who move through the Rift.",
-                "You crossed thirty floors in mere minutes.",
-                "",
-                "The dimensions barely had time to notice you.",
-                "The Void Sovereign barely had time to fight.",
-                "",
-                "You were a ghost.",
-                "A ripple in the fabric of reality.",
-                "",
-                "The Rift sealed behind you",
-                "before it even knew you were there.",
-                "",
-                "Speed is its own kind of mastery.",
-                "But what did you miss along the way?"
+                LOC("ending.s.0"), LOC("ending.s.1"), "",
+                LOC("ending.s.2"), LOC("ending.s.3"), "",
+                LOC("ending.s.4"), LOC("ending.s.5"), "",
+                LOC("ending.s.6"), LOC("ending.s.7"), "",
+                LOC("ending.s.8"), LOC("ending.s.9")
             };
 
             const char** lines;

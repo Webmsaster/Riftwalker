@@ -392,6 +392,48 @@ void Localization::loadStrings() {
     m_en["intro.line2"]            = "Your suit flickers. Entropy rising.";
     m_en["intro.line2_ng"]         = "Ascension Tier %d. The void grows stronger.";
 
+    // Ending narratives (healer, 17 lines)
+    m_en["ending.h.0"]  = "You stepped into the Rift seeking answers.";
+    m_en["ending.h.1"]  = "Instead, you found only more questions.";
+    m_en["ending.h.2"]  = "Each dimension was a fragment of a broken world,";
+    m_en["ending.h.3"]  = "each enemy a shadow of what once was.";
+    m_en["ending.h.4"]  = "The Void Sovereign was the last chain";
+    m_en["ending.h.5"]  = "binding the Rift to this reality.";
+    m_en["ending.h.6"]  = "With its defeat, the wound begins to heal.";
+    m_en["ending.h.7"]  = "The dimensions slowly merge back together.";
+    m_en["ending.h.8"]  = "But you know the truth now:";
+    m_en["ending.h.9"]  = "The Rift was never the enemy.";
+    m_en["ending.h.10"] = "It was a mirror.";
+    m_en["ending.h.11"] = "And mirrors can never truly be shattered.";
+    m_en["ending.h.12"] = "Only understood.";
+
+    // Ending narratives (destroyer, 16 lines)
+    m_en["ending.d.0"]  = "You came to the Rift with purpose.";
+    m_en["ending.d.1"]  = "Not to understand. Not to heal.";
+    m_en["ending.d.2"]  = "But to destroy.";
+    m_en["ending.d.3"]  = "Every enemy fell before you,";
+    m_en["ending.d.4"]  = "every dimension trembled at your approach.";
+    m_en["ending.d.5"]  = "The Void Sovereign didn't stand a chance.";
+    m_en["ending.d.6"]  = "You didn't just seal the Rift --";
+    m_en["ending.d.7"]  = "you shattered it.";
+    m_en["ending.d.8"]  = "The dimensions merge violently now.";
+    m_en["ending.d.9"]  = "Not healing. Collapsing.";
+    m_en["ending.d.10"] = "Perhaps destruction was always the answer.";
+    m_en["ending.d.11"] = "Or perhaps the Rift needed a gentler hand.";
+    m_en["ending.d.12"] = "You'll never know.";
+
+    // Ending narratives (speedrunner, 12 lines)
+    m_en["ending.s.0"]  = "Time bends around those who move through the Rift.";
+    m_en["ending.s.1"]  = "You crossed thirty floors in mere minutes.";
+    m_en["ending.s.2"]  = "The dimensions barely had time to notice you.";
+    m_en["ending.s.3"]  = "The Void Sovereign barely had time to fight.";
+    m_en["ending.s.4"]  = "You were a ghost.";
+    m_en["ending.s.5"]  = "A ripple in the fabric of reality.";
+    m_en["ending.s.6"]  = "The Rift sealed behind you";
+    m_en["ending.s.7"]  = "before it even knew you were there.";
+    m_en["ending.s.8"]  = "Speed is its own kind of mastery.";
+    m_en["ending.s.9"]  = "But what did you miss along the way?";
+
     // Ending State
     m_en["ending.sealed"]          = "The Rift is sealed.";
     m_en["ending.shattered"]       = "The Rift is shattered.";
@@ -810,6 +852,48 @@ void Localization::loadStrings() {
     m_de["intro.line1_ng"]         = "Der Riss erinnert sich an dich...";
     m_de["intro.line2"]            = "Dein Anzug flackert. Entropie steigt.";
     m_de["intro.line2_ng"]         = "Aufstiegsstufe %d. Die Leere wird staerker.";
+
+    // Ending narratives (healer)
+    m_de["ending.h.0"]  = "Du tratest in den Riss auf der Suche nach Antworten.";
+    m_de["ending.h.1"]  = "Stattdessen fandest du nur neue Fragen.";
+    m_de["ending.h.2"]  = "Jede Dimension war ein Fragment einer zerbrochenen Welt,";
+    m_de["ending.h.3"]  = "jeder Gegner ein Schatten dessen, was einst war.";
+    m_de["ending.h.4"]  = "Der Leerensouveraen war die letzte Kette,";
+    m_de["ending.h.5"]  = "die den Riss an diese Realitaet band.";
+    m_de["ending.h.6"]  = "Mit seiner Niederlage beginnt die Wunde zu heilen.";
+    m_de["ending.h.7"]  = "Die Dimensionen verschmelzen langsam wieder.";
+    m_de["ending.h.8"]  = "Aber du kennst jetzt die Wahrheit:";
+    m_de["ending.h.9"]  = "Der Riss war nie der Feind.";
+    m_de["ending.h.10"] = "Er war ein Spiegel.";
+    m_de["ending.h.11"] = "Und Spiegel koennen niemals wirklich zersplittern.";
+    m_de["ending.h.12"] = "Nur verstanden werden.";
+
+    // Ending narratives (destroyer)
+    m_de["ending.d.0"]  = "Du kamst mit einem Ziel in den Riss.";
+    m_de["ending.d.1"]  = "Nicht um zu verstehen. Nicht um zu heilen.";
+    m_de["ending.d.2"]  = "Sondern um zu zerstoeren.";
+    m_de["ending.d.3"]  = "Jeder Gegner fiel vor dir,";
+    m_de["ending.d.4"]  = "jede Dimension erzitterte bei deiner Ankunft.";
+    m_de["ending.d.5"]  = "Der Leerensouveraen hatte keine Chance.";
+    m_de["ending.d.6"]  = "Du hast den Riss nicht nur versiegelt --";
+    m_de["ending.d.7"]  = "du hast ihn zersplittert.";
+    m_de["ending.d.8"]  = "Die Dimensionen verschmelzen jetzt gewaltsam.";
+    m_de["ending.d.9"]  = "Keine Heilung. Zusammenbruch.";
+    m_de["ending.d.10"] = "Vielleicht war Zerstoerung immer die Antwort.";
+    m_de["ending.d.11"] = "Oder vielleicht brauchte der Riss eine sanftere Hand.";
+    m_de["ending.d.12"] = "Du wirst es nie erfahren.";
+
+    // Ending narratives (speedrunner)
+    m_de["ending.s.0"]  = "Die Zeit biegt sich um jene, die durch den Riss eilen.";
+    m_de["ending.s.1"]  = "Du durchquertest dreissig Etagen in wenigen Minuten.";
+    m_de["ending.s.2"]  = "Die Dimensionen hatten kaum Zeit, dich zu bemerken.";
+    m_de["ending.s.3"]  = "Der Leerensouveraen hatte kaum Zeit zu kaempfen.";
+    m_de["ending.s.4"]  = "Du warst ein Geist.";
+    m_de["ending.s.5"]  = "Eine Welle im Gewebe der Realitaet.";
+    m_de["ending.s.6"]  = "Der Riss schloss sich hinter dir,";
+    m_de["ending.s.7"]  = "bevor er wusste, dass du da warst.";
+    m_de["ending.s.8"]  = "Geschwindigkeit ist eine eigene Art der Meisterschaft.";
+    m_de["ending.s.9"]  = "Aber was hast du auf dem Weg verpasst?";
 
     // Ending State
     m_de["ending.sealed"]          = "Der Riss ist versiegelt.";
