@@ -204,6 +204,26 @@ void Localization::loadStrings() {
     m_en["class.technomancer.pdesc"]   = "Turrets/traps +20% DMG, last 50% longer, +10% ranged DMG";
     m_en["class.technomancer.ability"] = "Deploy Turret (Q) / Shock Trap (E)";
 
+    // Upgrade names & descriptions (indexed by UpgradeID)
+    m_en["upgrade.0.name"]  = "Reinforced Suit";     m_en["upgrade.0.desc"]  = "+20 Max HP";
+    m_en["upgrade.1.name"]  = "Quantum Boots";       m_en["upgrade.1.desc"]  = "+10% Move Speed";
+    m_en["upgrade.2.name"]  = "Phase Thrusters";     m_en["upgrade.2.desc"]  = "-15% Dash Cooldown";
+    m_en["upgrade.3.name"]  = "Rift Blade";          m_en["upgrade.3.desc"]  = "+15% Melee Damage";
+    m_en["upgrade.4.name"]  = "Void Projector";      m_en["upgrade.4.desc"]  = "+15% Ranged Damage";
+    m_en["upgrade.5.name"]  = "Entropy Shield";      m_en["upgrade.5.desc"]  = "-20% Entropy Gain";
+    m_en["upgrade.6.name"]  = "Auto-Stabilizer";     m_en["upgrade.6.desc"]  = "+Passive Entropy Decay";
+    m_en["upgrade.7.name"]  = "Gravity Modulator";   m_en["upgrade.7.desc"]  = "+10% Jump Height";
+    m_en["upgrade.8.name"]  = "Air Dash Module";     m_en["upgrade.8.desc"]  = "+1 Extra Jump";
+    m_en["upgrade.9.name"]  = "Rift Capacitor";      m_en["upgrade.9.desc"]  = "-20% Switch Cooldown";
+    m_en["upgrade.10.name"] = "Dimensional Plating"; m_en["upgrade.10.desc"] = "+10% Damage Reduction";
+    m_en["upgrade.11.name"] = "Combo Amplifier";     m_en["upgrade.11.desc"] = "+Combo Damage Bonus";
+    m_en["upgrade.12.name"] = "Grip Enhancer";       m_en["upgrade.12.desc"] = "Better Wall Slide Control";
+    m_en["upgrade.13.name"] = "Rift Resonance";      m_en["upgrade.13.desc"] = "+10% Critical Chance";
+    m_en["upgrade.14.name"] = "Shard Magnet";        m_en["upgrade.14.desc"] = "+Pickup Range";
+    m_en["upgrade.15.name"] = "Temporal Flux";       m_en["upgrade.15.desc"] = "-15% Ability Cooldowns";
+    m_en["upgrade.16.name"] = "Rift Amplifier";      m_en["upgrade.16.desc"] = "+20% Ability Damage";
+    m_en["upgrade.17.name"] = "Barrier Core";        m_en["upgrade.17.desc"] = "+1 Shield Capacity";
+
     // Difficulty Select
     m_en["difficulty.title"]       = "S E L E C T  D I F F I C U L T Y";
     m_en["difficulty.easy"]        = "E A S Y";
@@ -758,6 +778,26 @@ void Localization::loadStrings() {
     m_de["class.technomancer.passive"] = "Konstruktmeisterschaft";
     m_de["class.technomancer.pdesc"]   = "Geschuetze/Fallen +20% SCH, 50% laenger, +10% Fernkampf-SCH";
     m_de["class.technomancer.ability"] = "Geschuetz (Q) / Schockfalle (E)";
+
+    // Upgrade names & descriptions
+    m_de["upgrade.0.name"]  = "Verstaerkter Anzug";   m_de["upgrade.0.desc"]  = "+20 Max HP";
+    m_de["upgrade.1.name"]  = "Quantenstiefel";       m_de["upgrade.1.desc"]  = "+10% Tempo";
+    m_de["upgrade.2.name"]  = "Phasenantrieb";        m_de["upgrade.2.desc"]  = "-15% Dash-Abklingzeit";
+    m_de["upgrade.3.name"]  = "Rissklinge";           m_de["upgrade.3.desc"]  = "+15% Nahkampfschaden";
+    m_de["upgrade.4.name"]  = "Leerprojektor";        m_de["upgrade.4.desc"]  = "+15% Fernkampfschaden";
+    m_de["upgrade.5.name"]  = "Entropieschild";       m_de["upgrade.5.desc"]  = "-20% Entropiezunahme";
+    m_de["upgrade.6.name"]  = "Auto-Stabilisator";    m_de["upgrade.6.desc"]  = "+Passiver Entropieabbau";
+    m_de["upgrade.7.name"]  = "Gravitationsmodulator"; m_de["upgrade.7.desc"] = "+10% Sprunghoehe";
+    m_de["upgrade.8.name"]  = "Luftdash-Modul";       m_de["upgrade.8.desc"]  = "+1 Extrasprung";
+    m_de["upgrade.9.name"]  = "Risskondensator";      m_de["upgrade.9.desc"]  = "-20% Wechsel-Abklingzeit";
+    m_de["upgrade.10.name"] = "Dimensionspanzerung";  m_de["upgrade.10.desc"] = "+10% Schadensreduktion";
+    m_de["upgrade.11.name"] = "Komboverstaerker";     m_de["upgrade.11.desc"] = "+Kombo-Schadensbonus";
+    m_de["upgrade.12.name"] = "Griffverstaerker";     m_de["upgrade.12.desc"] = "Bessere Wandrutsch-Kontrolle";
+    m_de["upgrade.13.name"] = "Rissresonanz";         m_de["upgrade.13.desc"] = "+10% Kritische Trefferchance";
+    m_de["upgrade.14.name"] = "Splittermagnet";       m_de["upgrade.14.desc"] = "+Aufsammelreichweite";
+    m_de["upgrade.15.name"] = "Zeitfluss";            m_de["upgrade.15.desc"] = "-15% Faehigkeits-Abklingzeit";
+    m_de["upgrade.16.name"] = "Rissverstaerker";      m_de["upgrade.16.desc"] = "+20% Faehigkeitsschaden";
+    m_de["upgrade.17.name"] = "Barrierekern";         m_de["upgrade.17.desc"] = "+1 Schildkapazitaet";
 
     // Difficulty Select
     m_de["difficulty.title"]       = "S C H W I E R I G K E I T";

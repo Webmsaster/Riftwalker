@@ -321,14 +321,17 @@ void UpgradeState::render(SDL_Renderer* renderer) {
             }
         }
 
-        // Name
+        // Name (localized via upgrade.N.name key)
         int textX = margin + 100;
         SDL_Color nameColor = selected ? SDL_Color{235, 230, 250, 255} : SDL_Color{200, 195, 220, 255};
-        renderText(renderer, font, u.name.c_str(), textX, y + 12, nameColor);
+        char nameKey[32], descKey[32];
+        std::snprintf(nameKey, sizeof(nameKey), "upgrade.%d.name", static_cast<int>(u.id));
+        std::snprintf(descKey, sizeof(descKey), "upgrade.%d.desc", static_cast<int>(u.id));
+        renderText(renderer, font, LOC(nameKey), textX, y + 12, nameColor);
 
-        // Description
+        // Description (localized)
         SDL_Color descColor = {140, 135, 165, 180};
-        renderText(renderer, font, u.description.c_str(), textX, y + 56, descColor);
+        renderText(renderer, font, LOC(descKey), textX, y + 56, descColor);
 
         // Progress bar for level
         int barX = SCREEN_WIDTH - margin - 440;
