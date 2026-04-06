@@ -80,10 +80,11 @@ void RunHistoryState::update(float dt) {
     if (!input.hasGamepad()) return;
 
     if (input.isActionPressed(Action::MenuUp)) {
-        if (m_scrollOffset > 0) m_scrollOffset--;
+        if (m_scrollOffset > 0) { m_scrollOffset--; AudioManager::instance().play(SFX::MenuSelect); }
     }
     if (input.isActionPressed(Action::MenuDown)) {
         m_scrollOffset++;
+        AudioManager::instance().play(SFX::MenuSelect);
         const auto& hist = game->getUpgradeSystem().getRunHistory();
         int maxVis = (Game::SCREEN_HEIGHT - 320) / 48;
         int maxScroll = std::max(0, static_cast<int>(hist.size()) - maxVis);

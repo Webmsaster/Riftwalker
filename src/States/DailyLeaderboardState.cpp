@@ -125,10 +125,11 @@ void DailyLeaderboardState::update(float dt) {
     if (!input.hasGamepad()) return;
 
     if (input.isActionPressed(Action::MenuUp)) {
-        if (m_scrollOffset > 0) m_scrollOffset--;
+        if (m_scrollOffset > 0) { m_scrollOffset--; AudioManager::instance().play(SFX::MenuSelect); }
     }
     if (input.isActionPressed(Action::MenuDown)) {
         m_scrollOffset++;
+        AudioManager::instance().play(SFX::MenuSelect);
     }
     if (input.isActionPressed(Action::Cancel)) {
         AudioManager::instance().play(SFX::MenuSelect);
