@@ -436,12 +436,12 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
             MasteryTier mTier = WeaponSystem::getMasteryTier(mKills);
             MasteryTier rTier = WeaponSystem::getMasteryTier(rKills);
             if (mTier != MasteryTier::None) {
-                std::snprintf(buf, sizeof(buf), "  [%s] %d kills", WeaponSystem::getMasteryTierName(mTier), mKills);
+                std::snprintf(buf, sizeof(buf), LOC("pause.mastery"), WeaponSystem::getMasteryTierName(mTier), mKills);
                 renderStatText(renderer, font, buf, mx, my, {255, 200, 100, 200});
                 my += 32;
             }
             if (rTier != MasteryTier::None) {
-                std::snprintf(buf, sizeof(buf), "  [%s] %d kills", WeaponSystem::getMasteryTierName(rTier), rKills);
+                std::snprintf(buf, sizeof(buf), LOC("pause.mastery"), WeaponSystem::getMasteryTierName(rTier), rKills);
                 renderStatText(renderer, font, buf, mx, my, {100, 200, 255, 200});
                 my += 32;
             }

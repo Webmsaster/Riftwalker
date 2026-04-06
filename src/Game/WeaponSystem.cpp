@@ -1,4 +1,5 @@
 #include "WeaponSystem.h"
+#include "Core/Localization.h"
 #include <vector>
 
 static std::vector<WeaponData> s_weapons;
@@ -162,9 +163,9 @@ MasteryBonus WeaponSystem::getMasteryBonus(int kills) {
 
 const char* WeaponSystem::getMasteryTierName(MasteryTier tier) {
     switch (tier) {
-        case MasteryTier::Familiar:   return "Familiar";
-        case MasteryTier::Proficient: return "Proficient";
-        case MasteryTier::Mastered:   return "Mastered";
+        case MasteryTier::Familiar:   return LOC("mastery.familiar");
+        case MasteryTier::Proficient: return LOC("mastery.proficient");
+        case MasteryTier::Mastered:   return LOC("mastery.mastered");
         default: return "";
     }
 }

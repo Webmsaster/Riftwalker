@@ -168,6 +168,10 @@ void Localization::loadStrings() {
     m_en["relic.cursed"]           = "CURSED";
     m_en["menu.version"]           = "v0.1  -  Made with SDL2";
     m_en["pause.ngplus"]           = "New Game+ %d";
+    m_en["pause.mastery"]          = "  [%s] %d kills";
+    m_en["mastery.familiar"]       = "Familiar";
+    m_en["mastery.proficient"]     = "Proficient";
+    m_en["mastery.mastered"]       = "Mastered";
 
     // Class Select
     m_en["class.title"]            = "C H O O S E  Y O U R  C L A S S";
@@ -637,6 +641,10 @@ void Localization::loadStrings() {
     m_de["relic.cursed"]           = "VERFLUCHT";
     m_de["menu.version"]           = "v0.1  -  Erstellt mit SDL2";
     m_de["pause.ngplus"]           = "New Game+ %d";
+    m_de["pause.mastery"]          = "  [%s] %d Kills";
+    m_de["mastery.familiar"]       = "Vertraut";
+    m_de["mastery.proficient"]     = "Geuebt";
+    m_de["mastery.mastered"]       = "Gemeistert";
 
     // Class Select
     m_de["class.title"]            = "W A E H L E  D E I N E  K L A S S E";
