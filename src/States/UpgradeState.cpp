@@ -211,7 +211,7 @@ void UpgradeState::render(SDL_Renderer* renderer) {
 
     // Shard count with diamond icon
     char shardText[64];
-    std::snprintf(shardText, sizeof(shardText), "Rift Shards: %d", upgrades.getRiftShards());
+    std::snprintf(shardText, sizeof(shardText), LOC("menu.rift_shards"), upgrades.getRiftShards());
     renderText(renderer, font, shardText, 0, 0, {200, 160, 255, 255});
 
     // Re-render centered (need width)

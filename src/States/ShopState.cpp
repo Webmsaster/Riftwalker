@@ -218,7 +218,7 @@ void ShopState::render(SDL_Renderer* renderer) {
 
         // Shards display
         char shardText[64];
-        std::snprintf(shardText, sizeof(shardText), "Rift Shards: %d",
+        std::snprintf(shardText, sizeof(shardText), LOC("menu.rift_shards"),
                      game->getUpgradeSystem().getRiftShards());
         SDL_Color shardColor = {200, 170, 255, 255};
         SDL_Surface* ss = TTF_RenderText_Blended(font, shardText, shardColor);
