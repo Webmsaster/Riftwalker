@@ -1,6 +1,7 @@
 #include "States/EndingState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "Game/ClassSystem.h"
 #include <cmath>
 #include <cstdio>
@@ -101,9 +102,9 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(180 * textAlpha),
                     static_cast<Uint8>(255 * textAlpha), 255
                 };
-                const char* flashText = "The Rift is sealed.";
-                if (m_endingType == 1) flashText = "The Rift is shattered.";
-                else if (m_endingType == 2) flashText = "The Rift barely noticed.";
+                const char* flashText = LOC("ending.sealed");
+                if (m_endingType == 1) flashText = LOC("ending.shattered");
+                else if (m_endingType == 2) flashText = LOC("ending.barely");
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, flashText, col);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
@@ -236,7 +237,7 @@ void EndingState::render(SDL_Renderer* renderer) {
             // Hint
             if (m_fontSmall && m_phaseTimer > 3.0f) {
                 SDL_Color hint = {60, 50, 80, 255};
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, "SPACE to skip", hint);
+                SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, LOC("ending.skip"), hint);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -262,9 +263,9 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(190 * fadeIn),
                     static_cast<Uint8>(80 * fadeIn), 255
                 };
-                const char* runTitle = "Run Complete";
-                if (m_endingType == 1) runTitle = "Run Complete - The Destroyer";
-                else if (m_endingType == 2) runTitle = "Run Complete - The Speedrunner";
+                const char* runTitle = LOC("ending.run_complete");
+                if (m_endingType == 1) runTitle = LOC("ending.run_destroyer");
+                else if (m_endingType == 2) runTitle = LOC("ending.run_speedrunner");
                 SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, runTitle, gold);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
@@ -279,13 +280,13 @@ void EndingState::render(SDL_Renderer* renderer) {
 
             if (m_fontBody) {
                 char s1[64], s2[64], s3[64], s4[64], s5[64];
-                snprintf(s1, sizeof(s1), "Final Score: %d", finalScore);
-                snprintf(s2, sizeof(s2), "Enemies Defeated: %d", totalKills);
-                snprintf(s3, sizeof(s3), "Max Difficulty: %d", maxDifficulty);
-                snprintf(s4, sizeof(s4), "Relics Found: %d", relicsCollected);
+                snprintf(s1, sizeof(s1), LOC("ending.final_score"), finalScore);
+                snprintf(s2, sizeof(s2), LOC("ending.enemies"), totalKills);
+                snprintf(s3, sizeof(s3), LOC("ending.difficulty"), maxDifficulty);
+                snprintf(s4, sizeof(s4), LOC("ending.relics"), relicsCollected);
                 int mins = static_cast<int>(totalTime) / 60;
                 int secs = static_cast<int>(totalTime) % 60;
-                snprintf(s5, sizeof(s5), "Time: %d:%02d", mins, secs);
+                snprintf(s5, sizeof(s5), LOC("ending.time"), mins, secs);
 
                 const char* statLines[] = { s1, s2, s3, s4, s5 };
                 for (int i = 0; i < 5; i++) {
@@ -319,7 +320,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(130 * pulse),
                     static_cast<Uint8>(180 * pulse), 255
                 };
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, "Press SPACE to continue", hint);
+                SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, LOC("ending.continue"), hint);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -345,7 +346,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(160 * fadeIn),
                     static_cast<Uint8>(255 * fadeIn), 255
                 };
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, "Thank You for Playing", col);
+                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, LOC("ending.thank_you"), col);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -364,7 +365,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(120 * hintAlpha),
                     static_cast<Uint8>(200 * hintAlpha), 255
                 };
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, "The Rift awaits your return... Ascend higher.", col);
+                SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, LOC("ending.return"), col);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -383,7 +384,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(80 * pulse),
                     static_cast<Uint8>(140 * pulse), 255
                 };
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, "Press any key to return to menu", hint);
+                SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, LOC("ending.back"), hint);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {

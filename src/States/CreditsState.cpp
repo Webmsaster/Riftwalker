@@ -1,6 +1,7 @@
 #include "States/CreditsState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include <cmath>
 #include <cstdlib>
 
@@ -93,11 +94,11 @@ void CreditsState::enter() {
         "",
         "",
         "",
-        "Thank you for playing.",
+        LOC("credits.thanks"),
         "",
         "",
         "",
-        "The Rift awaits your return..."
+        LOC("credits.return")
     };
 }
 
@@ -123,6 +124,12 @@ void CreditsState::handleEvent(const SDL_Event& event) {
 void CreditsState::update(float dt) {
     m_time += dt;
     m_scrollY += dt * 60.0f; // Scroll speed: 60px/s (scaled for 2K)
+
+    // Gamepad back
+    auto& input = game->getInput();
+    if (input.hasGamepad() && input.isActionPressed(Action::Cancel)) {
+        if (game) game->changeState(StateID::Menu);
+    }
 
     // Spawn ambient particles
     if (m_particles.size() < 40) {
@@ -255,7 +262,7 @@ void CreditsState::render(SDL_Renderer* renderer) {
     TTF_Font* hintFont = m_fontBody ? m_fontBody : game->getFont();
     if (hintFont) {
         SDL_Color hint = {80, 60, 100, 180};
-        SDL_Surface* surf = TTF_RenderText_Blended(hintFont, "ESC: Back to Menu", hint);
+        SDL_Surface* surf = TTF_RenderText_Blended(hintFont, LOC("credits.back"), hint);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {

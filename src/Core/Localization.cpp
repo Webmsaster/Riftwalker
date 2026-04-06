@@ -260,6 +260,29 @@ void Localization::loadStrings() {
     m_en["lore.undiscovered"]      = "This fragment has not been discovered yet.";
     m_en["lore.nav_hint"]          = "W/S: Navigate   ESC: Back";
 
+    // Ending State
+    m_en["ending.sealed"]          = "The Rift is sealed.";
+    m_en["ending.shattered"]       = "The Rift is shattered.";
+    m_en["ending.barely"]          = "The Rift barely noticed.";
+    m_en["ending.skip"]            = "SPACE to skip";
+    m_en["ending.continue"]        = "Press SPACE to continue";
+    m_en["ending.run_complete"]    = "Run Complete";
+    m_en["ending.run_destroyer"]   = "Run Complete - The Destroyer";
+    m_en["ending.run_speedrunner"] = "Run Complete - The Speedrunner";
+    m_en["ending.final_score"]     = "Final Score: %d";
+    m_en["ending.enemies"]         = "Enemies Defeated: %d";
+    m_en["ending.difficulty"]      = "Max Difficulty: %d";
+    m_en["ending.relics"]          = "Relics Found: %d";
+    m_en["ending.time"]            = "Time: %d:%02d";
+    m_en["ending.thank_you"]       = "Thank You for Playing";
+    m_en["ending.return"]          = "The Rift awaits your return... Ascend higher.";
+    m_en["ending.back"]            = "Press any key to return to menu";
+
+    // Credits
+    m_en["credits.back"]           = "ESC: Back to Menu";
+    m_en["credits.thanks"]         = "Thank you for playing.";
+    m_en["credits.return"]         = "The Rift awaits your return...";
+
     // Gameplay tips (shown during level transitions)
     m_en["tip.0"]  = "TIP: Dimension B has tougher enemies but better shard rewards.";
     m_en["tip.1"]  = "TIP: Parrying at the right moment triggers a powerful counter-attack.";
@@ -513,6 +536,29 @@ void Localization::loadStrings() {
     m_de["lore.fragments"]         = "%d / %d Fragmente";
     m_de["lore.undiscovered"]      = "Dieses Fragment wurde noch nicht entdeckt.";
     m_de["lore.nav_hint"]          = "W/S: Navigieren   ESC: Zurueck";
+
+    // Ending State
+    m_de["ending.sealed"]          = "Der Riss ist versiegelt.";
+    m_de["ending.shattered"]       = "Der Riss ist zersplittert.";
+    m_de["ending.barely"]          = "Der Riss hat es kaum bemerkt.";
+    m_de["ending.skip"]            = "LEERTASTE zum Ueberspringen";
+    m_de["ending.continue"]        = "LEERTASTE zum Fortfahren";
+    m_de["ending.run_complete"]    = "Lauf abgeschlossen";
+    m_de["ending.run_destroyer"]   = "Lauf abgeschlossen - Der Zerstoerer";
+    m_de["ending.run_speedrunner"] = "Lauf abgeschlossen - Der Speedrunner";
+    m_de["ending.final_score"]     = "Endpunktzahl: %d";
+    m_de["ending.enemies"]         = "Gegner besiegt: %d";
+    m_de["ending.difficulty"]      = "Max. Schwierigkeit: %d";
+    m_de["ending.relics"]          = "Relikte gefunden: %d";
+    m_de["ending.time"]            = "Zeit: %d:%02d";
+    m_de["ending.thank_you"]       = "Danke fuers Spielen";
+    m_de["ending.return"]          = "Der Riss erwartet deine Rueckkehr... Steige hoeher auf.";
+    m_de["ending.back"]            = "Beliebige Taste zum Menue";
+
+    // Credits
+    m_de["credits.back"]           = "ESC: Zurueck zum Menue";
+    m_de["credits.thanks"]         = "Danke fuers Spielen.";
+    m_de["credits.return"]         = "Der Riss erwartet deine Rueckkehr...";
 
     // Gameplay tips
     m_de["tip.0"]  = "TIPP: Dimension B hat staerkere Gegner aber bessere Splitter-Belohnungen.";
