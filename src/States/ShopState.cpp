@@ -124,6 +124,13 @@ void ShopState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Right-click to skip
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->popState();
+        return;
+    }
+
     // Mouse click: select + confirm
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         int mx = event.button.x, my = event.button.y;

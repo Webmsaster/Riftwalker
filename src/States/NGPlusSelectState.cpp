@@ -105,6 +105,13 @@ void NGPlusSelectState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Right-click to go back
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::DifficultySelect);
+        return;
+    }
+
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         int mx = event.button.x, my = event.button.y;
         for (int i = 0; i < totalOptions; i++) {

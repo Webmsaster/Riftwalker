@@ -17,6 +17,13 @@ void ChallengeSelectState::enter() {
 }
 
 void ChallengeSelectState::handleEvent(const SDL_Event& event) {
+    // Right-click to go back
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::Menu);
+        return;
+    }
+
     if (event.type != SDL_KEYDOWN) return;
 
     int challengeCount = ChallengeMode::getChallengeCount();

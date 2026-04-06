@@ -119,6 +119,12 @@ void PauseState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Right-click to resume (same as ESC)
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        game->popState();
+        return;
+    }
+
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         int mx = event.button.x, my = event.button.y;
         for (int i = 0; i < static_cast<int>(m_buttons.size()); i++) {
