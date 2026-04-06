@@ -260,6 +260,35 @@ void Localization::loadStrings() {
     m_en["lore.undiscovered"]      = "This fragment has not been discovered yet.";
     m_en["lore.nav_hint"]          = "W/S: Navigate   ESC: Back";
 
+    // Run History
+    m_en["history.title"]          = "RUN HISTORY";
+    m_en["history.stats"]          = "Total Runs: %d    Enemies Killed: %d    Best Floor: %d    Rifts: %d";
+    m_en["history.avg_kills"]      = "Avg Kills/Run: %.1f";
+    m_en["history.class"]          = "Class";
+    m_en["history.floor"]          = "Floor";
+    m_en["history.kills"]          = "Kills";
+    m_en["history.rifts"]          = "Rifts";
+    m_en["history.combo"]          = "Combo";
+    m_en["history.time"]           = "Time";
+    m_en["history.shards"]         = "Shards";
+    m_en["history.diff"]           = "Diff";
+    m_en["history.result"]         = "Result";
+    m_en["history.empty"]          = "No runs recorded yet. Play some runs!";
+    m_en["history.scroll"]         = "[W/S to scroll - %d/%d]";
+    m_en["history.back"]           = "[ESC] Back";
+
+    // Shop
+    m_en["shop.title"]             = "- RIFT MARKET -";
+    m_en["shop.skip"]              = "SKIP >>";
+    m_en["shop.tutorial"]          = "Spend Rift Shards to upgrade your abilities for the next level!";
+    m_en["shop.nav_hint"]          = "A/D or Arrows to Select  |  Enter to Buy  |  ESC to Skip";
+    m_en["shop.common"]            = "COMMON";
+    m_en["shop.rare"]              = "RARE";
+    m_en["shop.legendary"]         = "LEGENDARY";
+    m_en["shop.cost"]              = "%d Shards";
+    m_en["shop.buy"]               = "[ENTER] Buy";
+    m_en["shop.no_shards"]         = "Not Enough Shards";
+
     // Zone names & taglines (shown during zone transitions)
     m_en["zone.1.name"]            = "FRACTURED THRESHOLD";
     m_en["zone.1.tagline"]         = "Where reality first began to crack";
@@ -582,6 +611,35 @@ void Localization::loadStrings() {
     m_de["lore.fragments"]         = "%d / %d Fragmente";
     m_de["lore.undiscovered"]      = "Dieses Fragment wurde noch nicht entdeckt.";
     m_de["lore.nav_hint"]          = "W/S: Navigieren   ESC: Zurueck";
+
+    // Run History
+    m_de["history.title"]          = "LAUFCHRONIK";
+    m_de["history.stats"]          = "Laeufe: %d    Gegner: %d    Beste Etage: %d    Risse: %d";
+    m_de["history.avg_kills"]      = "Ø Kills/Lauf: %.1f";
+    m_de["history.class"]          = "Klasse";
+    m_de["history.floor"]          = "Etage";
+    m_de["history.kills"]          = "Kills";
+    m_de["history.rifts"]          = "Risse";
+    m_de["history.combo"]          = "Kombo";
+    m_de["history.time"]           = "Zeit";
+    m_de["history.shards"]         = "Splitter";
+    m_de["history.diff"]           = "Schw.";
+    m_de["history.result"]         = "Ergebnis";
+    m_de["history.empty"]          = "Noch keine Laeufe. Starte einen Lauf!";
+    m_de["history.scroll"]         = "[W/S Scrollen - %d/%d]";
+    m_de["history.back"]           = "[ESC] Zurueck";
+
+    // Shop
+    m_de["shop.title"]             = "- RISSMARKT -";
+    m_de["shop.skip"]              = "WEITER >>";
+    m_de["shop.tutorial"]          = "Gib Risssplitter aus, um deine Faehigkeiten fuer die naechste Etage zu verbessern!";
+    m_de["shop.nav_hint"]          = "A/D Auswaehlen  |  Enter Kaufen  |  ESC Ueberspringen";
+    m_de["shop.common"]            = "GEWOEHNLICH";
+    m_de["shop.rare"]              = "SELTEN";
+    m_de["shop.legendary"]         = "LEGENDAER";
+    m_de["shop.cost"]              = "%d Splitter";
+    m_de["shop.buy"]               = "[ENTER] Kaufen";
+    m_de["shop.no_shards"]         = "Nicht genug Splitter";
 
     // Zone names & taglines
     m_de["zone.1.name"]            = "GEBROCHENE SCHWELLE";

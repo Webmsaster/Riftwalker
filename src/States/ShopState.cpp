@@ -1,6 +1,7 @@
 #include "ShopState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "Game/AscensionSystem.h"
 #include "UI/UITextures.h"
 #include <SDL2/SDL_ttf.h>
@@ -204,7 +205,7 @@ void ShopState::render(SDL_Renderer* renderer) {
     // Title
     if (font) {
         SDL_Color titleColor = {200, 150, 255, 255};
-        SDL_Surface* titleSurf = TTF_RenderText_Blended(font, "- RIFT MARKET -", titleColor);
+        SDL_Surface* titleSurf = TTF_RenderText_Blended(font, LOC("shop.title"), titleColor);
         if (titleSurf) {
             SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
             if (titleTex) {
@@ -273,7 +274,7 @@ void ShopState::render(SDL_Renderer* renderer) {
 
         if (font) {
             SDL_Color sc = skipSelected ? SDL_Color{255, 255, 255, 255} : SDL_Color{150, 150, 170, 200};
-            SDL_Surface* ss = TTF_RenderText_Blended(font, "SKIP >>", sc);
+            SDL_Surface* ss = TTF_RenderText_Blended(font, LOC("shop.skip"), sc);
             if (ss) {
                 SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
                 if (st) {
@@ -300,7 +301,7 @@ void ShopState::render(SDL_Renderer* renderer) {
 
         SDL_Color tutColor = {180, 220, 255, ta};
         SDL_Surface* ts = TTF_RenderText_Blended(font,
-            "Spend Rift Shards to upgrade your abilities for the next level!", tutColor);
+            LOC("shop.tutorial"), tutColor);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
@@ -316,7 +317,7 @@ void ShopState::render(SDL_Renderer* renderer) {
     // Instructions at bottom
     if (font) {
         SDL_Color hintColor = {100, 100, 120, 150};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, "A/D or Arrows to Select  |  Enter to Buy  |  ESC to Skip", hintColor);
+        SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("shop.nav_hint"), hintColor);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
@@ -339,9 +340,9 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
     SDL_Color tierColor;
     const char* tierLabel;
     switch (buff.tier) {
-        case BuffTier::Common:    tierColor = {80, 140, 255, 255}; tierLabel = "COMMON"; break;
-        case BuffTier::Rare:      tierColor = {180, 80, 255, 255}; tierLabel = "RARE"; break;
-        case BuffTier::Legendary: tierColor = {255, 200, 50, 255}; tierLabel = "LEGENDARY"; break;
+        case BuffTier::Common:    tierColor = {80, 140, 255, 255}; tierLabel = LOC("shop.common"); break;
+        case BuffTier::Rare:      tierColor = {180, 80, 255, 255}; tierLabel = LOC("shop.rare"); break;
+        case BuffTier::Legendary: tierColor = {255, 200, 50, 255}; tierLabel = LOC("shop.legendary"); break;
         default: tierColor = {180, 180, 180, 255}; tierLabel = "???"; break;
     }
 
@@ -466,7 +467,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
 
         // Cost
         char costText[32];
-        std::snprintf(costText, sizeof(costText), "%d Shards", buff.cost);
+        std::snprintf(costText, sizeof(costText), LOC("shop.cost"), buff.cost);
         SDL_Color cc = affordable ? SDL_Color{200, 170, 255, 255} : SDL_Color{200, 60, 60, 255};
         SDL_Surface* cs = TTF_RenderText_Blended(font, costText, cc);
         if (cs) {
@@ -483,7 +484,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         if (selected && affordable) {
             float blink = 0.5f + 0.5f * std::sin(ticks * 0.008f);
             SDL_Color bc = {180, 255, 180, static_cast<Uint8>(180 * blink)};
-            SDL_Surface* bs = TTF_RenderText_Blended(font, "[ENTER] Buy", bc);
+            SDL_Surface* bs = TTF_RenderText_Blended(font, LOC("shop.buy"), bc);
             if (bs) {
                 SDL_Texture* bt = SDL_CreateTextureFromSurface(renderer, bs);
                 if (bt) {
@@ -495,7 +496,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
             }
         } else if (selected && !affordable) {
             SDL_Color errColor = {200, 80, 80, 180};
-            SDL_Surface* errSurf = TTF_RenderText_Blended(font, "Not Enough Shards", errColor);
+            SDL_Surface* errSurf = TTF_RenderText_Blended(font, LOC("shop.no_shards"), errColor);
             if (errSurf) {
                 SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, errSurf);
                 if (nt) {

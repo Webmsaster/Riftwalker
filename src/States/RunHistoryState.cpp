@@ -1,6 +1,7 @@
 #include "RunHistoryState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "Game/UpgradeSystem.h"
 #include "Game/ClassSystem.h"
 #include "UI/UITextures.h"
@@ -87,7 +88,7 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
     int screenH = Game::SCREEN_HEIGHT;
 
     // Title
-    renderText(renderer, font, "RUN HISTORY", screenW / 2 - 120, 50, {200, 180, 255, 255});
+    renderText(renderer, font, LOC("history.title"), screenW / 2 - 120, 50, {200, 180, 255, 255});
 
     // Lifetime stats panel
     int panelX = 80;
@@ -101,7 +102,7 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
     SDL_RenderDrawRect(renderer, &statsBg);
 
     char buf[128];
-    std::snprintf(buf, sizeof(buf), "Total Runs: %d    Enemies Killed: %d    Best Floor: %d    Rifts: %d",
+    std::snprintf(buf, sizeof(buf), LOC("history.stats"),
                   upgrades.totalRuns, upgrades.totalEnemiesKilled,
                   upgrades.bestRoomReached, upgrades.totalRiftsRepaired);
     renderText(renderer, font, buf, panelX, panelY + 4, {180, 180, 200, 220});
@@ -109,7 +110,7 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
     // Averages
     if (upgrades.totalRuns > 0) {
         float avgKills = static_cast<float>(upgrades.totalEnemiesKilled) / upgrades.totalRuns;
-        std::snprintf(buf, sizeof(buf), "Avg Kills/Run: %.1f", avgKills);
+        std::snprintf(buf, sizeof(buf), LOC("history.avg_kills"), avgKills);
         renderText(renderer, font, buf, panelX, panelY + 50, {150, 160, 180, 200});
     }
 
@@ -122,16 +123,16 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
     }
 
     SDL_Color headerCol = {160, 150, 200, 255};
-    renderText(renderer, font, "#",    panelX,        tableY, headerCol);
-    renderText(renderer, font, "Class", panelX + 60,  tableY, headerCol);
-    renderText(renderer, font, "Floor", panelX + 260, tableY, headerCol);
-    renderText(renderer, font, "Kills", panelX + 390, tableY, headerCol);
-    renderText(renderer, font, "Rifts", panelX + 520, tableY, headerCol);
-    renderText(renderer, font, "Combo", panelX + 650, tableY, headerCol);
-    renderText(renderer, font, "Time",  panelX + 800, tableY, headerCol);
-    renderText(renderer, font, "Shards", panelX + 960, tableY, headerCol);
-    renderText(renderer, font, "Diff",  panelX + 1120, tableY, headerCol);
-    renderText(renderer, font, "Result", panelX + 1240, tableY, headerCol);
+    renderText(renderer, font, "#",                      panelX,        tableY, headerCol);
+    renderText(renderer, font, LOC("history.class"),   panelX + 60,  tableY, headerCol);
+    renderText(renderer, font, LOC("history.floor"),   panelX + 260, tableY, headerCol);
+    renderText(renderer, font, LOC("history.kills"),   panelX + 390, tableY, headerCol);
+    renderText(renderer, font, LOC("history.rifts"),   panelX + 520, tableY, headerCol);
+    renderText(renderer, font, LOC("history.combo"),   panelX + 650, tableY, headerCol);
+    renderText(renderer, font, LOC("history.time"),    panelX + 800, tableY, headerCol);
+    renderText(renderer, font, LOC("history.shards"),  panelX + 960, tableY, headerCol);
+    renderText(renderer, font, LOC("history.diff"),    panelX + 1120, tableY, headerCol);
+    renderText(renderer, font, LOC("history.result"),  panelX + 1240, tableY, headerCol);
 
     // Separator
     SDL_SetRenderDrawColor(renderer, 80, 70, 120, 150);
@@ -209,17 +210,17 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
 
     // Scroll indicator
     if (static_cast<int>(history.size()) > maxVisible) {
-        std::snprintf(buf, sizeof(buf), "[W/S to scroll - %d/%d]",
+        std::snprintf(buf, sizeof(buf), LOC("history.scroll"),
                       clampedScroll + 1, static_cast<int>(history.size()));
         renderText(renderer, font, buf, screenW / 2 - 160, screenH - 60, {120, 120, 150, 180});
     }
 
     // Empty state
     if (history.empty()) {
-        renderText(renderer, font, "No runs recorded yet. Play some runs!",
+        renderText(renderer, font, LOC("history.empty"),
                    screenW / 2 - 260, screenH / 2, {120, 120, 150, 200});
     }
 
     // Back hint
-    renderText(renderer, font, "[ESC] Back", 40, screenH - 60, {100, 100, 120, 180});
+    renderText(renderer, font, LOC("history.back"), 40, screenH - 60, {100, 100, 120, 180});
 }
