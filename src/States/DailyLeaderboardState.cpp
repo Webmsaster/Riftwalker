@@ -85,11 +85,12 @@ void DailyLeaderboardState::handleEvent(const SDL_Event& event) {
                 break;
             case SDL_SCANCODE_UP:
             case SDL_SCANCODE_W:
-                if (m_scrollOffset > 0) m_scrollOffset--;
+                if (m_scrollOffset > 0) { m_scrollOffset--; AudioManager::instance().play(SFX::MenuSelect); }
                 break;
             case SDL_SCANCODE_DOWN:
             case SDL_SCANCODE_S:
                 m_scrollOffset++;
+                AudioManager::instance().play(SFX::MenuSelect);
                 break;
             default: break;
         }
