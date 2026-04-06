@@ -58,6 +58,27 @@ void UpgradeState::handleEvent(const SDL_Event& event) {
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
                 purchaseSelected();
                 break;
+            case SDL_SCANCODE_PAGEUP:
+                m_selectedUpgrade = std::max(0, m_selectedUpgrade - VISIBLE_ITEMS);
+                if (m_selectedUpgrade < m_scrollOffset) m_scrollOffset = m_selectedUpgrade;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_PAGEDOWN:
+                m_selectedUpgrade = std::min(total - 1, m_selectedUpgrade + VISIBLE_ITEMS);
+                if (m_selectedUpgrade >= m_scrollOffset + VISIBLE_ITEMS)
+                    m_scrollOffset = m_selectedUpgrade - VISIBLE_ITEMS + 1;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_HOME:
+                m_selectedUpgrade = 0;
+                m_scrollOffset = 0;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_END:
+                m_selectedUpgrade = total - 1;
+                m_scrollOffset = std::max(0, total - VISIBLE_ITEMS);
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
             default: break;
         }
     }
