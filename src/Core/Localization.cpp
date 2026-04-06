@@ -179,6 +179,8 @@ void Localization::loadStrings() {
     m_en["bestiary.encounter"]     = "Encounter this enemy to reveal its data.";
     m_en["bestiary.defeat"]        = "Defeat it to permanently unlock its entry.";
     m_en["bestiary.nav_hint"]      = "W/S  Navigate     ESC  Back";
+    m_en["bestiary.abilities_locked"] = "ABILITIES:   [ LOCKED ]";
+    m_en["bestiary.weakness_locked"]  = "WEAKNESS:  [ LOCKED ]";
     m_en["element.fire"]           = "Fire";
     m_en["element.ice"]            = "Ice";
     m_en["element.electric"]       = "Electric";
@@ -577,6 +579,8 @@ void Localization::loadStrings() {
     m_de["bestiary.encounter"]     = "Begegne diesem Gegner, um seine Daten freizuschalten.";
     m_de["bestiary.defeat"]        = "Besiege ihn, um seinen Eintrag dauerhaft freizuschalten.";
     m_de["bestiary.nav_hint"]      = "W/S  Navigieren     ESC  Zurueck";
+    m_de["bestiary.abilities_locked"] = "FAEHIGKEITEN:   [ GESPERRT ]";
+    m_de["bestiary.weakness_locked"]  = "SCHWAECHE:  [ GESPERRT ]";
     m_de["element.fire"]           = "Feuer";
     m_de["element.ice"]            = "Eis";
     m_de["element.electric"]       = "Blitz";

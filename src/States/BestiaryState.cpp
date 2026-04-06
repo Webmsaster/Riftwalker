@@ -640,8 +640,8 @@ void BestiaryState::renderUndiscoveredDetail(SDL_Renderer* renderer, TTF_Font* f
     int hintY = statsY + rowSp * 4 + 32;
     SDL_SetRenderDrawColor(renderer, 50, 45, 70, 80);
     SDL_RenderDrawLine(renderer, infoX, hintY, DETAIL_X + DETAIL_W - 32, hintY);
-    drawText(renderer, font, "ABILITIES:   [ LOCKED ]", infoX, hintY + 16, {60, 55, 80, 120});
-    drawText(renderer, font, "WEAKNESS:  [ LOCKED ]", infoX, hintY + 76, {60, 55, 80, 120});
+    drawText(renderer, font, LOC("bestiary.abilities_locked"), infoX, hintY + 16, {60, 55, 80, 120});
+    drawText(renderer, font, LOC("bestiary.weakness_locked"), infoX, hintY + 76, {60, 55, 80, 120});
 }
 
 // ---- Enemy preview (discovered) ----
