@@ -237,10 +237,15 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
         SDL_FreeSurface(ns);
     }
 
-    // Description
+    // Description (localized via class key)
+    static const char* classKeys[] = { "voidwalker", "berserker", "phantom", "technomancer" };
+    const char* classKey = classKeys[static_cast<int>(data.id)];
+    char locKey[48];
+
     Uint8 descA = selected ? 200 : 120;
     SDL_Color descColor = {160, 155, 180, descA};
-    SDL_Surface* ds = TTF_RenderText_Blended(font, data.description, descColor);
+    std::snprintf(locKey, sizeof(locKey), "class.%s.desc", classKey);
+    SDL_Surface* ds = TTF_RenderText_Blended(font, LOC(locKey), descColor);
     if (ds) {
         SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
         if (dt) {
@@ -259,7 +264,8 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     SDL_Color passColor = selected ?
         SDL_Color{255, 220, 100, 255} :
         SDL_Color{140, 120, 80, 180};
-    SDL_Surface* ps = TTF_RenderText_Blended(font, data.passiveName, passColor);
+    std::snprintf(locKey, sizeof(locKey), "class.%s.passive", classKey);
+    SDL_Surface* ps = TTF_RenderText_Blended(font, LOC(locKey), passColor);
     if (ps) {
         SDL_Texture* pt = SDL_CreateTextureFromSurface(renderer, ps);
         if (pt) {
@@ -272,7 +278,8 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
 
     // Passive description
     SDL_Color pdColor = {140, 135, 160, static_cast<Uint8>(selected ? 200 : 100)};
-    SDL_Surface* pds = TTF_RenderText_Blended(font, data.passiveDesc, pdColor);
+    std::snprintf(locKey, sizeof(locKey), "class.%s.pdesc", classKey);
+    SDL_Surface* pds = TTF_RenderText_Blended(font, LOC(locKey), pdColor);
     if (pds) {
         SDL_Texture* pdt = SDL_CreateTextureFromSurface(renderer, pds);
         if (pdt) {
@@ -288,7 +295,8 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
 
     // Ability modification
     SDL_Color amColor = {120, 200, 180, static_cast<Uint8>(selected ? 200 : 100)};
-    SDL_Surface* ams = TTF_RenderText_Blended(font, data.abilityMod, amColor);
+    std::snprintf(locKey, sizeof(locKey), "class.%s.ability", classKey);
+    SDL_Surface* ams = TTF_RenderText_Blended(font, LOC(locKey), amColor);
     if (ams) {
         SDL_Texture* amt = SDL_CreateTextureFromSurface(renderer, ams);
         if (amt) {

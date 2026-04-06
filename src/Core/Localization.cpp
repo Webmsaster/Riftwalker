@@ -186,6 +186,24 @@ void Localization::loadStrings() {
     m_en["class.hp"]               = "HP: %.0f";
     m_en["class.speed"]            = "Speed: %.0f";
 
+    // Class descriptions & passives
+    m_en["class.voidwalker.desc"]      = "Master of dimensional rifts. Switching dimensions heals and recharges faster.";
+    m_en["class.voidwalker.passive"]   = "Dimensional Affinity";
+    m_en["class.voidwalker.pdesc"]     = "Dim-switch heals 3 HP, -30% switch cooldown, +30% DMG for 2.5s";
+    m_en["class.voidwalker.ability"]   = "Phase Strike: +50% range";
+    m_en["class.berserker.desc"]       = "Raging warrior. Grows stronger as health drops. Ground Slam devastates.";
+    m_en["class.berserker.passive"]    = "Blood Rage";
+    m_en["class.berserker.pdesc"]      = "Under 40% HP: +30% DMG, +20% attack speed";
+    m_en["class.berserker.ability"]    = "Ground Slam: +40% radius, +0.4s stun";
+    m_en["class.phantom.desc"]         = "Swift shadow. Phases through enemies during dash. Rift Shield enhanced.";
+    m_en["class.phantom.passive"]      = "Shadow Step";
+    m_en["class.phantom.pdesc"]        = "Dash 50% longer, phase through enemies, 0.5s invisible after";
+    m_en["class.phantom.ability"]      = "Rift Shield: +1 max hit, speed boost on absorb";
+    m_en["class.technomancer.desc"]    = "Tech engineer. Deploys turrets and shock traps. Constructs deal +20% DMG.";
+    m_en["class.technomancer.passive"] = "Construct Mastery";
+    m_en["class.technomancer.pdesc"]   = "Turrets/traps +20% DMG, last 50% longer, +10% ranged DMG";
+    m_en["class.technomancer.ability"] = "Deploy Turret (Q) / Shock Trap (E)";
+
     // Difficulty Select
     m_en["difficulty.title"]       = "S E L E C T  D I F F I C U L T Y";
     m_en["difficulty.easy"]        = "E A S Y";
@@ -722,6 +740,24 @@ void Localization::loadStrings() {
     m_de["class.nav_hint"]         = "A/D Wechseln  |  ENTER Auswaehlen  |  ESC Zurueck";
     m_de["class.hp"]               = "HP: %.0f";
     m_de["class.speed"]            = "Tempo: %.0f";
+
+    // Class descriptions & passives
+    m_de["class.voidwalker.desc"]      = "Meister der Dimensionsrisse. Dimensionswechsel heilt und laedt schneller.";
+    m_de["class.voidwalker.passive"]   = "Dimensionsaffinitaet";
+    m_de["class.voidwalker.pdesc"]     = "Dim.-Wechsel heilt 3 HP, -30% Wechsel-CD, +30% SCH fuer 2.5s";
+    m_de["class.voidwalker.ability"]   = "Phasenschlag: +50% Reichweite";
+    m_de["class.berserker.desc"]       = "Rasender Krieger. Wird staerker bei niedrigem HP. Bodenstampfer vernichtet.";
+    m_de["class.berserker.passive"]    = "Blutrausch";
+    m_de["class.berserker.pdesc"]      = "Unter 40% HP: +30% SCH, +20% Angriffsgeschwindigkeit";
+    m_de["class.berserker.ability"]    = "Bodenstampfer: +40% Radius, +0.4s Betaeubung";
+    m_de["class.phantom.desc"]         = "Flinker Schatten. Gleitet durch Gegner beim Dash. Rissschild verstaerkt.";
+    m_de["class.phantom.passive"]      = "Schattenschritt";
+    m_de["class.phantom.pdesc"]        = "Dash 50% laenger, durch Gegner hindurch, 0.5s unsichtbar danach";
+    m_de["class.phantom.ability"]      = "Rissschild: +1 max Treffer, Tempo-Boost bei Absorption";
+    m_de["class.technomancer.desc"]    = "Tech-Ingenieur. Stellt Geschuetze und Schockfallen auf. Konstrukte +20% SCH.";
+    m_de["class.technomancer.passive"] = "Konstruktmeisterschaft";
+    m_de["class.technomancer.pdesc"]   = "Geschuetze/Fallen +20% SCH, 50% laenger, +10% Fernkampf-SCH";
+    m_de["class.technomancer.ability"] = "Geschuetz (Q) / Schockfalle (E)";
 
     // Difficulty Select
     m_de["difficulty.title"]       = "S C H W I E R I G K E I T";
