@@ -499,6 +499,11 @@ void Localization::loadStrings() {
     m_en["tip.22"] = "TIP: The Technomancer's turret and traps can control the battlefield.";
     m_en["tip.23"] = "TIP: Daily Runs use a shared seed - compete for the highest score.";
     m_en["tip.24"] = "TIP: Combo kills without taking damage build your kill streak multiplier.";
+    m_en["tip.25"] = "TIP: The Berserker gains +30% damage and attack speed below 40% HP.";
+    m_en["tip.26"] = "TIP: Secret rooms hide behind breakable walls. Look for cracks!";
+    m_en["tip.27"] = "TIP: Parry timing is key — press attack just before an enemy hits you.";
+    m_en["tip.28"] = "TIP: The shop appears between floors. Save shards for powerful upgrades!";
+    m_en["tip.29"] = "TIP: Dimension B entropy rises faster but rifts grant bonus shards there.";
 
     // ===== GERMAN =====
 
@@ -976,4 +981,9 @@ void Localization::loadStrings() {
     m_de["tip.22"] = "TIPP: Geschuetzturm und Fallen des Technomancers kontrollieren das Schlachtfeld.";
     m_de["tip.23"] = "TIPP: Tageslaeufe nutzen einen gemeinsamen Seed - kaempfe um die Hoechstpunktzahl.";
     m_de["tip.24"] = "TIPP: Kombo-Kills ohne Schaden erhoehen deinen Kill-Streak-Multiplikator.";
+    m_de["tip.25"] = "TIPP: Der Berserker erhaelt +30% Schaden und Angriffsgeschwindigkeit unter 40% HP.";
+    m_de["tip.26"] = "TIPP: Geheimraeume verbergen sich hinter zerbrechlichen Waenden. Achte auf Risse!";
+    m_de["tip.27"] = "TIPP: Parieren ist entscheidend — greife kurz bevor ein Gegner dich trifft an.";
+    m_de["tip.28"] = "TIPP: Der Shop erscheint zwischen den Etagen. Spare Splitter fuer starke Upgrades!";
+    m_de["tip.29"] = "TIPP: In Dimension B steigt Entropie schneller, aber Risse geben dort Bonus-Splitter.";
 }
