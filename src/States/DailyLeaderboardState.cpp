@@ -92,6 +92,22 @@ void DailyLeaderboardState::handleEvent(const SDL_Event& event) {
                 m_scrollOffset++;
                 AudioManager::instance().play(SFX::MenuSelect);
                 break;
+            case SDL_SCANCODE_PAGEUP:
+                m_scrollOffset = std::max(0, m_scrollOffset - 10);
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_PAGEDOWN:
+                m_scrollOffset += 10;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_HOME:
+                m_scrollOffset = 0;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_END:
+                m_scrollOffset = static_cast<int>(m_todayEntries.size());
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
             default: break;
         }
     }

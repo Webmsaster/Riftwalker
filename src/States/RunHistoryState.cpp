@@ -48,6 +48,31 @@ void RunHistoryState::handleEvent(const SDL_Event& event) {
                     if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
                 }
                 break;
+            case SDL_SCANCODE_PAGEUP:
+                m_scrollOffset = std::max(0, m_scrollOffset - 10);
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_PAGEDOWN:
+                {
+                    const auto& hist = game->getUpgradeSystem().getRunHistory();
+                    int maxVis = (Game::SCREEN_HEIGHT - 320) / 48;
+                    int maxScroll = std::max(0, static_cast<int>(hist.size()) - maxVis);
+                    m_scrollOffset = std::min(maxScroll, m_scrollOffset + 10);
+                    AudioManager::instance().play(SFX::MenuSelect);
+                }
+                break;
+            case SDL_SCANCODE_HOME:
+                m_scrollOffset = 0;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_END:
+                {
+                    const auto& hist = game->getUpgradeSystem().getRunHistory();
+                    int maxVis = (Game::SCREEN_HEIGHT - 320) / 48;
+                    m_scrollOffset = std::max(0, static_cast<int>(hist.size()) - maxVis);
+                    AudioManager::instance().play(SFX::MenuSelect);
+                }
+                break;
             default: break;
         }
     }
