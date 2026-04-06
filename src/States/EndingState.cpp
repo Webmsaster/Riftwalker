@@ -372,6 +372,8 @@ void EndingState::handleEvent(const SDL_Event& event) {
     } else if (event.type == SDL_CONTROLLERBUTTONDOWN) {
         isConfirm = (event.cbutton.button == SDL_CONTROLLER_BUTTON_A ||
                      event.cbutton.button == SDL_CONTROLLER_BUTTON_START);
+    } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+        isConfirm = true;
     }
 
     if (isConfirm) {

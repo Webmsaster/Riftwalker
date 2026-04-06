@@ -66,6 +66,15 @@ void DifficultySelectState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Mouse wheel scrolling
+    if (event.type == SDL_MOUSEWHEEL) {
+        if (event.wheel.y > 0)
+            m_selected = (m_selected - 1 + 3) % 3;
+        else if (event.wheel.y < 0)
+            m_selected = (m_selected + 1) % 3;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+
     // Right-click to go back
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
         AudioManager::instance().play(SFX::MenuConfirm);
