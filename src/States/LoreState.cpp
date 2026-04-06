@@ -240,6 +240,20 @@ void LoreState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Mouse hover: highlight lore fragment in list
+    if (event.type == SDL_MOUSEMOTION && m_lore) {
+        int mx = event.motion.x, my = event.motion.y;
+        int listX = 60, listY = 200;
+        int total = static_cast<int>(m_lore->getFragments().size());
+        for (int i = 0; i < total; i++) {
+            int ey = listY + i * 64;
+            if (mx >= listX - 5 && mx < listX + 495 && my >= ey - 2 && my < ey + 56) {
+                if (i != m_selected) m_selected = i;
+                break;
+            }
+        }
+    }
+
     // Mouse wheel scrolling
     if (event.type == SDL_MOUSEWHEEL && m_lore) {
         int total = static_cast<int>(m_lore->getFragments().size());

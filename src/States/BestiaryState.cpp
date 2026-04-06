@@ -178,6 +178,22 @@ void BestiaryState::handleEvent(const SDL_Event& event) {
     if (m_selected < m_scrollOffset) m_scrollOffset = m_selected;
     if (m_selected >= m_scrollOffset + VISIBLE) m_scrollOffset = m_selected - VISIBLE + 1;
 
+    // Mouse hover: highlight entry in list
+    if (event.type == SDL_MOUSEMOTION) {
+        int mx = event.motion.x, my = event.motion.y;
+        for (int vi = 0; vi < VISIBLE && (vi + m_scrollOffset) < m_totalEntries; vi++) {
+            int idx = vi + m_scrollOffset;
+            int ey = LIST_Y + vi * (ROW_H + 8);
+            if (mx >= LIST_X && mx < LIST_X + LIST_W && my >= ey && my < ey + ROW_H) {
+                if (idx != m_selected) {
+                    m_selected = idx;
+                    AudioManager::instance().play(SFX::MenuSelect);
+                }
+                break;
+            }
+        }
+    }
+
     // Mouse wheel scrolling
     if (event.type == SDL_MOUSEWHEEL) {
         if (event.wheel.y > 0) {
