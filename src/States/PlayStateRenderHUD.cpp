@@ -105,8 +105,8 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             Uint8 alpha = static_cast<Uint8>(std::min(1.0f, m_exitLockedHintTimer) * 255);
             SDL_Color hc = {255, 100, 80, alpha};
             const char* hintText = (m_isBossLevel && !m_bossDefeated)
-                ? "Defeat the boss to unlock exit!"
-                : "Repair all rifts to unlock exit!";
+                ? LOC("hud.defeat_boss")
+                : LOC("hud.repair_rifts");
             SDL_Surface* hs = TTF_RenderText_Blended(font, hintText, hc);
             if (hs) {
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
@@ -133,13 +133,13 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             char hintText[160];
             if (m_riftDimensionHintRequiredDim == 2) {
                 std::snprintf(hintText, sizeof(hintText),
-                              "This rift stabilizes in DIM-B. +%d%% shards, -%.0f entropy on repair, +%.2f entropy/s.",
+                              LOC("hud.rift_dimb"),
                               dimBShardBonus,
                               shiftBalance.dimBEntropyRepairBonus,
                               shiftBalance.dimBEntropyPerSecond);
             } else {
-                std::snprintf(hintText, sizeof(hintText),
-                              "This rift stabilizes in DIM-A. Safer route, no DIM-B pressure.");
+                std::snprintf(hintText, sizeof(hintText), "%s",
+                              LOC("hud.rift_dima"));
             }
             SDL_Surface* hs = TTF_RenderText_Blended(font, hintText, hc);
             if (hs) {

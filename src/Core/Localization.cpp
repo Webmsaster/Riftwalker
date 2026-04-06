@@ -160,6 +160,10 @@ void Localization::loadStrings() {
     m_en["hud.quest_complete"]     = "Quest Complete! +%d Shards";
     m_en["hud.repair_rift"]        = "Press F to repair rift";
     m_en["hud.score"]              = "Score: %d";
+    m_en["hud.defeat_boss"]        = "Defeat the boss to unlock exit!";
+    m_en["hud.repair_rifts"]       = "Repair all rifts to unlock exit!";
+    m_en["hud.rift_dimb"]          = "This rift stabilizes in DIM-B. +%d%% shards, -%.0f entropy on repair, +%.2f entropy/s.";
+    m_en["hud.rift_dima"]          = "This rift stabilizes in DIM-A. Safer route, no DIM-B pressure.";
 
     // Class Select
     m_en["class.title"]            = "C H O O S E  Y O U R  C L A S S";
@@ -621,6 +625,10 @@ void Localization::loadStrings() {
     m_de["hud.quest_complete"]     = "Quest abgeschlossen! +%d Splitter";
     m_de["hud.repair_rift"]        = "F druecken um Riss zu reparieren";
     m_de["hud.score"]              = "Punkte: %d";
+    m_de["hud.defeat_boss"]        = "Besiege den Boss um den Ausgang freizuschalten!";
+    m_de["hud.repair_rifts"]       = "Repariere alle Risse um den Ausgang freizuschalten!";
+    m_de["hud.rift_dimb"]          = "Dieser Riss stabilisiert in DIM-B. +%d%% Splitter, -%.0f Entropie bei Reparatur, +%.2f Entropie/s.";
+    m_de["hud.rift_dima"]          = "Dieser Riss stabilisiert in DIM-A. Sicherere Route, kein DIM-B-Druck.";
 
     // Class Select
     m_de["class.title"]            = "W A E H L E  D E I N E  K L A S S E";

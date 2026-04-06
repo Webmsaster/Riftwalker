@@ -1131,7 +1131,8 @@ void HUD::renderWeaponPanel(SDL_Renderer* renderer, TTF_Font* font,
 
         if (m_combatSystem) {
             int mIdx=static_cast<int>(combat.currentMelee), rIdx=static_cast<int>(combat.currentRanged);
-            int mKills=m_combatSystem->weaponKills[mIdx], rKills=m_combatSystem->weaponKills[rIdx];
+            int mKills=(mIdx>=0&&mIdx<static_cast<int>(WeaponID::COUNT))?m_combatSystem->weaponKills[mIdx]:0;
+            int rKills=(rIdx>=0&&rIdx<static_cast<int>(WeaponID::COUNT))?m_combatSystem->weaponKills[rIdx]:0;
             MasteryTier mTier=WeaponSystem::getMasteryTier(mKills), rTier=WeaponSystem::getMasteryTier(rKills);
             auto tierColor=[](MasteryTier t)->SDL_Color{switch(t){case MasteryTier::Mastered:return{255,220,80,255};case MasteryTier::Proficient:return{180,100,255,255};case MasteryTier::Familiar:return{80,200,180,255};default:return{80,80,90,120};}};
             MasteryTier tiers[2]={mTier,rTier};
