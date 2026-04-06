@@ -132,7 +132,7 @@ void CreditsState::update(float dt) {
     }
 
     // Spawn ambient particles
-    if (m_particles.size() < 40) {
+    if (m_particles.size() < 70) {
         Particle p;
         p.x = static_cast<float>(std::rand() % SCREEN_WIDTH);
         p.y = static_cast<float>(SCREEN_HEIGHT + 5);
@@ -140,12 +140,12 @@ void CreditsState::update(float dt) {
         p.life = 0.0f;
         p.maxLife = 3.0f + static_cast<float>(std::rand() % 30) / 10.0f;
         p.size = 1.0f + static_cast<float>(std::rand() % 3);
-        // Purple/cyan dimensional colors
-        if (std::rand() % 2 == 0) {
-            p.r = 100; p.g = 60; p.b = 200;
-        } else {
-            p.r = 60; p.g = 140; p.b = 200;
-        }
+        // Dimensional color palette (purple, cyan, magenta, blue)
+        int colorChoice = std::rand() % 4;
+        if (colorChoice == 0) { p.r = 100; p.g = 60; p.b = 200; }      // Purple
+        else if (colorChoice == 1) { p.r = 60; p.g = 140; p.b = 200; }  // Cyan
+        else if (colorChoice == 2) { p.r = 160; p.g = 50; p.b = 180; }  // Magenta
+        else { p.r = 40; p.g = 100; p.b = 220; }                        // Blue
         m_particles.push_back(p);
     }
 
