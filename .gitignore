@@ -11,6 +11,9 @@ bestiary_save.dat
 ascension_save.dat
 riftwalker_challenges.dat
 
+riftwalker_daily.dat
+*.bak
+
 # Debug/test output
 *.log
 visual_report.html
