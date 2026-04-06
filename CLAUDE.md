@@ -6,15 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
 **Recent Updates (2026-04-06 massive localization + polish session):**
-- **Complete Localization**: 334 EN + 334 DE string pairs — ALL player-facing UI strings now use LOC() macro
-  - 25+ state files updated: all menus, gameplay HUD, overlays, shop, upgrades, endings, credits
-  - 19 tutorial hints localized (context-based first-run onboarding system)
-  - Zone names (5), boss names (6) + subtitles (8), death causes (6), tier descriptions (11)
-  - Gameplay tips expanded from 15 → 25 covering all major mechanics
+- **Complete Localization**: 348 EN + 348 DE string pairs — ALL player-facing UI strings now use LOC() macro
+  - 27 source files with LOC() calls, 289 individual LOC() call sites
+  - 19 tutorial hints, 25 gameplay tips, 6 boss names + 8 subtitles, 5 zone names + taglines
+  - Death causes, NG+ tier descriptions/rewards, element names, shop labels, career stats
+  - Menu info panels (daily run date/seed/mutator/best, career stats runs/kills/shards)
+  - HUD notifications (achievement popup, reward text, quest tracker)
   - Gamepad support added to CreditsState (was keyboard-only)
-- **Mouse Wheel Scrolling**: 7 scrollable states now support SDL_MOUSEWHEEL
-  - Achievements, Bestiary, DailyLeaderboard, Lore, Options, RunHistory, Upgrades
-- 12 commits, ~30 files changed, +800 lines
+- **Mouse UX**: SDL_MOUSEWHEEL scrolling in 7 states + mouse hover in Bestiary/Lore
+- 18 commits, ~30 files changed, +1000 lines
 
 **Previous Updates (2026-04-05 music quality + crossfade + localization session):**
 - **Music Synth v2**: Proper MIDI note_on/note_off duration parsing (was guessing), stereo output with per-track panning, Schroeder reverb (4 comb + 2 allpass IIR), chorus for pads/strings, filter envelope modulation for bass/leads, band-limited saw waves
