@@ -156,27 +156,42 @@ void BestiaryState::enter() {
 
 // ---- Event ----
 void BestiaryState::handleEvent(const SDL_Event& event) {
-    if (event.type != SDL_KEYDOWN) return;
-
-    switch (event.key.keysym.scancode) {
-        case SDL_SCANCODE_W: case SDL_SCANCODE_UP:
-            m_selected = (m_selected - 1 + m_totalEntries) % m_totalEntries;
-            AudioManager::instance().play(SFX::MenuSelect);
-            break;
-        case SDL_SCANCODE_S: case SDL_SCANCODE_DOWN:
-            m_selected = (m_selected + 1) % m_totalEntries;
-            AudioManager::instance().play(SFX::MenuSelect);
-            break;
-        case SDL_SCANCODE_ESCAPE:
-            AudioManager::instance().play(SFX::MenuConfirm);
-            game->changeState(StateID::Menu);
-            break;
-        default: break;
+    if (event.type == SDL_KEYDOWN) {
+        switch (event.key.keysym.scancode) {
+            case SDL_SCANCODE_W: case SDL_SCANCODE_UP:
+                m_selected = (m_selected - 1 + m_totalEntries) % m_totalEntries;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_S: case SDL_SCANCODE_DOWN:
+                m_selected = (m_selected + 1) % m_totalEntries;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_PAGEUP:
+                m_selected = std::max(0, m_selected - 8);
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_PAGEDOWN:
+                m_selected = std::min(m_totalEntries - 1, m_selected + 8);
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_HOME:
+                m_selected = 0;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_END:
+                m_selected = m_totalEntries - 1;
+                AudioManager::instance().play(SFX::MenuSelect);
+                break;
+            case SDL_SCANCODE_ESCAPE:
+                AudioManager::instance().play(SFX::MenuConfirm);
+                game->changeState(StateID::Menu);
+                break;
+            default: break;
+        }
+        // Scroll to keep selected in view
+        if (m_selected < m_scrollOffset) m_scrollOffset = m_selected;
+        if (m_selected >= m_scrollOffset + VISIBLE) m_scrollOffset = m_selected - VISIBLE + 1;
     }
-
-    // Scroll to keep selected in view
-    if (m_selected < m_scrollOffset) m_scrollOffset = m_selected;
-    if (m_selected >= m_scrollOffset + VISIBLE) m_scrollOffset = m_selected - VISIBLE + 1;
 
     // Right-click to go back
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
