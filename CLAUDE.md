@@ -17,8 +17,10 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Mouse UX**: SDL_MOUSEWHEEL scrolling in 7 states + mouse hover in Bestiary/Lore
 - **Audio UX**: Scroll SFX added to DailyLeaderboard + RunHistory
 - **Credits Polish**: Particles 40→70, 4-color dimensional palette
+- **Total Playtime Tracking**: New totalPlaytime field in UpgradeSystem, displayed in career stats
+- **Right-Click Back**: 8 states support right-click to navigate back
 - **.gitignore**: Added riftwalker_daily.dat + .bak files
-- 31 commits, ~35 files changed, +1400 lines
+- 35 commits, ~40 files changed, +1500 lines
 
 **Previous Updates (2026-04-05 music quality + crossfade + localization session):**
 - **Music Synth v2**: Proper MIDI note_on/note_off duration parsing (was guessing), stereo output with per-track panning, Schroeder reverb (4 comb + 2 allpass IIR), chorus for pads/strings, filter envelope modulation for bass/leads, band-limited saw waves
