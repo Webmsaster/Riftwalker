@@ -104,6 +104,12 @@ void KeybindingsState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Right-click to go back (not while listening)
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT && !m_listening) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::Options);
+    }
+
     // Mouse hover: update selection (not while listening for a key)
     if (event.type == SDL_MOUSEMOTION && !m_listening) {
         int mx = event.motion.x, my = event.motion.y;

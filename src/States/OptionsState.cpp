@@ -188,6 +188,12 @@ void OptionsState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Right-click to go back
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::Menu);
+    }
+
     // Mouse wheel scrolling
     if (event.type == SDL_MOUSEWHEEL) {
         int total = static_cast<int>(m_options.size());
