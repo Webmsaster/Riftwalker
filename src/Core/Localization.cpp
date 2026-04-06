@@ -260,6 +260,14 @@ void Localization::loadStrings() {
     m_en["lore.undiscovered"]      = "This fragment has not been discovered yet.";
     m_en["lore.nav_hint"]          = "W/S: Navigate   ESC: Back";
 
+    // Death causes (run history, game over)
+    m_en["death.hp"]               = "HP Depleted";
+    m_en["death.entropy"]          = "Entropy Overload";
+    m_en["death.rift"]             = "Rift Collapse";
+    m_en["death.time"]             = "Time Expired";
+    m_en["death.victory"]          = "Victory!";
+    m_en["death.unknown"]          = "Unknown";
+
     // Upgrades
     m_en["upgrades.title"]         = "RIFTSUIT UPGRADES";
     m_en["upgrades.level"]         = "Lv %d/%d";
@@ -628,6 +636,14 @@ void Localization::loadStrings() {
     m_de["lore.fragments"]         = "%d / %d Fragmente";
     m_de["lore.undiscovered"]      = "Dieses Fragment wurde noch nicht entdeckt.";
     m_de["lore.nav_hint"]          = "W/S: Navigieren   ESC: Zurueck";
+
+    // Death causes
+    m_de["death.hp"]               = "HP aufgebraucht";
+    m_de["death.entropy"]          = "Entropie-Ueberladung";
+    m_de["death.rift"]             = "Risskollaps";
+    m_de["death.time"]             = "Zeit abgelaufen";
+    m_de["death.victory"]          = "Sieg!";
+    m_de["death.unknown"]          = "Unbekannt";
 
     // Upgrades
     m_de["upgrades.title"]         = "ANZUG-VERBESSERUNGEN";

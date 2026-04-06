@@ -1,6 +1,7 @@
 #include "UpgradeSystem.h"
 #include "ClassSystem.h"
 #include "WeaponSystem.h"
+#include "Core/Localization.h"
 #include <sstream>
 #include <algorithm>
 
@@ -91,12 +92,12 @@ void UpgradeSystem::addRunRecord(int rooms, int enemies, int rifts, int shards, 
 
 const char* UpgradeSystem::getDeathCauseName(int cause) {
     switch (cause) {
-        case 1: return "HP Depleted";
-        case 2: return "Entropy Overload";
-        case 3: return "Rift Collapse";
-        case 4: return "Time Expired";
-        case 5: return "Victory!";
-        default: return "Unknown";
+        case 1: return LOC("death.hp");
+        case 2: return LOC("death.entropy");
+        case 3: return LOC("death.rift");
+        case 4: return LOC("death.time");
+        case 5: return LOC("death.victory");
+        default: return LOC("death.unknown");
     }
 }
 
