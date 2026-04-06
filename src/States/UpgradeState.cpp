@@ -1,6 +1,7 @@
 #include "UpgradeState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "Game/UpgradeSystem.h"
 #include "UI/UITextures.h"
 #include <cstdio>
@@ -170,7 +171,7 @@ void UpgradeState::render(SDL_Renderer* renderer) {
     if (!font) return;
 
     // Title with glow
-    SDL_Surface* titleSurf = TTF_RenderText_Blended(font, "RIFTSUIT UPGRADES", {160, 110, 240, 255});
+    SDL_Surface* titleSurf = TTF_RenderText_Blended(font, LOC("upgrades.title"), {160, 110, 240, 255});
     if (titleSurf) {
         SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
         if (titleTex) {
@@ -334,20 +335,20 @@ void UpgradeState::render(SDL_Renderer* renderer) {
 
         // Level text
         char levelText[32];
-        std::snprintf(levelText, sizeof(levelText), "Lv %d/%d", u.currentLevel, u.maxLevel);
+        std::snprintf(levelText, sizeof(levelText), LOC("upgrades.level"), u.currentLevel, u.maxLevel);
         SDL_Color lvColor = maxed ? SDL_Color{100, 240, 100, 255} : SDL_Color{190, 185, 210, 255};
         renderText(renderer, font, levelText, barX, barY + 28, lvColor);
 
         // Cost
         if (!maxed) {
             char costText[32];
-            std::snprintf(costText, sizeof(costText), "Cost: %d", u.getNextCost());
+            std::snprintf(costText, sizeof(costText), LOC("upgrades.cost"), u.getNextCost());
             bool canAfford = u.canPurchase(upgrades.getRiftShards());
             SDL_Color costColor = canAfford ?
                 SDL_Color{180, 140, 255, 255} : SDL_Color{140, 70, 70, 200};
             renderText(renderer, font, costText, barX, barY + 68, costColor);
         } else {
-            renderText(renderer, font, "MAXED", barX + 40, barY + 68, {80, 200, 80, 200});
+            renderText(renderer, font, LOC("upgrades.maxed"), barX + 40, barY + 68, {80, 200, 80, 200});
         }
     }
 
@@ -380,6 +381,6 @@ void UpgradeState::render(SDL_Renderer* renderer) {
         SDL_SetRenderDrawColor(renderer, 60, 40, 90, 80);
         SDL_RenderFillRect(renderer, &instrBg);
     }
-    renderText(renderer, font, "W/S: Navigate    ENTER: Purchase    ESC: Back",
+    renderText(renderer, font, LOC("upgrades.nav_hint"),
                SCREEN_WIDTH / 2 - 400, SCREEN_HEIGHT - 74, {120, 110, 150, 180});
 }

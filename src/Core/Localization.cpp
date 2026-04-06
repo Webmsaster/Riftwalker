@@ -260,6 +260,23 @@ void Localization::loadStrings() {
     m_en["lore.undiscovered"]      = "This fragment has not been discovered yet.";
     m_en["lore.nav_hint"]          = "W/S: Navigate   ESC: Back";
 
+    // Upgrades
+    m_en["upgrades.title"]         = "RIFTSUIT UPGRADES";
+    m_en["upgrades.level"]         = "Lv %d/%d";
+    m_en["upgrades.cost"]          = "Cost: %d";
+    m_en["upgrades.maxed"]         = "MAXED";
+    m_en["upgrades.nav_hint"]      = "W/S: Navigate    ENTER: Purchase    ESC: Back";
+
+    // Splash
+    m_en["splash.subtitle"]        = "A Dimension-Shifting Roguelike";
+    m_en["splash.press_any"]       = "Press any key";
+
+    // Menu subtitle
+    m_en["menu.subtitle"]          = "Dimensional Mechanic";
+
+    // Relic choice
+    m_en["relic.choose"]           = "Choose a Relic";
+
     // Run History
     m_en["history.title"]          = "RUN HISTORY";
     m_en["history.stats"]          = "Total Runs: %d    Enemies Killed: %d    Best Floor: %d    Rifts: %d";
@@ -611,6 +628,23 @@ void Localization::loadStrings() {
     m_de["lore.fragments"]         = "%d / %d Fragmente";
     m_de["lore.undiscovered"]      = "Dieses Fragment wurde noch nicht entdeckt.";
     m_de["lore.nav_hint"]          = "W/S: Navigieren   ESC: Zurueck";
+
+    // Upgrades
+    m_de["upgrades.title"]         = "ANZUG-VERBESSERUNGEN";
+    m_de["upgrades.level"]         = "Lv %d/%d";
+    m_de["upgrades.cost"]          = "Kosten: %d";
+    m_de["upgrades.maxed"]         = "MAXIMAL";
+    m_de["upgrades.nav_hint"]      = "W/S: Navigieren    ENTER: Kaufen    ESC: Zurueck";
+
+    // Splash
+    m_de["splash.subtitle"]        = "Ein Dimensions-Roguelike";
+    m_de["splash.press_any"]       = "Beliebige Taste druecken";
+
+    // Menu subtitle
+    m_de["menu.subtitle"]          = "Dimensionsmechanik";
+
+    // Relic choice
+    m_de["relic.choose"]           = "Waehle ein Relikt";
 
     // Run History
     m_de["history.title"]          = "LAUFCHRONIK";

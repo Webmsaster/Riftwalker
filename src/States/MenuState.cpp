@@ -311,7 +311,7 @@ void MenuState::renderTitle(SDL_Renderer* renderer, TTF_Font* font) {
     // Subtitle
     Uint8 subAlpha = static_cast<Uint8>(200.0f * m_fadeIn);
     SDL_Color subColor = {120, 100, 165, subAlpha};
-    SDL_Surface* sub = TTF_RenderText_Blended(font, "Dimensional Mechanic", subColor);
+    SDL_Surface* sub = TTF_RenderText_Blended(font, LOC("menu.subtitle"), subColor);
     if (sub) {
         SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, sub);
         if (st) {

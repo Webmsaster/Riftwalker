@@ -131,7 +131,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
     // Title
     {
         SDL_Color tc = {255, 215, 100, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, "Choose a Relic", tc);
+        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("relic.choose"), tc);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {

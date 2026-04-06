@@ -1,5 +1,6 @@
 #include "SplashState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include <cmath>
 #include <algorithm>
 
@@ -130,7 +131,7 @@ void SplashState::render(SDL_Renderer* renderer) {
         SDL_Color subColor = { 160, 140, 200, sa }; // Muted purple
 
         TTF_Font* font = game->getFont();
-        SDL_Surface* surface = TTF_RenderText_Blended(font, "A Dimension-Shifting Roguelike", subColor);
+        SDL_Surface* surface = TTF_RenderText_Blended(font, LOC("splash.subtitle"), subColor);
         if (surface) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
@@ -158,7 +159,7 @@ void SplashState::render(SDL_Renderer* renderer) {
         SDL_Color hintColor = { 160, 140, 200, ha };
 
         TTF_Font* font = game->getFont();
-        SDL_Surface* surface = TTF_RenderText_Blended(font, "Press any key", hintColor);
+        SDL_Surface* surface = TTF_RenderText_Blended(font, LOC("splash.press_any"), hintColor);
         if (surface) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
