@@ -352,7 +352,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
         SDL_RenderDrawRect(renderer, &banner);
 
         SDL_Color newBestColor = {255, 220, 50, ba};
-        dlRenderTextCentered(renderer, font, "NEW BEST!", SCREEN_WIDTH - 250, 62, newBestColor);
+        dlRenderTextCentered(renderer, font, LOC("summary.new_best"), SCREEN_WIDTH - 250, 62, newBestColor);
 
         // Orbiting sparkles
         for (int i = 0; i < 6; i++) {
