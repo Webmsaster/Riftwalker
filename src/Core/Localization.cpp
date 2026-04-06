@@ -511,6 +511,11 @@ void Localization::loadStrings() {
     m_en["tip.32"] = "TIP: Elite enemies have colored auras showing their modifier type.";
     m_en["tip.33"] = "TIP: The Voidwalker heals 3 HP every dimension switch.";
     m_en["tip.34"] = "TIP: Challenge modes unlock after completing your first run.";
+    m_en["tip.35"] = "TIP: Relic synergies activate when you carry matching relics — check the pause menu!";
+    m_en["tip.36"] = "TIP: Right-click anywhere in menus to go back quickly.";
+    m_en["tip.37"] = "TIP: Boss attacks change when they enrage below 33% HP — stay alert!";
+    m_en["tip.38"] = "TIP: Health orbs from crates heal more when your HP is critically low.";
+    m_en["tip.39"] = "TIP: Weapon mastery persists between runs — master your favorites!";
 
     // Buff pickups (in-game floating text)
     m_en["pickup.shield"]          = "SHIELD";
@@ -1043,6 +1048,11 @@ void Localization::loadStrings() {
     m_de["tip.32"] = "TIPP: Elite-Gegner haben farbige Auren die ihren Modifikator-Typ zeigen.";
     m_de["tip.33"] = "TIPP: Der Voidwalker heilt 3 HP bei jedem Dimensionswechsel.";
     m_de["tip.34"] = "TIPP: Herausforderungsmodi werden nach dem ersten abgeschlossenen Lauf freigeschaltet.";
+    m_de["tip.35"] = "TIPP: Relikt-Synergien aktivieren sich bei passenden Kombinationen — pruefe das Pausenmenue!";
+    m_de["tip.36"] = "TIPP: Rechtsklick in Menues bringt dich schnell zurueck.";
+    m_de["tip.37"] = "TIPP: Boss-Angriffe aendern sich unter 33% HP im Enrage-Modus — bleib wachsam!";
+    m_de["tip.38"] = "TIPP: Heilkugeln aus Kisten heilen mehr wenn dein HP kritisch niedrig ist.";
+    m_de["tip.39"] = "TIPP: Waffenmeisterschaft bleibt zwischen Laeufen erhalten — meistere deine Favoriten!";
 
     // Buff pickups
     m_de["pickup.shield"]          = "SCHILD";
