@@ -142,6 +142,20 @@ void Localization::loadStrings() {
     m_en["hud.chain_complete"]     = "CHAIN COMPLETE!";
     m_en["hud.rift_stabilized"]    = "RIFT STABILIZED - Warping to next dimension...";
 
+    // Menu info panels
+    m_en["menu.daily_date"]        = "Date: %s";
+    m_en["menu.daily_seed"]        = "Seed: %d";
+    m_en["menu.daily_mutator"]     = "Mutator: %s";
+    m_en["menu.daily_best"]        = "Best: %d";
+    m_en["menu.stats_runs"]        = "Runs: %d  |  Best Floor: %d";
+    m_en["menu.stats_kills"]       = "Kills: %d  |  Rifts: %d";
+    m_en["menu.stats_shards"]      = "Shards: %d";
+
+    // HUD notifications
+    m_en["hud.achievement"]        = "Achievement: %s";
+    m_en["hud.reward"]             = "Reward: %s";
+    m_en["hud.quest"]              = "Quest: %s (%d/%d)";
+
     // Class Select
     m_en["class.title"]            = "C H O O S E  Y O U R  C L A S S";
     m_en["class.locked"]           = "LOCKED";
@@ -541,6 +555,20 @@ void Localization::loadStrings() {
     m_de["hud.lore_discovered"]    = "WISSEN ENTDECKT";
     m_de["hud.chain_complete"]     = "KETTE ABGESCHLOSSEN!";
     m_de["hud.rift_stabilized"]    = "RISS STABILISIERT - Sprung zur naechsten Dimension...";
+
+    // Menu info panels
+    m_de["menu.daily_date"]        = "Datum: %s";
+    m_de["menu.daily_seed"]        = "Seed: %d";
+    m_de["menu.daily_mutator"]     = "Mutator: %s";
+    m_de["menu.daily_best"]        = "Bestleistung: %d";
+    m_de["menu.stats_runs"]        = "Laeufe: %d  |  Beste Etage: %d";
+    m_de["menu.stats_kills"]       = "Kills: %d  |  Risse: %d";
+    m_de["menu.stats_shards"]      = "Splitter: %d";
+
+    // HUD notifications
+    m_de["hud.achievement"]        = "Erfolg: %s";
+    m_de["hud.reward"]             = "Belohnung: %s";
+    m_de["hud.quest"]              = "Quest: %s (%d/%d)";
 
     // Class Select
     m_de["class.title"]            = "W A E H L E  D E I N E  K L A S S E";

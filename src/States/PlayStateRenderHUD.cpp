@@ -1051,11 +1051,11 @@ void PlayState::renderQuestHUD(SDL_Renderer* renderer, TTF_Font* font) {
         char buf[128];
         if (m_activeQuest.targetKills > 0) {
             int cur = std::min(m_activeQuest.currentKills, m_activeQuest.targetKills);
-            std::snprintf(buf, sizeof(buf), "Quest: %s (%d/%d)",
+            std::snprintf(buf, sizeof(buf), LOC("hud.quest"),
                           m_activeQuest.description.c_str(), cur, m_activeQuest.targetKills);
         } else if (m_activeQuest.targetRifts > 0) {
             int cur = std::min(m_activeQuest.currentRifts, m_activeQuest.targetRifts);
-            std::snprintf(buf, sizeof(buf), "Quest: %s (%d/%d)",
+            std::snprintf(buf, sizeof(buf), LOC("hud.quest"),
                           m_activeQuest.description.c_str(), cur, m_activeQuest.targetRifts);
         } else {
             return;

@@ -531,23 +531,23 @@ void MenuState::renderDailyInfo(SDL_Renderer* renderer, TTF_Font* font) {
 
     // Line 1: Date
     char dateBuf[48];
-    std::snprintf(dateBuf, sizeof(dateBuf), "Date: %s", todayDate.c_str());
+    std::snprintf(dateBuf, sizeof(dateBuf), LOC("menu.daily_date"), todayDate.c_str());
     drawLine(dateBuf, {160, 150, 190, 255}, textY);
 
     // Line 2: Seed
     char seedBuf[48];
-    std::snprintf(seedBuf, sizeof(seedBuf), "Seed: %d", seed);
+    std::snprintf(seedBuf, sizeof(seedBuf), LOC("menu.daily_seed"), seed);
     drawLine(seedBuf, {140, 130, 170, 255}, textY + lineH);
 
     // Line 3: Mutator
     char mutBuf[64];
-    std::snprintf(mutBuf, sizeof(mutBuf), "Mutator: %s", mutData.name);
+    std::snprintf(mutBuf, sizeof(mutBuf), LOC("menu.daily_mutator"), mutData.name);
     drawLine(mutBuf, {200, 160, 255, 255}, textY + lineH * 2);
 
     // Line 4: Best score
     char scoreBuf[48];
     if (bestScore > 0)
-        std::snprintf(scoreBuf, sizeof(scoreBuf), "Best: %d", bestScore);
+        std::snprintf(scoreBuf, sizeof(scoreBuf), LOC("menu.daily_best"), bestScore);
     else
         std::snprintf(scoreBuf, sizeof(scoreBuf), "Best: ---");
     drawLine(scoreBuf, {180, 180, 60, 255}, textY + lineH * 3);
@@ -597,16 +597,16 @@ void MenuState::renderCareerStats(SDL_Renderer* renderer, TTF_Font* font) {
 
     // Line 1: Runs | Best Floor
     char buf[96];
-    std::snprintf(buf, sizeof(buf), "Runs: %d  |  Best Floor: %d",
+    std::snprintf(buf, sizeof(buf), LOC("menu.stats_runs"),
                   ups.totalRuns, ups.bestRoomReached);
     drawStat(buf, {80, 75, 120, 255}, ty + lineH);
 
     // Line 2: Kills | Rifts
-    std::snprintf(buf, sizeof(buf), "Kills: %d  |  Rifts: %d",
+    std::snprintf(buf, sizeof(buf), LOC("menu.stats_kills"),
                   ups.totalEnemiesKilled, ups.totalRiftsRepaired);
     drawStat(buf, {80, 75, 120, 255}, ty + lineH * 2);
 
     // Line 3: Shards
-    std::snprintf(buf, sizeof(buf), "Shards: %d", ups.getRiftShards());
+    std::snprintf(buf, sizeof(buf), LOC("menu.stats_shards"), ups.getRiftShards());
     drawStat(buf, {80, 75, 120, 255}, ty + lineH * 3);
 }

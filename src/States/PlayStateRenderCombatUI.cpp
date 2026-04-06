@@ -45,7 +45,7 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
 
     // Achievement name
     char achText[128];
-    snprintf(achText, sizeof(achText), "Achievement: %s", notif->name.c_str());
+    snprintf(achText, sizeof(achText), LOC("hud.achievement"), notif->name.c_str());
     SDL_Color tc = {200, 255, 210, a};
     SDL_Surface* ts = TTF_RenderText_Blended(font, achText, tc);
     if (ts) {
@@ -62,7 +62,7 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
     // Reward text line (golden)
     if (hasReward) {
         char rewardText[128];
-        snprintf(rewardText, sizeof(rewardText), "Reward: %s", notif->rewardText.c_str());
+        snprintf(rewardText, sizeof(rewardText), LOC("hud.reward"), notif->rewardText.c_str());
         SDL_Color rc = {255, 220, 80, a};
         SDL_Surface* rs = TTF_RenderText_Blended(font, rewardText, rc);
         if (rs) {
