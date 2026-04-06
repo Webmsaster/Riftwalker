@@ -211,6 +211,21 @@ void Localization::loadStrings() {
     m_en["class.unlock.technomancer"]  = "Repair 30 rifts total across all runs";
 
     // Upgrade names & descriptions (indexed by UpgradeID)
+    // Shop buffs (RunBuffSystem)
+    m_en["buff.0.name"]  = "HP Surge";           m_en["buff.0.desc"]  = "+30 Max HP";
+    m_en["buff.1.name"]  = "Temporal Haste";     m_en["buff.1.desc"]  = "-25% Ability Cooldowns";
+    m_en["buff.2.name"]  = "Entropy Damper";     m_en["buff.2.desc"]  = "-30% Entropy Gain";
+    m_en["buff.3.name"]  = "Critical Edge";      m_en["buff.3.desc"]  = "+20% Crit Chance";
+    m_en["buff.4.name"]  = "Shard Doubler";      m_en["buff.4.desc"]  = "2x Shard Gain";
+    m_en["buff.5.name"]  = "Kill Rush";          m_en["buff.5.desc"]  = "Kill = Dash CD Reset";
+    m_en["buff.6.name"]  = "Ember Blade";        m_en["buff.6.desc"]  = "Attacks Burn Enemies";
+    m_en["buff.7.name"]  = "Frost Edge";         m_en["buff.7.desc"]  = "Attacks Slow Enemies";
+    m_en["buff.8.name"]  = "Storm Striker";      m_en["buff.8.desc"]  = "Attacks Chain Lightning";
+    m_en["buff.9.name"]  = "Vampire Blade";      m_en["buff.9.desc"]  = "5% Lifesteal on Hit";
+    m_en["buff.10.name"] = "Soul Anchor";        m_en["buff.10.desc"] = "Revive Once at 50% HP";
+    m_en["buff.11.name"] = "Phantom Step";       m_en["buff.11.desc"] = "Invincible After Dim-Switch";
+
+    // Persistent upgrades
     m_en["upgrade.0.name"]  = "Reinforced Suit";     m_en["upgrade.0.desc"]  = "+20 Max HP";
     m_en["upgrade.1.name"]  = "Quantum Boots";       m_en["upgrade.1.desc"]  = "+10% Move Speed";
     m_en["upgrade.2.name"]  = "Phase Thrusters";     m_en["upgrade.2.desc"]  = "-15% Dash Cooldown";
@@ -807,6 +822,21 @@ void Localization::loadStrings() {
     m_de["class.unlock.technomancer"]  = "Repariere insgesamt 30 Risse in allen Laeufen";
 
     // Upgrade names & descriptions
+    // Shop buffs
+    m_de["buff.0.name"]  = "HP-Schub";           m_de["buff.0.desc"]  = "+30 Max HP";
+    m_de["buff.1.name"]  = "Zeitliche Hast";     m_de["buff.1.desc"]  = "-25% Faehigkeits-Abklingzeit";
+    m_de["buff.2.name"]  = "Entropiedaempfer";   m_de["buff.2.desc"]  = "-30% Entropiezunahme";
+    m_de["buff.3.name"]  = "Kritische Kante";    m_de["buff.3.desc"]  = "+20% Krit. Trefferchance";
+    m_de["buff.4.name"]  = "Splitterverdoppler"; m_de["buff.4.desc"]  = "2x Splitterzunahme";
+    m_de["buff.5.name"]  = "Toetungsrausch";     m_de["buff.5.desc"]  = "Kill = Dash-CD Reset";
+    m_de["buff.6.name"]  = "Glutklinge";         m_de["buff.6.desc"]  = "Angriffe verbrennen Gegner";
+    m_de["buff.7.name"]  = "Frostkante";         m_de["buff.7.desc"]  = "Angriffe verlangsamen Gegner";
+    m_de["buff.8.name"]  = "Sturmschlaeger";     m_de["buff.8.desc"]  = "Angriffe erzeugen Kettenblitze";
+    m_de["buff.9.name"]  = "Vampirklinge";       m_de["buff.9.desc"]  = "5% Lebensraub pro Treffer";
+    m_de["buff.10.name"] = "Seelenanker";        m_de["buff.10.desc"] = "Einmal bei 50% HP wiederbeleben";
+    m_de["buff.11.name"] = "Phantomschritt";     m_de["buff.11.desc"] = "Unverwundbar nach Dim.-Wechsel";
+
+    // Persistent upgrades
     m_de["upgrade.0.name"]  = "Verstaerkter Anzug";   m_de["upgrade.0.desc"]  = "+20 Max HP";
     m_de["upgrade.1.name"]  = "Quantenstiefel";       m_de["upgrade.1.desc"]  = "+10% Tempo";
     m_de["upgrade.2.name"]  = "Phasenantrieb";        m_de["upgrade.2.desc"]  = "-15% Dash-Abklingzeit";

@@ -452,9 +452,12 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
                 break;
         }
 
-        // Buff name
+        // Buff name (localized)
+        char buffNameKey[32], buffDescKey[32];
+        std::snprintf(buffNameKey, sizeof(buffNameKey), "buff.%d.name", static_cast<int>(buff.id));
+        std::snprintf(buffDescKey, sizeof(buffDescKey), "buff.%d.desc", static_cast<int>(buff.id));
         SDL_Color nc = {255, 255, 255, 240};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, buff.name.c_str(), nc);
+        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC(buffNameKey), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -465,9 +468,9 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
             SDL_FreeSurface(ns);
         }
 
-        // Description
+        // Description (localized)
         SDL_Color dc = {180, 180, 200, 200};
-        SDL_Surface* ds = TTF_RenderText_Blended(font, buff.description.c_str(), dc);
+        SDL_Surface* ds = TTF_RenderText_Blended(font, LOC(buffDescKey), dc);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
