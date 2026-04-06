@@ -187,6 +187,18 @@ void OptionsState::handleEvent(const SDL_Event& event) {
             default: break;
         }
     }
+
+    // Mouse wheel scrolling
+    if (event.type == SDL_MOUSEWHEEL) {
+        int total = static_cast<int>(m_options.size());
+        if (event.wheel.y > 0) {
+            m_selected = (m_selected - 1 + total) % total;
+            AudioManager::instance().play(SFX::MenuSelect);
+        } else if (event.wheel.y < 0) {
+            m_selected = (m_selected + 1) % total;
+            AudioManager::instance().play(SFX::MenuSelect);
+        }
+    }
 }
 
 void OptionsState::applyOption(int index) {

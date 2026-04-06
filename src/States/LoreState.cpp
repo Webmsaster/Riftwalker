@@ -239,4 +239,15 @@ void LoreState::handleEvent(const SDL_Event& event) {
             default: break;
         }
     }
+
+    // Mouse wheel scrolling
+    if (event.type == SDL_MOUSEWHEEL && m_lore) {
+        int total = static_cast<int>(m_lore->getFragments().size());
+        if (total > 0) {
+            if (event.wheel.y > 0)
+                m_selected = (m_selected - 1 + total) % total;
+            else if (event.wheel.y < 0)
+                m_selected = (m_selected + 1) % total;
+        }
+    }
 }
