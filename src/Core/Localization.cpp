@@ -165,6 +165,10 @@ void Localization::loadStrings() {
     m_en["hud.rift_dimb"]          = "This rift stabilizes in DIM-B. +%d%% shards, -%.0f entropy on repair, +%.2f entropy/s.";
     m_en["hud.rift_dima"]          = "This rift stabilizes in DIM-A. Safer route, no DIM-B pressure.";
     m_en["hud.wave_cleared"]       = "WAVE CLEARED";
+    m_en["hud.shift_dimb"]         = "Shift to DIM-B: +%d%% shards, -%.0f entropy on repair";
+    m_en["hud.shift_dima"]         = "Shift to DIM-A to stabilize this rift";
+    m_en["hud.repair_dimb"]        = "Press F to repair volatile DIM-B rift (+%d%% shards, -%.0f entropy)";
+    m_en["hud.repair_dima"]        = "Press F to repair stable DIM-A rift";
     m_en["relic.cursed"]           = "CURSED";
     m_en["menu.version"]           = "v0.1  -  Made with SDL2";
     m_en["pause.ngplus"]           = "New Game+ %d";
@@ -638,6 +642,10 @@ void Localization::loadStrings() {
     m_de["hud.rift_dimb"]          = "Dieser Riss stabilisiert in DIM-B. +%d%% Splitter, -%.0f Entropie bei Reparatur, +%.2f Entropie/s.";
     m_de["hud.rift_dima"]          = "Dieser Riss stabilisiert in DIM-A. Sicherere Route, kein DIM-B-Druck.";
     m_de["hud.wave_cleared"]       = "WELLE GESCHAFFT";
+    m_de["hud.shift_dimb"]         = "Wechsle zu DIM-B: +%d%% Splitter, -%.0f Entropie bei Reparatur";
+    m_de["hud.shift_dima"]         = "Wechsle zu DIM-A um diesen Riss zu stabilisieren";
+    m_de["hud.repair_dimb"]        = "F: Instabilen DIM-B-Riss reparieren (+%d%% Splitter, -%.0f Entropie)";
+    m_de["hud.repair_dima"]        = "F: Stabilen DIM-A-Riss reparieren";
     m_de["relic.cursed"]           = "VERFLUCHT";
     m_de["menu.version"]           = "v0.1  -  Erstellt mit SDL2";
     m_de["pause.ngplus"]           = "New Game+ %d";

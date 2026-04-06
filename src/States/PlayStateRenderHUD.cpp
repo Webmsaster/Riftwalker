@@ -172,21 +172,21 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             if (!riftActive) {
                 if (requiredDim == 2) {
                     std::snprintf(promptText, sizeof(promptText),
-                                  "Shift to DIM-B: +%d%% shards, -%.0f entropy on repair",
+                                  LOC("hud.shift_dimb"),
                                   dimBShardBonus,
                                   shiftBalance.dimBEntropyRepairBonus);
                 } else {
-                    std::snprintf(promptText, sizeof(promptText),
-                                  "Shift to DIM-A to stabilize this rift");
+                    std::snprintf(promptText, sizeof(promptText), "%s",
+                                  LOC("hud.shift_dima"));
                 }
             } else if (requiredDim == 2) {
                 std::snprintf(promptText, sizeof(promptText),
-                              "Press F to repair volatile DIM-B rift (+%d%% shards, -%.0f entropy)",
+                              LOC("hud.repair_dimb"),
                               dimBShardBonus,
                               shiftBalance.dimBEntropyRepairBonus);
             } else if (requiredDim == 1) {
-                std::snprintf(promptText, sizeof(promptText),
-                              "Press F to repair stable DIM-A rift");
+                std::snprintf(promptText, sizeof(promptText), "%s",
+                              LOC("hud.repair_dima"));
             }
             SDL_Surface* s = TTF_RenderText_Blended(font, promptText, c);
             if (s) {
