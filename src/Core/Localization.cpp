@@ -260,6 +260,27 @@ void Localization::loadStrings() {
     m_en["lore.undiscovered"]      = "This fragment has not been discovered yet.";
     m_en["lore.nav_hint"]          = "W/S: Navigate   ESC: Back";
 
+    // Tutorial hints (context-based, first run)
+    m_en["tut.move"]               = "Move";
+    m_en["tut.jump"]               = "Jump";
+    m_en["tut.dash"]               = "Dash through danger (also in air!)";
+    m_en["tut.melee"]              = "Melee Attack";
+    m_en["tut.ranged"]             = "Ranged Attack (hold for charged shot!)";
+    m_en["tut.dimension"]          = "Switch Dimension - paths differ between worlds!";
+    m_en["tut.rift_repair"]        = "Repair this Rift! Solve the puzzle to reduce Entropy.";
+    m_en["tut.entropy_warning"]    = "Entropy rising! Repair Rifts to lower it. At 100% your suit fails!";
+    m_en["tut.conveyor"]           = "Conveyor Belt - pushes you along. Use it for speed!";
+    m_en["tut.dim_platform"]       = "Glowing platform - only exists in one dimension! Switch with [E]";
+    m_en["tut.wall_slide"]         = "Wall Slide! Jump off walls to reach higher areas.";
+    m_en["tut.abilities"]          = "Use special abilities: Slam / Shield / Phase Strike";
+    m_en["tut.relic_choice"]       = "Choose a Relic! Each gives a unique passive bonus for this run.";
+    m_en["tut.combo"]              = "Combo x3! Chain hits without pause for bonus damage!";
+    m_en["tut.exit"]               = "All Rifts repaired! Find the EXIT before the dimension collapses!";
+    m_en["tut.weapon_switch"]      = "Switch weapons: [Q] Melee  [R] Ranged - try different styles!";
+    m_en["tut.rift_dimb"]          = "This Rift only stabilizes in DIM-B. Shift with [E], but entropy rises faster there.";
+    m_en["tut.rift_dima"]          = "This Rift only stabilizes in DIM-A. Shift with [E] to secure it safely.";
+    m_en["tut.collapsing"]         = "Dimension collapsing! Reach the EXIT before time runs out!";
+
     // Death causes (run history, game over)
     m_en["death.hp"]               = "HP Depleted";
     m_en["death.entropy"]          = "Entropy Overload";
@@ -636,6 +657,27 @@ void Localization::loadStrings() {
     m_de["lore.fragments"]         = "%d / %d Fragmente";
     m_de["lore.undiscovered"]      = "Dieses Fragment wurde noch nicht entdeckt.";
     m_de["lore.nav_hint"]          = "W/S: Navigieren   ESC: Zurueck";
+
+    // Tutorial hints
+    m_de["tut.move"]               = "Bewegen";
+    m_de["tut.jump"]               = "Springen";
+    m_de["tut.dash"]               = "Durch Gefahr dashen (auch in der Luft!)";
+    m_de["tut.melee"]              = "Nahkampf-Angriff";
+    m_de["tut.ranged"]             = "Fernkampf (halten fuer aufgeladenen Schuss!)";
+    m_de["tut.dimension"]          = "Dimension wechseln - Wege unterscheiden sich!";
+    m_de["tut.rift_repair"]        = "Repariere diesen Riss! Loese das Raetsel um Entropie zu senken.";
+    m_de["tut.entropy_warning"]    = "Entropie steigt! Repariere Risse. Bei 100% versagt der Anzug!";
+    m_de["tut.conveyor"]           = "Foerderband - schiebt dich mit. Nutze es fuer Geschwindigkeit!";
+    m_de["tut.dim_platform"]       = "Leuchtende Plattform - existiert nur in einer Dimension! Wechsle mit [E]";
+    m_de["tut.wall_slide"]         = "Wandrutschen! Springe von Waenden fuer hoehere Bereiche.";
+    m_de["tut.abilities"]          = "Nutze Spezialfaehigkeiten: Stampfer / Schild / Phasenschlag";
+    m_de["tut.relic_choice"]       = "Waehle ein Relikt! Jedes gibt einen einzigartigen Bonus fuer diesen Lauf.";
+    m_de["tut.combo"]              = "Kombo x3! Kettentreffern ohne Pause fuer Bonusschaden!";
+    m_de["tut.exit"]               = "Alle Risse repariert! Finde den AUSGANG bevor die Dimension kollabiert!";
+    m_de["tut.weapon_switch"]      = "Waffen wechseln: [Q] Nahkampf  [R] Fernkampf - probiere verschiedene Stile!";
+    m_de["tut.rift_dimb"]          = "Dieser Riss stabilisiert nur in DIM-B. Wechsle mit [E], aber Entropie steigt schneller dort.";
+    m_de["tut.rift_dima"]          = "Dieser Riss stabilisiert nur in DIM-A. Wechsle mit [E] um ihn sicher zu reparieren.";
+    m_de["tut.collapsing"]         = "Dimension kollabiert! Erreiche den AUSGANG bevor die Zeit ablaeuft!";
 
     // Death causes
     m_de["death.hp"]               = "HP aufgebraucht";

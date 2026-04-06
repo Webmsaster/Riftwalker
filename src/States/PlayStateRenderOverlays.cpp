@@ -432,16 +432,16 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
     if (m_currentDifficulty == 1) {
         if (!m_tutorialHintDone[0]) {
             if (m_tutorialTimer > 1.5f && !m_hasMovedThisRun) {
-                hint = "Move";
+                hint = LOC("tut.move");
                 keyLabel = "WASD";
             }
             if (m_hasMovedThisRun) { conditionMet = true; hintSlot = 0; }
         } else if (!m_tutorialHintDone[1]) {
-            hint = "Jump";
+            hint = LOC("tut.jump");
             keyLabel = "SPACE";
             if (m_hasJumpedThisRun) { conditionMet = true; hintSlot = 1; }
         } else if (!m_tutorialHintDone[2]) {
-            hint = "Dash through danger (also in air!)";
+            hint = LOC("tut.dash");
             keyLabel = "SHIFT";
             if (m_hasDashedThisRun) { conditionMet = true; hintSlot = 2; }
         } else if (!m_tutorialHintDone[3]) {
@@ -458,16 +458,16 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
                 });
             }
             if (enemyNear) {
-                hint = "Melee Attack";
+                hint = LOC("tut.melee");
                 keyLabel = "J";
             }
             if (m_hasAttackedThisRun) { conditionMet = true; hintSlot = 3; }
         } else if (!m_tutorialHintDone[4]) {
-            hint = "Ranged Attack (hold for charged shot!)";
+            hint = LOC("tut.ranged");
             keyLabel = "K";
             if (m_hasRangedThisRun) { conditionMet = true; hintSlot = 4; }
         } else if (!m_tutorialHintDone[5]) {
-            hint = "Switch Dimension - paths differ between worlds!";
+            hint = LOC("tut.dimension");
             keyLabel = "E";
             if (m_dimManager.getSwitchCount() > 0) { conditionMet = true; hintSlot = 5; }
         }
@@ -480,21 +480,21 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
             int currentDim = m_dimManager.getCurrentDimension();
             if (requiredDim > 0 && requiredDim != currentDim) {
                 hint = (requiredDim == 2)
-                    ? "This Rift only stabilizes in DIM-B. Shift with [E], but entropy rises faster there."
-                    : "This Rift only stabilizes in DIM-A. Shift with [E] to secure it safely.";
+                    ? LOC("tut.rift_dimb")
+                    : LOC("tut.rift_dima");
                 keyLabel = "E";
                 hintSlot = 16;
             }
         }
         // Near a rift: explain how to repair
         if (!hint && !m_tutorialHintDone[6] && m_nearRiftIndex >= 0) {
-            hint = "Repair this Rift! Solve the puzzle to reduce Entropy.";
+            hint = LOC("tut.rift_repair");
             keyLabel = "F";
             if (riftsRepaired > 0) { conditionMet = true; hintSlot = 6; }
         }
         // Entropy getting high
         else if (!m_tutorialHintDone[7] && !m_shownEntropyWarning && m_entropy.getPercent() > 0.5f) {
-            hint = "Entropy rising! Repair Rifts to lower it. At 100% your suit fails!";
+            hint = LOC("tut.entropy_warning");
             keyLabel = nullptr;
             m_shownEntropyWarning = true;
             m_tutorialHintShowTimer = 0;
@@ -511,7 +511,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
             int dim = m_dimManager.getCurrentDimension();
             int cdir = 0;
             if (m_level && (m_level->isOnConveyor(fx, fy, dim, cdir) || m_level->isOnConveyor(fx, fy+1, dim, cdir))) {
-                hint = "Conveyor Belt - pushes you along. Use it for speed!";
+                hint = LOC("tut.conveyor");
                 m_shownConveyorHint = true;
                 hintSlot = 8;
                 m_tutorialHintShowTimer = 0;
@@ -528,7 +528,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
             for (int dy = -2; dy <= 2 && !hint; dy++) {
                 for (int dx = -3; dx <= 3 && !hint; dx++) {
                     if (m_level->isDimensionExclusive(px+dx, py+dy, dim)) {
-                        hint = "Glowing platform - only exists in one dimension! Switch with [E]";
+                        hint = LOC("tut.dim_platform");
                         m_shownDimPlatformHint = true;
                         hintSlot = 9;
                         m_tutorialHintShowTimer = 0;
@@ -540,7 +540,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
         else if (!m_tutorialHintDone[10] && !m_shownWallSlideHint && m_player) {
             auto& phys = m_player->getEntity()->getComponent<PhysicsBody>();
             if ((phys.onWallLeft || phys.onWallRight) && !phys.onGround) {
-                hint = "Wall Slide! Jump off walls to reach higher areas.";
+                hint = LOC("tut.wall_slide");
                 keyLabel = "SPACE";
                 m_shownWallSlideHint = true;
                 hintSlot = 10;
@@ -550,13 +550,13 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
         // Show abilities hint (level 1, after combat basics done)
         else if (!m_tutorialHintDone[11] && m_hasAttackedThisRun && !m_hasUsedAbilityThisRun
                  && m_tutorialTimer > 30.0f) {
-            hint = "Use special abilities: Slam / Shield / Phase Strike";
+            hint = LOC("tut.abilities");
             keyLabel = "1 2 3";
             if (m_hasUsedAbilityThisRun) { conditionMet = true; hintSlot = 11; }
         }
         // Relic choice hint
         else if (!m_tutorialHintDone[12] && !m_shownRelicHint && m_showRelicChoice) {
-            hint = "Choose a Relic! Each gives a unique passive bonus for this run.";
+            hint = LOC("tut.relic_choice");
             m_shownRelicHint = true;
             hintSlot = 12;
             m_tutorialHintShowTimer = 0;
@@ -566,14 +566,14 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
                  m_player->getEntity()->hasComponent<CombatComponent>()) {
             auto& cb = m_player->getEntity()->getComponent<CombatComponent>();
             if (cb.comboCount >= 3) {
-                hint = "Combo x3! Chain hits without pause for bonus damage!";
+                hint = LOC("tut.combo");
                 conditionMet = true;
                 hintSlot = 13;
             }
         }
         // Exit hint when all rifts repaired
         else if (!m_tutorialHintDone[14] && m_levelComplete && !m_collapsing) {
-            hint = "All Rifts repaired! Find the EXIT before the dimension collapses!";
+            hint = LOC("tut.exit");
             conditionMet = false;
             hintSlot = 14;
             m_tutorialHintShowTimer = 0;
@@ -581,13 +581,13 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
         // Weapon switch hint after a few levels
         else if (!m_tutorialHintDone[15] && m_currentDifficulty >= 2 && m_tutorialTimer > 10.0f
                  && m_tutorialHintDone[3]) {
-            hint = "Switch weapons: [Q] Melee  [R] Ranged - try different styles!";
+            hint = LOC("tut.weapon_switch");
             hintSlot = 15;
             m_tutorialHintShowTimer = 0;
         }
         // Collapse started hint (escape phase)
         else if (!m_tutorialHintDone[17] && m_collapsing && m_collapseTimer < 3.0f) {
-            hint = "Dimension collapsing! Reach the EXIT before time runs out!";
+            hint = LOC("tut.collapsing");
             hintSlot = 17;
             m_tutorialHintShowTimer = 0;
         }
