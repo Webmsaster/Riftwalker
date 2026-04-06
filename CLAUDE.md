@@ -6,17 +6,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
 **Recent Updates (2026-04-06 massive localization + polish session):**
-- **Complete Localization**: 407 EN + 407 DE string pairs — ALL player-facing UI strings now use LOC() macro
-  - 28 source files with LOC() calls, 320+ individual LOC() call sites
-  - 19 tutorial hints, 25 gameplay tips, 3 ending narratives (35 lines), 6 boss names + 8 subtitles
-  - Zone names (5), death causes, NG+ tiers, element names, mastery tiers, relic tiers
-  - Menu panels, HUD notifications, exit/rift hints, wave cleared, version string
+- **Complete Localization**: 408 EN + 408 DE string pairs — ALL player-facing UI strings use LOC() macro
+  - 29 source files with 333 LOC() call sites, 989-line Localization.cpp
+  - 19 tutorial hints, 30 gameplay tips (doubled from 15), 3 ending narratives (35 lines)
+  - 6 boss names + 8 subtitles, 5 zone names, rift repair/shift prompts, exit hints
+  - Death causes, NG+ tiers, element names, mastery tiers, relic tiers, wave cleared
+  - Menu panels (daily run, career stats), HUD notifications, version string
   - Gamepad support added to CreditsState (was keyboard-only)
-- **Bug Fix**: weaponKills OOB array access in HUD.cpp (bounds check added)
+- **Bug Fixes**: weaponKills OOB in HUD.cpp, achievements scroll indicators at 720p
 - **Mouse UX**: SDL_MOUSEWHEEL scrolling in 7 states + mouse hover in Bestiary/Lore
 - **Audio UX**: Scroll SFX added to DailyLeaderboard + RunHistory
 - **Credits Polish**: Particles 40→70, 4-color dimensional palette
-- 26 commits, ~35 files changed, +1200 lines
+- **.gitignore**: Added riftwalker_daily.dat + .bak files
+- 31 commits, ~35 files changed, +1400 lines
 
 **Previous Updates (2026-04-05 music quality + crossfade + localization session):**
 - **Music Synth v2**: Proper MIDI note_on/note_off duration parsing (was guessing), stereo output with per-track panning, Schroeder reverb (4 comb + 2 allpass IIR), chorus for pads/strings, filter envelope modulation for bass/leads, band-limited saw waves
