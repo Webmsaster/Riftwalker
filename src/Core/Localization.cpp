@@ -153,6 +153,7 @@ void Localization::loadStrings() {
     m_en["menu.stats_kills"]       = "Kills: %d  |  Rifts: %d";
     m_en["menu.stats_shards"]      = "Shards: %d";
     m_en["menu.stats_playtime"]    = "Playtime: %dh %dm";
+    m_en["menu.stats_victories"]   = "Victories: %d";
 
     // HUD notifications
     m_en["hud.achievement"]        = "Achievement: %s";
@@ -636,6 +637,7 @@ void Localization::loadStrings() {
     m_de["menu.stats_kills"]       = "Kills: %d  |  Risse: %d";
     m_de["menu.stats_shards"]      = "Splitter: %d";
     m_de["menu.stats_playtime"]    = "Spielzeit: %dh %dm";
+    m_de["menu.stats_victories"]   = "Siege: %d";
 
     // HUD notifications
     m_de["hud.achievement"]        = "Erfolg: %s";

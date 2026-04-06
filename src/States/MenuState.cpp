@@ -606,16 +606,27 @@ void MenuState::renderCareerStats(SDL_Renderer* renderer, TTF_Font* font) {
                   ups.totalEnemiesKilled, ups.totalRiftsRepaired);
     drawStat(buf, {80, 75, 120, 255}, ty + lineH * 2);
 
-    // Line 3: Shards
-    std::snprintf(buf, sizeof(buf), LOC("menu.stats_shards"), ups.getRiftShards());
-    drawStat(buf, {80, 75, 120, 255}, ty + lineH * 3);
+    // Line 3: Shards | Victories
+    {
+        int victories = 0;
+        for (const auto& r : ups.getRunHistory())
+            if (r.deathCause == 5) victories++;
+        if (victories > 0) {
+            std::snprintf(buf, sizeof(buf), LOC("menu.stats_victories"), victories);
+            drawStat(buf, {80, 200, 80, 255}, ty + lineH * 3);
+        }
+        std::snprintf(buf, sizeof(buf), LOC("menu.stats_shards"), ups.getRiftShards());
+        drawStat(buf, {80, 75, 120, 255}, ty + lineH * (victories > 0 ? 4 : 3));
+    }
 
-    // Line 4: Total playtime
+    // Total playtime
     if (ups.totalPlaytime > 0) {
         int totalMins = static_cast<int>(ups.totalPlaytime) / 60;
         int hours = totalMins / 60;
         int mins = totalMins % 60;
         std::snprintf(buf, sizeof(buf), LOC("menu.stats_playtime"), hours, mins);
-        drawStat(buf, {80, 75, 120, 255}, ty + lineH * 4);
+        int ptLine = 4;
+        for (const auto& r : ups.getRunHistory()) if (r.deathCause == 5) { ptLine = 5; break; }
+        drawStat(buf, {80, 75, 120, 255}, ty + lineH * ptLine);
     }
 }
