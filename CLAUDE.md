@@ -7,22 +7,22 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 
 **Recent Updates (2026-04-06 overnight autonomous session — 2 waves):**
 
-*Wave 2 (late night):*
-- **Deep Localization Pass**: 43 more EN+DE string pairs (451 EN + 451 DE total)
+*Wave 2 (late night — autonomous session):*
+- **Massive Localization Extension**: 512 EN + 553 DE keys (1290-line Localization.cpp)
   - Buff pickups (SHIELD/SPEED UP/DMG UP), PARRY!/CRIT! floating text
-  - 10 NG+ rank titles localized in RunSummaryState (was hardcoded English array)
-  - Balance summary stats (DMG/ATK/CD/VoidHunger) localized
-  - Bestiary stat labels (HP/DMG/SPD/ELEM), challenge complete, rift counter, zone label
-  - NPC dialog nav hint, event chain stage, level-up display
-- **Mouse UX Extended**: Right-click-back in 6 more states (14 total), mouse wheel in 5 more states
-  - ClassSelect, DifficultySelect, NGPlusSelect, ChallengeSelect, PauseState, ShopState
-  - ChallengeSelect: full mouse hover+click for challenges and mutator toggles (was keyboard-only)
-  - EndingState: mouse click to advance phases (was keyboard/gamepad only)
-  - GameOver: mouse click to return (was keyboard/gamepad only)
-- **Gameplay Tips**: 40 tips (was 35), 5 new: synergies, right-click hint, boss enrage, health orbs, mastery
-- **Bug Fix**: HUD texture leak — added destructor to free m_hudTarget on PlayState destroy
-- **Code Quality**: Fixed outdated comment in GameState.h (NG+ tiers 1-5 → 1-10)
-- 9 commits, ~20 files changed
+  - 10 NG+ rank titles, balance summary stats, bestiary stat labels
+  - All 4 class descriptions, passives, abilities localized (16 pairs)
+  - All 18 upgrade names + descriptions localized (36 pairs)
+  - All 5 challenges + 6 mutators localized (22 pairs)
+  - All 41 achievement names + descriptions (82 DE pairs with EN fallback)
+  - All 12 shop buff names + descriptions (24 pairs)
+  - Class unlock requirements (4 pairs), NPC nav hint, zone/chain labels
+- **Mouse UX Extended**: Right-click-back in 6 more states (14 total), mouse wheel in 5 more
+  - ChallengeSelect: full mouse hover+click (was keyboard-only)
+  - EndingState + GameOver: mouse click support added
+- **Gameplay Tips**: 40 tips (was 35)
+- **Bug Fix**: HUD texture leak — destructor frees m_hudTarget
+- 16 commits, ~25 files changed
 
 *Wave 1 (earlier):*
 - **Complete Localization**: 408 EN + 408 DE string pairs — ALL player-facing UI strings use LOC() macro
