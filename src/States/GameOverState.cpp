@@ -38,7 +38,8 @@ void GameOverState::enter() {
 }
 
 void GameOverState::handleEvent(const SDL_Event& event) {
-    if ((event.type == SDL_KEYDOWN || event.type == SDL_CONTROLLERBUTTONDOWN) && m_timer > 1.5f) {
+    if ((event.type == SDL_KEYDOWN || event.type == SDL_CONTROLLERBUTTONDOWN ||
+         event.type == SDL_MOUSEBUTTONDOWN) && m_timer > 1.5f) {
         game->changeState(StateID::Menu);
     }
 }

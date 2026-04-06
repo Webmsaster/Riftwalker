@@ -109,6 +109,18 @@ void MenuState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Mouse wheel scrolling through menu items
+    if (event.type == SDL_MOUSEWHEEL) {
+        int btnCount = static_cast<int>(m_buttons.size());
+        m_buttons[m_selectedButton].setSelected(false);
+        if (event.wheel.y > 0)
+            m_selectedButton = (m_selectedButton - 1 + btnCount) % btnCount;
+        else if (event.wheel.y < 0)
+            m_selectedButton = (m_selectedButton + 1) % btnCount;
+        m_buttons[m_selectedButton].setSelected(true);
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
         int mx = event.button.x, my = event.button.y;
         for (int i = 0; i < static_cast<int>(m_buttons.size()); i++) {

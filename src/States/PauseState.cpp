@@ -119,6 +119,20 @@ void PauseState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Mouse wheel scrolling through pause menu items
+    if (event.type == SDL_MOUSEWHEEL) {
+        int btnCount = static_cast<int>(m_buttons.size());
+        m_buttons[m_selectedButton].setSelected(false);
+        if (event.wheel.y > 0)
+            m_selectedButton = (m_selectedButton - 1 + btnCount) % btnCount;
+        else if (event.wheel.y < 0)
+            m_selectedButton = (m_selectedButton + 1) % btnCount;
+        m_buttons[m_selectedButton].setSelected(true);
+        AudioManager::instance().play(SFX::MenuSelect);
+        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
+        if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
+    }
+
     // Right-click to resume (same as ESC)
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
         game->popState();
