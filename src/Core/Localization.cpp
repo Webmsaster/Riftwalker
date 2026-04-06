@@ -914,6 +914,46 @@ void Localization::loadStrings() {
     m_de["ach.ascension_1.name"]     = "New Game Plus";      m_de["ach.ascension_1.desc"]     = "Schliesse Aufstiegsstufe 1 ab";
     m_de["ach.ascension_5.name"]     = "Wahrer Risswandler"; m_de["ach.ascension_5.desc"]     = "Schliesse Aufstiegsstufe 5 ab";
 
+    // Relic names & descriptions (DE only — EN falls back to RelicData struct)
+    m_de["relic.1.name"]  = "Eisenherz";        m_de["relic.1.desc"]  = "+15 Max HP";
+    m_de["relic.2.name"]  = "Flinke Stiefel";   m_de["relic.2.desc"]  = "+10% Tempo";
+    m_de["relic.3.name"]  = "Splittermagnet";    m_de["relic.3.desc"]  = "+50% Aufsammelradius";
+    m_de["relic.4.name"]  = "Dornenruestung";    m_de["relic.4.desc"]  = "8 SCH Reflexion";
+    m_de["relic.5.name"]  = "Flinke Haende";     m_de["relic.5.desc"]  = "+15% Angriffsgeschwindigkeit";
+    m_de["relic.6.name"]  = "Gluecksmuenze";     m_de["relic.6.desc"]  = "+10% Splitter-Drop";
+    m_de["relic.7.name"]  = "Blutrausch";        m_de["relic.7.desc"]  = "+25% SCH unter 30% HP";
+    m_de["relic.8.name"]  = "Echoschlag";        m_de["relic.8.desc"]  = "20% Doppeltreffer";
+    m_de["relic.9.name"]  = "Phasenumhang";      m_de["relic.9.desc"]  = "1s unsichtbar nach Wechsel";
+    m_de["relic.10.name"] = "Entropieanker";     m_de["relic.10.desc"] = "-40% Entropie (Boss)";
+    m_de["relic.11.name"] = "Kettenblitz";       m_de["relic.11.desc"] = "Kill: 15 SCH Blitz";
+    m_de["relic.12.name"] = "Seelensauger";      m_de["relic.12.desc"] = "Kills heilen 3 HP";
+    m_de["relic.13.name"] = "Berserkerkern";     m_de["relic.13.desc"] = "+50% SCH, -30% HP";
+    m_de["relic.14.name"] = "Zeitdehner";        m_de["relic.14.desc"] = "-30% Faehigkeits-CD";
+    m_de["relic.15.name"] = "Dimensionsecho";    m_de["relic.15.desc"] = "Trifft beide Dimensionen";
+    m_de["relic.16.name"] = "Phoenixfeder";      m_de["relic.16.desc"] = "1x Auto-Wiederbelebung";
+    m_de["relic.17.name"] = "Leerehunger";       m_de["relic.17.desc"] = "Kill: +1% SCH (Lauf)";
+    m_de["relic.18.name"] = "Chaoskugel";        m_de["relic.18.desc"] = "Zufallseffekt / 30s";
+    m_de["relic.19.name"] = "Verfluchte Klinge"; m_de["relic.19.desc"] = "+40% Nahkampf, -20% Fernkampf";
+    m_de["relic.20.name"] = "Glasherz";          m_de["relic.20.desc"] = "+50% Max HP, 1.6x Schaden";
+    m_de["relic.21.name"] = "Zeitsteuer";        m_de["relic.21.desc"] = "-50% Faehigkeits-CD, kostet 5 HP";
+    m_de["relic.22.name"] = "Entropieschwamm";   m_de["relic.22.desc"] = "Keine passive Entropie, Kills +5%";
+    m_de["relic.23.name"] = "Leerepakt";         m_de["relic.23.desc"] = "Kill heilt 5 HP, max 60% HP";
+    m_de["relic.24.name"] = "Chaosriss";         m_de["relic.24.desc"] = "10. Kill: Buff, 5. Treffer: Spitze";
+    m_de["relic.25.name"] = "Rissleiter";        m_de["relic.25.desc"] = "Wechsel: +10% ANG-Tempo 3s (x3)";
+    m_de["relic.26.name"] = "Dualitaetsstein";   m_de["relic.26.desc"] = "Dim A: +25% SCH, Dim B: +25% Ruestung";
+    m_de["relic.27.name"] = "Dim.-Rueckstand";   m_de["relic.27.desc"] = "Wechsel: 15 SCH/s Zone 2s";
+    m_de["relic.28.name"] = "Rissmantel";        m_de["relic.28.desc"] = "-50% Wechsel-CD, kostet 5% Max HP";
+    m_de["relic.29.name"] = "Stabilitaetsmatrix"; m_de["relic.29.desc"] = "+3% SCH/s in Dim (max 30%)";
+    m_de["relic.30.name"] = "Leereresonanz";     m_de["relic.30.desc"] = "Cross-Dim-Kill: 2x SCH";
+    m_de["relic.31.name"] = "Blutpakt";          m_de["relic.31.desc"] = "+40% SCH, -1 HP pro Kill";
+    m_de["relic.32.name"] = "Entropiesiphon";    m_de["relic.32.desc"] = "Kill: -8 Entropie, +50% Zunahme";
+    m_de["relic.33.name"] = "Glaskanone";        m_de["relic.33.desc"] = "+60% SCH, Max HP halbiert";
+    m_de["relic.34.name"] = "Vampirklinge";      m_de["relic.34.desc"] = "Kill: +3 HP, keine passive Heilung";
+    m_de["relic.35.name"] = "Chaoskern";         m_de["relic.35.desc"] = "+25% Werte, Wechsel alle 20s";
+    m_de["relic.36.name"] = "Berserkerfluch";    m_de["relic.36.desc"] = "+15% SCH pro fehlende 10% HP, kein Schild";
+    m_de["relic.37.name"] = "Zeitverzerrung";    m_de["relic.37.desc"] = "+30% Tempo+ANG, 50% langsamerer Entropieabbau";
+    m_de["relic.38.name"] = "Seelenegel";        m_de["relic.38.desc"] = "2x Splitter, -5 HP pro Level";
+
     // Difficulty Select
     m_de["difficulty.title"]       = "S C H W I E R I G K E I T";
     m_de["difficulty.easy"]        = "L E I C H T";

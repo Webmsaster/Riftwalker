@@ -218,10 +218,17 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_RenderFillRect(renderer, &cardBg);
         }
 
-        // Name
+        // Name (localized relic name)
+        char rNameKey[48], rDescKey[48];
+        snprintf(rNameKey, sizeof(rNameKey), "relic.%d.name", static_cast<int>(data.id));
+        snprintf(rDescKey, sizeof(rDescKey), "relic.%d.desc", static_cast<int>(data.id));
+        const char* rLocName = LOC(rNameKey);
+        const char* rDisplayName = (strcmp(rLocName, rNameKey) == 0) ? data.name : rLocName;
+        const char* rLocDesc = LOC(rDescKey);
+        const char* rDisplayDesc = (strcmp(rLocDesc, rDescKey) == 0) ? data.description : rLocDesc;
         {
             SDL_Color nc = {255, 255, 255, 255};
-            SDL_Surface* s = TTF_RenderText_Blended(font, data.name, nc);
+            SDL_Surface* s = TTF_RenderText_Blended(font, rDisplayName, nc);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
@@ -236,7 +243,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
         // Description
         {
             SDL_Color dc = {180, 180, 200, 220};
-            SDL_Surface* s = TTF_RenderText_Blended(font, data.description, dc);
+            SDL_Surface* s = TTF_RenderText_Blended(font, rDisplayDesc, dc);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
