@@ -5,7 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-05 music quality + crossfade + localization session):**
+**Recent Updates (2026-04-06 massive localization + polish session):**
+- **Complete Localization**: 321 EN + 321 DE string pairs — ALL player-facing UI strings now use LOC() macro
+  - 25 state files updated: ClassSelect, Difficulty, Achievements, Bestiary, Challenges, NGPlus, Keybindings, DailyLeaderboard, Lore, RunHistory, Shop, Upgrade, Credits, Ending, Splash, Menu, PlayState overlays/HUD/world
+  - Zone names (5), boss names (6) + subtitles (8), death causes (6), tier descriptions (11)
+  - Gameplay tips expanded from 15 → 25 covering all major mechanics
+  - Gamepad support added to CreditsState (was keyboard-only)
+- 8 commits, ~25 files changed, +600 lines
+
+**Previous Updates (2026-04-05 music quality + crossfade + localization session):**
 - **Music Synth v2**: Proper MIDI note_on/note_off duration parsing (was guessing), stereo output with per-track panning, Schroeder reverb (4 comb + 2 allpass IIR), chorus for pads/strings, filter envelope modulation for bass/leads, band-limited saw waves
 - **Music Crossfade**: `playMusic()` uses `Mix_FadeInMusic(500ms)` / `stopMusic()` uses `Mix_FadeOutMusic(300ms)` — no more hard cuts on zone/boss/state transitions
 - **Gameplay Tips**: 15 rotating tips shown during level transition iris wipe (seeded by floor+run for consistency)
