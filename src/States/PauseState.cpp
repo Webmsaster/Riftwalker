@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 // Layout constants (scaled for logical resolution)
 static constexpr int PANEL_X      = 120;
@@ -498,7 +499,11 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
                     SDL_Color rCol = valCol;
                     if (data.tier == RelicTier::Rare) rCol = {100, 180, 255, 255};
                     else if (data.tier == RelicTier::Legendary) rCol = {255, 200, 50, 255};
-                    renderStatText(renderer, font, data.name, mx, my, rCol);
+                    // Localized relic name (fallback to data.name for EN)
+                    char rlk[48];
+                    std::snprintf(rlk, sizeof(rlk), "relic.%d.name", static_cast<int>(data.id));
+                    const char* rloc = LOC(rlk);
+                    renderStatText(renderer, font, (std::strcmp(rloc, rlk) == 0) ? data.name : rloc, mx, my, rCol);
                     my += 32;
                     if (my > SCREEN_HEIGHT - 200) break; // Don't overflow panel
                 }
