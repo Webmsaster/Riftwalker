@@ -1,5 +1,6 @@
 #include "States/LoreState.h"
 #include "Core/Game.h"
+#include "Core/AudioManager.h"
 #include "Core/Localization.h"
 #include "UI/UITextures.h"
 #include <algorithm>
@@ -32,11 +33,14 @@ void LoreState::update(float dt) {
 
     if (input.isActionPressed(Action::MenuUp)) {
         m_selected = (m_selected - 1 + total) % total;
+        AudioManager::instance().play(SFX::MenuSelect);
     }
     if (input.isActionPressed(Action::MenuDown)) {
         m_selected = (m_selected + 1) % total;
+        AudioManager::instance().play(SFX::MenuSelect);
     }
     if (input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
         if (game) game->changeState(StateID::Menu);
     }
 }

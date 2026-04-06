@@ -281,7 +281,7 @@ void PlayState::renderDynamicEventOverlay(SDL_Renderer* renderer, TTF_Font* font
                                m_dynamicEvent.color.g / 4,
                                m_dynamicEvent.color.b / 4,
                                static_cast<Uint8>(a * 0.6f));
-        SDL_Rect bgBar = {SCREEN_WIDTH / 2 - 360, baseY - 12, 720, 80};
+        SDL_Rect bgBar = {SCREEN_WIDTH / 2 - 720, baseY - 12, 1440, 80};
         SDL_RenderFillRect(renderer, &bgBar);
 
         // Event-colored border

@@ -12,7 +12,7 @@ void AchievementsState::enter() {
     auto& achievements = game->getAchievements().getAll();
     int itemH = 120;
     int totalH = static_cast<int>(achievements.size()) * itemH;
-    int visibleH = 1080; // area between title and bottom (scaled for 1440p)
+    int visibleH = SCREEN_HEIGHT - 360; // area between title+counter and nav hint
     m_maxScroll = std::max(0, totalH - visibleH);
 }
 
@@ -145,7 +145,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
     }
 
     // Clip area for scrollable list
-    SDL_Rect clipRect = {280, 180, 2000, 1080};
+    SDL_Rect clipRect = {280, 180, 2000, SCREEN_HEIGHT - 360};
     SDL_RenderSetClipRect(renderer, &clipRect);
 
     auto& achievements = achSys.getAll();
