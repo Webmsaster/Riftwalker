@@ -1,4 +1,5 @@
 #include "ClassSystem.h"
+#include "Core/Localization.h"
 
 static const ClassData s_classData[] = {
     // Voidwalker - balanced, dimension-focused
@@ -103,10 +104,10 @@ void ClassSystem::unlock(PlayerClass pc) {
 
 const char* ClassSystem::getUnlockRequirement(PlayerClass pc) {
     switch (pc) {
-        case PlayerClass::Voidwalker:    return "Always available";
-        case PlayerClass::Berserker:     return "Kill 50 enemies total across all runs";
-        case PlayerClass::Phantom:       return "Complete floor 3 in any run";
-        case PlayerClass::Technomancer:  return "Repair 30 rifts total across all runs";
+        case PlayerClass::Voidwalker:    return LOC("class.unlock.voidwalker");
+        case PlayerClass::Berserker:     return LOC("class.unlock.berserker");
+        case PlayerClass::Phantom:       return LOC("class.unlock.phantom");
+        case PlayerClass::Technomancer:  return LOC("class.unlock.technomancer");
         default: return "Unknown";
     }
 }

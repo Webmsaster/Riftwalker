@@ -204,6 +204,12 @@ void Localization::loadStrings() {
     m_en["class.technomancer.pdesc"]   = "Turrets/traps +20% DMG, last 50% longer, +10% ranged DMG";
     m_en["class.technomancer.ability"] = "Deploy Turret (Q) / Shock Trap (E)";
 
+    // Class unlock requirements
+    m_en["class.unlock.voidwalker"]    = "Always available";
+    m_en["class.unlock.berserker"]     = "Kill 50 enemies total across all runs";
+    m_en["class.unlock.phantom"]       = "Complete floor 3 in any run";
+    m_en["class.unlock.technomancer"]  = "Repair 30 rifts total across all runs";
+
     // Upgrade names & descriptions (indexed by UpgradeID)
     m_en["upgrade.0.name"]  = "Reinforced Suit";     m_en["upgrade.0.desc"]  = "+20 Max HP";
     m_en["upgrade.1.name"]  = "Quantum Boots";       m_en["upgrade.1.desc"]  = "+10% Move Speed";
@@ -793,6 +799,12 @@ void Localization::loadStrings() {
     m_de["class.technomancer.passive"] = "Konstruktmeisterschaft";
     m_de["class.technomancer.pdesc"]   = "Geschuetze/Fallen +20% SCH, 50% laenger, +10% Fernkampf-SCH";
     m_de["class.technomancer.ability"] = "Geschuetz (Q) / Schockfalle (E)";
+
+    // Class unlock requirements
+    m_de["class.unlock.voidwalker"]    = "Immer verfuegbar";
+    m_de["class.unlock.berserker"]     = "Toete insgesamt 50 Gegner in allen Laeufen";
+    m_de["class.unlock.phantom"]       = "Erreiche Etage 3 in einem Lauf";
+    m_de["class.unlock.technomancer"]  = "Repariere insgesamt 30 Risse in allen Laeufen";
 
     // Upgrade names & descriptions
     m_de["upgrade.0.name"]  = "Verstaerkter Anzug";   m_de["upgrade.0.desc"]  = "+20 Max HP";
