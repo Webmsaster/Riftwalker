@@ -49,5 +49,5 @@ inline GameDifficulty g_selectedDifficulty = GameDifficulty::Normal;
 // New Game+ level (0 = first playthrough, 1+ = NG+ tiers)
 inline int g_newGamePlusLevel = 0;
 
-// Global NG+ tier (0 = Normal, 1-5 = NG+ tiers)
+// Global NG+ tier (0 = Normal, 1-10 = NG+ tiers)
 inline int g_selectedNGPlus = 0;

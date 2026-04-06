@@ -1214,15 +1214,15 @@ void PlayState::update(float dt) {
             m_damageNumbers.push_back(num);
         };
         if (m_player->pickupShieldPending) {
-            emitBuffPickup({100, 180, 255, 220}, "SHIELD");
+            emitBuffPickup({100, 180, 255, 220}, LOC("pickup.shield"));
             m_player->pickupShieldPending = false;
         }
         if (m_player->pickupSpeedPending) {
-            emitBuffPickup({255, 255, 80, 220}, "SPEED UP");
+            emitBuffPickup({255, 255, 80, 220}, LOC("pickup.speed"));
             m_player->pickupSpeedPending = false;
         }
         if (m_player->pickupDamagePending) {
-            emitBuffPickup({255, 80, 80, 220}, "DMG UP");
+            emitBuffPickup({255, 80, 80, 220}, LOC("pickup.damage"));
             m_player->pickupDamagePending = false;
         }
         if (m_player->weaponPickupPending >= 0) {

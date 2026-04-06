@@ -354,7 +354,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
         Uint8 alpha = static_cast<Uint8>(255 * slideIn);
 
         char stageText[64];
-        snprintf(stageText, sizeof(stageText), "CHAIN: Stage %d/%d", m_eventChain.stage, m_eventChain.maxStages);
+        snprintf(stageText, sizeof(stageText), LOC("hud.chain_stage"), m_eventChain.stage, m_eventChain.maxStages);
 
         SDL_Color textCol = {cc.r, cc.g, cc.b, alpha};
         SDL_Surface* surf = TTF_RenderText_Blended(font, stageText, textCol);
@@ -710,7 +710,7 @@ void PlayState::renderZoneTransition(SDL_Renderer* renderer, TTF_Font* font) {
     // "ZONE X" label (small, gold)
     {
         char zoneLbl[16];
-        snprintf(zoneLbl, sizeof(zoneLbl), "ZONE %d", m_zoneTransitionNumber);
+        snprintf(zoneLbl, sizeof(zoneLbl), LOC("hud.zone"), m_zoneTransitionNumber);
         SDL_Color gold = {255, 200, 50, a};
         SDL_Surface* s = TTF_RenderText_Blended(font, zoneLbl, gold);
         if (s) {

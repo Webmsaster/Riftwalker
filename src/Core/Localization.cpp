@@ -512,6 +512,34 @@ void Localization::loadStrings() {
     m_en["tip.33"] = "TIP: The Voidwalker heals 3 HP every dimension switch.";
     m_en["tip.34"] = "TIP: Challenge modes unlock after completing your first run.";
 
+    // Buff pickups (in-game floating text)
+    m_en["pickup.shield"]          = "SHIELD";
+    m_en["pickup.speed"]           = "SPEED UP";
+    m_en["pickup.damage"]          = "DMG UP";
+
+    // NG+ rank titles (run summary screen)
+    m_en["ngplus.rank.1"]          = "NG+1 CHALLENGER";
+    m_en["ngplus.rank.2"]          = "NG+2 VETERAN";
+    m_en["ngplus.rank.3"]          = "NG+3 HARDENED";
+    m_en["ngplus.rank.4"]          = "NG+4 VOID TOUCHED";
+    m_en["ngplus.rank.5"]          = "NG+5 RIFT SOVEREIGN";
+    m_en["ngplus.rank.6"]          = "NG+6 ENTROPY WALKER";
+    m_en["ngplus.rank.7"]          = "NG+7 DIMENSION LORD";
+    m_en["ngplus.rank.8"]          = "NG+8 REALITY BREAKER";
+    m_en["ngplus.rank.9"]          = "NG+9 VOID ASCENDANT";
+    m_en["ngplus.rank.10"]         = "NG+10 CHAOS MASTER";
+
+    // Run summary balance stats
+    m_en["summary.balance_dmg"]    = "DMG %.2fx%s  |  ATK %.2fx%s";
+    m_en["summary.balance_cap"]    = " (CAP)";
+    m_en["summary.balance_cd"]     = "CD Floor %.0f%%  |  VoidRes %d  |  Zones %d";
+    m_en["summary.balance_hunger"] = "VoidHunger %.0f%% final (%.0f%% peak)";
+    m_en["summary.info"]           = "%s  |  %s / %s  |  Diff %d  |  %d:%02d";
+
+    // Event chain / zone transition
+    m_en["hud.chain_stage"]        = "CHAIN: Stage %d/%d";
+    m_en["hud.zone"]               = "ZONE %d";
+
     // ===== GERMAN =====
 
     // Main Menu
@@ -1000,4 +1028,32 @@ void Localization::loadStrings() {
     m_de["tip.32"] = "TIPP: Elite-Gegner haben farbige Auren die ihren Modifikator-Typ zeigen.";
     m_de["tip.33"] = "TIPP: Der Voidwalker heilt 3 HP bei jedem Dimensionswechsel.";
     m_de["tip.34"] = "TIPP: Herausforderungsmodi werden nach dem ersten abgeschlossenen Lauf freigeschaltet.";
+
+    // Buff pickups
+    m_de["pickup.shield"]          = "SCHILD";
+    m_de["pickup.speed"]           = "TEMPO HOCH";
+    m_de["pickup.damage"]          = "SCHADEN HOCH";
+
+    // NG+ rank titles (run summary)
+    m_de["ngplus.rank.1"]          = "NG+1 HERAUSFORDERER";
+    m_de["ngplus.rank.2"]          = "NG+2 VETERAN";
+    m_de["ngplus.rank.3"]          = "NG+3 GEHAERTET";
+    m_de["ngplus.rank.4"]          = "NG+4 LEERE-BERUEHRT";
+    m_de["ngplus.rank.5"]          = "NG+5 RISS-HERRSCHER";
+    m_de["ngplus.rank.6"]          = "NG+6 ENTROPIE-WANDLER";
+    m_de["ngplus.rank.7"]          = "NG+7 DIMENSIONSLORD";
+    m_de["ngplus.rank.8"]          = "NG+8 REALITAETSBRECHER";
+    m_de["ngplus.rank.9"]          = "NG+9 LEERE-AUFSTEIGER";
+    m_de["ngplus.rank.10"]         = "NG+10 CHAOSMEISTER";
+
+    // Run summary balance stats
+    m_de["summary.balance_dmg"]    = "SCH %.2fx%s  |  ANG %.2fx%s";
+    m_de["summary.balance_cap"]    = " (MAX)";
+    m_de["summary.balance_cd"]     = "CD Etage %.0f%%  |  LeerRes %d  |  Zonen %d";
+    m_de["summary.balance_hunger"] = "LeerHunger %.0f%% final (%.0f%% Spitze)";
+    m_de["summary.info"]           = "%s  |  %s / %s  |  Diff %d  |  %d:%02d";
+
+    // Event chain / zone transition
+    m_de["hud.chain_stage"]        = "KETTE: Stufe %d/%d";
+    m_de["hud.zone"]               = "ZONE %d";
 }

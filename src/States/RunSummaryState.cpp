@@ -153,7 +153,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         int mins = static_cast<int>(runTime) / 60;
         int secs = static_cast<int>(runTime) % 60;
         char infoLine[128];
-        std::snprintf(infoLine, sizeof(infoLine), "%s  |  %s / %s  |  Diff %d  |  %d:%02d",
+        std::snprintf(infoLine, sizeof(infoLine), LOC("summary.info"),
                       cd.name,
                       WeaponSystem::getWeaponName(meleeWeapon),
                       WeaponSystem::getWeaponName(rangedWeapon),
@@ -176,14 +176,10 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
         // NG+ tier badge (golden, shown below info line when tier > 0)
         if (ngPlusTier > 0) {
-            static const char* s_ngpTitles[] = {
-                "", "NG+1 CHALLENGER", "NG+2 VETERAN", "NG+3 HARDENED",
-                "NG+4 VOID TOUCHED", "NG+5 RIFT SOVEREIGN",
-                "NG+6 ENTROPY WALKER", "NG+7 DIMENSION LORD",
-                "NG+8 REALITY BREAKER", "NG+9 VOID ASCENDANT",
-                "NG+10 CHAOS MASTER"
-            };
-            const char* title = (ngPlusTier >= 1 && ngPlusTier <= 10) ? s_ngpTitles[ngPlusTier] : "";
+            // Localized NG+ rank titles (keys: ngplus.rank.1 .. ngplus.rank.10)
+            char rankKey[32];
+            std::snprintf(rankKey, sizeof(rankKey), "ngplus.rank.%d", ngPlusTier);
+            const char* title = (ngPlusTier >= 1 && ngPlusTier <= 10) ? LOC(rankKey) : "";
             float pulse = 0.8f + 0.2f * std::sin(m_time * 4.0f);
             Uint8 ngA = static_cast<Uint8>(alpha * pulse);
             SDL_Color ngC = {255, 210, 40, ngA};
@@ -357,9 +353,9 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         char line1[96];
         bool dmgCapped = peakDmgRaw > peakDmgClamped + 0.01f;
         bool spdCapped = peakSpdRaw > peakSpdClamped + 0.01f;
-        std::snprintf(line1, sizeof(line1), "DMG %.2fx%s  |  ATK %.2fx%s",
-                      peakDmgClamped, dmgCapped ? " (CAP)" : "",
-                      peakSpdClamped, spdCapped ? " (CAP)" : "");
+        std::snprintf(line1, sizeof(line1), LOC("summary.balance_dmg"),
+                      peakDmgClamped, dmgCapped ? LOC("summary.balance_cap") : "",
+                      peakSpdClamped, spdCapped ? LOC("summary.balance_cap") : "");
         SDL_Color l1c = {(dmgCapped || spdCapped) ? (Uint8)255 : (Uint8)160,
                          (dmgCapped || spdCapped) ? (Uint8)140 : (Uint8)155,
                          (dmgCapped || spdCapped) ? (Uint8)100 : (Uint8)180, ba};
@@ -377,7 +373,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
         // Line 2: CD Floor, VoidRes, Residue
         char line2[96];
-        std::snprintf(line2, sizeof(line2), "CD Floor %.0f%%  |  VoidRes %d  |  Zones %d",
+        std::snprintf(line2, sizeof(line2), LOC("summary.balance_cd"),
                       cdFloorPercent, voidResProcs, peakResidueZones);
         SDL_Color l2c = {160, 155, 180, ba};
         SDL_Surface* l2s = TTF_RenderText_Blended(font, line2, l2c);
@@ -395,7 +391,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         // Line 3: VoidHunger
         if (peakVoidHunger > 0.1f) {
             char line3[96];
-            std::snprintf(line3, sizeof(line3), "VoidHunger %.0f%% final (%.0f%% peak)",
+            std::snprintf(line3, sizeof(line3), LOC("summary.balance_hunger"),
                           finalVoidHunger, peakVoidHunger);
             SDL_Color l3c = {180, 140, 100, ba};
             SDL_Surface* l3s = TTF_RenderText_Blended(font, line3, l3c);
