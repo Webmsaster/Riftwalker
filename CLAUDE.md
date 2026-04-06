@@ -13,14 +13,13 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
   - Death causes, NG+ tiers, element names, mastery tiers, relic tiers, wave cleared
   - Menu panels (daily run, career stats), HUD notifications, version string
   - Gamepad support added to CreditsState (was keyboard-only)
-- **Bug Fixes**: weaponKills OOB in HUD.cpp, achievements scroll indicators at 720p
-- **Mouse UX**: SDL_MOUSEWHEEL scrolling in 7 states + mouse hover in Bestiary/Lore
-- **Audio UX**: Scroll SFX added to DailyLeaderboard + RunHistory
+- **Bug Fixes**: weaponKills OOB in HUD.cpp, achievements clipRect+scroll 720p, event banner 720p
+- **Mouse UX**: SDL_MOUSEWHEEL (7 states), hover (2 states), right-click back (8 states)
+- **Audio UX**: Consistent SFX across all navigation (keyboard, gamepad, scroll) in all states
+- **New Features**: Total playtime tracking (persisted), victory count in career stats
 - **Credits Polish**: Particles 40→70, 4-color dimensional palette
-- **Total Playtime Tracking**: New totalPlaytime field in UpgradeSystem, displayed in career stats
-- **Right-Click Back**: 8 states support right-click to navigate back
 - **.gitignore**: Added riftwalker_daily.dat + .bak files
-- 35 commits, ~40 files changed, +1500 lines
+- 40 commits, ~40 files changed, +1700 lines
 
 **Previous Updates (2026-04-05 music quality + crossfade + localization session):**
 - **Music Synth v2**: Proper MIDI note_on/note_off duration parsing (was guessing), stereo output with per-track panning, Schroeder reverb (4 comb + 2 allpass IIR), chorus for pads/strings, filter envelope modulation for bass/leads, band-limited saw waves
