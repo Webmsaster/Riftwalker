@@ -260,6 +260,42 @@ void Localization::loadStrings() {
     m_en["lore.undiscovered"]      = "This fragment has not been discovered yet.";
     m_en["lore.nav_hint"]          = "W/S: Navigate   ESC: Back";
 
+    // Zone names & taglines (shown during zone transitions)
+    m_en["zone.1.name"]            = "FRACTURED THRESHOLD";
+    m_en["zone.1.tagline"]         = "Where reality first began to crack";
+    m_en["zone.2.name"]            = "SHIFTING DEPTHS";
+    m_en["zone.2.tagline"]         = "The dimensions bleed into each other";
+    m_en["zone.3.name"]            = "RESONANT CORE";
+    m_en["zone.3.tagline"]         = "Every step echoes across realities";
+    m_en["zone.4.name"]            = "ENTROPY CASCADE";
+    m_en["zone.4.tagline"]         = "Order dissolves. Chaos reigns.";
+    m_en["zone.5.name"]            = "THE SOVEREIGN'S DOMAIN";
+    m_en["zone.5.tagline"]         = "The heart of the Rift awaits";
+
+    // Boss names (HUD + intro cards)
+    m_en["boss.rift_guardian"]     = "RIFT GUARDIAN";
+    m_en["boss.void_wyrm"]        = "VOID WYRM";
+    m_en["boss.dim_architect"]     = "DIMENSIONAL ARCHITECT";
+    m_en["boss.temporal_weaver"]   = "TEMPORAL WEAVER";
+    m_en["boss.void_sovereign"]    = "VOID SOVEREIGN";
+    m_en["boss.entropy_incarnate"] = "ENTROPY INCARNATE";
+
+    // Boss intro subtitles
+    m_en["boss.sub.rift_guardian"]     = "The rift remembers your face";
+    m_en["boss.sub.rift_guardian_alt"] = "The dimension's immune response";
+    m_en["boss.sub.void_wyrm"]        = "It slithers between dimensions";
+    m_en["boss.sub.dim_architect"]     = "It rewrites reality itself";
+    m_en["boss.sub.temporal_weaver"]   = "Past and future converge";
+    m_en["boss.sub.entropy_incarnate"] = "Chaos given form and purpose";
+    m_en["boss.sub.entropy_alt"]       = "The suit hungers for decay";
+    m_en["boss.sub.void_sovereign"]    = "The last chain binding the Rift";
+
+    // Run intro narrative
+    m_en["intro.line1"]            = "The Rift opens...";
+    m_en["intro.line1_ng"]         = "The Rift remembers you...";
+    m_en["intro.line2"]            = "Your suit flickers. Entropy rising.";
+    m_en["intro.line2_ng"]         = "Ascension Tier %d. The void grows stronger.";
+
     // Ending State
     m_en["ending.sealed"]          = "The Rift is sealed.";
     m_en["ending.shattered"]       = "The Rift is shattered.";
@@ -536,6 +572,42 @@ void Localization::loadStrings() {
     m_de["lore.fragments"]         = "%d / %d Fragmente";
     m_de["lore.undiscovered"]      = "Dieses Fragment wurde noch nicht entdeckt.";
     m_de["lore.nav_hint"]          = "W/S: Navigieren   ESC: Zurueck";
+
+    // Zone names & taglines
+    m_de["zone.1.name"]            = "GEBROCHENE SCHWELLE";
+    m_de["zone.1.tagline"]         = "Wo die Realitaet zuerst zu brechen begann";
+    m_de["zone.2.name"]            = "VERSCHIEBENDE TIEFEN";
+    m_de["zone.2.tagline"]         = "Die Dimensionen bluten ineinander";
+    m_de["zone.3.name"]            = "RESONANTER KERN";
+    m_de["zone.3.tagline"]         = "Jeder Schritt hallt durch alle Realitaeten";
+    m_de["zone.4.name"]            = "ENTROPIE-KASKADE";
+    m_de["zone.4.tagline"]         = "Ordnung loest sich auf. Chaos herrscht.";
+    m_de["zone.5.name"]            = "DIE DOMAENE DES SOUVERAENS";
+    m_de["zone.5.tagline"]         = "Das Herz des Risses wartet";
+
+    // Boss names
+    m_de["boss.rift_guardian"]     = "RISSWAECHTER";
+    m_de["boss.void_wyrm"]        = "LEERENWURM";
+    m_de["boss.dim_architect"]     = "DIMENSIONSARCHITEKT";
+    m_de["boss.temporal_weaver"]   = "ZEITENWEBER";
+    m_de["boss.void_sovereign"]    = "LEERENSOUVERAEN";
+    m_de["boss.entropy_incarnate"] = "ENTROPIE INKARNIERT";
+
+    // Boss intro subtitles
+    m_de["boss.sub.rift_guardian"]     = "Der Riss erinnert sich an dein Gesicht";
+    m_de["boss.sub.rift_guardian_alt"] = "Die Immunantwort der Dimension";
+    m_de["boss.sub.void_wyrm"]        = "Er gleitet zwischen den Dimensionen";
+    m_de["boss.sub.dim_architect"]     = "Er schreibt die Realitaet selbst um";
+    m_de["boss.sub.temporal_weaver"]   = "Vergangenheit und Zukunft verschmelzen";
+    m_de["boss.sub.entropy_incarnate"] = "Chaos in Form und mit Zweck";
+    m_de["boss.sub.entropy_alt"]       = "Der Anzug hungert nach Verfall";
+    m_de["boss.sub.void_sovereign"]    = "Die letzte Kette, die den Riss bindet";
+
+    // Run intro narrative
+    m_de["intro.line1"]            = "Der Riss oeffnet sich...";
+    m_de["intro.line1_ng"]         = "Der Riss erinnert sich an dich...";
+    m_de["intro.line2"]            = "Dein Anzug flackert. Entropie steigt.";
+    m_de["intro.line2_ng"]         = "Aufstiegsstufe %d. Die Leere wird staerker.";
 
     // Ending State
     m_de["ending.sealed"]          = "Der Riss ist versiegelt.";

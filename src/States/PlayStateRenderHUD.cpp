@@ -617,7 +617,7 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     if (font) {
         int bt = 0;
         if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
-        const char* bossName = (bt == 5) ? "ENTROPY INCARNATE" : (bt == 4) ? "VOID SOVEREIGN" : (bt == 3) ? "TEMPORAL WEAVER" : (bt == 2) ? "DIMENSIONAL ARCHITECT" : (bt == 1) ? "VOID WYRM" : "RIFT GUARDIAN";
+        const char* bossName = (bt == 5) ? LOC("boss.entropy_incarnate") : (bt == 4) ? LOC("boss.void_sovereign") : (bt == 3) ? LOC("boss.temporal_weaver") : (bt == 2) ? LOC("boss.dim_architect") : (bt == 1) ? LOC("boss.void_wyrm") : LOC("boss.rift_guardian");
         SDL_Color tc = (bt == 5) ? SDL_Color{80, 220, 80, 220} : (bt == 4) ? SDL_Color{180, 80, 255, 220} : (bt == 3) ? SDL_Color{220, 190, 100, 220} : (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
         SDL_Surface* ts = TTF_RenderText_Blended(font, bossName, tc);
         if (ts) {

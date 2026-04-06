@@ -1,6 +1,7 @@
 #include "PlayState.h"
 #include <tracy/Tracy.hpp>
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/Enemy.h"
 #include "Components/TransformComponent.h"
 #include "Components/HealthComponent.h"
@@ -1107,20 +1108,17 @@ void PlayState::update(float dt) {
 
             // Trigger zone transition banner when entering a new zone
             if (newZone != prevZone) {
-                static const char* zoneNames[] = {
-                    "FRACTURED THRESHOLD", "SHIFTING DEPTHS", "RESONANT CORE",
-                    "ENTROPY CASCADE", "THE SOVEREIGN'S DOMAIN"
+                static const char* zoneNameKeys[] = {
+                    "zone.1.name", "zone.2.name", "zone.3.name",
+                    "zone.4.name", "zone.5.name"
                 };
-                static const char* zoneTaglines[] = {
-                    "Where reality first began to crack",
-                    "The dimensions bleed into each other",
-                    "Every step echoes across realities",
-                    "Order dissolves. Chaos reigns.",
-                    "The heart of the Rift awaits"
+                static const char* zoneTaglineKeys[] = {
+                    "zone.1.tagline", "zone.2.tagline", "zone.3.tagline",
+                    "zone.4.tagline", "zone.5.tagline"
                 };
                 int zi = std::clamp(newZone, 0, 4);
-                m_zoneTransitionName = zoneNames[zi];
-                m_zoneTransitionTagline = zoneTaglines[zi];
+                m_zoneTransitionName = LOC(zoneNameKeys[zi]);
+                m_zoneTransitionTagline = LOC(zoneTaglineKeys[zi]);
                 m_zoneTransitionNumber = zi + 1;
                 m_zoneTransitionTimer = 0;
                 m_zoneTransitionActive = true;

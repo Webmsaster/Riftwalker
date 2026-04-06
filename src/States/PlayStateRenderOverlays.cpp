@@ -806,7 +806,7 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
     bool isNGPlus = (m_ngPlusTier > 0);
 
     // Line 1: 0.0 - 3.5s (fade in 0-1.0s, hold, fade out in last 0.5s)
-    const char* line1 = isNGPlus ? "The Rift remembers you..." : "The Rift opens...";
+    const char* line1 = isNGPlus ? LOC("intro.line1_ng") : LOC("intro.line1");
     if (t > 0.0f) {
         float fadeIn = std::min(1.0f, t / 1.0f);
         float fadeOut = (t > duration - 0.5f) ? (duration - t) / 0.5f : 1.0f;
@@ -831,9 +831,9 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
     if (t > 1.0f) {
         char line2[128];
         if (isNGPlus) {
-            snprintf(line2, sizeof(line2), "Ascension Tier %d. The void grows stronger.", m_ngPlusTier);
+            snprintf(line2, sizeof(line2), LOC("intro.line2_ng"), m_ngPlusTier);
         } else {
-            snprintf(line2, sizeof(line2), "Your suit flickers. Entropy rising.");
+            snprintf(line2, sizeof(line2), "%s", LOC("intro.line2"));
         }
         float fadeIn = std::min(1.0f, (t - 1.0f) / 0.5f);
         float fadeOut = (t > 2.5f) ? std::max(0.0f, (3.0f - t) / 0.5f) : 1.0f;

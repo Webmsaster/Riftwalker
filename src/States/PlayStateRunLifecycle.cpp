@@ -1,6 +1,7 @@
 // PlayStateRunLifecycle.cpp -- Split from PlayState.cpp (run lifecycle: start, level gen, upgrades, end)
 #include "PlayState.h"
 #include "Core/Game.h"
+#include "Core/Localization.h"
 #include "Game/Enemy.h"
 #include "Components/TransformComponent.h"
 #include "Components/HealthComponent.h"
@@ -691,43 +692,43 @@ void PlayState::spawnBoss() {
     if (m_currentDifficulty >= 30) {
         // Floor 30: final confrontation — Void Sovereign
         Enemy::createVoidSovereign(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-        m_screenEffects.triggerBossIntro("VOID SOVEREIGN", "The last chain binding the Rift");
+        m_screenEffects.triggerBossIntro(LOC("boss.void_sovereign"), LOC("boss.sub.void_sovereign"));
     } else if (zone == 4 && isMidBoss) {
         // Floor 27 mid-boss: Entropy Incarnate as penultimate challenge
         Enemy::createEntropyIncarnate(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-        m_screenEffects.triggerBossIntro("ENTROPY INCARNATE", "The suit hungers for decay");
+        m_screenEffects.triggerBossIntro(LOC("boss.entropy_incarnate"), LOC("boss.sub.entropy_alt"));
     } else if (isMidBoss) {
         // Mid-boss floors: rotate lighter bosses (Guardian, Wyrm) scaled to zone
         int midBossType = zone % 2;
         if (midBossType == 1) {
             Enemy::createVoidWyrm(m_entities, {spawnPos.x, spawnPos.y - 40.0f}, dim, bossDiff);
-            m_screenEffects.triggerBossIntro("VOID WYRM", "It slithers between dimensions");
+            m_screenEffects.triggerBossIntro(LOC("boss.void_wyrm"), LOC("boss.sub.void_wyrm"));
         } else {
             Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
-            m_screenEffects.triggerBossIntro("RIFT GUARDIAN", "The rift remembers your face");
+            m_screenEffects.triggerBossIntro(LOC("boss.rift_guardian"), LOC("boss.sub.rift_guardian"));
         }
     } else {
         // Zone boss floors (6, 12, 18, 24): each zone has a signature boss
         switch (zone) {
             case 0: // Zone 1 boss (Floor 6): Rift Guardian
                 Enemy::createBoss(m_entities, spawnPos, dim, bossDiff);
-                m_screenEffects.triggerBossIntro("RIFT GUARDIAN", "The dimension's immune response");
+                m_screenEffects.triggerBossIntro(LOC("boss.rift_guardian"), LOC("boss.sub.rift_guardian_alt"));
                 break;
             case 1: // Zone 2 boss (Floor 12): Dimensional Architect
                 Enemy::createDimensionalArchitect(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-                m_screenEffects.triggerBossIntro("DIMENSIONAL ARCHITECT", "It rewrites reality itself");
+                m_screenEffects.triggerBossIntro(LOC("boss.dim_architect"), LOC("boss.sub.dim_architect"));
                 break;
             case 2: // Zone 3 boss (Floor 18): Temporal Weaver
                 Enemy::createTemporalWeaver(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-                m_screenEffects.triggerBossIntro("TEMPORAL WEAVER", "Past and future converge");
+                m_screenEffects.triggerBossIntro(LOC("boss.temporal_weaver"), LOC("boss.sub.temporal_weaver"));
                 break;
             case 3: // Zone 4 boss (Floor 24): Entropy Incarnate
                 Enemy::createEntropyIncarnate(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-                m_screenEffects.triggerBossIntro("ENTROPY INCARNATE", "Chaos given form and purpose");
+                m_screenEffects.triggerBossIntro(LOC("boss.entropy_incarnate"), LOC("boss.sub.entropy_incarnate"));
                 break;
             default: // Zone 5 boss (Floor 30): handled above
                 Enemy::createVoidSovereign(m_entities, {spawnPos.x, spawnPos.y - 48.0f}, dim, bossDiff);
-                m_screenEffects.triggerBossIntro("VOID SOVEREIGN", "The last chain binding the Rift");
+                m_screenEffects.triggerBossIntro(LOC("boss.void_sovereign"), LOC("boss.sub.void_sovereign"));
                 break;
         }
     }
