@@ -84,6 +84,7 @@ void UpgradeSystem::addRunRecord(int rooms, int enemies, int rifts, int shards, 
                                   int bestCombo, float runTime, int playerClass, int deathCause) {
     RunRecord record{rooms, enemies, rifts, shards, difficulty, bestCombo, runTime, playerClass, deathCause};
     m_runHistory.push_back(record);
+    totalPlaytime += runTime;
     // Sort by rooms descending, keep top 10
     std::sort(m_runHistory.begin(), m_runHistory.end(),
         [](const RunRecord& a, const RunRecord& b) { return a.rooms > b.rooms; });
@@ -172,6 +173,8 @@ std::string UpgradeSystem::serialize() const {
     }
     // NG+ progress (appended for backward compatibility)
     ss << highestNGPlusCompleted << " ";
+    // Total playtime
+    ss << totalPlaytime << " ";
     return ss.str();
 }
 
@@ -239,5 +242,10 @@ void UpgradeSystem::deserialize(const std::string& data) {
     int ngp = 0;
     if (ss >> ngp) {
         highestNGPlusCompleted = std::max(0, std::min(ngp, 10));
+    }
+    // Total playtime (optional for backward compatibility)
+    float pt = 0;
+    if (ss >> pt) {
+        totalPlaytime = std::max(0.0f, pt);
     }
 }

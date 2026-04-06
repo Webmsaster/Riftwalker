@@ -609,4 +609,13 @@ void MenuState::renderCareerStats(SDL_Renderer* renderer, TTF_Font* font) {
     // Line 3: Shards
     std::snprintf(buf, sizeof(buf), LOC("menu.stats_shards"), ups.getRiftShards());
     drawStat(buf, {80, 75, 120, 255}, ty + lineH * 3);
+
+    // Line 4: Total playtime
+    if (ups.totalPlaytime > 0) {
+        int totalMins = static_cast<int>(ups.totalPlaytime) / 60;
+        int hours = totalMins / 60;
+        int mins = totalMins % 60;
+        std::snprintf(buf, sizeof(buf), LOC("menu.stats_playtime"), hours, mins);
+        drawStat(buf, {80, 75, 120, 255}, ty + lineH * 4);
+    }
 }

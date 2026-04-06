@@ -91,6 +91,7 @@ public:
     int bestRoomReached = 0;
     int totalEnemiesKilled = 0;
     int totalRiftsRepaired = 0;
+    float totalPlaytime = 0.0f;  // Total accumulated playtime in seconds
 
     // Milestone rewards (cumulative unlock bonuses)
     struct MilestoneBonus {
