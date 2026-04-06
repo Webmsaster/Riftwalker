@@ -247,18 +247,18 @@ void AchievementsState::render(SDL_Renderer* renderer) {
 
     SDL_RenderSetClipRect(renderer, nullptr);
 
-    // Scroll indicators
+    // Scroll indicators (scaled for 2K)
     if (m_scrollOffset > 0) {
         SDL_SetRenderDrawColor(renderer, 180, 160, 220, 150);
         int cx = SCREEN_WIDTH / 2;
-        SDL_RenderDrawLine(renderer, cx - 10, 92, cx, 85);
-        SDL_RenderDrawLine(renderer, cx + 10, 92, cx, 85);
+        SDL_RenderDrawLine(renderer, cx - 16, 172, cx, 160);
+        SDL_RenderDrawLine(renderer, cx + 16, 172, cx, 160);
     }
     if (m_scrollOffset < m_maxScroll) {
         SDL_SetRenderDrawColor(renderer, 180, 160, 220, 150);
         int cx = SCREEN_WIDTH / 2;
-        SDL_RenderDrawLine(renderer, cx - 10, 628, cx, 635);
-        SDL_RenderDrawLine(renderer, cx + 10, 628, cx, 635);
+        SDL_RenderDrawLine(renderer, cx - 16, SCREEN_HEIGHT - 90, cx, SCREEN_HEIGHT - 78);
+        SDL_RenderDrawLine(renderer, cx + 16, SCREEN_HEIGHT - 90, cx, SCREEN_HEIGHT - 78);
     }
 
     // Navigation hint
