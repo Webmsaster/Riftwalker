@@ -230,15 +230,18 @@ void LoreState::handleEvent(const SDL_Event& event) {
         if (total == 0) return;
         switch (event.key.keysym.scancode) {
             case SDL_SCANCODE_ESCAPE:
+                AudioManager::instance().play(SFX::MenuConfirm);
                 if (game) game->changeState(StateID::Menu);
                 break;
             case SDL_SCANCODE_W:
             case SDL_SCANCODE_UP:
                 m_selected = (m_selected - 1 + total) % total;
+                AudioManager::instance().play(SFX::MenuSelect);
                 break;
             case SDL_SCANCODE_S:
             case SDL_SCANCODE_DOWN:
                 m_selected = (m_selected + 1) % total;
+                AudioManager::instance().play(SFX::MenuSelect);
                 break;
             default: break;
         }
