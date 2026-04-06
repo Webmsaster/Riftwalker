@@ -1,6 +1,7 @@
 #include "AchievementsState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "UI/UITextures.h"
 #include <cmath>
 
@@ -96,7 +97,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color tc = {220, 200, 255, 255};
-        SDL_Surface* ts = TTF_RenderText_Blended(font, "A C H I E V E M E N T S", tc);
+        SDL_Surface* ts = TTF_RenderText_Blended(font, LOC("achievements.title"), tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
@@ -112,7 +113,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
     auto& achSys = game->getAchievements();
     {
         char buf[64];
-        snprintf(buf, sizeof(buf), "%d / %d unlocked", achSys.getUnlockedCount(), achSys.getTotalCount());
+        snprintf(buf, sizeof(buf), LOC("achievements.counter"), achSys.getUnlockedCount(), achSys.getTotalCount());
         SDL_Color cc = {180, 160, 200, 200};
         SDL_Surface* cs = TTF_RenderText_Blended(font, buf, cc);
         if (cs) {
@@ -252,7 +253,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         SDL_Color hc = {140, 120, 180, 160};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, "[W/S] Scroll   [ESC] Back", hc);
+        SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("achievements.nav_hint"), hc);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {

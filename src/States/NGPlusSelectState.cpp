@@ -1,31 +1,24 @@
 #include "NGPlusSelectState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "Game/UpgradeSystem.h"
 #include "UI/UITextures.h"
 #include <cmath>
 #include <cstdio>
 #include <algorithm>
 
-// Per-tier descriptor strings
-static const char* s_tierNames[] = {
-    "N O R M A L",
-    "N G + 1",  "N G + 2",  "N G + 3",  "N G + 4",  "N G + 5",
-    "N G + 6",  "N G + 7",  "N G + 8",  "N G + 9",  "N G + 10"
+// Tier name/desc/reward keys — looked up via LOC() at render time
+static const char* s_tierNameKeys[] = {
+    "ngplus.tier.0", "ngplus.tier.1", "ngplus.tier.2", "ngplus.tier.3",
+    "ngplus.tier.4", "ngplus.tier.5", "ngplus.tier.6", "ngplus.tier.7",
+    "ngplus.tier.8", "ngplus.tier.9", "ngplus.tier.10"
 };
 
-static const char* s_tierDescs[] = {
-    "Standard difficulty",
-    "+10% enemy HP, slower entropy decay",
-    "+15% enemy DMG, +1 relic choice at boss",
-    "+20% elite spawn, keep weapon upgrades",
-    "Boss +20% HP, extra shop slot",
-    "Harder patterns, start with common relic",
-    "+15% shard gain, traps +30%",
-    "Abilities: 50% CD start, boss extra phase",
-    "Start with 2 relics, elites get 2 modifiers",
-    "Shop -20% prices, enemies +30% speed",
-    "Start with legendary relic — CHAOS MODE"
+static const char* s_tierDescKeys[] = {
+    "ngplus.desc.0", "ngplus.desc.1", "ngplus.desc.2", "ngplus.desc.3",
+    "ngplus.desc.4", "ngplus.desc.5", "ngplus.desc.6", "ngplus.desc.7",
+    "ngplus.desc.8", "ngplus.desc.9", "ngplus.desc.10"
 };
 
 static SDL_Color s_tierColors[] = {
@@ -42,19 +35,13 @@ static SDL_Color s_tierColors[] = {
     {255,  40, 200, 255}
 };
 
-// Reward line shown per tier
-static const char* s_tierRewards[] = {
-    "",
-    "Reward: +20% shard bonus",
-    "Reward: +40% shard bonus",
-    "Reward: +60% shard bonus",
-    "Reward: +80% shard bonus",
-    "Reward: +100% shard bonus",
-    "Reward: +120% shard bonus",
-    "Reward: +150% shard bonus",
-    "Reward: +180% shard bonus",
-    "Reward: +200% shard bonus",
-    "Reward: +250% shard bonus  |  CHAOS MASTER title"
+// Reward keys (tier 0 has no reward)
+static const char* s_tierRewardKeys[] = {
+    nullptr,
+    "ngplus.reward.1", "ngplus.reward.2", "ngplus.reward.3",
+    "ngplus.reward.4", "ngplus.reward.5", "ngplus.reward.6",
+    "ngplus.reward.7", "ngplus.reward.8", "ngplus.reward.9",
+    "ngplus.reward.10"
 };
 
 void NGPlusSelectState::enter() {
@@ -179,7 +166,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
             static_cast<Uint8>(50 * pulse),
             255
         };
-        SDL_Surface* ts = TTF_RenderText_Blended(font, "N E W  G A M E +", tc);
+        SDL_Surface* ts = TTF_RenderText_Blended(font, LOC("ngplus.title"), tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
@@ -197,7 +184,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
     {
         SDL_Color sc = {120, 100, 160, 180};
         SDL_Surface* ss = TTF_RenderText_Blended(font,
-            "Select challenge tier  (higher = harder + more shards)", sc);
+            LOC("ngplus.subtitle"), sc);
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
@@ -249,7 +236,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         // "NEXT CHALLENGE" badge for the next unlockable tier
         if (isNextChallenge && !unlocked) {
             SDL_Color bc = {255, 200, 50, 180};
-            SDL_Surface* bs = TTF_RenderText_Blended(font, "[NEXT CHALLENGE]", bc);
+            SDL_Surface* bs = TTF_RenderText_Blended(font, LOC("ngplus.next_challenge"), bc);
             if (bs) {
                 SDL_Texture* bt = SDL_CreateTextureFromSurface(renderer, bs);
                 if (bt) {
@@ -269,7 +256,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
             nameCol.g = static_cast<Uint8>(nameCol.g * 0.6f);
             nameCol.b = static_cast<Uint8>(nameCol.b * 0.6f);
         }
-        SDL_Surface* ns = TTF_RenderText_Blended(font, s_tierNames[i], nameCol);
+        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC(s_tierNameKeys[i]), nameCol);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -284,7 +271,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
 
         // Description
         SDL_Color descCol = selected ? SDL_Color{175, 170, 195, 220} : SDL_Color{85, 80, 105, 130};
-        SDL_Surface* ds = TTF_RenderText_Blended(font, s_tierDescs[i], descCol);
+        SDL_Surface* ds = TTF_RenderText_Blended(font, LOC(s_tierDescKeys[i]), descCol);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
@@ -296,9 +283,9 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         }
 
         // Reward line (on selected card only, right-aligned)
-        if (selected && i > 0 && s_tierRewards[i][0] != '\0') {
+        if (selected && i > 0 && s_tierRewardKeys[i]) {
             SDL_Color rc = {255, 215, 60, 200};
-            SDL_Surface* rs = TTF_RenderText_Blended(font, s_tierRewards[i], rc);
+            SDL_Surface* rs = TTF_RenderText_Blended(font, LOC(s_tierRewardKeys[i]), rc);
             if (rs) {
                 SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
                 if (rt) {
@@ -315,7 +302,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
     {
         SDL_Color nc = {60, 55, 85, 130};
         SDL_Surface* ns = TTF_RenderText_Blended(font,
-            "W/S Navigate  |  ENTER Confirm  |  ESC Back", nc);
+            LOC("ngplus.nav_hint"), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {

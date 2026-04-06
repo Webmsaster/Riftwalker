@@ -142,6 +142,124 @@ void Localization::loadStrings() {
     m_en["hud.chain_complete"]     = "CHAIN COMPLETE!";
     m_en["hud.rift_stabilized"]    = "RIFT STABILIZED - Warping to next dimension...";
 
+    // Class Select
+    m_en["class.title"]            = "C H O O S E  Y O U R  C L A S S";
+    m_en["class.locked"]           = "LOCKED";
+    m_en["class.nav_hint"]         = "A/D Switch  |  ENTER Select  |  ESC Back";
+    m_en["class.hp"]               = "HP: %.0f";
+    m_en["class.speed"]            = "Speed: %.0f";
+
+    // Difficulty Select
+    m_en["difficulty.title"]       = "S E L E C T  D I F F I C U L T Y";
+    m_en["difficulty.easy"]        = "E A S Y";
+    m_en["difficulty.normal"]      = "N O R M A L";
+    m_en["difficulty.hard"]        = "H A R D";
+    m_en["difficulty.easy_desc"]   = "Fewer enemies, +50% shard drops";
+    m_en["difficulty.normal_desc"] = "Standard experience";
+    m_en["difficulty.hard_desc"]   = "More enemies, stronger bosses, -25% shards";
+    m_en["difficulty.class"]       = "Class: %s";
+    m_en["difficulty.nav_hint"]    = "W/S Navigate  |  ENTER Select  |  ESC Back";
+
+    // Achievements
+    m_en["achievements.title"]     = "A C H I E V E M E N T S";
+    m_en["achievements.counter"]   = "%d / %d unlocked";
+    m_en["achievements.nav_hint"]  = "[W/S] Scroll   [ESC] Back";
+
+    // Bestiary
+    m_en["bestiary.title"]         = "B E S T I A R Y";
+    m_en["bestiary.discovered"]    = "Discovered: %d / %d";
+    m_en["bestiary.kills"]         = "Kills: %d";
+    m_en["bestiary.unencountered"] = "Unencountered";
+    m_en["bestiary.lore"]          = "LORE:";
+    m_en["bestiary.abilities"]     = "ABILITIES:";
+    m_en["bestiary.weakness"]      = "WEAKNESS:";
+    m_en["bestiary.effective"]     = "EFFECTIVE VS:";
+    m_en["bestiary.unknown_boss"]  = "Unknown Boss";
+    m_en["bestiary.unknown_enemy"] = "Unknown Enemy";
+    m_en["bestiary.encounter"]     = "Encounter this enemy to reveal its data.";
+    m_en["bestiary.defeat"]        = "Defeat it to permanently unlock its entry.";
+    m_en["bestiary.nav_hint"]      = "W/S  Navigate     ESC  Back";
+    m_en["element.fire"]           = "Fire";
+    m_en["element.ice"]            = "Ice";
+    m_en["element.electric"]       = "Electric";
+    m_en["element.none"]           = "None";
+
+    // Challenges
+    m_en["challenges.title"]       = "C H A L L E N G E S";
+    m_en["challenges.mutators"]    = "Mutators (max 2)";
+    m_en["challenges.nav_hint"]    = "W/S Navigate  |  A/D Switch  |  ENTER Select/Toggle  |  ESC Back";
+
+    // NG+ Select
+    m_en["ngplus.title"]           = "N E W  G A M E +";
+    m_en["ngplus.subtitle"]        = "Select challenge tier  (higher = harder + more shards)";
+    m_en["ngplus.next_challenge"]  = "[NEXT CHALLENGE]";
+    m_en["ngplus.nav_hint"]        = "W/S Navigate  |  ENTER Confirm  |  ESC Back";
+    m_en["ngplus.tier.0"]          = "N O R M A L";
+    m_en["ngplus.tier.1"]          = "N G + 1";
+    m_en["ngplus.tier.2"]          = "N G + 2";
+    m_en["ngplus.tier.3"]          = "N G + 3";
+    m_en["ngplus.tier.4"]          = "N G + 4";
+    m_en["ngplus.tier.5"]          = "N G + 5";
+    m_en["ngplus.tier.6"]          = "N G + 6";
+    m_en["ngplus.tier.7"]          = "N G + 7";
+    m_en["ngplus.tier.8"]          = "N G + 8";
+    m_en["ngplus.tier.9"]          = "N G + 9";
+    m_en["ngplus.tier.10"]         = "N G + 10";
+    m_en["ngplus.desc.0"]          = "Standard difficulty";
+    m_en["ngplus.desc.1"]          = "+10% enemy HP, slower entropy decay";
+    m_en["ngplus.desc.2"]          = "+15% enemy DMG, +1 relic choice at boss";
+    m_en["ngplus.desc.3"]          = "+20% elite spawn, keep weapon upgrades";
+    m_en["ngplus.desc.4"]          = "Boss +20% HP, extra shop slot";
+    m_en["ngplus.desc.5"]          = "Harder patterns, start with common relic";
+    m_en["ngplus.desc.6"]          = "+15% shard gain, traps +30%";
+    m_en["ngplus.desc.7"]          = "Abilities: 50% CD start, boss extra phase";
+    m_en["ngplus.desc.8"]          = "Start with 2 relics, elites get 2 modifiers";
+    m_en["ngplus.desc.9"]          = "Shop -20% prices, enemies +30% speed";
+    m_en["ngplus.desc.10"]         = "Start with legendary relic — CHAOS MODE";
+    m_en["ngplus.reward.1"]        = "Reward: +20% shard bonus";
+    m_en["ngplus.reward.2"]        = "Reward: +40% shard bonus";
+    m_en["ngplus.reward.3"]        = "Reward: +60% shard bonus";
+    m_en["ngplus.reward.4"]        = "Reward: +80% shard bonus";
+    m_en["ngplus.reward.5"]        = "Reward: +100% shard bonus";
+    m_en["ngplus.reward.6"]        = "Reward: +120% shard bonus";
+    m_en["ngplus.reward.7"]        = "Reward: +150% shard bonus";
+    m_en["ngplus.reward.8"]        = "Reward: +180% shard bonus";
+    m_en["ngplus.reward.9"]        = "Reward: +200% shard bonus";
+    m_en["ngplus.reward.10"]       = "Reward: +250% shard bonus  |  CHAOS MASTER title";
+
+    // Keybindings
+    m_en["keybindings.title"]      = "C O N T R O L S";
+    m_en["keybindings.reset"]      = "Reset Defaults";
+    m_en["keybindings.back"]       = "Back";
+    m_en["keybindings.listen_hint"]= "Press a key to bind  |  ESC Cancel";
+    m_en["keybindings.nav_hint"]   = "W/S Navigate  |  ENTER Rebind  |  ESC Back";
+
+    // Daily Leaderboard
+    m_en["daily.title"]            = "DAILY LEADERBOARD";
+    m_en["daily.today_seed"]       = "Today: %s  |  Seed: %d";
+    m_en["daily.best_today"]       = "Best Today: %d";
+    m_en["daily.no_runs"]          = "No runs today yet";
+    m_en["daily.score"]            = "Score";
+    m_en["daily.class"]            = "Class";
+    m_en["daily.floors"]           = "Floors";
+    m_en["daily.kills"]            = "Kills";
+    m_en["daily.rifts"]            = "Rifts";
+    m_en["daily.combo"]            = "Combo";
+    m_en["daily.time"]             = "Time";
+    m_en["daily.result"]           = "Result";
+    m_en["daily.victory"]          = "Victory";
+    m_en["daily.fallen"]           = "Fallen";
+    m_en["daily.no_runs_recorded"] = "No runs recorded for today. Play a Daily Run!";
+    m_en["daily.previous_days"]    = "Previous Days";
+    m_en["daily.no_history"]       = "No history yet";
+    m_en["daily.back_hint"]        = "[ESC] Back";
+
+    // Lore
+    m_en["lore.title"]             = "~ CODEX ~";
+    m_en["lore.fragments"]         = "%d / %d Fragments";
+    m_en["lore.undiscovered"]      = "This fragment has not been discovered yet.";
+    m_en["lore.nav_hint"]          = "W/S: Navigate   ESC: Back";
+
     // Gameplay tips (shown during level transitions)
     m_en["tip.0"]  = "TIP: Dimension B has tougher enemies but better shard rewards.";
     m_en["tip.1"]  = "TIP: Parrying at the right moment triggers a powerful counter-attack.";
@@ -277,6 +395,124 @@ void Localization::loadStrings() {
     m_de["hud.lore_discovered"]    = "WISSEN ENTDECKT";
     m_de["hud.chain_complete"]     = "KETTE ABGESCHLOSSEN!";
     m_de["hud.rift_stabilized"]    = "RISS STABILISIERT - Sprung zur naechsten Dimension...";
+
+    // Class Select
+    m_de["class.title"]            = "W A E H L E  D E I N E  K L A S S E";
+    m_de["class.locked"]           = "GESPERRT";
+    m_de["class.nav_hint"]         = "A/D Wechseln  |  ENTER Auswaehlen  |  ESC Zurueck";
+    m_de["class.hp"]               = "HP: %.0f";
+    m_de["class.speed"]            = "Tempo: %.0f";
+
+    // Difficulty Select
+    m_de["difficulty.title"]       = "S C H W I E R I G K E I T";
+    m_de["difficulty.easy"]        = "L E I C H T";
+    m_de["difficulty.normal"]      = "N O R M A L";
+    m_de["difficulty.hard"]        = "S C H W E R";
+    m_de["difficulty.easy_desc"]   = "Weniger Gegner, +50% Splitter";
+    m_de["difficulty.normal_desc"] = "Standarderfahrung";
+    m_de["difficulty.hard_desc"]   = "Mehr Gegner, staerkere Bosse, -25% Splitter";
+    m_de["difficulty.class"]       = "Klasse: %s";
+    m_de["difficulty.nav_hint"]    = "W/S Navigieren  |  ENTER Auswaehlen  |  ESC Zurueck";
+
+    // Achievements
+    m_de["achievements.title"]     = "E R F O L G E";
+    m_de["achievements.counter"]   = "%d / %d freigeschaltet";
+    m_de["achievements.nav_hint"]  = "[W/S] Scrollen   [ESC] Zurueck";
+
+    // Bestiary
+    m_de["bestiary.title"]         = "B E S T I A R I U M";
+    m_de["bestiary.discovered"]    = "Entdeckt: %d / %d";
+    m_de["bestiary.kills"]         = "Kills: %d";
+    m_de["bestiary.unencountered"] = "Nicht angetroffen";
+    m_de["bestiary.lore"]          = "WISSEN:";
+    m_de["bestiary.abilities"]     = "FAEHIGKEITEN:";
+    m_de["bestiary.weakness"]      = "SCHWAECHE:";
+    m_de["bestiary.effective"]     = "EFFEKTIV MIT:";
+    m_de["bestiary.unknown_boss"]  = "Unbekannter Boss";
+    m_de["bestiary.unknown_enemy"] = "Unbekannter Gegner";
+    m_de["bestiary.encounter"]     = "Begegne diesem Gegner, um seine Daten freizuschalten.";
+    m_de["bestiary.defeat"]        = "Besiege ihn, um seinen Eintrag dauerhaft freizuschalten.";
+    m_de["bestiary.nav_hint"]      = "W/S  Navigieren     ESC  Zurueck";
+    m_de["element.fire"]           = "Feuer";
+    m_de["element.ice"]            = "Eis";
+    m_de["element.electric"]       = "Blitz";
+    m_de["element.none"]           = "Keine";
+
+    // Challenges
+    m_de["challenges.title"]       = "H E R A U S F O R D E R U N G E N";
+    m_de["challenges.mutators"]    = "Mutatoren (max 2)";
+    m_de["challenges.nav_hint"]    = "W/S Navigieren  |  A/D Wechseln  |  ENTER Auswaehlen  |  ESC Zurueck";
+
+    // NG+ Select
+    m_de["ngplus.title"]           = "N E W  G A M E +";
+    m_de["ngplus.subtitle"]        = "Schwierigkeitsstufe waehlen (hoeher = schwerer + mehr Splitter)";
+    m_de["ngplus.next_challenge"]  = "[NAECHSTE STUFE]";
+    m_de["ngplus.nav_hint"]        = "W/S Navigieren  |  ENTER Bestaetigen  |  ESC Zurueck";
+    m_de["ngplus.tier.0"]          = "N O R M A L";
+    m_de["ngplus.tier.1"]          = "N G + 1";
+    m_de["ngplus.tier.2"]          = "N G + 2";
+    m_de["ngplus.tier.3"]          = "N G + 3";
+    m_de["ngplus.tier.4"]          = "N G + 4";
+    m_de["ngplus.tier.5"]          = "N G + 5";
+    m_de["ngplus.tier.6"]          = "N G + 6";
+    m_de["ngplus.tier.7"]          = "N G + 7";
+    m_de["ngplus.tier.8"]          = "N G + 8";
+    m_de["ngplus.tier.9"]          = "N G + 9";
+    m_de["ngplus.tier.10"]         = "N G + 10";
+    m_de["ngplus.desc.0"]          = "Standardschwierigkeit";
+    m_de["ngplus.desc.1"]          = "+10% Gegner-HP, langsamerer Entropieverfall";
+    m_de["ngplus.desc.2"]          = "+15% Gegner-DMG, +1 Relikt-Auswahl bei Boss";
+    m_de["ngplus.desc.3"]          = "+20% Elite-Spawn, Waffenupgrades behalten";
+    m_de["ngplus.desc.4"]          = "Boss +20% HP, extra Shop-Platz";
+    m_de["ngplus.desc.5"]          = "Haertere Muster, Start mit gewoehnlichem Relikt";
+    m_de["ngplus.desc.6"]          = "+15% Splitter-Ertrag, Fallen +30%";
+    m_de["ngplus.desc.7"]          = "Faehigkeiten: 50% CD-Start, Boss-Extraphase";
+    m_de["ngplus.desc.8"]          = "Start mit 2 Relikten, Eliten erhalten 2 Modifikatoren";
+    m_de["ngplus.desc.9"]          = "Shop -20% Preise, Gegner +30% Tempo";
+    m_de["ngplus.desc.10"]         = "Start mit legendaerem Relikt — CHAOS-MODUS";
+    m_de["ngplus.reward.1"]        = "Belohnung: +20% Splitter-Bonus";
+    m_de["ngplus.reward.2"]        = "Belohnung: +40% Splitter-Bonus";
+    m_de["ngplus.reward.3"]        = "Belohnung: +60% Splitter-Bonus";
+    m_de["ngplus.reward.4"]        = "Belohnung: +80% Splitter-Bonus";
+    m_de["ngplus.reward.5"]        = "Belohnung: +100% Splitter-Bonus";
+    m_de["ngplus.reward.6"]        = "Belohnung: +120% Splitter-Bonus";
+    m_de["ngplus.reward.7"]        = "Belohnung: +150% Splitter-Bonus";
+    m_de["ngplus.reward.8"]        = "Belohnung: +180% Splitter-Bonus";
+    m_de["ngplus.reward.9"]        = "Belohnung: +200% Splitter-Bonus";
+    m_de["ngplus.reward.10"]       = "Belohnung: +250% Splitter-Bonus  |  CHAOS-MEISTER-Titel";
+
+    // Keybindings
+    m_de["keybindings.title"]      = "S T E U E R U N G";
+    m_de["keybindings.reset"]      = "Standardwerte";
+    m_de["keybindings.back"]       = "Zurueck";
+    m_de["keybindings.listen_hint"]= "Taste druecken zum Binden  |  ESC Abbrechen";
+    m_de["keybindings.nav_hint"]   = "W/S Navigieren  |  ENTER Binden  |  ESC Zurueck";
+
+    // Daily Leaderboard
+    m_de["daily.title"]            = "TAGESRANGLISTE";
+    m_de["daily.today_seed"]       = "Heute: %s  |  Seed: %d";
+    m_de["daily.best_today"]       = "Bester Heute: %d";
+    m_de["daily.no_runs"]          = "Noch keine Laeufe heute";
+    m_de["daily.score"]            = "Punkte";
+    m_de["daily.class"]            = "Klasse";
+    m_de["daily.floors"]           = "Etagen";
+    m_de["daily.kills"]            = "Kills";
+    m_de["daily.rifts"]            = "Risse";
+    m_de["daily.combo"]            = "Kombo";
+    m_de["daily.time"]             = "Zeit";
+    m_de["daily.result"]           = "Ergebnis";
+    m_de["daily.victory"]          = "Sieg";
+    m_de["daily.fallen"]           = "Gefallen";
+    m_de["daily.no_runs_recorded"] = "Keine Laeufe fuer heute. Starte einen Tageslauf!";
+    m_de["daily.previous_days"]    = "Vorherige Tage";
+    m_de["daily.no_history"]       = "Noch keine Historie";
+    m_de["daily.back_hint"]        = "[ESC] Zurueck";
+
+    // Lore
+    m_de["lore.title"]             = "~ KODEX ~";
+    m_de["lore.fragments"]         = "%d / %d Fragmente";
+    m_de["lore.undiscovered"]      = "Dieses Fragment wurde noch nicht entdeckt.";
+    m_de["lore.nav_hint"]          = "W/S: Navigieren   ESC: Zurueck";
 
     // Gameplay tips
     m_de["tip.0"]  = "TIPP: Dimension B hat staerkere Gegner aber bessere Splitter-Belohnungen.";

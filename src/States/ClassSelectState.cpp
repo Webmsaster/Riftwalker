@@ -1,6 +1,7 @@
 #include "ClassSelectState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "UI/UITextures.h"
 #include <cmath>
 #include <cstdio>
@@ -128,7 +129,7 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color c = {140, 100, 220, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, "C H O O S E  Y O U R  C L A S S", c);
+        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("class.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -160,7 +161,7 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         SDL_Color nc = {120, 120, 140, 180};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, "A/D Switch  |  ENTER Select  |  ESC Back", nc);
+        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC("class.nav_hint"), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -318,7 +319,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
 
         // "LOCKED" text
         SDL_Color lockColor = {180, 150, 80, 220};
-        SDL_Surface* ls = TTF_RenderText_Blended(font, "LOCKED", lockColor);
+        SDL_Surface* ls = TTF_RenderText_Blended(font, LOC("class.locked"), lockColor);
         if (ls) {
             SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
             if (lt) {
@@ -359,7 +360,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     // HP label + bar
     {
         char hpText[32];
-        std::snprintf(hpText, sizeof(hpText), "HP: %.0f", data.baseHP);
+        std::snprintf(hpText, sizeof(hpText), LOC("class.hp"), data.baseHP);
         SDL_Surface* hs = TTF_RenderText_Blended(font, hpText,
             SDL_Color{200, 80, 80, static_cast<Uint8>(selected ? 220 : 120)});
         if (hs) {
@@ -386,7 +387,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     // Speed label + bar
     {
         char spdText[32];
-        std::snprintf(spdText, sizeof(spdText), "Speed: %.0f", data.baseSpeed);
+        std::snprintf(spdText, sizeof(spdText), LOC("class.speed"), data.baseSpeed);
         SDL_Surface* ss = TTF_RenderText_Blended(font, spdText,
             SDL_Color{80, 180, 200, static_cast<Uint8>(selected ? 220 : 120)});
         if (ss) {

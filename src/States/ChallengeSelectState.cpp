@@ -1,6 +1,7 @@
 #include "ChallengeSelectState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "UI/UITextures.h"
 #include <cmath>
 #include <cstdio>
@@ -166,7 +167,7 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color c = {220, 160, 60, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, "C H A L L E N G E S", c);
+        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("challenges.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -198,7 +199,7 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
     // Mutator section (right side)
     {
         SDL_Color mc = {160, 140, 200, 200};
-        SDL_Surface* ms = TTF_RenderText_Blended(font, "Mutators (max 2)", mc);
+        SDL_Surface* ms = TTF_RenderText_Blended(font, LOC("challenges.mutators"), mc);
         if (ms) {
             SDL_Texture* mt = SDL_CreateTextureFromSurface(renderer, ms);
             if (mt) {
@@ -227,7 +228,7 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         SDL_Color nc = {60, 55, 85, 140};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, "W/S Navigate  |  A/D Switch  |  ENTER Select/Toggle  |  ESC Back", nc);
+        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC("challenges.nav_hint"), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {

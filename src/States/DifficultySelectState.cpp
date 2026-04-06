@@ -1,6 +1,7 @@
 #include "DifficultySelectState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "Game/ClassSystem.h"
 #include "Game/UpgradeSystem.h"
 #include "UI/UITextures.h"
@@ -119,7 +120,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
     {
         const auto& classData = ClassSystem::getData(g_selectedClass);
         char classText[64];
-        std::snprintf(classText, sizeof(classText), "Class: %s", classData.name);
+        std::snprintf(classText, sizeof(classText), LOC("difficulty.class"), classData.name);
         SDL_Surface* cs = TTF_RenderText_Blended(font, classText, classData.color);
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
@@ -135,7 +136,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color c = {140, 100, 220, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, "S E L E C T  D I F F I C U L T Y", c);
+        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("difficulty.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -155,9 +156,9 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
         SDL_Color color;
     };
     DiffOption options[] = {
-        {"E A S Y", "Fewer enemies, +50% shard drops", {80, 200, 80, 255}},
-        {"N O R M A L", "Standard experience", {200, 200, 80, 255}},
-        {"H A R D", "More enemies, stronger bosses, -25% shards", {220, 60, 60, 255}}
+        {LOC("difficulty.easy"), LOC("difficulty.easy_desc"), {80, 200, 80, 255}},
+        {LOC("difficulty.normal"), LOC("difficulty.normal_desc"), {200, 200, 80, 255}},
+        {LOC("difficulty.hard"), LOC("difficulty.hard_desc"), {220, 60, 60, 255}}
     };
 
     int startY = 480;
@@ -227,7 +228,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         SDL_Color nc = {60, 55, 85, 140};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, "W/S Navigate  |  ENTER Select  |  ESC Back", nc);
+        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC("difficulty.nav_hint"), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {

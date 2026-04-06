@@ -1,6 +1,7 @@
 #include "BestiaryState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "Game/Bestiary.h"
 #include "Components/AIComponent.h"
 #include "UI/UITextures.h"
@@ -81,10 +82,10 @@ static SDL_Color elementColor(EnemyElement el) {
 }
 static const char* elementName(EnemyElement el) {
     switch (el) {
-        case EnemyElement::Fire:     return "Fire";
-        case EnemyElement::Ice:      return "Ice";
-        case EnemyElement::Electric: return "Electric";
-        default:                     return "None";
+        case EnemyElement::Fire:     return LOC("element.fire");
+        case EnemyElement::Ice:      return LOC("element.ice");
+        case EnemyElement::Electric: return LOC("element.electric");
+        default:                     return LOC("element.none");
     }
 }
 
@@ -221,12 +222,12 @@ void BestiaryState::render(SDL_Renderer* renderer) {
     if (!font) return;
 
     // ---- Title ----
-    drawTextCentered(renderer, font, "B E S T I A R Y", SCREEN_WIDTH / 2, 36, {180, 100, 100, 255}, 1.5f);
+    drawTextCentered(renderer, font, LOC("bestiary.title"), SCREEN_WIDTH / 2, 36, {180, 100, 100, 255}, 1.5f);
 
     // Discovery counter
     {
         char countText[48];
-        std::snprintf(countText, sizeof(countText), "Discovered: %d / %d",
+        std::snprintf(countText, sizeof(countText), LOC("bestiary.discovered"),
                       Bestiary::getDiscoveredCount(), Bestiary::getTotalCount());
         drawTextCentered(renderer, font, countText, SCREEN_WIDTH / 2, 124, {120, 110, 150, 200});
     }
@@ -322,10 +323,10 @@ void BestiaryState::render(SDL_Renderer* renderer) {
         // Kill count sub-line
         if (entry.discovered) {
             char killText[32];
-            std::snprintf(killText, sizeof(killText), "Kills: %d", entry.killCount);
+            std::snprintf(killText, sizeof(killText), LOC("bestiary.kills"), entry.killCount);
             drawText(renderer, font, killText, textX, ey + 48, {100, 95, 120, 140});
         } else {
-            drawText(renderer, font, "Unencountered", textX, ey + 48, {65, 60, 80, 100});
+            drawText(renderer, font, LOC("bestiary.unencountered"), textX, ey + 48, {65, 60, 80, 100});
         }
 
         // Boss badge
@@ -371,7 +372,7 @@ void BestiaryState::render(SDL_Renderer* renderer) {
     }
 
     // ---- Navigation hint ----
-    drawTextCentered(renderer, font, "W/S  Navigate     ESC  Back",
+    drawTextCentered(renderer, font, LOC("bestiary.nav_hint"),
                      SCREEN_WIDTH / 2, SCREEN_HEIGHT - 50, {60, 55, 85, 140});
 }
 
@@ -392,7 +393,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     // Kill count below preview
     {
         char killText[32];
-        std::snprintf(killText, sizeof(killText), "Kills: %d", entry.killCount);
+        std::snprintf(killText, sizeof(killText), LOC("bestiary.kills"), entry.killCount);
         SDL_Color kc = entry.killCount > 0 ? SDL_Color{180, 140, 255, 220} : SDL_Color{100, 95, 120, 160};
         drawTextCentered(renderer, font, killText, PREVIEW_CX, PREVIEW_CY + 110, kc);
     }
@@ -420,7 +421,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
 
     // Lore section header
     int loreY = divY + 16;
-    drawText(renderer, font, "LORE:", infoX, loreY, {120, 100, 160, 200});
+    drawText(renderer, font, LOC("bestiary.lore"), infoX, loreY, {120, 100, 160, 200});
     loreY += 40;
 
     // Word-wrapped lore body
@@ -496,7 +497,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     // Abilities
     int infoBlockY = div2Y + 16;
 
-    drawText(renderer, font, "ABILITIES:", infoX, infoBlockY, {160, 130, 200, 200});
+    drawText(renderer, font, LOC("bestiary.abilities"), infoX, infoBlockY, {160, 130, 200, 200});
     {
         SDL_Surface* as = TTF_RenderText_Blended(font, entry.abilities, {180, 165, 195, 190});
         if (as) {
@@ -514,7 +515,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
 
     // Weakness
     int weakY = infoBlockY + 100;
-    drawText(renderer, font, "WEAKNESS:", infoX, weakY, {255, 200, 80, 210});
+    drawText(renderer, font, LOC("bestiary.weakness"), infoX, weakY, {255, 200, 80, 210});
     {
         SDL_Surface* ws = TTF_RenderText_Blended(font, entry.weakness, {230, 210, 160, 190});
         if (ws) {
@@ -532,7 +533,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
 
     // Effective weapons
     int effY = weakY + 100;
-    drawText(renderer, font, "EFFECTIVE VS:", infoX, effY, {100, 220, 160, 210});
+    drawText(renderer, font, LOC("bestiary.effective"), infoX, effY, {100, 220, 160, 210});
     {
         SDL_Surface* es = TTF_RenderText_Blended(font, entry.effectiveWeapons, {160, 215, 185, 185});
         if (es) {
@@ -573,16 +574,16 @@ void BestiaryState::renderUndiscoveredDetail(SDL_Renderer* renderer, TTF_Font* f
     int infoY = DETAIL_Y + 28;
 
     // Unknown name with boss hint
-    const char* unknownName = isBoss ? "Unknown Boss" : "Unknown Enemy";
+    const char* unknownName = isBoss ? LOC("bestiary.unknown_boss") : LOC("bestiary.unknown_enemy");
     drawText(renderer, font, unknownName, infoX, infoY, {90, 80, 110, 180}, 1.4f);
 
     int divY = infoY + 72;
     SDL_SetRenderDrawColor(renderer, 60, 50, 85, 80);
     SDL_RenderDrawLine(renderer, infoX, divY, DETAIL_X + DETAIL_W - 32, divY);
 
-    drawText(renderer, font, "Encounter this enemy to reveal its data.",
+    drawText(renderer, font, LOC("bestiary.encounter"),
              infoX, divY + 28, {80, 75, 100, 160});
-    drawText(renderer, font, "Defeat it to permanently unlock its entry.",
+    drawText(renderer, font, LOC("bestiary.defeat"),
              infoX, divY + 68, {75, 70, 95, 140});
 
     // Hidden stat bars (blacked out with question marks)

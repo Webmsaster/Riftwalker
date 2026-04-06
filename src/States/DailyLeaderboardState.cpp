@@ -1,6 +1,7 @@
 #include "DailyLeaderboardState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "Game/ClassSystem.h"
 #include "Game/DailyRun.h"
 #include "UI/UITextures.h"
@@ -142,7 +143,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
     // --- Title ---
     {
         SDL_Color titleColor = {220, 190, 80, alpha};
-        dlRenderTextCentered(renderer, font, "DAILY LEADERBOARD", SCREEN_WIDTH / 2, 44, titleColor);
+        dlRenderTextCentered(renderer, font, LOC("daily.title"), SCREEN_WIDTH / 2, 44, titleColor);
         SDL_SetRenderDrawColor(renderer, 220, 190, 80, static_cast<Uint8>(alpha * 0.5f));
         SDL_RenderDrawLine(renderer, 600, 92, 1960, 92);
     }
@@ -150,7 +151,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
     // Today's date and seed
     {
         char buf[64];
-        std::snprintf(buf, sizeof(buf), "Today: %s  |  Seed: %d",
+        std::snprintf(buf, sizeof(buf), LOC("daily.today_seed"),
                       m_todayDate.c_str(), m_todaySeed);
         SDL_Color infoColor = {140, 130, 180, alpha};
         dlRenderTextCentered(renderer, font, buf, SCREEN_WIDTH / 2, 104, infoColor);
@@ -161,9 +162,9 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
         int todayBest = m_todayEntries.empty() ? 0 : m_todayEntries[0].score;
         char buf[64];
         if (todayBest > 0)
-            std::snprintf(buf, sizeof(buf), "Best Today: %d", todayBest);
+            std::snprintf(buf, sizeof(buf), LOC("daily.best_today"), todayBest);
         else
-            std::snprintf(buf, sizeof(buf), "No runs today yet");
+            std::snprintf(buf, sizeof(buf), "%s", LOC("daily.no_runs"));
         SDL_Color bestColor = (todayBest > 0) ? SDL_Color{255, 220, 60, alpha}
                                                : SDL_Color{120, 120, 150, alpha};
         dlRenderTextCentered(renderer, font, buf, SCREEN_WIDTH / 2, 140, bestColor);
@@ -185,15 +186,15 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
     SDL_RenderDrawRect(renderer, &headerBg);
 
     SDL_Color headerCol = {200, 185, 130, alpha};
-    dlRenderText(renderer, font, "#",       tableX,         tableY, headerCol);
-    dlRenderText(renderer, font, "Score",   tableX + 70,   tableY, headerCol);
-    dlRenderText(renderer, font, "Class",   tableX + 310,  tableY, headerCol);
-    dlRenderText(renderer, font, "Floors",  tableX + 540,  tableY, headerCol);
-    dlRenderText(renderer, font, "Kills",   tableX + 680,  tableY, headerCol);
-    dlRenderText(renderer, font, "Rifts",   tableX + 820,  tableY, headerCol);
-    dlRenderText(renderer, font, "Combo",   tableX + 960,  tableY, headerCol);
-    dlRenderText(renderer, font, "Time",    tableX + 1110, tableY, headerCol);
-    dlRenderText(renderer, font, "Result",  tableX + 1300, tableY, headerCol);
+    dlRenderText(renderer, font, "#",                    tableX,         tableY, headerCol);
+    dlRenderText(renderer, font, LOC("daily.score"),   tableX + 70,   tableY, headerCol);
+    dlRenderText(renderer, font, LOC("daily.class"),   tableX + 310,  tableY, headerCol);
+    dlRenderText(renderer, font, LOC("daily.floors"),  tableX + 540,  tableY, headerCol);
+    dlRenderText(renderer, font, LOC("daily.kills"),   tableX + 680,  tableY, headerCol);
+    dlRenderText(renderer, font, LOC("daily.rifts"),   tableX + 820,  tableY, headerCol);
+    dlRenderText(renderer, font, LOC("daily.combo"),   tableX + 960,  tableY, headerCol);
+    dlRenderText(renderer, font, LOC("daily.time"),    tableX + 1110, tableY, headerCol);
+    dlRenderText(renderer, font, LOC("daily.result"),  tableX + 1300, tableY, headerCol);
 
     SDL_SetRenderDrawColor(renderer, 180, 160, 70, static_cast<Uint8>(alpha * 0.5f));
     SDL_RenderDrawLine(renderer, tableX - 5, tableY + 40, tableX + tableW + 5, tableY + 40);
@@ -205,7 +206,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
     m_scrollOffset = std::max(m_scrollOffset, 0);
 
     if (m_todayEntries.empty()) {
-        dlRenderTextCentered(renderer, font, "No runs recorded for today. Play a Daily Run!",
+        dlRenderTextCentered(renderer, font, LOC("daily.no_runs_recorded"),
                              tableX + tableW / 2, startRow + 40,
                              {100, 100, 130, alpha});
     }
@@ -287,7 +288,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
         dlRenderText(renderer, font, buf, tableX + 1110, ry, rankColor);
 
         // Result
-        const char* resultStr = (e.deathCause == 5) ? "Victory" : "Fallen";
+        const char* resultStr = (e.deathCause == 5) ? LOC("daily.victory") : LOC("daily.fallen");
         SDL_Color resultColor = (e.deathCause == 5) ? SDL_Color{80, 255, 80, alpha}
                                                      : SDL_Color{255, 80, 80, alpha};
         dlRenderText(renderer, font, resultStr, tableX + 1300, ry, resultColor);
@@ -338,7 +339,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
         int prevY = 200;
 
         SDL_Color sectionHeader = {160, 140, 200, alpha};
-        dlRenderText(renderer, font, "Previous Days", prevX, prevY, sectionHeader);
+        dlRenderText(renderer, font, LOC("daily.previous_days"), prevX, prevY, sectionHeader);
         prevY += 40;
 
         SDL_SetRenderDrawColor(renderer, 100, 80, 160, static_cast<Uint8>(alpha * 0.4f));
@@ -357,12 +358,12 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
             if (++shown >= 6) break;
         }
         if (!anyPrev) {
-            dlRenderText(renderer, font, "No history yet", prevX, prevY, {100, 100, 130, alpha});
+            dlRenderText(renderer, font, LOC("daily.no_history"), prevX, prevY, {100, 100, 130, alpha});
         }
     }
 
     // Back hint
-    dlRenderText(renderer, font, "[ESC] Back", 40, SCREEN_HEIGHT - 56, {100, 100, 130, alpha});
+    dlRenderText(renderer, font, LOC("daily.back_hint"), 40, SCREEN_HEIGHT - 56, {100, 100, 130, alpha});
 
     // Fade-in overlay
     if (m_fadeIn < 1.f) {

@@ -1,6 +1,7 @@
 #include "KeybindingsState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/Localization.h"
 #include "UI/UITextures.h"
 #include <cmath>
 
@@ -179,7 +180,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color c = {140, 100, 220, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, "C O N T R O L S", c);
+        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("keybindings.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -225,7 +226,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
 
         if (isSpecial) {
             // Reset Defaults / Back - centered label
-            const char* label = isResetItem(i) ? "Reset Defaults" : "Back";
+            const char* label = isResetItem(i) ? LOC("keybindings.reset") : LOC("keybindings.back");
             SDL_Color labelColor = selected ? SDL_Color{220, 200, 255, 255} : SDL_Color{140, 130, 170, 255};
             SDL_Surface* ls = TTF_RenderText_Blended(font, label, labelColor);
             if (ls) {
@@ -287,8 +288,8 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         const char* hint = m_listening
-            ? "Press a key to bind  |  ESC Cancel"
-            : "W/S Navigate  |  ENTER Rebind  |  ESC Back";
+            ? LOC("keybindings.listen_hint")
+            : LOC("keybindings.nav_hint");
         SDL_Color nc = {60, 55, 85, 140};
         SDL_Surface* ns = TTF_RenderText_Blended(font, hint, nc);
         if (ns) {
