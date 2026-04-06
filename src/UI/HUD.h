@@ -14,6 +14,8 @@ struct AbilityComponent;
 
 class HUD {
 public:
+    ~HUD() { if (m_hudTarget) SDL_DestroyTexture(m_hudTarget); }
+
     void render(SDL_Renderer* renderer, TTF_Font* font,
                 const Player* player, const SuitEntropy* entropy,
                 const DimensionManager* dimMgr,
