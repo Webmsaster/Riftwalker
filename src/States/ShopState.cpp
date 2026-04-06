@@ -124,6 +124,16 @@ void ShopState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Mouse wheel scrolling through shop items
+    if (event.type == SDL_MOUSEWHEEL) {
+        int totalOptions = static_cast<int>(m_offerings.size()) + 1;
+        if (event.wheel.y > 0)
+            m_selectedIndex = (m_selectedIndex - 1 + totalOptions) % totalOptions;
+        else if (event.wheel.y < 0)
+            m_selectedIndex = (m_selectedIndex + 1) % totalOptions;
+        AudioManager::instance().play(SFX::MenuSelect);
+    }
+
     // Right-click to skip
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
         AudioManager::instance().play(SFX::MenuConfirm);
