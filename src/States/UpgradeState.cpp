@@ -80,6 +80,23 @@ void UpgradeState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Mouse wheel scrolling
+    if (event.type == SDL_MOUSEWHEEL && total > 0) {
+        if (event.wheel.y > 0) {
+            m_selectedUpgrade = (m_selectedUpgrade - 1 + total) % total;
+            if (m_selectedUpgrade < m_scrollOffset) m_scrollOffset = m_selectedUpgrade;
+            if (m_selectedUpgrade >= m_scrollOffset + VISIBLE_ITEMS)
+                m_scrollOffset = m_selectedUpgrade - VISIBLE_ITEMS + 1;
+            AudioManager::instance().play(SFX::MenuSelect);
+        } else if (event.wheel.y < 0) {
+            m_selectedUpgrade = (m_selectedUpgrade + 1) % total;
+            if (m_selectedUpgrade >= m_scrollOffset + VISIBLE_ITEMS)
+                m_scrollOffset = m_selectedUpgrade - VISIBLE_ITEMS + 1;
+            if (m_selectedUpgrade < m_scrollOffset) m_scrollOffset = m_selectedUpgrade;
+            AudioManager::instance().play(SFX::MenuSelect);
+        }
+    }
+
     // Mouse click: select + purchase
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && total > 0) {
         int mx = event.button.x, my = event.button.y;

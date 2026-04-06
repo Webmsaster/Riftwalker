@@ -50,6 +50,19 @@ void RunHistoryState::handleEvent(const SDL_Event& event) {
             default: break;
         }
     }
+
+    // Mouse wheel scrolling
+    if (event.type == SDL_MOUSEWHEEL) {
+        if (event.wheel.y > 0 && m_scrollOffset > 0) {
+            m_scrollOffset--;
+        } else if (event.wheel.y < 0) {
+            m_scrollOffset++;
+            const auto& hist = game->getUpgradeSystem().getRunHistory();
+            int maxVis = (Game::SCREEN_HEIGHT - 320) / 48;
+            int maxScroll = std::max(0, static_cast<int>(hist.size()) - maxVis);
+            if (m_scrollOffset > maxScroll) m_scrollOffset = maxScroll;
+        }
+    }
 }
 
 void RunHistoryState::update(float dt) {

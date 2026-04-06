@@ -177,6 +177,19 @@ void BestiaryState::handleEvent(const SDL_Event& event) {
     // Scroll to keep selected in view
     if (m_selected < m_scrollOffset) m_scrollOffset = m_selected;
     if (m_selected >= m_scrollOffset + VISIBLE) m_scrollOffset = m_selected - VISIBLE + 1;
+
+    // Mouse wheel scrolling
+    if (event.type == SDL_MOUSEWHEEL) {
+        if (event.wheel.y > 0) {
+            m_selected = (m_selected - 1 + m_totalEntries) % m_totalEntries;
+            AudioManager::instance().play(SFX::MenuSelect);
+        } else if (event.wheel.y < 0) {
+            m_selected = (m_selected + 1) % m_totalEntries;
+            AudioManager::instance().play(SFX::MenuSelect);
+        }
+        if (m_selected < m_scrollOffset) m_scrollOffset = m_selected;
+        if (m_selected >= m_scrollOffset + VISIBLE) m_scrollOffset = m_selected - VISIBLE + 1;
+    }
 }
 
 // ---- Update ----

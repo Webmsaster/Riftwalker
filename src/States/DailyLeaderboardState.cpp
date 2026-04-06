@@ -94,6 +94,15 @@ void DailyLeaderboardState::handleEvent(const SDL_Event& event) {
             default: break;
         }
     }
+
+    // Mouse wheel scrolling
+    if (event.type == SDL_MOUSEWHEEL) {
+        if (event.wheel.y > 0 && m_scrollOffset > 0) {
+            m_scrollOffset--;
+        } else if (event.wheel.y < 0) {
+            m_scrollOffset++;
+        }
+    }
 }
 
 void DailyLeaderboardState::update(float dt) {

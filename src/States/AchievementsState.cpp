@@ -45,6 +45,17 @@ void AchievementsState::handleEvent(const SDL_Event& event) {
             default: break;
         }
     }
+
+    // Mouse wheel scrolling
+    if (event.type == SDL_MOUSEWHEEL) {
+        if (event.wheel.y > 0 && m_scrollOffset > 0) {
+            m_scrollOffset -= 60;
+            if (m_scrollOffset < 0) m_scrollOffset = 0;
+        } else if (event.wheel.y < 0 && m_scrollOffset < m_maxScroll) {
+            m_scrollOffset += 60;
+            if (m_scrollOffset > m_maxScroll) m_scrollOffset = m_maxScroll;
+        }
+    }
 }
 
 void AchievementsState::update(float dt) {
