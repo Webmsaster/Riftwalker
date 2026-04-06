@@ -157,6 +157,9 @@ void Localization::loadStrings() {
     m_en["hud.achievement"]        = "Achievement: %s";
     m_en["hud.reward"]             = "Reward: %s";
     m_en["hud.quest"]              = "Quest: %s (%d/%d)";
+    m_en["hud.quest_complete"]     = "Quest Complete! +%d Shards";
+    m_en["hud.repair_rift"]        = "Press F to repair rift";
+    m_en["hud.score"]              = "Score: %d";
 
     // Class Select
     m_en["class.title"]            = "C H O O S E  Y O U R  C L A S S";
@@ -573,6 +576,9 @@ void Localization::loadStrings() {
     m_de["hud.achievement"]        = "Erfolg: %s";
     m_de["hud.reward"]             = "Belohnung: %s";
     m_de["hud.quest"]              = "Quest: %s (%d/%d)";
+    m_de["hud.quest_complete"]     = "Quest abgeschlossen! +%d Splitter";
+    m_de["hud.repair_rift"]        = "F druecken um Riss zu reparieren";
+    m_de["hud.score"]              = "Punkte: %d";
 
     // Class Select
     m_de["class.title"]            = "W A E H L E  D E I N E  K L A S S E";

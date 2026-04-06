@@ -168,7 +168,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 ? SDL_Color{255, 90, 145, 220}
                 : SDL_Color{90, 180, 255, 220};
             char promptText[160];
-            std::snprintf(promptText, sizeof(promptText), "Press F to repair rift");
+            std::snprintf(promptText, sizeof(promptText), "%s", LOC("hud.repair_rift"));
             if (!riftActive) {
                 if (requiredDim == 2) {
                     std::snprintf(promptText, sizeof(promptText),
@@ -676,7 +676,7 @@ void PlayState::renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font) {
         // Endless score
         if (g_activeChallenge == ChallengeID::EndlessRift) {
             char scoreText[32];
-            std::snprintf(scoreText, sizeof(scoreText), "Score: %d", m_endlessScore);
+            std::snprintf(scoreText, sizeof(scoreText), LOC("hud.score"), m_endlessScore);
             SDL_Surface* ss = TTF_RenderText_Blended(font, scoreText, SDL_Color{200, 180, 255, 220});
             if (ss) {
                 SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
@@ -1092,7 +1092,7 @@ void PlayState::renderQuestHUD(SDL_Renderer* renderer, TTF_Font* font) {
         Uint8 a = static_cast<Uint8>(alpha * 255);
 
         char buf[128];
-        std::snprintf(buf, sizeof(buf), "Quest Complete! +%d Shards", m_activeQuest.shardReward);
+        std::snprintf(buf, sizeof(buf), LOC("hud.quest_complete"), m_activeQuest.shardReward);
 
         int textW = static_cast<int>(std::strlen(buf) * 7.5f);
         int panelX = SCREEN_WIDTH / 2 - textW / 2;
