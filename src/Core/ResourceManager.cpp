@@ -67,6 +67,7 @@ ResourceManager::~ResourceManager() {
 SDL_Texture* ResourceManager::getTexture(const std::string& path) {
     auto it = m_textures.find(path);
     if (it != m_textures.end()) return it->second;
+    if (!m_renderer) return nullptr;
 
     SDL_Texture* tex = IMG_LoadTexture(m_renderer, path.c_str());
     if (!tex) {
@@ -123,6 +124,7 @@ SDL_Texture* ResourceManager::createColorTexture(const std::string& name, int w,
                                                    Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
     auto it = m_textures.find(name);
     if (it != m_textures.end()) return it->second;
+    if (!m_renderer) return nullptr;
 
     SDL_Texture* tex = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_RGBA8888,
                                           SDL_TEXTUREACCESS_TARGET, w, h);
