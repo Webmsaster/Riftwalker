@@ -178,6 +178,12 @@ void BestiaryState::handleEvent(const SDL_Event& event) {
     if (m_selected < m_scrollOffset) m_scrollOffset = m_selected;
     if (m_selected >= m_scrollOffset + VISIBLE) m_scrollOffset = m_selected - VISIBLE + 1;
 
+    // Right-click to go back
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::Menu);
+    }
+
     // Mouse hover: highlight entry in list
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x, my = event.motion.y;

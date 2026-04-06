@@ -80,6 +80,11 @@ void UpgradeState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Right-click to go back
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        game->changeState(StateID::Menu);
+    }
+
     // Mouse wheel scrolling
     if (event.type == SDL_MOUSEWHEEL && total > 0) {
         if (event.wheel.y > 0) {

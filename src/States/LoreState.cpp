@@ -240,6 +240,11 @@ void LoreState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Right-click to go back
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        if (game) game->changeState(StateID::Menu);
+    }
+
     // Mouse hover: highlight lore fragment in list
     if (event.type == SDL_MOUSEMOTION && m_lore) {
         int mx = event.motion.x, my = event.motion.y;

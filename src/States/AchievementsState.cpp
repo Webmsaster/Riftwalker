@@ -46,6 +46,12 @@ void AchievementsState::handleEvent(const SDL_Event& event) {
         }
     }
 
+    // Right-click to go back
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        AudioManager::instance().play(SFX::MenuSelect);
+        game->popState();
+    }
+
     // Mouse wheel scrolling
     if (event.type == SDL_MOUSEWHEEL) {
         if (event.wheel.y > 0 && m_scrollOffset > 0) {
