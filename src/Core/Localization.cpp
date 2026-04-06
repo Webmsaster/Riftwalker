@@ -335,6 +335,16 @@ void Localization::loadStrings() {
     m_en["tip.12"] = "TIP: Weapon mastery increases with kills. Higher mastery unlocks bonuses.";
     m_en["tip.13"] = "TIP: Check the bestiary to learn enemy weaknesses and attack patterns.";
     m_en["tip.14"] = "TIP: Some relics are cursed - powerful effects with dangerous drawbacks.";
+    m_en["tip.15"] = "TIP: Charged attacks deal massive damage. Hold the attack button to charge.";
+    m_en["tip.16"] = "TIP: New Game+ adds new modifiers but rewards you with more shards.";
+    m_en["tip.17"] = "TIP: Different weapon types are effective against different enemies.";
+    m_en["tip.18"] = "TIP: Suit entropy affects your abilities. Keep it low for best performance.";
+    m_en["tip.19"] = "TIP: Visit NPCs for quests, upgrades, and valuable lore.";
+    m_en["tip.20"] = "TIP: Your persistent upgrades carry over between runs.";
+    m_en["tip.21"] = "TIP: Jump on enemies from above for a stomp attack.";
+    m_en["tip.22"] = "TIP: The Technomancer's turret and traps can control the battlefield.";
+    m_en["tip.23"] = "TIP: Daily Runs use a shared seed - compete for the highest score.";
+    m_en["tip.24"] = "TIP: Combo kills without taking damage build your kill streak multiplier.";
 
     // ===== GERMAN =====
 
@@ -648,4 +658,14 @@ void Localization::loadStrings() {
     m_de["tip.12"] = "TIPP: Waffenmeisterschaft steigt mit Kills. Hoehere Stufen geben Boni.";
     m_de["tip.13"] = "TIPP: Im Bestiarium findest du Schwaechen und Angriffsmuster der Gegner.";
     m_de["tip.14"] = "TIPP: Manche Relikte sind verflucht - starke Effekte mit gefaehrlichen Nachteilen.";
+    m_de["tip.15"] = "TIPP: Aufgeladene Angriffe richten massiven Schaden an. Halte die Angriffstaste.";
+    m_de["tip.16"] = "TIPP: New Game+ fuegt neue Modifikatoren hinzu, belohnt aber mit mehr Splittern.";
+    m_de["tip.17"] = "TIPP: Verschiedene Waffentypen sind gegen verschiedene Gegner effektiv.";
+    m_de["tip.18"] = "TIPP: Anzug-Entropie beeinflusst deine Faehigkeiten. Halte sie niedrig.";
+    m_de["tip.19"] = "TIPP: Besuche NPCs fuer Quests, Upgrades und wertvolles Wissen.";
+    m_de["tip.20"] = "TIPP: Permanente Upgrades bleiben zwischen Laeufen erhalten.";
+    m_de["tip.21"] = "TIPP: Springe von oben auf Gegner fuer einen Stampf-Angriff.";
+    m_de["tip.22"] = "TIPP: Geschuetzturm und Fallen des Technomancers kontrollieren das Schlachtfeld.";
+    m_de["tip.23"] = "TIPP: Tageslaeufe nutzen einen gemeinsamen Seed - kaempfe um die Hoechstpunktzahl.";
+    m_de["tip.24"] = "TIPP: Kombo-Kills ohne Schaden erhoehen deinen Kill-Streak-Multiplikator.";
 }
