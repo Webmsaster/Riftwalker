@@ -506,6 +506,11 @@ void Localization::loadStrings() {
     m_en["tip.27"] = "TIP: Parry timing is key — press attack just before an enemy hits you.";
     m_en["tip.28"] = "TIP: The shop appears between floors. Save shards for powerful upgrades!";
     m_en["tip.29"] = "TIP: Dimension B entropy rises faster but rifts grant bonus shards there.";
+    m_en["tip.30"] = "TIP: The Phantom class can phase through enemies while dashing.";
+    m_en["tip.31"] = "TIP: Watch the minimap — red dots are enemies, blue are rifts.";
+    m_en["tip.32"] = "TIP: Elite enemies have colored auras showing their modifier type.";
+    m_en["tip.33"] = "TIP: The Voidwalker heals 3 HP every dimension switch.";
+    m_en["tip.34"] = "TIP: Challenge modes unlock after completing your first run.";
 
     // ===== GERMAN =====
 
@@ -990,4 +995,9 @@ void Localization::loadStrings() {
     m_de["tip.27"] = "TIPP: Parieren ist entscheidend — greife kurz bevor ein Gegner dich trifft an.";
     m_de["tip.28"] = "TIPP: Der Shop erscheint zwischen den Etagen. Spare Splitter fuer starke Upgrades!";
     m_de["tip.29"] = "TIPP: In Dimension B steigt Entropie schneller, aber Risse geben dort Bonus-Splitter.";
+    m_de["tip.30"] = "TIPP: Die Phantom-Klasse kann durch Gegner hindurchdashen.";
+    m_de["tip.31"] = "TIPP: Beobachte die Minikarte — rote Punkte sind Gegner, blaue sind Risse.";
+    m_de["tip.32"] = "TIPP: Elite-Gegner haben farbige Auren die ihren Modifikator-Typ zeigen.";
+    m_de["tip.33"] = "TIPP: Der Voidwalker heilt 3 HP bei jedem Dimensionswechsel.";
+    m_de["tip.34"] = "TIPP: Herausforderungsmodi werden nach dem ersten abgeschlossenen Lauf freigeschaltet.";
 }
