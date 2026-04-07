@@ -23,6 +23,7 @@
 #include "States/DailyLeaderboardState.h"
 #include "States/CreditsState.h"
 #include "States/SplashState.h"
+#include "States/TutorialState.h"
 #include "ScreenCapture.h"
 #include "VisualTest.h"
 #include "SaveUtils.h"
@@ -125,6 +126,7 @@ bool Game::init() {
     m_states[StateID::RunHistory] = std::make_unique<RunHistoryState>();
     m_states[StateID::DailyLeaderboard] = std::make_unique<DailyLeaderboardState>();
     m_states[StateID::Credits] = std::make_unique<CreditsState>();
+    m_states[StateID::Tutorial] = std::make_unique<TutorialState>();
 
     for (auto& [id, state] : m_states) {
         state->game = this;

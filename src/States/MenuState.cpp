@@ -26,35 +26,45 @@ void MenuState::enter() {
     int btnW = 520;
     int btnH = 60;
     int gap = 4;
-    int totalMenuH = 12 * (btnH + gap) - gap;
+    int totalMenuH = 13 * (btnH + gap) - gap;
     int startY = SCREEN_HEIGHT - totalMenuH - 32;
 
-    m_buttons.clear();
-    m_buttons.emplace_back(cx - btnW / 2, startY, btnW, btnH, LOC("menu.new_run"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap), btnW, btnH, LOC("menu.daily_run"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH, LOC("menu.daily_leaderboard"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH, LOC("menu.challenges"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, LOC("menu.upgrades"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 5, btnW, btnH, LOC("menu.bestiary"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 6, btnW, btnH, LOC("menu.achievements"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 7, btnW, btnH, LOC("menu.lore"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 8, btnW, btnH, LOC("menu.run_history"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 9, btnW, btnH, LOC("menu.credits"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 10, btnW, btnH, LOC("menu.options"));
-    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 11, btnW, btnH, LOC("menu.quit"));
+    // Auto-redirect first-time players to tutorial
+    bool firstTime = (game->getUpgradeSystem().totalRuns == 0);
 
-    m_buttons[0].onClick = [this]() { game->changeState(StateID::ClassSelect); };
-    m_buttons[1].onClick = [this]() { g_dailyRunActive = true; game->changeState(StateID::ClassSelect); };
-    m_buttons[2].onClick = [this]() { game->pushState(StateID::DailyLeaderboard); };
-    m_buttons[3].onClick = [this]() { game->changeState(StateID::ChallengeSelect); };
-    m_buttons[4].onClick = [this]() { game->changeState(StateID::Upgrade); };
-    m_buttons[5].onClick = [this]() { game->changeState(StateID::Bestiary); };
-    m_buttons[6].onClick = [this]() { game->pushState(StateID::Achievements); };
-    m_buttons[7].onClick = [this]() { game->changeState(StateID::Lore); };
-    m_buttons[8].onClick = [this]() { game->pushState(StateID::RunHistory); };
-    m_buttons[9].onClick = [this]() { game->changeState(StateID::Credits); };
-    m_buttons[10].onClick = [this]() { game->changeState(StateID::Options); };
-    m_buttons[11].onClick = [this]() { game->quit(); };
+    m_buttons.clear();
+    int idx = 0;
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.new_run"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.tutorial"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.daily_run"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.daily_leaderboard"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.challenges"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.upgrades"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.bestiary"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.achievements"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.lore"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.run_history"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.credits"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.options"));
+    m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * idx++, btnW, btnH, LOC("menu.quit"));
+
+    idx = 0;
+    m_buttons[idx++].onClick = [this, firstTime]() {
+        if (firstTime) game->changeState(StateID::Tutorial);
+        else game->changeState(StateID::ClassSelect);
+    };
+    m_buttons[idx++].onClick = [this]() { game->changeState(StateID::Tutorial); };
+    m_buttons[idx++].onClick = [this]() { g_dailyRunActive = true; game->changeState(StateID::ClassSelect); };
+    m_buttons[idx++].onClick = [this]() { game->pushState(StateID::DailyLeaderboard); };
+    m_buttons[idx++].onClick = [this]() { game->changeState(StateID::ChallengeSelect); };
+    m_buttons[idx++].onClick = [this]() { game->changeState(StateID::Upgrade); };
+    m_buttons[idx++].onClick = [this]() { game->changeState(StateID::Bestiary); };
+    m_buttons[idx++].onClick = [this]() { game->pushState(StateID::Achievements); };
+    m_buttons[idx++].onClick = [this]() { game->changeState(StateID::Lore); };
+    m_buttons[idx++].onClick = [this]() { game->pushState(StateID::RunHistory); };
+    m_buttons[idx++].onClick = [this]() { game->changeState(StateID::Credits); };
+    m_buttons[idx++].onClick = [this]() { game->changeState(StateID::Options); };
+    m_buttons[idx++].onClick = [this]() { game->quit(); };
 
     m_selectedButton = 0;
     m_buttons[0].setSelected(true);

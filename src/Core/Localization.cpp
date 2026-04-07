@@ -38,6 +38,7 @@ void Localization::loadStrings() {
     m_en["menu.credits"]           = "Credits";
     m_en["menu.options"]           = "Options";
     m_en["menu.quit"]              = "Quit";
+    m_en["menu.tutorial"]          = "Tutorial";
     m_en["menu.rift_shards"]       = "Rift Shards: %d";
     m_en["menu.ascension"]         = "Ascension %d";
     m_en["menu.rift_cores"]        = "Rift Cores: %d";
@@ -393,6 +394,58 @@ void Localization::loadStrings() {
     m_en["tut.rift_dimb"]          = "This Rift only stabilizes in DIM-B. Shift with [E], but entropy rises faster there.";
     m_en["tut.rift_dima"]          = "This Rift only stabilizes in DIM-A. Shift with [E] to secure it safely.";
     m_en["tut.collapsing"]         = "Dimension collapsing! Reach the EXIT before time runs out!";
+
+    // Tutorial state pages
+    m_en["tut.nav_hint"]                = "A/D or Arrow Keys to navigate | ENTER to continue | ESC to skip";
+    m_en["tut.page.welcome.title"]      = "Welcome to Riftwalker";
+    m_en["tut.page.welcome.1"]          = "You are a Riftwalker — an explorer of fractured dimensions.";
+    m_en["tut.page.welcome.2"]          = "Reality is tearing apart. Dimensional rifts threaten to consume everything.";
+    m_en["tut.page.welcome.3"]          = "Your mission: descend through 30 floors, repair rifts, and stop the collapse.";
+    m_en["tut.page.welcome.4"]          = "This is a roguelike: death is permanent, but knowledge persists.";
+    m_en["tut.page.welcome.5"]          = "Each run makes you stronger. Learn, adapt, overcome.";
+
+    m_en["tut.page.controls.title"]     = "Movement & Controls";
+    m_en["tut.page.controls.move"]      = "Move with WASD or Arrow Keys";
+    m_en["tut.page.controls.jump"]      = "Jump (also double-jump in air!)";
+    m_en["tut.page.controls.dash"]      = "Dash through danger — invincible for a moment";
+    m_en["tut.page.controls.wall"]      = "Slide on walls and wall-jump to reach higher areas.";
+
+    m_en["tut.page.combat.title"]       = "Combat";
+    m_en["tut.page.combat.melee"]       = "Melee Attack — fast, close range";
+    m_en["tut.page.combat.ranged"]      = "Ranged Attack — hold for charged shots";
+    m_en["tut.page.combat.parry"]       = "Time your melee right before an enemy hits — PARRY for bonus damage!";
+    m_en["tut.page.combat.combo"]       = "Chain hits without pause to build combos for increasing damage.";
+    m_en["tut.page.combat.weapons"]     = "Switch weapons to find your style:";
+
+    m_en["tut.page.dim.title"]          = "Dimension Shifting";
+    m_en["tut.page.dim.core"]           = "The core mechanic — switch between two parallel dimensions:";
+    m_en["tut.page.dim.a_label"]        = "Dimension A";
+    m_en["tut.page.dim.a_desc"]         = "Familiar terrain, weaker enemies";
+    m_en["tut.page.dim.a_desc2"]        = "Lower entropy growth";
+    m_en["tut.page.dim.b_label"]        = "Dimension B";
+    m_en["tut.page.dim.b_desc"]         = "Harder enemies, better rewards";
+    m_en["tut.page.dim.b_desc2"]        = "Faster entropy growth";
+    m_en["tut.page.dim.entropy"]        = "Watch your Entropy meter! At 100%, your suit destabilizes.";
+    m_en["tut.page.dim.rifts"]          = "Repair dimensional rifts to lower entropy:";
+
+    m_en["tut.page.prog.title"]         = "Progression & Strategy";
+    m_en["tut.page.prog.roguelike"]     = "Death ends the run — but upgrades carry over!";
+    m_en["tut.page.prog.death"]         = "Spend Rift Shards on permanent upgrades between runs.";
+    m_en["tut.page.prog.upgrades"]      = "Health, damage, dash charges, abilities — all upgradeable.";
+    m_en["tut.page.prog.classes"]       = "4 Classes: Voidwalker, Berserker, Phantom, Technomancer";
+    m_en["tut.page.prog.relics"]        = "Find Relics during runs for powerful passive bonuses.";
+    m_en["tut.page.prog.floors"]        = "30 floors across 5 zones, each with unique hazards and enemies.";
+    m_en["tut.page.prog.bosses"]        = "Defeat zone bosses to progress. Each has unique attack patterns.";
+
+    m_en["tut.page.ready.title"]        = "Ready to Rift!";
+    m_en["tut.page.ready.1"]            = "You know what you need. Time to walk the rift.";
+    m_en["tut.page.ready.2"]            = "Choose your class, pick your difficulty, and dive in.";
+    m_en["tut.page.ready.3"]            = "In-game hints will guide you through the first floor.";
+    m_en["tut.page.ready.tip1"]         = "Tip: Explore both dimensions — some paths only exist in one!";
+    m_en["tut.page.ready.tip2"]         = "Tip: Parrying is the fastest way to deal massive damage.";
+    m_en["tut.page.ready.tip3"]         = "Tip: Check the Bestiary to learn enemy weaknesses.";
+    m_en["tut.page.ready.start"]        = ">>> Press ENTER to choose your class <<<";
+
 
     // Death causes (run history, game over)
     m_en["death.hp"]               = "HP Depleted";
@@ -1353,6 +1406,58 @@ void Localization::loadStrings() {
     m_de["tut.rift_dimb"]          = "Dieser Riss stabilisiert nur in DIM-B. Wechsle mit [E], aber Entropie steigt schneller dort.";
     m_de["tut.rift_dima"]          = "Dieser Riss stabilisiert nur in DIM-A. Wechsle mit [E] um ihn sicher zu reparieren.";
     m_de["tut.collapsing"]         = "Dimension kollabiert! Erreiche den AUSGANG bevor die Zeit ablaeuft!";
+
+    // Tutorial state pages
+    m_de["tut.nav_hint"]                = "A/D oder Pfeiltasten zum Blaettern | ENTER weiter | ESC ueberspringen";
+    m_de["tut.page.welcome.title"]      = "Willkommen bei Riftwalker";
+    m_de["tut.page.welcome.1"]          = "Du bist ein Riftwalker — ein Erforscher zerbrochener Dimensionen.";
+    m_de["tut.page.welcome.2"]          = "Die Realitaet bricht auseinander. Dimensionsrisse drohen alles zu verschlingen.";
+    m_de["tut.page.welcome.3"]          = "Deine Mission: Durchquere 30 Etagen, repariere Risse, stoppe den Kollaps.";
+    m_de["tut.page.welcome.4"]          = "Dies ist ein Roguelike: Tod ist endgueltig, aber Wissen bleibt.";
+    m_de["tut.page.welcome.5"]          = "Jeder Durchlauf macht dich staerker. Lerne, passe dich an, ueberwinde.";
+
+    m_de["tut.page.controls.title"]     = "Bewegung & Steuerung";
+    m_de["tut.page.controls.move"]      = "Bewege dich mit WASD oder Pfeiltasten";
+    m_de["tut.page.controls.jump"]      = "Springen (auch Doppelsprung in der Luft!)";
+    m_de["tut.page.controls.dash"]      = "Ausweichen — fuer einen Moment unverwundbar";
+    m_de["tut.page.controls.wall"]      = "Rutsche an Waenden und springe ab um hoeher zu kommen.";
+
+    m_de["tut.page.combat.title"]       = "Kampf";
+    m_de["tut.page.combat.melee"]       = "Nahkampfangriff — schnell, kurze Reichweite";
+    m_de["tut.page.combat.ranged"]      = "Fernkampfangriff — halte fuer aufgeladene Schuesse";
+    m_de["tut.page.combat.parry"]       = "Time deinen Nahkampf kurz vor einem Feindhit — PARIEREN fuer Bonusschaden!";
+    m_de["tut.page.combat.combo"]       = "Verkette Treffer ohne Pause fuer steigende Kombo-Schadensboni.";
+    m_de["tut.page.combat.weapons"]     = "Wechsle Waffen um deinen Stil zu finden:";
+
+    m_de["tut.page.dim.title"]          = "Dimensionswechsel";
+    m_de["tut.page.dim.core"]           = "Die Kernmechanik — wechsle zwischen zwei parallelen Dimensionen:";
+    m_de["tut.page.dim.a_label"]        = "Dimension A";
+    m_de["tut.page.dim.a_desc"]         = "Vertrautes Terrain, schwaecher Gegner";
+    m_de["tut.page.dim.a_desc2"]        = "Langsameres Entropie-Wachstum";
+    m_de["tut.page.dim.b_label"]        = "Dimension B";
+    m_de["tut.page.dim.b_desc"]         = "Haertere Gegner, bessere Belohnungen";
+    m_de["tut.page.dim.b_desc2"]        = "Schnelleres Entropie-Wachstum";
+    m_de["tut.page.dim.entropy"]        = "Behalte dein Entropie-Meter im Auge! Bei 100% versagt dein Anzug.";
+    m_de["tut.page.dim.rifts"]          = "Repariere dimensionale Risse um die Entropie zu senken:";
+
+    m_de["tut.page.prog.title"]         = "Fortschritt & Strategie";
+    m_de["tut.page.prog.roguelike"]     = "Tod beendet den Durchlauf — aber Upgrades bleiben!";
+    m_de["tut.page.prog.death"]         = "Gib Rift-Scherben fuer permanente Verbesserungen aus.";
+    m_de["tut.page.prog.upgrades"]      = "Gesundheit, Schaden, Ausweichladungen, Faehigkeiten — alles verbesserbar.";
+    m_de["tut.page.prog.classes"]       = "4 Klassen: Voidwalker, Berserker, Phantom, Technomancer";
+    m_de["tut.page.prog.relics"]        = "Finde Relikte waehrend Durchlaeufen fuer maechtige passive Boni.";
+    m_de["tut.page.prog.floors"]        = "30 Etagen ueber 5 Zonen, jede mit eigenen Gefahren und Gegnern.";
+    m_de["tut.page.prog.bosses"]        = "Besiege Zonenbosse um voranzukommen. Jeder hat eigene Angriffsmuster.";
+
+    m_de["tut.page.ready.title"]        = "Bereit zum Riss!";
+    m_de["tut.page.ready.1"]            = "Du weisst was noetig ist. Zeit den Riss zu durchschreiten.";
+    m_de["tut.page.ready.2"]            = "Waehle deine Klasse, bestimme die Schwierigkeit und tauche ein.";
+    m_de["tut.page.ready.3"]            = "Im Spiel fuehren dich Hinweise durch die erste Etage.";
+    m_de["tut.page.ready.tip1"]         = "Tipp: Erkunde beide Dimensionen — manche Wege gibt es nur in einer!";
+    m_de["tut.page.ready.tip2"]         = "Tipp: Parieren ist der schnellste Weg zu massivem Schaden.";
+    m_de["tut.page.ready.tip3"]         = "Tipp: Pruefe das Bestiarium um Gegner-Schwaechen zu erfahren.";
+    m_de["tut.page.ready.start"]        = ">>> Druecke ENTER um deine Klasse zu waehlen <<<";
+    m_de["menu.tutorial"]               = "Tutorial";
 
     // Death causes
     m_de["death.hp"]               = "HP aufgebraucht";
