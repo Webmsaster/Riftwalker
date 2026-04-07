@@ -504,6 +504,12 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         renderPickup(renderer, screenRect, entity, alpha); break;
     case EntityRenderType::Projectile:
         renderProjectile(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyEntropyMinion:
+    case EntityRenderType::EnemyShadowClone:
+    case EntityRenderType::EnemyEcho:
+    case EntityRenderType::DimResidue:
+    case EntityRenderType::GrappleHook:
+    case EntityRenderType::Unknown:
     default: {
         // Professional default renderer: layered body with glow, gradient, and details
         auto& sprite = entity.getComponent<SpriteComponent>();
