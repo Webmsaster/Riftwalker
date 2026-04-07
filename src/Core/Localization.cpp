@@ -668,6 +668,11 @@ void Localization::loadStrings() {
     m_en["tip.67"] = "TIP: The Rift Crossbow pierces multiple enemies — line up your shots!";
     m_en["tip.68"] = "TIP: Summoner enemies are fragile alone. Kill the summoner before the minions!";
     m_en["tip.69"] = "TIP: Check the pause menu for active relic synergies and current build stats.";
+    m_en["tip.70"] = "TIP: Gravity Gauntlet pulls enemies toward you — great for crowd control!";
+    m_en["tip.71"] = "TIP: Coyote time lets you jump briefly after walking off a ledge.";
+    m_en["tip.72"] = "TIP: Attack buffering queues your next attack during cooldown for snappy combat.";
+    m_en["tip.73"] = "TIP: Chain Whip has the longest melee range and pierces through enemies.";
+    m_en["tip.74"] = "TIP: Press M to toggle the minimap on or off during gameplay.";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1618,6 +1623,11 @@ void Localization::loadStrings() {
     m_de["tip.67"] = "TIPP: Die Riss-Armbrust durchbohrt mehrere Gegner — richte deine Schuesse aus!";
     m_de["tip.68"] = "TIPP: Beschworer sind allein zerbrechlich. Toete den Beschworer vor den Dienern!";
     m_de["tip.69"] = "TIPP: Im Pausenmenue findest du aktive Relikt-Synergien und aktuelle Build-Werte.";
+    m_de["tip.70"] = "TIPP: Gravitationshandschuh zieht Gegner zu dir — ideal fuer Massenkontrolle!";
+    m_de["tip.71"] = "TIPP: Coyote-Time erlaubt kurzes Springen nachdem du von einer Kante gelaufen bist.";
+    m_de["tip.72"] = "TIPP: Angriffs-Pufferung reiht deinen naechsten Angriff waehrend der Abklingzeit ein.";
+    m_de["tip.73"] = "TIPP: Die Kettenpeitsche hat die groesste Nahkampf-Reichweite und durchbohrt Gegner.";
+    m_de["tip.74"] = "TIPP: Druecke M um die Minikarte waehrend des Spiels ein- oder auszublenden.";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
