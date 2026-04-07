@@ -99,45 +99,33 @@ const char* NPCSystem::getGreeting(NPCType type, int storyStage) {
 const char* NPCSystem::getStoryLine(NPCType type, int storyStage) {
     switch (type) {
         case NPCType::RiftScholar:
-            if (storyStage >= 2)
-                return "The truth: the Sovereign was once a guardian. The rifts\nare the dimensions healing themselves. You are the catalyst.";
-            if (storyStage >= 1)
-                return "Ancient texts reveal the rifts aren't natural.\nSomeone — or something — tore the dimensions apart.";
-            return "The dimensional rifts grow unstable. Each repair\nweakens the Void Sovereign's grip on reality.";
+            if (storyStage >= 2) return LOC("npc.scholar.d2");
+            if (storyStage >= 1) return LOC("npc.scholar.d1");
+            return LOC("npc.scholar.d0");
         case NPCType::DimRefugee:
-            if (storyStage >= 2)
-                return "You've helped me survive this long. I gathered\nrift components — take this gift, no strings attached.";
-            if (storyStage >= 1)
-                return "I found medical supplies between the dimensions.\nLet me patch you up — and I have a better deal too.";
-            return "I'm trapped between dimensions. Trade me some health\nand I'll give you rift shards I've collected.";
+            if (storyStage >= 2) return LOC("npc.refugee.d2");
+            if (storyStage >= 1) return LOC("npc.refugee.d1");
+            return LOC("npc.refugee.d0");
         case NPCType::LostEngineer:
-            if (storyStage >= 2)
-                return "I cracked it! Rift-infused metal permanently bonds\nwith weapons. This upgrade lasts your whole run.";
-            if (storyStage >= 1)
-                return "Rift energy amplifies weapons more than I thought!\nLonger effect, plus I can boost your attack speed.";
-            return "Let me recalibrate your weapon with rift harmonics.\nShould boost damage output for a while.";
+            if (storyStage >= 2) return LOC("npc.engineer.d2");
+            if (storyStage >= 1) return LOC("npc.engineer.d1");
+            return LOC("npc.engineer.d0");
         case NPCType::EchoOfSelf:
-            if (storyStage >= 2) return "Your ultimate echo. Defeat it for the greatest reward.";
-            if (storyStage >= 1) return "Your echo is stronger now, adapted from last time.";
-            return "A mirror match begins! Defeat your echo for a reward.";
+            if (storyStage >= 2) return LOC("npc.echo.d2");
+            if (storyStage >= 1) return LOC("npc.echo.d1");
+            return LOC("npc.echo.d0");
         case NPCType::Blacksmith:
-            if (storyStage >= 2)
-                return "I've perfected my rift-forging technique.\nAccept my masterwork — both weapons, permanently enhanced.";
-            if (storyStage >= 1)
-                return "With more rift energy, I can now upgrade range\nand attack speed too. Better prices for a returning customer.";
-            return "My forge burns with rift energy. I can sharpen your\nmelee or reinforce your ranged weapon — for a price.";
+            if (storyStage >= 2) return LOC("npc.smith.d2");
+            if (storyStage >= 1) return LOC("npc.smith.d1");
+            return LOC("npc.smith.d0");
         case NPCType::FortuneTeller:
-            if (storyStage >= 2)
-                return "My visions have never been clearer. I can reveal every\nsecret on this floor — and grant you foresight against the boss.";
-            if (storyStage >= 1)
-                return "The dimensional threads are easier to read now.\nI can show you hidden rooms and warn of ambushes ahead.";
-            return "I sense hidden chambers nearby. For a small offering,\nI'll reveal their locations on your map.";
+            if (storyStage >= 2) return LOC("npc.fortune.d2");
+            if (storyStage >= 1) return LOC("npc.fortune.d1");
+            return LOC("npc.fortune.d0");
         case NPCType::VoidMerchant:
-            if (storyStage >= 2)
-                return "My finest acquisition: a relic from the Sovereign's own\nvault. Normally priceless — but for you, a special rate.";
-            if (storyStage >= 1)
-                return "I've expanded my collection. These relics carry\nstronger dimensional resonance — worth every shard.";
-            return "Each of these relics was pried from the void between\ndimensions. They carry great power — at a fair price.";
+            if (storyStage >= 2) return LOC("npc.merchant.d2");
+            if (storyStage >= 1) return LOC("npc.merchant.d1");
+            return LOC("npc.merchant.d0");
         default: return "";
     }
 }

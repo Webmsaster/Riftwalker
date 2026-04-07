@@ -772,6 +772,29 @@ void Localization::loadStrings() {
     m_en["npc.qprog.engineer"]     = "The sensors are picking up your repairs. Keep going!";
     m_en["npc.qprog.fortune"]      = "I sense you've found some hidden places... keep searching.";
 
+    // NPC story lines (7 NPCs × 3 stages)
+    m_en["npc.scholar.d0"]  = "The dimensional rifts grow unstable. Each repair\nweakens the Void Sovereign's grip on reality.";
+    m_en["npc.scholar.d1"]  = "Ancient texts reveal the rifts aren't natural.\nSomeone — or something — tore the dimensions apart.";
+    m_en["npc.scholar.d2"]  = "The truth: the Sovereign was once a guardian. The rifts\nare the dimensions healing themselves. You are the catalyst.";
+    m_en["npc.refugee.d0"]  = "I'm trapped between dimensions. Trade me some health\nand I'll give you rift shards I've collected.";
+    m_en["npc.refugee.d1"]  = "I found medical supplies between the dimensions.\nLet me patch you up — and I have a better deal too.";
+    m_en["npc.refugee.d2"]  = "You've helped me survive this long. I gathered\nrift components — take this gift, no strings attached.";
+    m_en["npc.engineer.d0"] = "Let me recalibrate your weapon with rift harmonics.\nShould boost damage output for a while.";
+    m_en["npc.engineer.d1"] = "Rift energy amplifies weapons more than I thought!\nLonger effect, plus I can boost your attack speed.";
+    m_en["npc.engineer.d2"] = "I cracked it! Rift-infused metal permanently bonds\nwith weapons. This upgrade lasts your whole run.";
+    m_en["npc.echo.d0"]     = "A mirror match begins! Defeat your echo for a reward.";
+    m_en["npc.echo.d1"]     = "Your echo is stronger now, adapted from last time.";
+    m_en["npc.echo.d2"]     = "Your ultimate echo. Defeat it for the greatest reward.";
+    m_en["npc.smith.d0"]    = "My forge burns with rift energy. I can sharpen your\nmelee or reinforce your ranged weapon — for a price.";
+    m_en["npc.smith.d1"]    = "With more rift energy, I can now upgrade range\nand attack speed too. Better prices for a returning customer.";
+    m_en["npc.smith.d2"]    = "I've perfected my rift-forging technique.\nAccept my masterwork — both weapons, permanently enhanced.";
+    m_en["npc.fortune.d0"]  = "I sense hidden chambers nearby. For a small offering,\nI'll reveal their locations on your map.";
+    m_en["npc.fortune.d1"]  = "The dimensional threads are easier to read now.\nI can show you hidden rooms and warn of ambushes ahead.";
+    m_en["npc.fortune.d2"]  = "My visions have never been clearer. I can reveal every\nsecret on this floor — and grant you foresight against the boss.";
+    m_en["npc.merchant.d0"] = "Each of these relics was pried from the void between\ndimensions. They carry great power — at a fair price.";
+    m_en["npc.merchant.d1"] = "I've expanded my collection. These relics carry\nstronger dimensional resonance — worth every shard.";
+    m_en["npc.merchant.d2"] = "My finest acquisition: a relic from the Sovereign's own\nvault. Normally priceless — but for you, a special rate.";
+
     // Random events
     m_en["event.merchant"]         = "Merchant";
     m_en["event.anomaly"]          = "Anomaly";
@@ -1662,6 +1685,29 @@ void Localization::loadStrings() {
     m_de["npc.qprog.scholar"]      = "Jage weiter diese Kreaturen. Ich spuere mehr Daten einfliessen...";
     m_de["npc.qprog.engineer"]     = "Die Sensoren erfassen deine Reparaturen. Weiter so!";
     m_de["npc.qprog.fortune"]      = "Ich spuere, du hast verborgene Orte gefunden... suche weiter.";
+
+    // NPC story lines (7 NPCs × 3 stages)
+    m_de["npc.scholar.d0"]  = "Die Dimensionsrisse werden instabiler. Jede Reparatur\nschwaeecht den Griff des Leere-Souverains auf die Realitaet.";
+    m_de["npc.scholar.d1"]  = "Alte Texte enthuellen: die Risse sind nicht natuerlich.\nJemand — oder etwas — hat die Dimensionen zerrissen.";
+    m_de["npc.scholar.d2"]  = "Die Wahrheit: Der Souverain war einst ein Waechter. Die Risse\nsind die Dimensionen die sich selbst heilen. Du bist der Katalysator.";
+    m_de["npc.refugee.d0"]  = "Ich bin zwischen den Dimensionen gefangen. Tausche etwas Gesundheit\nund ich gebe dir Risssplitter die ich gesammelt habe.";
+    m_de["npc.refugee.d1"]  = "Ich fand medizinische Vorraete zwischen den Dimensionen.\nLass mich dich versorgen — und ich habe ein besseres Angebot.";
+    m_de["npc.refugee.d2"]  = "Du hast mir so lange geholfen zu ueberleben. Ich sammelte\nRisskomponenten — nimm dieses Geschenk, ohne Hintergedanken.";
+    m_de["npc.engineer.d0"] = "Lass mich deine Waffe mit Rissharmonien neu kalibrieren.\nSollte den Schadensausstoß fuer eine Weile steigern.";
+    m_de["npc.engineer.d1"] = "Rissenergie verstaerkt Waffen mehr als ich dachte!\nLaengere Wirkung, plus ich kann dein Angriffstempo steigern.";
+    m_de["npc.engineer.d2"] = "Ich hab es geschafft! Rissgestaertes Metall verbindet sich\npermanent mit Waffen. Dieses Upgrade haelt den ganzen Lauf.";
+    m_de["npc.echo.d0"]     = "Ein Spiegelkampf beginnt! Besiege dein Echo fuer eine Belohnung.";
+    m_de["npc.echo.d1"]     = "Dein Echo ist jetzt staerker, angepasst vom letzten Mal.";
+    m_de["npc.echo.d2"]     = "Dein ultimatives Echo. Besiege es fuer die groesste Belohnung.";
+    m_de["npc.smith.d0"]    = "Meine Schmiede brennt mit Rissenergie. Ich kann deinen\nNahkampf schaerfen oder Fernkampf verstaerken — fuer einen Preis.";
+    m_de["npc.smith.d1"]    = "Mit mehr Rissenergie kann ich jetzt auch Reichweite\nund Angriffstempo verbessern. Bessere Preise fuer Stammkunden.";
+    m_de["npc.smith.d2"]    = "Ich habe meine Riss-Schmiedetechnik perfektioniert.\nNimm mein Meisterwerk — beide Waffen, permanent verstaerkt.";
+    m_de["npc.fortune.d0"]  = "Ich spuere verborgene Kammern in der Naehe. Fuer ein kleines\nOpfer enthulle ich ihre Positionen auf deiner Karte.";
+    m_de["npc.fortune.d1"]  = "Die dimensionalen Faeden sind leichter zu lesen.\nIch kann verborgene Raeume und Hinterhalte voraussagen.";
+    m_de["npc.fortune.d2"]  = "Meine Visionen waren nie klarer. Ich kann jedes\nGeheimnis auf dieser Etage enthuellen — und Voraussicht gegen den Boss.";
+    m_de["npc.merchant.d0"] = "Jedes dieser Relikte wurde aus der Leere zwischen\nden Dimensionen gerissen. Grosse Macht — zu einem fairen Preis.";
+    m_de["npc.merchant.d1"] = "Ich habe meine Sammlung erweitert. Diese Relikte tragen\nstaerkere dimensionale Resonanz — jeden Splitter wert.";
+    m_de["npc.merchant.d2"] = "Mein bestes Stueck: ein Relikt aus dem Tresor des Souverains\nselbst. Normalerweise unbezahlbar — aber fuer dich, ein Sonderpreis.";
 
     // Random events
     m_de["event.merchant"]         = "Haendler";
