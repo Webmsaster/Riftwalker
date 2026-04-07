@@ -1645,6 +1645,24 @@ void Localization::loadStrings() {
     m_de["lore.18.title"] = "Leere-Handel";
     m_de["lore.18.text"]  = "Die Leere-Haendler reisen zwischen allen bekannten Rissen und handeln mit Relikten gefallener Reisender. Ihre Wirtschaft basiert auf dimensionalen Splittern — kristallisierte Realitaet als universelle Waehrung aller zerbrochenen Welten.";
     m_de["lore.19.title"] = "Vermaechtnis der Vier";
+
+    // Bestiary enemy names (DE only — EN falls back to BestiaryEntry struct)
+    m_de["enemy.0.name"]  = "Risslaeufer";           // Walker
+    m_de["enemy.1.name"]  = "Rissflieger";           // Flyer
+    m_de["enemy.2.name"]  = "Leeregeschuetz";        // Turret
+    m_de["enemy.3.name"]  = "Rissrammer";            // Charger
+    m_de["enemy.4.name"]  = "Phasenpirsch";          // Phaser
+    m_de["enemy.5.name"]  = "Leersprenger";          // Exploder
+    m_de["enemy.6.name"]  = "Rissschild";            // Shielder
+    m_de["enemy.7.name"]  = "Leerekrabbler";         // Crawler
+    m_de["enemy.8.name"]  = "Rissbeschworer";        // Summoner
+    m_de["enemy.9.name"]  = "Leerescharfschuetze";   // Sniper
+    m_de["enemy.10.name"] = "Phasenblinker";         // Teleporter
+    m_de["enemy.11.name"] = "Spiegelwache";          // Reflector
+    m_de["enemy.12.name"] = "Leereegel";             // Leech
+    m_de["enemy.13.name"] = "Rissschwaermer";        // Swarmer
+    m_de["enemy.14.name"] = "Gravitationsbrunnen";   // GravityWell
+    m_de["enemy.15.name"] = "Mimik";                 // Mimic
     m_de["lore.19.text"]  = "Voidwalker, Berserker, Phantom, Technomancer — vier Wege durch den Riss, jeder geboren aus einer anderen Philosophie des Ueberlebens. Der Voidwalker umarmt das Dazwischen. Der Berserker trotzt ihm. Das Phantom gleitet hindurch. Der Technomancer schreibt es um.";
 
     // Buff pickups

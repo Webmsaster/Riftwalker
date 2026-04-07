@@ -360,7 +360,12 @@ void BestiaryState::render(SDL_Renderer* renderer) {
 
         // Name text
         int textX = LIST_X + 40;
-        const char* displayName = entry.discovered ? entry.name : (isBoss ? "??? [BOSS]" : "???");
+        // Localized enemy name (fallback to struct data for EN)
+        char bNameKey[32];
+        std::snprintf(bNameKey, sizeof(bNameKey), "enemy.%d.name", static_cast<int>(entry.type));
+        const char* bLocName = LOC(bNameKey);
+        const char* locEnemyName = (std::strcmp(bLocName, bNameKey) == 0) ? entry.name : bLocName;
+        const char* displayName = entry.discovered ? locEnemyName : (isBoss ? LOC("bestiary.boss_label") : "???");
         SDL_Color nameColor = entry.discovered ?
             (isBoss ? SDL_Color{255, 190, 90, 255} : SDL_Color{210, 195, 220, 255}) :
             SDL_Color{75, 70, 90, 140};
@@ -462,7 +467,12 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
 
     // Name header
     SDL_Color nameColor = isBoss ? SDL_Color{255, 195, 90, 255} : SDL_Color{225, 210, 235, 255};
-    drawText(renderer, font, entry.name, infoX, infoY, nameColor, 1.4f);
+    // Localized enemy name for detail view
+    char detNameKey[32];
+    std::snprintf(detNameKey, sizeof(detNameKey), "enemy.%d.name", static_cast<int>(entry.type));
+    const char* detLocN = LOC(detNameKey);
+    const char* detEnemyName = (std::strcmp(detLocN, detNameKey) == 0) ? entry.name : detLocN;
+    drawText(renderer, font, detEnemyName, infoX, infoY, nameColor, 1.4f);
 
     // Divider line
     int divY = infoY + 72;
