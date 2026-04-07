@@ -1730,6 +1730,32 @@ void Localization::loadStrings() {
 
     // Boss bestiary details (index 16 = Boss type, entries 0-5 via boss index offset)
     // Boss entries use type Boss (16) but are stored separately — we use a naming convention
+    // Bestiary lore texts (DE — shorter summaries)
+    m_de["enemy.0.lore"]  = "Risslaeufer sind rudimentaere Konstrukte aus kristallisierter Dimensionsenergie. Sie haben keine echte Intelligenz, nur einen territorialen Instinkt. Entdecker berichten, stundenlang von diesen stummen Waechtern verfolgt zu werden.";
+    m_de["enemy.1.lore"]  = "Wenn Rissenergie aufwaerts durch dimensionale Risse stroemt, verdichtet sie sich manchmal zu Luftraeuber. Sie beanspruchen den vertikalen Raum und stuermen auf alles herab, was von unten eindringt.";
+    m_de["enemy.2.lore"]  = "Leeregeschuetze sind uralte automatisierte Wachposten einer unbekannten Zivilisation. Ihre kristallinen Kerne feuern komprimierte Rissbolzen mit mechanischer Praezision. Sie ermueden nie, verfehlen nie.";
+    m_de["enemy.3.lore"]  = "Rissrammer waren einst langsame dimensionale Weidegaenger. Aber Mutationen durch instabile Rissenergie verwandelten ihren Fluchtinstinkt in blinden Angriffswahn. Wenn sie dich sehen, rasen sie los.";
+    m_de["enemy.4.lore"]  = "Phasenpirsche existieren gleichzeitig in beiden Dimensionen, aber nur fuer Bruchteile. Sie lauern im Zwischenraum und warten auf den perfekten Moment zum Zuschlagen.";
+    m_de["enemy.5.lore"]  = "Leersprenger sind instabile Konzentrationen dimensionaler Energie, gefangen in einem zerbrechlichen biologischen Koerper. Beim Tod setzt die ganze Energie explosiv frei.";
+    m_de["enemy.6.lore"]  = "Rissschilder besitzen kristalline Frontalbarrieren aus verdichteter Dimensionsenergie. Die Schilder regenerieren sich nach kurzer Zeit. Nur Angriffe von hinten oder elementare Ketten durchdringen sie.";
+    m_de["enemy.7.lore"]  = "Leerekrabbler haften an Decken und Waenden mithilfe dimensionaler Adheasion. Sie lauern geduldig und lassen sich mit hoher Geschwindigkeit auf ahnungslose Beute fallen.";
+    m_de["enemy.8.lore"]  = "Rissbeschworer kanalisieren dimensionale Energie um kurzlebige Diener-Konstrukte zu erschaffen. Allein sind sie zerbrechlich, aber mit ihrem Gefolge sind sie bedrohlich.";
+    m_de["enemy.9.lore"]  = "Leerescharfschuetzen halten maximale Distanz und feuern praezise Energiebolzen mit deutlicher Vorwarnung. Ihre Strategie: Distanz halten und bei Annaeherung zurueckweichen.";
+    m_de["enemy.10.lore"] = "Phasenblinker nutzen instabile Rissenergie um sich kurzzeitig durch den Dimensionszwischenraum zu teleportieren. Sie erscheinen bevorzugt hinter dem Ziel.";
+    m_de["enemy.11.lore"] = "Spiegelwachen tragen rotierende Kristallschilder die Geschosse reflektieren. Der Schild wechselt in einem vorhersagbaren Zyklus zwischen aktiv und inaktiv.";
+    m_de["enemy.12.lore"] = "Leereegel naehren sich von Lebensenergie die sie bei Kontakt aus ihren Opfern saugen. Die entzogene Energie heilt den Egel. Unter 50% HP werden sie aggressiver.";
+    m_de["enemy.13.lore"] = "Rissschwaermer sind Fragmente eines einzigen Schwarmbewusstseins. Einzeln schwach, aber in Gruppen ueberwaoeltigend. Ihre Zickzack-Bewegung macht sie schwer zu treffen.";
+    m_de["enemy.14.lore"] = "Gravitationsbrunnen sind lebende Singularitaeten die sich von raeumlicher Verzerrung ernaehren. Ihr Gravitationsfeld zieht alles in Reichweite unaufhaltsam an.";
+    m_de["enemy.15.lore"] = "Mimiks waren einst gewoehliche Materie, umgeformt durch Rissenergie. Sie tarnen sich als Kisten und Truhen und greifen erst an, wenn die Beute nah genug ist.";
+
+    // Boss lore texts (DE — shorter summaries)
+    m_de["boss.0.lore"]   = "Der Risswaechter ist aelter als jede Zivilisation die den Riss jemals durchquerte. Ein geduldiger, methodischer Waechter der Eindringlinge in Phasen testet, mit zunehmender Aggressivitaet.";
+    m_de["boss.1.lore"]   = "Der Leere-Wyrm bewohnt die Raeume zwischen Dimensionen wo kein Licht existiert. Sein schlangenartiger Koerper kann teilweise zwischen Realitaeten phasen und ist nur angreifbar wenn er voll materialisiert.";
+    m_de["boss.2.lore"]   = "Der Dimensionsarchitekt ist das einzige bekannte Wesen das aktiv Strukturen aus roher Dimensionsenergie konstruiert. Seine Tuerme und Mauern koennten den Riss heilen — oder weiter aufreissen.";
+    m_de["boss.3.lore"]   = "Der Zeitweber existiert an einem festen Punkt in der Zeit und nimmt Vergangenheit und Zukunft gleichzeitig wahr. Ihn zu besiegen erfordert das Brechen der Zeitschleife die er um sich gewoben hat.";
+    m_de["boss.4.lore"]   = "Der Leere-Souverain herrscht aus der tiefsten Schicht der Dimensionsleere. Gefangen zwischen Dimensionen versucht er seit Aeonen auszubrechen. Seine Niederlage koennte etwas Schlimmeres befreit haben.";
+    m_de["boss.5.lore"]   = "Entropie Inkarniert ist kein Wesen sondern ein Konzept in Gestalt — der unvermeidliche Waermetod aller Dimensionen verdichtet in einer Entitaet. Es zu besiegen verzoegert nur das Ende.";
+
     // Boss bestiary names (for Bestiary list/detail)
     m_de["boss.0.bname"] = "Risswaechter";
     m_de["boss.1.bname"] = "Leere-Wyrm";
