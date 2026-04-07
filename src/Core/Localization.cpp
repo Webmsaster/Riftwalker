@@ -1605,6 +1605,48 @@ void Localization::loadStrings() {
     m_de["action.shield"]          = "Rissschild";
     m_de["action.phase"]           = "Phasenschlag";
 
+    // Lore fragment titles + texts (DE only — EN falls back to LoreSystem struct)
+    m_de["lore.0.title"]  = "Der Riss";
+    m_de["lore.0.text"]   = "Zwischen den Welten liegt eine Wunde in der Realitaet selbst. Der Riss reisst durch Dimensionen wie ein Fluss aus Leere und verbindet Orte, die sich nie beruehren sollten. Wer ihn betritt, kehrt selten unveraendert zurueck.";
+    m_de["lore.1.title"]  = "Echos des Ursprungs";
+    m_de["lore.1.text"]   = "Die Dimensionen waren einst eins. Ein Kataklysmus spaltete die Realitaet in Schichten, jede ein verzerrtes Spiegelbild der anderen. Die Grenzen werden mit jedem Zyklus duenner, und die Kreaturen dazwischen werden kuehner.";
+    m_de["lore.2.title"]  = "Die Walker-Plage";
+    m_de["lore.2.text"]   = "Walker sind die haeufigsten Bewohner des Risses. Geistlose Huellengetrieben von unstillbarem Hunger wandern sie endlos durch die gebrochenen Korridore. Manche sagen, sie waren einst Entdecker wie du.";
+    m_de["lore.3.title"]  = "Leere-Hunger";
+    m_de["lore.3.text"]   = "Entropie ist der Atem des Risses. Wenn sie steigt, zerfransen die Raender der Realitaet. Farben verlaufen, Geraeusche verzerren sich, und die Grenze zwischen Dimensionen wird hauchdünn. Bei hoher Entropie zu ueberleben heisst am Rand des Vergessens zu tanzen.";
+    m_de["lore.4.title"]  = "Die Aufgestiegenen";
+    m_de["lore.4.text"]   = "Wer sich im Riss bewaehrt, erhaelt den Aufstieg — die Chance, mit groesserer Macht neu zu beginnen. Jeder Aufstieg entfernt Schwaeche, doch der Riss reagiert gleichermassen und wird immer feindseliger.";
+    m_de["lore.5.title"]  = "Vergessenes Handwerk";
+    m_de["lore.5.text"]   = "Die Haendler des Risses sind raetselhafte Gestalten. Sie existieren ausserhalb des normalen Raums, ihre Staende erscheinen an Kreuzungen zwischen Dimensionen. Niemand weiss, was sie mit den gesammelten Splittern tun.";
+    m_de["lore.6.title"]  = "Echo des Waechters";
+    m_de["lore.6.text"]   = "Der erste Waechter, den du besiegtest, war lediglich eine Schildwache — ein Konstrukt des Risses, das Eindringlinge testen sollte. Seine Zerstoerung sandte Wellen durch jede verbundene Dimension.";
+    m_de["lore.7.title"]  = "Des Wyrms Klage";
+    m_de["lore.7.text"]   = "Der Leere-Wyrm war uralt jenseits aller Vorstellung, eine Kreatur geboren im Raum zwischen den Raeumen. Sein Todesschrei hallte durch alle Dimensionen und weckte Dinge, die lange geschlummert hatten.";
+    m_de["lore.8.title"]  = "Des Architekten Entwurf";
+    m_de["lore.8.text"]   = "Der Dimensionsarchitekt versuchte, die Realitaet nach seinem eigenen Bauplan umzugestalten. Seine Tuerme und Mauern waren Versuche, den Riss zu flicken — oder vielleicht weiter aufzureissen. Sein wahrer Zweck starb mit ihm.";
+    m_de["lore.9.title"]  = "Des Webers Faden";
+    m_de["lore.9.text"]   = "Der Zeitweber existierte in allen Momenten gleichzeitig. Ihn zu besiegen war keine Frage der Staerke, sondern das Brechen der Schleife, die er um sich gewoben hatte. Die Zeit fliesst nun frei — zum Guten oder Schlechten.";
+    m_de["lore.10.title"] = "Des Souverains Wahrheit";
+    m_de["lore.10.text"]  = "Der Leere-Souverain war kein Herrscher, sondern ein Gefangener. An die tiefste Schicht des Risses gekettet, versuchte er aeonenlang auszubrechen. Durch seine Niederlage hast du vielleicht etwas viel Schlimmeres befreit — oder ihn endlich erloest.";
+    m_de["lore.11.title"] = "Letzte Offenbarung";
+    m_de["lore.11.text"]  = "Du bist der Riss. Jeder Dimensionswechsel, jeder getoetete Feind, jeder abgeschlossene Zyklus — du hast nicht die Wunde in der Realitaet erkundet. Du warst die Wunde, die lernte, sich selbst zu heilen. Der Riss endet dort, wo du begonnen hast.";
+    m_de["lore.12.title"] = "Natur des Schwarms";
+    m_de["lore.12.text"]  = "Riss-Schwaermer sind keine Individuen, sondern Fragmente eines einzigen Schwarmbewusstseins, das zersplitterte als sich die Dimensionen trennten. Jedes Bernsteininsekt traegt einen Splitter kollektiver Erinnerung.";
+    m_de["lore.13.title"] = "Gravitationsanomalien";
+    m_de["lore.13.text"]  = "Wo das dimensionale Gewebe am duennsten ist, bilden sich spontan Gravitationsbrunnen — lebende Singularitaeten die sich von raeumlicher Verzerrung ernaehren. Alte Rissgelehrte nannten sie den Hunger der Leere in Gestalt.";
+    m_de["lore.14.title"] = "Die Kunst der Taeuschung";
+    m_de["lore.14.text"]  = "Mimiks waren einst gewoehliche Materie, umgeformt durch laengere Exposition mit instabiler Rissenergie. Sie lernten ihre Formen zu vertrauten Gestalten zu falten — Kisten, Truhen, Schutt. Die perfekte Tarnung in einer Dimension wo nichts sicher ist.";
+    m_de["lore.15.title"] = "Entropie als Fleisch";
+    m_de["lore.15.text"]  = "Entropie Inkarniert ist keine Kreatur sondern ein Konzept in Gestalt — der unvermeidliche Waermetod aller Dimensionen verdichtet in einem einzigen Wesen. Es zu besiegen zerstoert nicht die Entropie. Es verzoegert lediglich das Ende.";
+    m_de["lore.16.title"] = "Dimensionstheorie";
+    m_de["lore.16.text"]  = "Die Wahrsagerinnen des Risses besitzen ein seltenes Geschenk: sie koennen alle dimensionalen Schichten gleichzeitig wahrnehmen. Was als Prophezeiung erscheint, ist einfach das Sehen dessen was bereits in benachbarten Realitaeten existiert.";
+    m_de["lore.17.title"] = "Riss-Oekologie";
+    m_de["lore.17.text"]  = "Der Riss ist nicht nur eine Wunde — er ist ein Oekosystem. Walker weiden an dimensionaler Energie. Flieger jagen Walker. Bosse regulieren die Population. Selbst die Splitter die du sammelst sind Naehrstoffe in dieser fremden Nahrungskette.";
+    m_de["lore.18.title"] = "Leere-Handel";
+    m_de["lore.18.text"]  = "Die Leere-Haendler reisen zwischen allen bekannten Rissen und handeln mit Relikten gefallener Reisender. Ihre Wirtschaft basiert auf dimensionalen Splittern — kristallisierte Realitaet als universelle Waehrung aller zerbrochenen Welten.";
+    m_de["lore.19.title"] = "Vermaechtnis der Vier";
+    m_de["lore.19.text"]  = "Voidwalker, Berserker, Phantom, Technomancer — vier Wege durch den Riss, jeder geboren aus einer anderen Philosophie des Ueberlebens. Der Voidwalker umarmt das Dazwischen. Der Berserker trotzt ihm. Das Phantom gleitet hindurch. Der Technomancer schreibt es um.";
+
     // Buff pickups
     m_de["pickup.shield"]          = "SCHILD";
     m_de["pickup.speed"]           = "TEMPO HOCH";

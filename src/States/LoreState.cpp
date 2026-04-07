@@ -5,6 +5,8 @@
 #include "UI/UITextures.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstring>
 
 void LoreState::enter() {
     m_fontTitle = TTF_OpenFont("assets/fonts/default.ttf", 56);
@@ -100,7 +102,12 @@ void LoreState::render(SDL_Renderer* renderer) {
         }
 
         if (m_fontSmall) {
-            const char* title = discovered ? fragments[i].title.c_str() : "???";
+            // Localized title (fallback to struct data for EN)
+            char loreKey[32];
+            std::snprintf(loreKey, sizeof(loreKey), "lore.%d.title", i);
+            const char* locTitle = LOC(loreKey);
+            const char* title = !discovered ? "???" :
+                (std::strcmp(locTitle, loreKey) == 0 ? fragments[i].title.c_str() : locTitle);
             SDL_Color col = selected ? SDL_Color{255, 200, 255, 255} :
                             discovered ? SDL_Color{180, 160, 200, 255} :
                                          SDL_Color{80, 60, 100, 255};
@@ -130,10 +137,14 @@ void LoreState::render(SDL_Renderer* renderer) {
     if (m_selected >= 0 && m_selected < static_cast<int>(fragments.size())) {
         auto& frag = fragments[m_selected];
         if (frag.discovered) {
-            // Title
+            // Title (localized)
             if (m_fontTitle) {
+                char detailTitleKey[32];
+                std::snprintf(detailTitleKey, sizeof(detailTitleKey), "lore.%d.title", m_selected);
+                const char* dtLoc = LOC(detailTitleKey);
+                const char* detailTitle = (std::strcmp(dtLoc, detailTitleKey) == 0) ? frag.title.c_str() : dtLoc;
                 SDL_Color purple = {200, 150, 255, 255};
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, frag.title.c_str(), purple);
+                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, detailTitle, purple);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -149,7 +160,11 @@ void LoreState::render(SDL_Renderer* renderer) {
             if (m_fontBody) {
                 SDL_Color textCol = {180, 170, 200, 255};
                 // Simple line splitting at ~55 chars
-                std::string text = frag.text;
+                // Localized text (fallback to struct)
+                char detailTextKey[32];
+                std::snprintf(detailTextKey, sizeof(detailTextKey), "lore.%d.text", m_selected);
+                const char* dtTextLoc = LOC(detailTextKey);
+                std::string text = (std::strcmp(dtTextLoc, detailTextKey) == 0) ? frag.text : dtTextLoc;
                 int lineY = panelY + 120;
                 int maxLineW = panelW - 80;
                 while (!text.empty() && lineY < panelY + panelH - 40) {
