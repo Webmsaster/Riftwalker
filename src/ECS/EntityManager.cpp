@@ -56,18 +56,6 @@ const std::vector<Entity*>& EntityManager::getEntitiesInDimension(int dim) const
     return m_dimQueryBuffer;
 }
 
-void EntityManager::forEach(const std::function<void(Entity&)>& func) {
-    m_snapshotBuffer.clear();
-    if (m_snapshotBuffer.capacity() < m_entities.size())
-        m_snapshotBuffer.reserve(m_entities.size());
-    for (auto& e : m_entities) {
-        if (e->isAlive()) m_snapshotBuffer.push_back(e.get());
-    }
-    for (Entity* e : m_snapshotBuffer) {
-        if (e && e->isAlive()) func(*e);
-    }
-}
-
 void EntityManager::clear() {
     m_entities.clear();
 }

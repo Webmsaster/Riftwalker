@@ -2,7 +2,6 @@
 #include "Entity.h"
 #include <vector>
 #include <memory>
-#include <functional>
 
 class EntityManager {
 public:
@@ -27,7 +26,19 @@ public:
         return m_componentQueryBuffer;
     }
 
-    void forEach(const std::function<void(Entity&)>& func);
+    // Template forEach: avoids std::function overhead (type erasure + heap alloc)
+    template <typename Func>
+    void forEach(Func&& func) {
+        m_snapshotBuffer.clear();
+        if (m_snapshotBuffer.capacity() < m_entities.size())
+            m_snapshotBuffer.reserve(m_entities.size());
+        for (auto& e : m_entities) {
+            if (e->isAlive()) m_snapshotBuffer.push_back(e.get());
+        }
+        for (Entity* e : m_snapshotBuffer) {
+            if (e && e->isAlive()) func(*e);
+        }
+    }
     void clear();
     size_t size() const { return m_entities.size(); }
 
