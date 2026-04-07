@@ -725,6 +725,45 @@ void Localization::loadStrings() {
     m_en["npc.opt.browse"]         = "[Browse wares]";
     m_en["npc.opt.read_fortune"]   = "[Read my fortune]";
 
+    // NPC action options (Scholar)
+    m_en["npc.scholar.s2.opt"]     = "[Learn the truth (+40 Shards, heal)]";
+    m_en["npc.scholar.s1.opt1"]    = "[Listen (+25 Shards, -entropy)]";
+    m_en["npc.scholar.s1.opt2"]    = "[Ask about the Sovereign]";
+    m_en["npc.scholar.s0.opt1"]    = "[Listen to tip (+15 Shards)]";
+    m_en["npc.scholar.s0.opt2"]    = "[Ask about enemies]";
+    m_en["npc.scholar.quest"]      = "[Accept quest: Hunt 10 creatures]";
+    // NPC action options (Refugee)
+    m_en["npc.refugee.s2.opt"]     = "[Accept gift (free Relic)]";
+    m_en["npc.refugee.s1.opt1"]    = "[Free healing (+30 HP)]";
+    m_en["npc.refugee.s1.opt2"]    = "[Trade 15 HP for 60 Shards]";
+    m_en["npc.refugee.s0.opt1"]    = "[Trade 20 HP for 50 Shards]";
+    m_en["npc.refugee.s0.opt2"]    = "[Trade 30 HP for 80 Shards]";
+    // NPC action options (Engineer)
+    m_en["npc.engineer.s2.opt"]    = "[Permanent upgrade (+25% DMG)]";
+    m_en["npc.engineer.s1.opt1"]   = "[Upgrade weapon (+40% DMG, 60s)]";
+    m_en["npc.engineer.s1.opt2"]   = "[Tune attacks (+20% speed, 45s)]";
+    m_en["npc.engineer.s0.opt"]    = "[Upgrade weapon (+30% DMG, 45s)]";
+    m_en["npc.engineer.quest"]     = "[Accept quest: Repair 3 rifts]";
+    // NPC action options (Blacksmith)
+    m_en["npc.smith.s2.opt"]       = "[Accept masterwork (free +30% both)]";
+    m_en["npc.smith.s1.opt1"]      = "[Sharpen melee +25% DMG (35 shards)]";
+    m_en["npc.smith.s1.opt2"]      = "[Reinforce ranged +25% DMG (35 shards)]";
+    m_en["npc.smith.s1.opt3"]      = "[Hone speed +15% ATK SPD (45 shards)]";
+    m_en["npc.smith.s0.opt1"]      = "[Sharpen melee +20% DMG (40 shards)]";
+    m_en["npc.smith.s0.opt2"]      = "[Reinforce ranged +20% DMG (40 shards)]";
+    // NPC action options (Fortune Teller)
+    m_en["npc.fortune.s2.opt1"]    = "[Reveal all secrets (free)]";
+    m_en["npc.fortune.s2.opt2"]    = "[Boss foresight (+20% DMG vs boss)]";
+    m_en["npc.fortune.s1.opt1"]    = "[Reveal hidden rooms (20 shards)]";
+    m_en["npc.fortune.s1.opt2"]    = "[Reveal ambushes (15 shards)]";
+    m_en["npc.fortune.s0.opt"]     = "[Reveal secrets (30 shards)]";
+    // NPC action options (Void Merchant)
+    m_en["npc.merch.s2.opt1"]      = "[Buy legendary relic (80 shards)]";
+    m_en["npc.merch.s2.opt2"]      = "[Buy random relic (40 shards)]";
+    m_en["npc.merch.s1.opt1"]      = "[Buy relic (60 shards)]";
+    m_en["npc.merch.s1.opt2"]      = "[Buy random relic (35 shards)]";
+    m_en["npc.merch.s0.opt"]       = "[Buy relic (50 shards)]";
+
     // Random events
     m_en["event.merchant"]         = "Merchant";
     m_en["event.anomaly"]          = "Anomaly";
@@ -1568,6 +1607,45 @@ void Localization::loadStrings() {
     m_de["npc.opt.not_yet"]        = "[Noch nicht...]";
     m_de["npc.opt.browse"]         = "[Waren ansehen]";
     m_de["npc.opt.read_fortune"]   = "[Zukunft lesen]";
+
+    // NPC action options (Scholar)
+    m_de["npc.scholar.s2.opt"]     = "[Wahrheit erfahren (+40 Splitter, Heilung)]";
+    m_de["npc.scholar.s1.opt1"]    = "[Zuhoeren (+25 Splitter, -Entropie)]";
+    m_de["npc.scholar.s1.opt2"]    = "[Nach dem Souveraen fragen]";
+    m_de["npc.scholar.s0.opt1"]    = "[Tipp anhoeren (+15 Splitter)]";
+    m_de["npc.scholar.s0.opt2"]    = "[Nach Gegnern fragen]";
+    m_de["npc.scholar.quest"]      = "[Quest annehmen: 10 Kreaturen jagen]";
+    // NPC action options (Refugee)
+    m_de["npc.refugee.s2.opt"]     = "[Geschenk annehmen (gratis Relikt)]";
+    m_de["npc.refugee.s1.opt1"]    = "[Gratis-Heilung (+30 HP)]";
+    m_de["npc.refugee.s1.opt2"]    = "[15 HP tauschen fuer 60 Splitter]";
+    m_de["npc.refugee.s0.opt1"]    = "[20 HP tauschen fuer 50 Splitter]";
+    m_de["npc.refugee.s0.opt2"]    = "[30 HP tauschen fuer 80 Splitter]";
+    // NPC action options (Engineer)
+    m_de["npc.engineer.s2.opt"]    = "[Permanentes Upgrade (+25% SCH)]";
+    m_de["npc.engineer.s1.opt1"]   = "[Waffe verbessern (+40% SCH, 60s)]";
+    m_de["npc.engineer.s1.opt2"]   = "[Angriffe tunen (+20% Tempo, 45s)]";
+    m_de["npc.engineer.s0.opt"]    = "[Waffe verbessern (+30% SCH, 45s)]";
+    m_de["npc.engineer.quest"]     = "[Quest annehmen: 3 Risse reparieren]";
+    // NPC action options (Blacksmith)
+    m_de["npc.smith.s2.opt"]       = "[Meisterwerk annehmen (gratis +30% beide)]";
+    m_de["npc.smith.s1.opt1"]      = "[Nahkampf schaerfen +25% SCH (35 Splitter)]";
+    m_de["npc.smith.s1.opt2"]      = "[Fernkampf verstaerken +25% SCH (35 Splitter)]";
+    m_de["npc.smith.s1.opt3"]      = "[Tempo schleifen +15% ANG (45 Splitter)]";
+    m_de["npc.smith.s0.opt1"]      = "[Nahkampf schaerfen +20% SCH (40 Splitter)]";
+    m_de["npc.smith.s0.opt2"]      = "[Fernkampf verstaerken +20% SCH (40 Splitter)]";
+    // NPC action options (Fortune Teller)
+    m_de["npc.fortune.s2.opt1"]    = "[Alle Geheimnisse enthuellen (gratis)]";
+    m_de["npc.fortune.s2.opt2"]    = "[Boss-Vorhersage (+20% SCH vs Boss)]";
+    m_de["npc.fortune.s1.opt1"]    = "[Geheimraeume zeigen (20 Splitter)]";
+    m_de["npc.fortune.s1.opt2"]    = "[Hinterhalte zeigen (15 Splitter)]";
+    m_de["npc.fortune.s0.opt"]     = "[Geheimnisse enthuellen (30 Splitter)]";
+    // NPC action options (Void Merchant)
+    m_de["npc.merch.s2.opt1"]      = "[Legendaeres Relikt kaufen (80 Splitter)]";
+    m_de["npc.merch.s2.opt2"]      = "[Zufaelliges Relikt kaufen (40 Splitter)]";
+    m_de["npc.merch.s1.opt1"]      = "[Relikt kaufen (60 Splitter)]";
+    m_de["npc.merch.s1.opt2"]      = "[Zufaelliges Relikt kaufen (35 Splitter)]";
+    m_de["npc.merch.s0.opt"]       = "[Relikt kaufen (50 Splitter)]";
 
     // Random events
     m_de["event.merchant"]         = "Haendler";
