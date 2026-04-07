@@ -731,6 +731,16 @@ void Localization::loadStrings() {
     m_en["tip.77"] = "TIP: The Phase Daggers crit every 5th hit — fast weapons mean more crits!";
     m_en["tip.78"] = "TIP: Entropy Sponge relic removes passive entropy but kills add 5% each.";
     m_en["tip.79"] = "TIP: F9 or F12 takes a screenshot at any time — share your best moments!";
+    m_en["tip.80"] = "TIP: Elites with Fire Aura deal burn damage just by standing near you — keep distance!";
+    m_en["tip.81"] = "TIP: Magnetic elites deflect your projectiles — switch to melee or flank them!";
+    m_en["tip.82"] = "TIP: Phasing elites go intangible periodically — time your attacks for solid phases!";
+    m_en["tip.83"] = "TIP: Regenerating elites heal 2 HP/s — burst them down quickly or they'll outlast you!";
+    m_en["tip.84"] = "TIP: Shield Aura elites reduce damage to nearby enemies by 30% — kill them first!";
+    m_en["tip.85"] = "TIP: The Void Sovereign forces dimension switches in Phase 3 — stay alert!";
+    m_en["tip.86"] = "TIP: Entropy Incarnate spawns minions that add entropy when they die — manage them!";
+    m_en["tip.87"] = "TIP: Mid-bosses appear every 5 floors — they drop better loot than regular enemies!";
+    m_en["tip.88"] = "TIP: Daily Runs use a shared seed — compete with others on the leaderboard!";
+    m_en["tip.89"] = "TIP: Weapon mastery tiers unlock at 15, 50, 100, and 200 kills — keep using your favorites!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1743,6 +1753,16 @@ void Localization::loadStrings() {
     m_de["tip.77"] = "TIPP: Phasendolche kritten jeden 5. Treffer — schnelle Waffen bedeuten mehr Krits!";
     m_de["tip.78"] = "TIPP: Entropieschwamm entfernt passive Entropie, aber Kills fuegen je 5% hinzu.";
     m_de["tip.79"] = "TIPP: F9 oder F12 macht jederzeit einen Screenshot — teile deine besten Momente!";
+    m_de["tip.80"] = "TIPP: Eliten mit Feueraura verbrennen dich durch Naehe — halte Abstand!";
+    m_de["tip.81"] = "TIPP: Magnetische Eliten lenken deine Projektile ab — wechsle zu Nahkampf oder flankiere!";
+    m_de["tip.82"] = "TIPP: Phasen-Eliten werden regelmaessig ungreifbar — time deine Angriffe fuer solide Phasen!";
+    m_de["tip.83"] = "TIPP: Regenerierende Eliten heilen 2 HP/s — besiege sie schnell oder sie ueberdauern dich!";
+    m_de["tip.84"] = "TIPP: Schildaura-Eliten reduzieren Schaden an nahen Gegnern um 30% — toete sie zuerst!";
+    m_de["tip.85"] = "TIPP: Der Leere-Souveraen erzwingt Dimensionswechsel in Phase 3 — bleib wachsam!";
+    m_de["tip.86"] = "TIPP: Entropie-Inkarnation beschwört Diener die bei Tod Entropie erzeugen — manage sie!";
+    m_de["tip.87"] = "TIPP: Mittlere Bosse erscheinen alle 5 Etagen — sie droppen bessere Beute!";
+    m_de["tip.88"] = "TIPP: Taegliche Laeufe nutzen einen gemeinsamen Seed — konkurriere auf der Bestenliste!";
+    m_de["tip.89"] = "TIPP: Waffenmeisterung schaltet bei 15, 50, 100 und 200 Kills frei — nutze deine Favoriten!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";

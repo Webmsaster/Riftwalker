@@ -137,6 +137,8 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
                 "tip.65", "tip.66", "tip.67", "tip.68", "tip.69",
                 "tip.70", "tip.71", "tip.72", "tip.73", "tip.74",
                 "tip.75", "tip.76", "tip.77", "tip.78", "tip.79",
+                "tip.80", "tip.81", "tip.82", "tip.83", "tip.84",
+                "tip.85", "tip.86", "tip.87", "tip.88", "tip.89",
             };
             constexpr int NUM_TIPS = sizeof(tipKeys) / sizeof(tipKeys[0]);
             int tipIdx = (m_currentDifficulty + m_runSeed) % NUM_TIPS;
