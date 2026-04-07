@@ -638,6 +638,11 @@ void Localization::loadStrings() {
     m_en["tip.37"] = "TIP: Boss attacks change when they enrage below 33% HP — stay alert!";
     m_en["tip.38"] = "TIP: Health orbs from crates heal more when your HP is critically low.";
     m_en["tip.39"] = "TIP: Weapon mastery persists between runs — master your favorites!";
+    m_en["tip.40"] = "TIP: NPCs offer quests, repairs, and rare items. Always check!";
+    m_en["tip.41"] = "TIP: Cursed relics offer huge power boosts with dangerous drawbacks.";
+    m_en["tip.42"] = "TIP: Dimension A is safer for rift repair, but Dimension B gives more shards.";
+    m_en["tip.43"] = "TIP: Event chains span multiple floors — complete all stages for bonus rewards!";
+    m_en["tip.44"] = "TIP: The Entropy Scythe reduces suit entropy on hit — great for long runs.";
 
     // Buff pickups (in-game floating text)
     m_en["pickup.shield"]          = "SHIELD";
@@ -1433,6 +1438,11 @@ void Localization::loadStrings() {
     m_de["tip.37"] = "TIPP: Boss-Angriffe aendern sich unter 33% HP im Enrage-Modus — bleib wachsam!";
     m_de["tip.38"] = "TIPP: Heilkugeln aus Kisten heilen mehr wenn dein HP kritisch niedrig ist.";
     m_de["tip.39"] = "TIPP: Waffenmeisterschaft bleibt zwischen Laeufen erhalten — meistere deine Favoriten!";
+    m_de["tip.40"] = "TIPP: NPCs bieten Quests, Reparaturen und seltene Gegenstaende. Immer vorbeischauen!";
+    m_de["tip.41"] = "TIPP: Verfluchte Relikte bieten riesige Kraftboosts mit gefaehrlichen Nachteilen.";
+    m_de["tip.42"] = "TIPP: Dimension A ist sicherer fuer Rissreparatur, aber Dimension B gibt mehr Splitter.";
+    m_de["tip.43"] = "TIPP: Ereignisketten erstrecken sich ueber mehrere Etagen — schliesse alle Stufen fuer Bonusbelohnungen ab!";
+    m_de["tip.44"] = "TIPP: Die Entropiesense reduziert Anzug-Entropie bei Treffern — ideal fuer lange Laeufe.";
 
     // Buff pickups
     m_de["pickup.shield"]          = "SCHILD";
