@@ -643,6 +643,11 @@ void Localization::loadStrings() {
     m_en["tip.42"] = "TIP: Dimension A is safer for rift repair, but Dimension B gives more shards.";
     m_en["tip.43"] = "TIP: Event chains span multiple floors — complete all stages for bonus rewards!";
     m_en["tip.44"] = "TIP: The Entropy Scythe reduces suit entropy on hit — great for long runs.";
+    m_en["tip.45"] = "TIP: Hold the ranged attack button for a powerful charged shot!";
+    m_en["tip.46"] = "TIP: Grappling Hook can pull enemies toward you or swing from walls.";
+    m_en["tip.47"] = "TIP: Mini-bosses are stronger elites that appear mid-floor. Extra rewards!";
+    m_en["tip.48"] = "TIP: Kill streaks without getting hit multiply your shard gains.";
+    m_en["tip.49"] = "TIP: The Rift Shotgun fires 5 pellets — devastating at close range.";
 
     // Buff pickups (in-game floating text)
     m_en["pickup.shield"]          = "SHIELD";
@@ -1443,6 +1448,11 @@ void Localization::loadStrings() {
     m_de["tip.42"] = "TIPP: Dimension A ist sicherer fuer Rissreparatur, aber Dimension B gibt mehr Splitter.";
     m_de["tip.43"] = "TIPP: Ereignisketten erstrecken sich ueber mehrere Etagen — schliesse alle Stufen fuer Bonusbelohnungen ab!";
     m_de["tip.44"] = "TIPP: Die Entropiesense reduziert Anzug-Entropie bei Treffern — ideal fuer lange Laeufe.";
+    m_de["tip.45"] = "TIPP: Halte die Fernkampf-Taste fuer einen starken Aufladeschuss!";
+    m_de["tip.46"] = "TIPP: Der Enterhaken kann Gegner heranziehen oder an Waenden schwingen.";
+    m_de["tip.47"] = "TIPP: Mini-Bosse sind staerkere Elites mitten im Level. Extra Belohnungen!";
+    m_de["tip.48"] = "TIPP: Kill-Serien ohne Treffer zu kassieren multiplizieren deine Splitter.";
+    m_de["tip.49"] = "TIPP: Die Riss-Schrotflinte feuert 5 Kugeln — verheerend auf kurze Distanz.";
 
     // Buff pickups
     m_de["pickup.shield"]          = "SCHILD";
