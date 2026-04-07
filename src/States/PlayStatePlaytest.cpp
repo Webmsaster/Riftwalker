@@ -601,7 +601,7 @@ void PlayState::updatePlaytest(float dt) {
         bool nearEnemyIsRanged = false;
         Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.isEnemy || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>() || !e.hasComponent<AIComponent>()) return;
             auto& et = e.getComponent<TransformComponent>();
             float d = std::sqrt((et.getCenter().x - pPos.x) * (et.getCenter().x - pPos.x)
@@ -701,7 +701,7 @@ void PlayState::updatePlaytest(float dt) {
         auto rifts = m_level->getRiftPositions();
         int enemyCount = 0;
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") != std::string::npos && e.isAlive()) enemyCount++;
+            if (e.isEnemy && e.isAlive()) enemyCount++;
         });
         int zone = getZone(m_currentDifficulty);
         int fiz = getFloorInZone(m_currentDifficulty);
@@ -956,7 +956,7 @@ void PlayState::updatePlaytest(float dt) {
         float searchRadius = (hpPct < 0.35f) ? 500.0f : 150.0f; // Desperate = wider search
         float bestScore = -1.0f;
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("pickup") == std::string::npos || !e.isAlive()) return;
+            if (!e.isPickup || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>()) return;
             auto& et = e.getComponent<TransformComponent>();
             float dx2 = et.getCenter().x - playerPos.x, dy2 = et.getCenter().y - playerPos.y;
@@ -1071,7 +1071,7 @@ void PlayState::updatePlaytest(float dt) {
         float nearestCombatEnemy = 99999.0f;
         Vec2 combatTarget = {0, 0};
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.isEnemy || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>()) return;
             auto& et = e.getComponent<TransformComponent>();
             float dx2 = et.getCenter().x - playerPos.x, dy2 = et.getCenter().y - playerPos.y;
@@ -1325,7 +1325,7 @@ void PlayState::updatePlaytest(float dt) {
     {
         bool inCombat = false;
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.isEnemy || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>()) return;
             auto& et = e.getComponent<TransformComponent>();
             float d = std::sqrt((et.getCenter().x - playerPos.x) * (et.getCenter().x - playerPos.x)
@@ -1355,7 +1355,7 @@ void PlayState::updatePlaytest(float dt) {
     float preScanNearestDist = 99999.0f;
     Vec2 preScanThreatCenter = {0, 0};
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+        if (!e.isEnemy || !e.isAlive()) return;
         if (!e.hasComponent<TransformComponent>()) return;
         auto& et = e.getComponent<TransformComponent>();
         float dx2 = et.getCenter().x - playerPos.x, dy2 = et.getCenter().y - playerPos.y;
@@ -1410,7 +1410,7 @@ void PlayState::updatePlaytest(float dt) {
         int bossPhase = 1;
 
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.isEnemy || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>()) return;
             auto& et = e.getComponent<TransformComponent>();
             float dx2 = et.getCenter().x - playerPos.x, dy2 = et.getCenter().y - playerPos.y;

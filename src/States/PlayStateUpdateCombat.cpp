@@ -31,7 +31,7 @@ void PlayState::updateEnemyHazardDamage(float dt) {
     int curDim = m_dimManager.getCurrentDimension();
     int ts = m_level->getTileSize();
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag().find("enemy") == std::string::npos) return;
+        if (!e.isEnemy) return;
         if (!e.hasComponent<AIComponent>() || !e.hasComponent<HealthComponent>()) return;
         if (!e.hasComponent<TransformComponent>()) return;
         auto& ai = e.getComponent<AIComponent>();
@@ -640,7 +640,7 @@ void PlayState::updateKillEffects() {
                 int dim = m_dimManager.getCurrentDimension();
                 m_entities.forEach([&](Entity& nearby) {
                     if (chainsLeft <= 0) return;
-                    if (nearby.getTag().find("enemy") == std::string::npos) return;
+                    if (!nearby.isEnemy) return;
                     if (!nearby.isAlive()) return;
                     if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
                     if (nearby.dimension != 0 && nearby.dimension != dim) return;

@@ -637,7 +637,7 @@ void PlayState::update(float dt) {
     if (m_combatSystem.killCount > 0 && !m_isBossLevel && !m_waveClearTriggered) {
         int aliveAfterCombat = 0;
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") != std::string::npos) aliveAfterCombat++;
+            if (e.isEnemy) aliveAfterCombat++;
         });
         if (aliveAfterCombat == 0 && m_currentWave >= static_cast<int>(m_spawnWaves.size())) {
             m_waveClearTriggered = true;
@@ -747,7 +747,7 @@ void PlayState::update(float dt) {
     if (magnetRange > 14.0f) { // Only if upgrade purchased or relic active
         Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("pickup") == std::string::npos) return;
+            if (!e.isPickup) return;
             if (!e.hasComponent<TransformComponent>() || !e.hasComponent<PhysicsBody>()) return;
 
             auto& t = e.getComponent<TransformComponent>();
@@ -930,7 +930,7 @@ void PlayState::update(float dt) {
         Vec2 zCenter = zt.getCenter();
         // Damage enemies in range
         m_entities.forEach([&](Entity& enemy) {
-            if (enemy.getTag().find("enemy") == std::string::npos) return;
+            if (!enemy.isEnemy) return;
             if (enemy.dimension != 0 && enemy.dimension != curDim) return;
             if (!enemy.hasComponent<TransformComponent>() || !enemy.hasComponent<HealthComponent>()) return;
             auto& et = enemy.getComponent<TransformComponent>();

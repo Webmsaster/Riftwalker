@@ -263,7 +263,7 @@ void Player::handleAbilities(float dt, const InputManager& input) {
             auto* csRef = combatSystemRef;
             trapCol.onTrigger = [trapDmg, playerPtr, csRef](Entity* self, Entity* other) {
                 if (!other || !other->isAlive()) return;
-                if (other->getTag().find("enemy") == std::string::npos) return;
+                if (!other->isEnemy) return;
                 if (!other->hasComponent<HealthComponent>()) return;
 
                 auto& hp = other->getComponent<HealthComponent>();
@@ -356,7 +356,7 @@ void Player::handleAbilities(float dt, const InputManager& input) {
         Vec2 playerPos = t.getCenter();
 
         entityManager->forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos) return;
+            if (!e.isEnemy) return;
             if (!e.isAlive() || !e.hasComponent<TransformComponent>()) return;
             if (!e.hasComponent<HealthComponent>()) return;
             auto& hp = e.getComponent<HealthComponent>();

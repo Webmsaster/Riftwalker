@@ -456,7 +456,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
             if (m_player) {
                 Vec2 pp = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
                 m_entities.forEach([&](Entity& e) {
-                    if (e.getTag().find("enemy") != std::string::npos &&
+                    if (e.isEnemy &&
                         e.hasComponent<TransformComponent>()) {
                         Vec2 ep = e.getComponent<TransformComponent>().getCenter();
                         float d = std::sqrt((pp.x-ep.x)*(pp.x-ep.x) + (pp.y-ep.y)*(pp.y-ep.y));

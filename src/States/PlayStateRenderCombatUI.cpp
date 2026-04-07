@@ -413,7 +413,7 @@ void PlayState::renderOffscreenEnemyIndicators(SDL_Renderer* renderer) {
 
     m_entities.forEach([&](Entity& e) {
         if (count >= 5) return;
-        if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+        if (!e.isEnemy || !e.isAlive()) return;
         if (e.dimension != 0 && e.dimension != currentDim) return;
         if (!e.hasComponent<TransformComponent>()) return;
         auto& t = e.getComponent<TransformComponent>();

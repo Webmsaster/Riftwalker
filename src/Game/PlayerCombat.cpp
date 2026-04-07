@@ -554,7 +554,7 @@ void Player::executeComboFinisher() {
 
         // Damage all enemies in radius
         entityManager->forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos) return;
+            if (!e.isEnemy) return;
             if (!e.isAlive() || !e.hasComponent<TransformComponent>()) return;
             if (!e.hasComponent<HealthComponent>()) return;
             auto& eHP = e.getComponent<HealthComponent>();
@@ -652,7 +652,7 @@ void Player::executeComboFinisher() {
 
         // Damage enemies in arc
         entityManager->forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos) return;
+            if (!e.isEnemy) return;
             if (!e.isAlive() || !e.hasComponent<TransformComponent>()) return;
             if (!e.hasComponent<HealthComponent>()) return;
             auto& eHP = e.getComponent<HealthComponent>();
@@ -744,7 +744,7 @@ void Player::executeComboFinisher() {
         };
         std::vector<EnemyDist> candidates;
         entityManager->forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos) return;
+            if (!e.isEnemy) return;
             if (!e.isAlive() || !e.hasComponent<TransformComponent>()) return;
             if (!e.hasComponent<HealthComponent>()) return;
             auto& eHP = e.getComponent<HealthComponent>();

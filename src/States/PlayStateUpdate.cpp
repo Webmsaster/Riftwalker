@@ -323,7 +323,7 @@ void PlayState::updatePlayerPhysicsEffects(float dt) {
 
     // Enemy wall impact: bounce particles + bonus damage + SFX
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag().find("enemy") == std::string::npos) return;
+        if (!e.isEnemy) return;
         if (!e.hasComponent<PhysicsBody>()) return;
         auto& phys = e.getComponent<PhysicsBody>();
         if (phys.wallImpactSpeed <= 0) return;
@@ -399,7 +399,7 @@ void PlayState::updateTechnomancerEntities(float dt) {
         Entity* nearestEnemy = nullptr;
         float nearestDist = ai.detectRange;
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos) return;
+            if (!e.isEnemy) return;
             if (!e.isAlive() || !e.hasComponent<TransformComponent>()) return;
             if (!e.hasComponent<HealthComponent>()) return;
             if (e.dimension != 0 && e.dimension != curDim) return;

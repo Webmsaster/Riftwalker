@@ -1288,7 +1288,7 @@ void PlayState::updateSmokeTest(float dt) {
         float nearestEnemy = 99999.0f;
         Vec2 enemyDir = {1.0f, 0.0f};
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.isEnemy || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>()) return;
             auto& et = e.getComponent<TransformComponent>();
             float dx2 = et.getCenter().x - playerPos.x;

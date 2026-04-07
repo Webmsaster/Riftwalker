@@ -486,7 +486,7 @@ void PlayState::updateSpawnWaves(float dt) {
     // Count alive enemies
     int aliveEnemies = 0;
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag().find("enemy") != std::string::npos) aliveEnemies++;
+        if (e.isEnemy) aliveEnemies++;
     });
 
     // NoDamageWave challenge: check BEFORE spawning next wave (otherwise new
@@ -649,7 +649,7 @@ void PlayState::updateCombatChallenge(float dt) {
     if (m_combatChallenge.type == CombatChallengeType::NoDamageWave) {
         int aliveEnemies = 0;
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") != std::string::npos) aliveEnemies++;
+            if (e.isEnemy) aliveEnemies++;
         });
         if (aliveEnemies == 0 && enemiesKilled > 0 && !m_tookDamageThisWave) {
             m_combatChallenge.currentCount = 1;
