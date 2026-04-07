@@ -1727,6 +1727,35 @@ void Localization::loadStrings() {
     m_de["enemy.13.eff"]  = "Flaechenangriffe oder breite Nahkampfschlaege. Nicht umzingeln lassen.";
     m_de["enemy.14.eff"]  = "Fernkampf ausserhalb des Zugradius. Bei Zug wegdashen.";
     m_de["enemy.15.eff"]  = "Vorsichtig an Kisten herangehen. Ausfallschritt parieren.";
+
+    // Boss bestiary details (index 16 = Boss type, entries 0-5 via boss index offset)
+    // Boss entries use type Boss (16) but are stored separately — we use a naming convention
+    // Boss bestiary names (for Bestiary list/detail)
+    m_de["boss.0.bname"] = "Risswaechter";
+    m_de["boss.1.bname"] = "Leere-Wyrm";
+    m_de["boss.2.bname"] = "Dimensionsarchitekt";
+    m_de["boss.3.bname"] = "Zeitweber";
+    m_de["boss.4.bname"] = "Leere-Souverain";
+    m_de["boss.5.bname"] = "Entropie Inkarniert";
+
+    m_de["boss.0.weak"]  = "Phase-2-Enrage laesst kurze Oeffnung";
+    m_de["boss.0.abil"]  = "Schild-Schub, Mehrfachschuss, Phasen-Sprung, 3 Phasen";
+    m_de["boss.0.eff"]   = "Angriffsmuster lernen. Beim Schild-Schub dashen.";
+    m_de["boss.1.weak"]  = "Verwundbar nach Sturzflug-Landung";
+    m_de["boss.1.abil"]  = "Giftwolken, Sturzflug, Kugelregen, 3 Phasen";
+    m_de["boss.1.eff"]   = "Gruenen Boden meiden. Nach Sturzflug kontern.";
+    m_de["boss.2.weak"]  = "Schwach beim Strahl-Aufbau, Konstrukte zerstoeren";
+    m_de["boss.2.abil"]  = "Kacheltausch, Risszonen, Konstruktstrahl, Arena-Kollaps";
+    m_de["boss.2.eff"]   = "Konstrukte schnell zerstoeren. Dim-Wechsel gegen Risszonen.";
+    m_de["boss.3.weak"]  = "Verwundbar beim Zeitstopp-Anlauf";
+    m_de["boss.3.abil"]  = "Zeitverlangsamung, Uhrzeiger-Feger, Zeitruecklauf, Zeitstopp";
+    m_de["boss.3.eff"]   = "Durch Verlangsamungszonen dashen. Feger-Timing lernen.";
+    m_de["boss.4.weak"]  = "Auf Phasenuebergaenge achten, Leere-Sturm meiden";
+    m_de["boss.4.abil"]  = "Leere-Kugeln, Riss-Schlag, Dim-Sperre, Laser-Feger, Leere-Sturm";
+    m_de["boss.4.eff"]   = "Mobil bleiben. Dim-Wechsel gegen Dim-Sperre.";
+    m_de["boss.5.weak"]  = "Entropie-Schübe vorhersagbar, kurze Immunitaetsfenster";
+    m_de["boss.5.abil"]  = "Entropie-Entzug, Entropie-Sturm, Dim-Sperre, Phasen-Korruption";
+    m_de["boss.5.eff"]   = "Anzug-Entropie sorgfaeltig managen. DoTs sofort reinigen.";
     m_de["lore.19.text"]  = "Voidwalker, Berserker, Phantom, Technomancer — vier Wege durch den Riss, jeder geboren aus einer anderen Philosophie des Ueberlebens. Der Voidwalker umarmt das Dazwischen. Der Berserker trotzt ihm. Das Phantom gleitet hindurch. Der Technomancer schreibt es um.";
 
     // Buff pickups

@@ -360,11 +360,20 @@ void BestiaryState::render(SDL_Renderer* renderer) {
 
         // Name text
         int textX = LIST_X + 40;
-        // Localized enemy name (fallback to struct data for EN)
-        char bNameKey[32];
-        std::snprintf(bNameKey, sizeof(bNameKey), "enemy.%d.name", static_cast<int>(entry.type));
-        const char* bLocName = LOC(bNameKey);
-        const char* locEnemyName = (std::strcmp(bLocName, bNameKey) == 0) ? entry.name : bLocName;
+        // Localized enemy/boss name (fallback to struct data for EN)
+        const char* locEnemyName;
+        if (isBoss) {
+            // Boss names: use boss.N.bname keys, fallback to struct
+            char bossKey[32];
+            std::snprintf(bossKey, sizeof(bossKey), "boss.%d.bname", typeIdx);
+            const char* bLoc = LOC(bossKey);
+            locEnemyName = (std::strcmp(bLoc, bossKey) == 0) ? entry.name : bLoc;
+        } else {
+            char bNameKey[32];
+            std::snprintf(bNameKey, sizeof(bNameKey), "enemy.%d.name", typeIdx);
+            const char* bLocName = LOC(bNameKey);
+            locEnemyName = (std::strcmp(bLocName, bNameKey) == 0) ? entry.name : bLocName;
+        }
         const char* displayName = entry.discovered ? locEnemyName : (isBoss ? LOC("bestiary.boss_label") : "???");
         SDL_Color nameColor = entry.discovered ?
             (isBoss ? SDL_Color{255, 190, 90, 255} : SDL_Color{210, 195, 220, 255}) :
@@ -467,11 +476,19 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
 
     // Name header
     SDL_Color nameColor = isBoss ? SDL_Color{255, 195, 90, 255} : SDL_Color{225, 210, 235, 255};
-    // Localized enemy name for detail view
-    char detNameKey[32];
-    std::snprintf(detNameKey, sizeof(detNameKey), "enemy.%d.name", static_cast<int>(entry.type));
-    const char* detLocN = LOC(detNameKey);
-    const char* detEnemyName = (std::strcmp(detLocN, detNameKey) == 0) ? entry.name : detLocN;
+    // Localized enemy/boss name for detail view
+    const char* detEnemyName;
+    if (isBoss) {
+        char bossKey[32];
+        std::snprintf(bossKey, sizeof(bossKey), "boss.%d.bname", typeIdx);
+        const char* bLoc = LOC(bossKey);
+        detEnemyName = (std::strcmp(bLoc, bossKey) == 0) ? entry.name : bLoc;
+    } else {
+        char detNameKey[32];
+        std::snprintf(detNameKey, sizeof(detNameKey), "enemy.%d.name", typeIdx);
+        const char* detLocN = LOC(detNameKey);
+        detEnemyName = (std::strcmp(detLocN, detNameKey) == 0) ? entry.name : detLocN;
+    }
     drawText(renderer, font, detEnemyName, infoX, infoY, nameColor, 1.4f);
 
     // Divider line
@@ -560,7 +577,8 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     drawText(renderer, font, LOC("bestiary.abilities"), infoX, infoBlockY, {160, 130, 200, 200});
     {
         char abilKey[32];
-        std::snprintf(abilKey, sizeof(abilKey), "enemy.%d.abil", static_cast<int>(entry.type));
+        if (isBoss) std::snprintf(abilKey, sizeof(abilKey), "boss.%d.abil", typeIdx);
+        else std::snprintf(abilKey, sizeof(abilKey), "enemy.%d.abil", typeIdx);
         const char* abilLoc = LOC(abilKey);
         const char* abilText = (std::strcmp(abilLoc, abilKey) == 0) ? entry.abilities : abilLoc;
         SDL_Surface* as = TTF_RenderText_Blended(font, abilText, {180, 165, 195, 190});
@@ -582,7 +600,8 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     drawText(renderer, font, LOC("bestiary.weakness"), infoX, weakY, {255, 200, 80, 210});
     {
         char weakKey[32];
-        std::snprintf(weakKey, sizeof(weakKey), "enemy.%d.weak", static_cast<int>(entry.type));
+        if (isBoss) std::snprintf(weakKey, sizeof(weakKey), "boss.%d.weak", typeIdx);
+        else std::snprintf(weakKey, sizeof(weakKey), "enemy.%d.weak", typeIdx);
         const char* weakLoc = LOC(weakKey);
         const char* weakText = (std::strcmp(weakLoc, weakKey) == 0) ? entry.weakness : weakLoc;
         SDL_Surface* ws = TTF_RenderText_Blended(font, weakText, {230, 210, 160, 190});
@@ -604,7 +623,8 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     drawText(renderer, font, LOC("bestiary.effective"), infoX, effY, {100, 220, 160, 210});
     {
         char effKey[32];
-        std::snprintf(effKey, sizeof(effKey), "enemy.%d.eff", static_cast<int>(entry.type));
+        if (isBoss) std::snprintf(effKey, sizeof(effKey), "boss.%d.eff", typeIdx);
+        else std::snprintf(effKey, sizeof(effKey), "enemy.%d.eff", typeIdx);
         const char* effLoc = LOC(effKey);
         const char* effText = (std::strcmp(effLoc, effKey) == 0) ? entry.effectiveWeapons : effLoc;
         SDL_Surface* es = TTF_RenderText_Blended(font, effText, {160, 215, 185, 185});
