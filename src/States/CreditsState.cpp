@@ -111,6 +111,7 @@ void CreditsState::exit() {
 void CreditsState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
         if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+            AudioManager::instance().play(SFX::MenuConfirm);
             if (game) game->changeState(StateID::Menu);
         }
     }
@@ -124,6 +125,7 @@ void CreditsState::handleEvent(const SDL_Event& event) {
 
     // Right-click or left-click to go back
     if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_CONTROLLERBUTTONDOWN) {
+        AudioManager::instance().play(SFX::MenuConfirm);
         if (game) game->changeState(StateID::Menu);
     }
 }
@@ -135,6 +137,7 @@ void CreditsState::update(float dt) {
     // Gamepad back
     auto& input = game->getInput();
     if (input.hasGamepad() && input.isActionPressed(Action::Cancel)) {
+        AudioManager::instance().play(SFX::MenuConfirm);
         if (game) game->changeState(StateID::Menu);
     }
 

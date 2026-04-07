@@ -1,5 +1,6 @@
 #include "RunSummaryState.h"
 #include "Core/Game.h"
+#include "Core/AudioManager.h"
 #include "Core/Localization.h"
 #include "UI/UITextures.h"
 #include "Game/AchievementSystem.h"
@@ -46,8 +47,10 @@ void RunSummaryState::handleEvent(const SDL_Event& event) {
             if (event.key.keysym.scancode == SDL_SCANCODE_RETURN ||
                 event.key.keysym.scancode == SDL_SCANCODE_SPACE ||
                 event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+                AudioManager::instance().play(SFX::MenuConfirm);
                 game->changeState(StateID::Menu);
             } else if (event.key.keysym.scancode == SDL_SCANCODE_L && isDailyRun) {
+                AudioManager::instance().play(SFX::MenuConfirm);
                 game->pushState(StateID::DailyLeaderboard);
             }
         }
@@ -55,6 +58,7 @@ void RunSummaryState::handleEvent(const SDL_Event& event) {
             auto btn = event.cbutton.button;
             if (btn == SDL_CONTROLLER_BUTTON_A || btn == SDL_CONTROLLER_BUTTON_B ||
                 btn == SDL_CONTROLLER_BUTTON_START) {
+                AudioManager::instance().play(SFX::MenuConfirm);
                 game->changeState(StateID::Menu);
             }
         }

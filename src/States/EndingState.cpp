@@ -377,6 +377,7 @@ void EndingState::handleEvent(const SDL_Event& event) {
     }
 
     if (isConfirm) {
+        AudioManager::instance().play(SFX::MenuConfirm);
         switch (m_phase) {
             case 0: m_phase = 1; m_phaseTimer = 0.0f; break;
             case 1: m_phase = 2; m_phaseTimer = 0.0f; break;

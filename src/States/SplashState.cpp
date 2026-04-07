@@ -1,5 +1,6 @@
 #include "SplashState.h"
 #include "Core/Game.h"
+#include "Core/AudioManager.h"
 #include "Core/Localization.h"
 #include <cmath>
 #include <algorithm>
@@ -28,6 +29,7 @@ void SplashState::handleEvent(const SDL_Event& event) {
     if (m_time < 1.0f) return;
     if (event.type == SDL_KEYDOWN || event.type == SDL_MOUSEBUTTONDOWN ||
         event.type == SDL_CONTROLLERBUTTONDOWN) {
+        AudioManager::instance().play(SFX::MenuConfirm);
         transitionToMenu();
     }
 }
