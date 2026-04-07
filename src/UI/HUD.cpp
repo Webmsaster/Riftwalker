@@ -890,34 +890,39 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
     // NG+ tier indicator (gold number, top-right corner)
     if (font && m_ngPlusTier > 0) {
-        char ngBuf[16];
-        std::snprintf(ngBuf, sizeof(ngBuf), "NG+%d", m_ngPlusTier);
-        // Pulsing gold: use SDL_GetTicks for animation without a stored timer
-        float pulse = 0.85f + 0.15f * std::sin(SDL_GetTicks() * 0.003f);
-        Uint8 ngR = static_cast<Uint8>(255);
-        Uint8 ngG = static_cast<Uint8>(200 * pulse);
-        Uint8 ngB = static_cast<Uint8>(30);
-        SDL_Color ngColor = {ngR, ngG, ngB, 230};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, ngBuf, ngColor);
-        if (ns) {
-            SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
-            if (nt) {
-                // Scale up 1.8x for visibility
-                int nw = static_cast<int>(ns->w * 1.8f);
-                int nh = static_cast<int>(ns->h * 1.8f);
-                // Position: top-right, with a background panel
-                int nx = screenW - nw - 24;
-                int ny = 20;
-                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 120);
-                SDL_Rect bg = {nx - 12, ny - 6, nw + 24, nh + 12};
-                SDL_RenderFillRect(renderer, &bg);
-                SDL_SetRenderDrawColor(renderer, ngR, ngG, ngB, 160);
-                SDL_RenderDrawRect(renderer, &bg);
-                SDL_Rect nr = {nx, ny, nw, nh};
-                SDL_RenderCopy(renderer, nt, nullptr, &nr);
-                SDL_DestroyTexture(nt);
+        // Cache NG+ texture (only recreate when tier changes)
+        if (m_cachedNGTier != m_ngPlusTier || !m_ngPlusTex) {
+            if (m_ngPlusTex) SDL_DestroyTexture(m_ngPlusTex);
+            char ngBuf[16];
+            std::snprintf(ngBuf, sizeof(ngBuf), "NG+%d", m_ngPlusTier);
+            SDL_Surface* ns = TTF_RenderText_Blended(font, ngBuf, {255, 255, 255, 255});
+            if (ns) {
+                m_ngPlusTex = SDL_CreateTextureFromSurface(renderer, ns);
+                m_ngPlusTexW = ns->w;
+                m_ngPlusTexH = ns->h;
+                SDL_FreeSurface(ns);
             }
-            SDL_FreeSurface(ns);
+            m_cachedNGTier = m_ngPlusTier;
+        }
+        if (m_ngPlusTex) {
+            // Pulsing gold via color modulation (no per-frame texture recreation)
+            float pulse = 0.85f + 0.15f * std::sin(SDL_GetTicks() * 0.003f);
+            Uint8 ngR = 255, ngG = static_cast<Uint8>(200 * pulse), ngB = 30;
+            SDL_SetTextureColorMod(m_ngPlusTex, ngR, ngG, ngB);
+            SDL_SetTextureAlphaMod(m_ngPlusTex, 230);
+            // Scale up 1.8x for visibility
+            int nw = static_cast<int>(m_ngPlusTexW * 1.8f);
+            int nh = static_cast<int>(m_ngPlusTexH * 1.8f);
+            // Position: top-right, with a background panel
+            int nx = screenW - nw - 24;
+            int ny = 20;
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 120);
+            SDL_Rect bg = {nx - 12, ny - 6, nw + 24, nh + 12};
+            SDL_RenderFillRect(renderer, &bg);
+            SDL_SetRenderDrawColor(renderer, ngR, ngG, ngB, 160);
+            SDL_RenderDrawRect(renderer, &bg);
+            SDL_Rect nr = {nx, ny, nw, nh};
+            SDL_RenderCopy(renderer, m_ngPlusTex, nullptr, &nr);
         }
     }
 

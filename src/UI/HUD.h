@@ -14,7 +14,10 @@ struct AbilityComponent;
 
 class HUD {
 public:
-    ~HUD() { if (m_hudTarget) SDL_DestroyTexture(m_hudTarget); }
+    ~HUD() {
+        if (m_hudTarget) SDL_DestroyTexture(m_hudTarget);
+        if (m_ngPlusTex) SDL_DestroyTexture(m_ngPlusTex);
+    }
 
     void render(SDL_Renderer* renderer, TTF_Font* font,
                 const Player* player, const SuitEntropy* entropy,
@@ -72,6 +75,11 @@ private:
     // Weapon mastery tier-up flash (gold pulse when tier increases)
     float m_masteryFlash[2] = {};  // [0]=melee, [1]=ranged — counts down from 0.6
     MasteryTier m_prevMasteryTier[2] = {};  // track previous tier to detect changes
+
+    // Cached NG+ tier texture (recreated only when tier changes)
+    SDL_Texture* m_ngPlusTex = nullptr;
+    int m_ngPlusTexW = 0, m_ngPlusTexH = 0;
+    int m_cachedNGTier = -1;
 
     // Off-screen texture for HUD opacity (lazily created, freed on resize)
     SDL_Texture* m_hudTarget = nullptr;
