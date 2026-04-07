@@ -206,7 +206,7 @@ void AISystem::updateTemporalWeaver(Entity& entity, float dt, const Vec2& player
     if (entity.hasComponent<SpriteComponent>()) {
         auto& sprite = entity.getComponent<SpriteComponent>();
         sprite.flipX = !ai.facingRight;
-        float pulse = (std::sin(SDL_GetTicks() * 0.004f * ai.bossPhase) + 1.0f) * 0.5f;
+        float pulse = (std::sin(m_frameTicks * 0.004f * ai.bossPhase) + 1.0f) * 0.5f;
         switch (ai.bossPhase) {
             case 1: sprite.setColor(180, static_cast<Uint8>(160 + 40 * pulse), 80); break;
             case 2: sprite.setColor(200, static_cast<Uint8>(140 + 60 * pulse), static_cast<Uint8>(60 + 40 * pulse)); break;

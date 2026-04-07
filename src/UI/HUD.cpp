@@ -255,7 +255,7 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
 
             if (emx < mapX || emx >= mapX + mapW || emy < mapY || emy >= mapY + mapH) return;
 
-            if (e.getTag() == "enemy_boss") {
+            if (e.isBoss) {
                 // Boss: larger pulsing orange dot
                 float bPulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.008f);
                 SDL_SetRenderDrawColor(renderer, 255, 140, 40, clampU8(200 + 55 * bPulse));

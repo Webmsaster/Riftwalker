@@ -19,7 +19,7 @@
 void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
     // Ground Slam AoE: check if player just landed a slam
     entities.forEach([&](Entity& e) {
-        if (e.getTag() != "player") return;
+        if (!e.isPlayer) return;
         if (!e.hasComponent<AbilityComponent>()) return;
         if (!e.hasComponent<TransformComponent>()) return;
         auto& abil = e.getComponent<AbilityComponent>();
@@ -246,7 +246,7 @@ void CombatSystem::processFreezeDecay(EntityManager& entities, float dt) {
 void CombatSystem::processProjectileLifetime(EntityManager& entities, float dt) {
     // Projectile lifetime: destroy stale projectiles
     entities.forEach([&](Entity& proj) {
-        if (proj.getTag() != "projectile") return;
+        if (!proj.isProjectile) return;
         if (!proj.hasComponent<SpriteComponent>()) return;
         auto& sprite = proj.getComponent<SpriteComponent>();
         sprite.animTimer += dt;

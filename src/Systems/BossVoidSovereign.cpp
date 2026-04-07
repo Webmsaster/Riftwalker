@@ -79,7 +79,7 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, const Vec2& playerP
                     if (m_camera) m_camera->shake(12.0f, 0.4f);
                     AudioManager::instance().play(SFX::VoidSovereignSlam);
                     entities.forEach([&](Entity& target) {
-                        if (target.getTag() != "player") return;
+                        if (!target.isPlayer) return;
                         if (!target.hasComponent<TransformComponent>()) return;
                         Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                         float d = distanceTo(pos, tPos);
@@ -231,7 +231,7 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, const Vec2& playerP
         // Shadow Clones: count active, respawn if below 2
         int activeClones = 0;
         entities.forEach([&](Entity& e) {
-            if (e.getTag() == "enemy_shadow_clone" && e.hasComponent<HealthComponent>()) {
+            if (e.isShadowClone && e.hasComponent<HealthComponent>()) {
                 if (e.getComponent<HealthComponent>().currentHP > 0) activeClones++;
             }
         });
@@ -317,7 +317,7 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, const Vec2& playerP
             Vec2 laserEnd = {pos.x + std::cos(ai.vsLaserAngle) * laserLen,
                              pos.y + std::sin(ai.vsLaserAngle) * laserLen};
             entities.forEach([&](Entity& target) {
-                if (target.getTag() != "player") return;
+                if (!target.isPlayer) return;
                 if (!target.hasComponent<TransformComponent>()) return;
                 Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                 // Point-to-segment distance
@@ -378,7 +378,7 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, const Vec2& playerP
             }
             // Damage player if not in safe zones
             entities.forEach([&](Entity& target) {
-                if (target.getTag() != "player") return;
+                if (!target.isPlayer) return;
                 if (!target.hasComponent<TransformComponent>()) return;
                 Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                 float d1 = distanceTo(tPos, ai.vsStormSafe1);

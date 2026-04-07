@@ -207,7 +207,7 @@ void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int cu
             }
 
             // Projectile terrain hit: destroy immediately with impact effect
-            if (entity.getTag() == "projectile") {
+            if (entity.isProjectile) {
                 SDL_Color col = {255, 230, 100, 255};
                 if (entity.hasComponent<SpriteComponent>())
                     col = entity.getComponent<SpriteComponent>().color;
@@ -217,7 +217,7 @@ void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int cu
             }
 
             // Grappling hook terrain hit: stop and stick to the wall/ceiling
-            if (entity.getTag() == "grapple_hook") {
+            if (entity.getTag() == "grapple_hook") { // rare entity, string check OK
                 phys.velocity = {0, 0};
                 phys.useGravity = false;
                 // Resolve overlap so hook sits on the tile surface

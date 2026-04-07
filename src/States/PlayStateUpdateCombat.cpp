@@ -733,7 +733,7 @@ void PlayState::updatePostCombat(float dt) {
     if (m_echoSpawned && !m_echoRewarded) {
         bool echoAlive = false;
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag() == "enemy_echo" && e.isAlive()) echoAlive = true;
+            if (e.isEnemyEcho && e.isAlive()) echoAlive = true;
         });
         if (!echoAlive) {
             m_echoRewarded = true;

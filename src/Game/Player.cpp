@@ -84,6 +84,7 @@ Player::Player(EntityManager& entities) {
 
 void Player::update(float dt, const InputManager& input) {
     if (!m_entity || !m_entity->isAlive()) return;
+    const Uint32 frameTicks = SDL_GetTicks(); // Cache once per frame
 
     auto& phys = m_entity->getComponent<PhysicsBody>();
 
@@ -391,7 +392,7 @@ void Player::update(float dt, const InputManager& input) {
             auto& t = m_entity->getComponent<TransformComponent>();
             Vec2 center = t.getCenter();
             // Subtle blue shimmer particles around player
-            float angle = static_cast<float>(SDL_GetTicks()) * 0.005f;
+            float angle = static_cast<float>(frameTicks) * 0.005f;
             float ox = std::cos(angle) * 14.0f;
             float oy = std::sin(angle) * 10.0f;
             particles->burst({center.x + ox, center.y + oy}, 1, {80, 160, 255, 150}, 30.0f, 0.8f);
@@ -410,7 +411,7 @@ void Player::update(float dt, const InputManager& input) {
             }
         }
         // Red speed-line particles (intensity scales with stacks)
-        if (momentumStacks > 0 && particles && SDL_GetTicks() % 3 == 0) {
+        if (momentumStacks > 0 && particles && frameTicks % 3 == 0) {
             auto& t = m_entity->getComponent<TransformComponent>();
             Vec2 center = t.getCenter();
             float intensity = static_cast<float>(momentumStacks) / momentumMaxStacks;

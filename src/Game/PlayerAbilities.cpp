@@ -21,6 +21,7 @@ void Player::updateAnimation() {
     auto& combat = m_entity->getComponent<CombatComponent>();
     auto& hp = m_entity->getComponent<HealthComponent>();
     auto& sprite = m_entity->getComponent<SpriteComponent>();
+    const Uint32 ticks = SDL_GetTicks(); // Cache once per frame
 
     // Determine animation state from physics/combat
     AnimState newState = AnimState::Idle;
@@ -59,8 +60,7 @@ void Player::updateAnimation() {
     // Color based on state
     switch (sprite.animState) {
         case AnimState::Hurt: {
-            Uint32 t = SDL_GetTicks();
-            if ((t / 80) % 2 == 0) sprite.setColor(255, 255, 255);
+            if ((ticks / 80) % 2 == 0) sprite.setColor(255, 255, 255);
             else sprite.setColor(classColor.r, classColor.g, classColor.b);
             break;
         }
@@ -70,7 +70,7 @@ void Player::updateAnimation() {
         case AnimState::Dash:
             if (isPhaseThrough()) {
                 // Phantom Phase Through: cyan tint, very transparent
-                float flicker = 100.0f + 40.0f * std::sin(SDL_GetTicks() * 0.03f);
+                float flicker = 100.0f + 40.0f * std::sin(ticks * 0.03f);
                 sprite.setColor(60, 220, 200, static_cast<Uint8>(flicker));
             } else {
                 sprite.setColor(classColor.r, classColor.g, classColor.b, 180);
@@ -83,13 +83,13 @@ void Player::updateAnimation() {
 
     // Phantom: ghostly during post-dash invis
     if (postDashInvisTimer > 0) {
-        float alpha = 80.0f + 60.0f * std::sin(SDL_GetTicks() * 0.02f);
+        float alpha = 80.0f + 60.0f * std::sin(ticks * 0.02f);
         sprite.color.a = static_cast<Uint8>(alpha);
     }
 
     // Berserker: Blood Rage glow
     if (isBloodRageActive()) {
-        float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.012f);
+        float pulse = 0.6f + 0.4f * std::sin(ticks * 0.012f);
         sprite.color.r = static_cast<Uint8>(std::min(255.0f, sprite.color.r + 80 * pulse));
         sprite.color.g = static_cast<Uint8>(sprite.color.g * (0.5f + 0.2f * pulse));
     }
@@ -97,14 +97,14 @@ void Player::updateAnimation() {
     // Berserker: Momentum glow (orange-red tint scaling with stacks)
     if (hasMomentum()) {
         float intensity = static_cast<float>(momentumStacks) / momentumMaxStacks;
-        float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.01f * (1.0f + intensity));
+        float pulse = 0.7f + 0.3f * std::sin(ticks * 0.01f * (1.0f + intensity));
         sprite.color.r = static_cast<Uint8>(std::min(255.0f, sprite.color.r + 50 * intensity * pulse));
         sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g * (1.0f - 0.15f * intensity)));
     }
 
     // Voidwalker: Rift Charge shimmer (blue-white pulsing)
     if (isRiftChargeActive()) {
-        float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.015f);
+        float pulse = 0.5f + 0.5f * std::sin(ticks * 0.015f);
         sprite.color.b = static_cast<Uint8>(std::min(255.0f, sprite.color.b + 80 * pulse));
         sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g + 30 * pulse));
     }
@@ -112,7 +112,7 @@ void Player::updateAnimation() {
     // Technomancer: subtle yellow-orange tech glow when constructs are active
     if (isTechnomancer() && (activeTurrets > 0 || activeTraps > 0)) {
         float intensity = static_cast<float>(activeTurrets + activeTraps) / (maxTurrets + maxTraps);
-        float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
+        float pulse = 0.6f + 0.4f * std::sin(ticks * 0.008f);
         sprite.color.r = static_cast<Uint8>(std::min(255.0f, sprite.color.r + 25 * intensity * pulse));
         sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g + 15 * intensity * pulse));
     }
@@ -137,14 +137,14 @@ void Player::updateAnimation() {
         auto& abil = m_entity->getComponent<AbilityComponent>();
         // Ground Slam falling: orange glow
         if (abil.slamFalling) {
-            float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.015f);
+            float pulse = 0.6f + 0.4f * std::sin(ticks * 0.015f);
             sprite.color.r = static_cast<Uint8>(std::min(255.0f, sprite.color.r + 120 * pulse));
             sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g * 0.7f + 80 * pulse));
             sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.4f);
         }
         // Rift Shield active: cyan shimmer
         if (abil.abilities[1].active) {
-            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.01f);
+            float pulse = 0.5f + 0.5f * std::sin(ticks * 0.01f);
             sprite.color.r = static_cast<Uint8>(sprite.color.r * 0.5f);
             sprite.color.g = static_cast<Uint8>(std::min(255.0f, sprite.color.g * 0.8f + 100 * pulse));
             sprite.color.b = static_cast<Uint8>(std::min(255.0f, sprite.color.b + 120 * pulse));

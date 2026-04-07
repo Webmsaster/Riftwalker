@@ -109,6 +109,7 @@ float AISystem::distanceTo(const Vec2& a, const Vec2& b) const {
 
 void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, int playerDimension) {
     ZoneScopedN("AIUpdate");
+    m_frameTicks = SDL_GetTicks();
     auto ents = entities.getEntitiesWithComponent<AIComponent>();
 
     // --- Synergy pre-pass: Summoner buffs allies, Shielder protects Snipers/Turrets ---
@@ -173,7 +174,7 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
     for (auto* e : ents) {
         if (!e->hasComponent<TransformComponent>()) continue;
         // Skip player-owned constructs (Technomancer turrets) — handled by PlayState
-        if (e->getTag() == "player_turret") continue;
+        if (e->isPlayerTurret) continue;
         auto& ai = e->getComponent<AIComponent>();
 
         // Spawn animation: skip AI and keep invulnerable while spawning in
@@ -377,10 +378,9 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
         if (ai.element != EnemyElement::None && m_particles && e->hasComponent<TransformComponent>()) {
             auto& t = e->getComponent<TransformComponent>();
             // Emit ~1-2 particles per second, staggered by entity position hash
-            Uint32 ticks = SDL_GetTicks();
             int hash = static_cast<int>(t.position.x * 11 + t.position.y * 17) & 0xFFF;
             Uint32 interval = 600; // ~1.7 particles per second
-            if (((ticks + hash) % interval) < static_cast<Uint32>(dt * 1000)) {
+            if (((m_frameTicks + hash) % interval) < static_cast<Uint32>(dt * 1000)) {
                 Vec2 center = t.getCenter();
                 float ox = static_cast<float>((std::rand() % 20) - 10);
                 float oy = static_cast<float>((std::rand() % 16) - 8);
@@ -477,9 +477,8 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
             if (m_particles && e->hasComponent<TransformComponent>()) {
                 auto& t = e->getComponent<TransformComponent>();
                 // Emit a small particle every ~2s (stagger by entity position)
-                Uint32 ticks = SDL_GetTicks();
                 int hash = static_cast<int>(t.position.x * 7 + t.position.y * 13) & 0x7FF;
-                if (((ticks + hash) % 2000) < static_cast<Uint32>(dt * 1000)) {
+                if (((m_frameTicks + hash) % 2000) < static_cast<Uint32>(dt * 1000)) {
                     SDL_Color auraColor = (playerDimension == 1)
                         ? SDL_Color{80, 120, 220, 120}   // Blue aura (calm)
                         : SDL_Color{220, 80, 60, 120};   // Red aura (aggressive)
@@ -828,8 +827,7 @@ void AISystem::updatePhaser(Entity& entity, float dt, const Vec2& playerPos, int
     // Visual: phaser flickers between colors
     if (entity.hasComponent<SpriteComponent>()) {
         auto& sprite = entity.getComponent<SpriteComponent>();
-        Uint32 t = SDL_GetTicks();
-        if ((t / 200) % 2 == 0) {
+        if ((m_frameTicks / 200) % 2 == 0) {
             sprite.setColor(100, 50, 200);
         } else {
             sprite.setColor(200, 50, 100);
@@ -924,7 +922,7 @@ void AISystem::updateExploder(Entity& entity, float dt, const Vec2& playerPos, E
         auto& sprite = entity.getComponent<SpriteComponent>();
         sprite.flipX = !ai.facingRight;
         if (ai.state == AIState::Chase) {
-            float pulse = (std::sin(SDL_GetTicks() * 0.015f) + 1.0f) * 0.5f;
+            float pulse = (std::sin(m_frameTicks * 0.015f) + 1.0f) * 0.5f;
             sprite.setColor(255, static_cast<Uint8>(60 + 80 * pulse), 20);
         }
     }

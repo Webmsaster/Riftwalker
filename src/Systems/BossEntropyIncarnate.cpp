@@ -91,7 +91,7 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
 
                     // AoE damage + entropy (handled via flag for PlayState)
                     entities.forEach([&](Entity& target) {
-                        if (target.getTag() != "player") return;
+                        if (!target.isPlayer) return;
                         if (!target.hasComponent<TransformComponent>()) return;
                         Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                         float d = distanceTo(pos, tPos);
@@ -276,7 +276,7 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
             // Entropy drain damage to player if in range (150px)
             // Note: actual entropy addition handled by PlayState reading eiStormActive
             entities.forEach([&](Entity& target) {
-                if (target.getTag() != "player") return;
+                if (!target.isPlayer) return;
                 if (!target.hasComponent<TransformComponent>()) return;
                 Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                 float d = distanceTo(pos, tPos);
@@ -303,7 +303,7 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
             // Magenta visual: pulsing particles on player while locked
             if (m_particles) {
                 entities.forEach([&](Entity& target) {
-                    if (target.getTag() != "player") return;
+                    if (!target.isPlayer) return;
                     if (!target.hasComponent<TransformComponent>()) return;
                     Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                     float pAngle = ai.eiCorePulse * 3.0f + static_cast<float>(std::rand() % 10) * 0.6f;
@@ -326,7 +326,7 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
         // Spawn entropy minions (max 2)
         int activeMinions = 0;
         entities.forEach([&](Entity& e) {
-            if (e.getTag() == "enemy_entropy_minion" && e.hasComponent<HealthComponent>()) {
+            if (e.isEntropyMinion && e.hasComponent<HealthComponent>()) {
                 if (e.getComponent<HealthComponent>().currentHP > 0) activeMinions++;
             }
         });
@@ -410,7 +410,7 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
 
             // Massive AoE damage
             entities.forEach([&](Entity& target) {
-                if (target.getTag() != "player") return;
+                if (!target.isPlayer) return;
                 if (!target.hasComponent<TransformComponent>()) return;
                 Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                 float d = distanceTo(pos, tPos);
@@ -430,7 +430,7 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
 
             // Explode all entropy minions (adds entropy via PlayState)
             entities.forEach([&](Entity& e) {
-                if (e.getTag() == "enemy_entropy_minion" && e.hasComponent<HealthComponent>()) {
+                if (e.isEntropyMinion && e.hasComponent<HealthComponent>()) {
                     auto& mhp = e.getComponent<HealthComponent>();
                     if (mhp.currentHP > 0) {
                         if (e.hasComponent<TransformComponent>() && m_particles) {

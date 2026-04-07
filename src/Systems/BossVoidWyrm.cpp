@@ -101,7 +101,7 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, const Vec2& playerPos, E
                     if (m_particles) m_particles->burst(targetPos, 30, {100, 220, 60, 180}, 120.0f, 5.0f);
                     if (m_camera) m_camera->shake(4.0f, 0.15f);
                     entities.forEach([&](Entity& target) {
-                        if (target.getTag() != "player") return;
+                        if (!target.isPlayer) return;
                         if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                         Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                         if (distanceTo(targetPos, tPos) < 100.0f) {
@@ -176,7 +176,7 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, const Vec2& playerPos, E
                 AudioManager::instance().play(SFX::SpikeDamage);
                 // Damage nearby player
                 entities.forEach([&](Entity& target) {
-                    if (target.getTag() != "player") return;
+                    if (!target.isPlayer) return;
                     if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                     Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                     float d = distanceTo(pos, tPos);
@@ -364,7 +364,7 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, const Vec2& playerPos, E
     if (entity.hasComponent<SpriteComponent>()) {
         auto& sprite = entity.getComponent<SpriteComponent>();
         sprite.flipX = !ai.facingRight;
-        float pulse = (std::sin(SDL_GetTicks() * 0.006f * ai.bossPhase) + 1.0f) * 0.5f;
+        float pulse = (std::sin(m_frameTicks * 0.006f * ai.bossPhase) + 1.0f) * 0.5f;
         switch (ai.bossPhase) {
             case 1: sprite.setColor(40, static_cast<Uint8>(160 + 40 * pulse), 120); break;
             case 2: sprite.setColor(60, static_cast<Uint8>(200 + 55 * pulse), 80); break;

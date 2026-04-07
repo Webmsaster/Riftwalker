@@ -206,7 +206,7 @@ void AISystem::updateSummoner(Entity& entity, float dt, const Vec2& playerPos, E
     // Count active minions
     ai.activeMinions = 0;
     entities.forEach([&](Entity& e) {
-        if (e.isAlive() && e.getTag() == "enemy_minion" && e.dimension == entity.dimension) {
+        if (e.isAlive() && e.isMinion && e.dimension == entity.dimension) {
             ai.activeMinions++;
         }
     });
@@ -291,7 +291,7 @@ void AISystem::updateSummoner(Entity& entity, float dt, const Vec2& playerPos, E
         auto& sprite = entity.getComponent<SpriteComponent>();
         sprite.flipX = !ai.facingRight;
         if (ai.summonTimer < 1.0f && ai.activeMinions < ai.maxMinions) {
-            float pulse = std::sin(SDL_GetTicks() * 0.01f) * 0.5f + 0.5f;
+            float pulse = std::sin(m_frameTicks * 0.01f) * 0.5f + 0.5f;
             sprite.setColor(180 + static_cast<int>(pulse * 75), 50, 220);
         }
     }
@@ -515,8 +515,7 @@ void AISystem::updateTeleporter(Entity& entity, float dt, const Vec2& playerPos)
         sprite.flipX = !ai.facingRight;
         // Flicker effect when teleport is nearly ready
         if (ai.teleportTimer < 0.5f && ai.teleportTimer > 0) {
-            Uint32 t = SDL_GetTicks();
-            sprite.color.a = ((t / 50) % 2 == 0) ? 255 : 128;
+            sprite.color.a = ((m_frameTicks / 50) % 2 == 0) ? 255 : 128;
         } else {
             sprite.color.a = 255;
         }
@@ -611,7 +610,7 @@ void AISystem::updateReflector(Entity& entity, float dt, const Vec2& playerPos) 
         sprite.flipX = !ai.facingRight;
         // Shield visual: brighter when shield is up
         if (ai.reflectorShieldUp) {
-            float pulse = std::sin(SDL_GetTicks() * 0.005f) * 0.15f + 0.85f;
+            float pulse = std::sin(m_frameTicks * 0.005f) * 0.15f + 0.85f;
             sprite.color.r = static_cast<Uint8>(std::min(255.0f, 180.0f * pulse + 40.0f));
             sprite.color.g = static_cast<Uint8>(std::min(255.0f, 190.0f * pulse + 40.0f));
             sprite.color.b = static_cast<Uint8>(std::min(255.0f, 220.0f * pulse + 30.0f));
@@ -698,7 +697,7 @@ void AISystem::updateLeech(Entity& entity, float dt, const Vec2& playerPos) {
         sprite.flipX = !ai.facingRight;
         // Pulsing green glow when draining
         if (dist < ai.attackRange && ai.state == AIState::Chase) {
-            float pulse = std::sin(SDL_GetTicks() * 0.01f) * 0.3f + 0.7f;
+            float pulse = std::sin(m_frameTicks * 0.01f) * 0.3f + 0.7f;
             sprite.color.g = static_cast<Uint8>(std::min(255.0f, 140.0f + 80.0f * pulse));
         } else {
             sprite.color = {50, 140, 60, 255};
@@ -832,7 +831,7 @@ void AISystem::updateGravityWell(Entity& entity, float dt, const Vec2& playerPos
     // Pulsing purple glow
     if (entity.hasComponent<SpriteComponent>()) {
         auto& sprite = entity.getComponent<SpriteComponent>();
-        float pulse = std::sin(SDL_GetTicks() * 0.005f) * 0.3f + 0.7f;
+        float pulse = std::sin(m_frameTicks * 0.005f) * 0.3f + 0.7f;
         sprite.color.r = static_cast<Uint8>(100 * pulse);
         sprite.color.g = static_cast<Uint8>(50 * pulse);
         sprite.color.b = static_cast<Uint8>(180 * pulse);

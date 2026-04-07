@@ -345,8 +345,7 @@ void PlayState::renderDebugOverlay(SDL_Renderer* renderer, TTF_Font* font) {
     m_entities.forEach([&](Entity& e) {
         if (e.isAlive()) {
             aliveEntities++;
-            auto& tag = e.getTag();
-            if (tag.rfind("enemy", 0) == 0) enemyCount++;
+            if (e.isEnemy) enemyCount++;
         }
     });
 
@@ -449,7 +448,7 @@ void PlayState::renderDebugOverlay(SDL_Renderer* renderer, TTF_Font* font) {
         // Zone count
         int residueCount = 0;
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag() == "dim_residue" && e.isAlive()) residueCount++;
+            if (e.isDimResidue && e.isAlive()) residueCount++;
         });
 
         // Gameplay paused detection
@@ -521,7 +520,7 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     // Find boss entity
     Entity* boss = nullptr;
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag() == "enemy_boss") boss = &e;
+        if (e.isBoss) boss = &e;
     });
     if (!boss || !boss->hasComponent<HealthComponent>()) return;
 

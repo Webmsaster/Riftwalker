@@ -773,7 +773,7 @@ void PlayState::update(float dt) {
     if (m_isBossLevel && !m_bossDefeated) {
         bool bossAlive = false;
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag() == "enemy_boss") bossAlive = true;
+            if (e.isBoss) bossAlive = true;
         });
         if (!bossAlive) {
             m_bossDefeated = true;
@@ -916,7 +916,7 @@ void PlayState::update(float dt) {
         residueDps = RelicSynergy::getResidueDamage(m_player->getEntity()->getComponent<RelicComponent>());
     }
     m_entities.forEach([&](Entity& zone) {
-        if (zone.getTag() != "dim_residue") return;
+        if (!zone.isDimResidue) return;
         if (!zone.hasComponent<HealthComponent>()) return;
         auto& zHP = zone.getComponent<HealthComponent>();
         zHP.currentHP -= dt;

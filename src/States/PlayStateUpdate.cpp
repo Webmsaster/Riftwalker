@@ -49,7 +49,7 @@ void PlayState::updateDimensionSwitch() {
         // Check if dimension is locked by Void Sovereign or Entropy Incarnate
         bool dimLocked = false;
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag() == "enemy_boss" && e.hasComponent<AIComponent>()) {
+            if (e.isBoss && e.hasComponent<AIComponent>()) {
                 auto& bossAi = e.getComponent<AIComponent>();
                 if (bossAi.bossType == 4 && bossAi.vsDimLockActive > 0) dimLocked = true;
                 if (bossAi.bossType == 5 && bossAi.eiDimLockActive > 0) dimLocked = true;
@@ -93,7 +93,7 @@ void PlayState::updateDimensionSwitch() {
                     // Count existing zones
                     int zoneCount = 0;
                     m_entities.forEach([&](Entity& e) {
-                        if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
+                        if (e.isDimResidue && e.isAlive()) zoneCount++;
                     });
                     if (zoneCount < RelicSystem::getMaxResidueZones()) {
                         Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
@@ -212,7 +212,7 @@ void PlayState::updateDimensionEffects(float dt) {
     // Check if Void Storm or Entropy Storm is active
     bool stormActive = false;
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag() == "enemy_boss" && e.hasComponent<AIComponent>()) {
+        if (e.isBoss && e.hasComponent<AIComponent>()) {
             auto& bossAi = e.getComponent<AIComponent>();
             if (bossAi.bossType == 4 && bossAi.vsStormActive > 0) stormActive = true;
             if (bossAi.bossType == 5 && bossAi.eiStormActive > 0) stormActive = true;
@@ -228,8 +228,8 @@ void PlayState::updateDimensionEffects(float dt) {
         int bossPhase = 1;
         Vec2 pPos = m_player ? m_player->getEntity()->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().substr(0, 5) == "enemy") {
-                if (e.getTag() == "enemy_boss") {
+            if (e.isEnemy) {
+                if (e.isBoss) {
                     bossActive = true;
                     if (e.hasComponent<AIComponent>()) {
                         bossPhase = e.getComponent<AIComponent>().bossPhase;
@@ -376,7 +376,7 @@ void PlayState::updateTechnomancerEntities(float dt) {
     int turretCount = 0;
     int curDim = m_dimManager.getCurrentDimension();
     m_entities.forEach([&](Entity& turret) {
-        if (turret.getTag() != "player_turret" || !turret.isAlive()) return;
+        if (!turret.isPlayerTurret || !turret.isAlive()) return;
         if (!turret.hasComponent<HealthComponent>()) return;
 
         auto& hp = turret.getComponent<HealthComponent>();
@@ -443,7 +443,7 @@ void PlayState::updateTechnomancerEntities(float dt) {
     // Count active traps (lifetime decay)
     int trapCount = 0;
     m_entities.forEach([&](Entity& trap) {
-        if (trap.getTag() != "player_trap" || !trap.isAlive()) return;
+        if (!trap.isPlayerTrap || !trap.isAlive()) return;
         if (!trap.hasComponent<HealthComponent>()) return;
 
         auto& hp = trap.getComponent<HealthComponent>();
@@ -462,7 +462,7 @@ void PlayState::updateTechnomancerEntities(float dt) {
 void PlayState::updateBossEffects(float dt) {
     // Void Sovereign Phase 3: auto dimension switch
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag() != "enemy_boss") return;
+        if (!e.isBoss) return;
         if (!e.hasComponent<AIComponent>()) return;
         auto& bossAi = e.getComponent<AIComponent>();
         if (bossAi.bossType == 4 && bossAi.vsForceDimSwitch) {
@@ -478,7 +478,7 @@ void PlayState::updateBossEffects(float dt) {
 
     // Entropy Incarnate boss effects
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag() != "enemy_boss") return;
+        if (!e.isBoss) return;
         if (!e.hasComponent<AIComponent>()) return;
         auto& bossAi = e.getComponent<AIComponent>();
         if (bossAi.bossType != 5) return;
@@ -547,7 +547,7 @@ void PlayState::updateBossEffects(float dt) {
     // Entropy minion death: add +10 entropy to player on death
     // (Handled by zombie sweep in CombatSystem -- detect dying entropy minions here)
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag() != "enemy_entropy_minion") return;
+        if (!e.isEntropyMinion) return;
         if (!e.hasComponent<HealthComponent>()) return;
         auto& mhp = e.getComponent<HealthComponent>();
         if (mhp.currentHP <= 0 && e.isAlive()) {

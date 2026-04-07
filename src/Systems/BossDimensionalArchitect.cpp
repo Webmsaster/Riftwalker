@@ -287,7 +287,7 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, const Vec2& 
             phys.velocity.x = dir.x * ai.chaseSpeed;
         } else {
             // Strafe slowly
-            float strafeDir = std::sin(SDL_GetTicks() * 0.002f) > 0 ? 1.0f : -1.0f;
+            float strafeDir = std::sin(m_frameTicks * 0.002f) > 0 ? 1.0f : -1.0f;
             phys.velocity.x = strafeDir * ai.patrolSpeed * 0.5f;
         }
     } else {
@@ -300,7 +300,7 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, const Vec2& 
     if (entity.hasComponent<SpriteComponent>()) {
         auto& sprite = entity.getComponent<SpriteComponent>();
         sprite.flipX = !ai.facingRight;
-        float pulse = (std::sin(SDL_GetTicks() * 0.005f * ai.bossPhase) + 1.0f) * 0.5f;
+        float pulse = (std::sin(m_frameTicks * 0.005f * ai.bossPhase) + 1.0f) * 0.5f;
         switch (ai.bossPhase) {
             case 1: sprite.setColor(80, static_cast<Uint8>(150 + 40 * pulse), 255); break;
             case 2: sprite.setColor(static_cast<Uint8>(120 + 40 * pulse), 100, 255); break;

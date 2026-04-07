@@ -306,7 +306,7 @@ void PlayState::updateBalanceTracking(float dt) {
     // Residue zone count
     int zoneCount = 0;
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
+        if (e.isDimResidue && e.isAlive()) zoneCount++;
     });
     m_balanceStats.peakResidueZones = std::max(m_balanceStats.peakResidueZones, zoneCount);
 
@@ -374,7 +374,7 @@ void PlayState::writeBalanceSnapshot() {
     // --- Relic-specific tracking ---
     int zoneCount = 0;
     m_entities.forEach([&](Entity& e) {
-        if (e.getTag() == "dim_residue" && e.isAlive()) zoneCount++;
+        if (e.isDimResidue && e.isAlive()) zoneCount++;
     });
 
     float stabRate = RelicSynergy::getStabilityDmgPerSec(relics);

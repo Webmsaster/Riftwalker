@@ -21,9 +21,19 @@ public:
     void setTag(const std::string& tag) {
         m_tag = tag;
         isEnemy = (tag.find("enemy") != std::string::npos);
-        isPlayer = (tag.find("player") != std::string::npos);
+        isPlayer = (tag == "player");
         isPickup = (tag.find("pickup") != std::string::npos);
         isProjectile = (tag.find("projectile") != std::string::npos);
+        isBoss = (tag == "enemy_boss");
+        isDimResidue = (tag == "dim_residue");
+        isPlayerTurret = (tag == "player_turret");
+        isPlayerTrap = (tag == "player_trap");
+        isMinion = (tag == "enemy_minion");
+        isEntropyMinion = (tag == "enemy_entropy_minion");
+        isShadowClone = (tag == "enemy_shadow_clone");
+        isEnemyEcho = (tag == "enemy_echo");
+        isHealthPickup = (tag.find("health") != std::string::npos);
+        isShardPickup = (tag.find("shard") != std::string::npos);
     }
 
     template <typename T, typename... Args>
@@ -59,6 +69,16 @@ public:
     bool isPlayer = false;
     bool isPickup = false;
     bool isProjectile = false;
+    bool isBoss = false;
+    bool isDimResidue = false;
+    bool isPlayerTurret = false;
+    bool isPlayerTrap = false;
+    bool isMinion = false;
+    bool isEntropyMinion = false;
+    bool isShadowClone = false;
+    bool isEnemyEcho = false;
+    bool isHealthPickup = false;
+    bool isShardPickup = false;
 
 private:
     EntityManager* m_manager;

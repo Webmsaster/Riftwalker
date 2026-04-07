@@ -59,7 +59,7 @@ void AISystem::updateBoss(Entity& entity, float dt, const Vec2& playerPos, Entit
             }
             entities.forEach([&](Entity& target) {
                 if (&target == &entity) return;
-                if (target.getTag() != "player") return;
+                if (!target.isPlayer) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<PhysicsBody>()) return;
                 Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                 float d = distanceTo(pos, tPos);
@@ -336,7 +336,7 @@ void AISystem::updateBoss(Entity& entity, float dt, const Vec2& playerPos, Entit
             }
             entities.forEach([&](Entity& target) {
                 if (&target == &entity) return;
-                if (target.getTag() != "player") return;
+                if (!target.isPlayer) return;
                 if (!target.hasComponent<HealthComponent>() || !target.hasComponent<TransformComponent>()) return;
                 Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                 float d = distanceTo(pos, tPos);
@@ -367,7 +367,7 @@ void AISystem::updateBoss(Entity& entity, float dt, const Vec2& playerPos, Entit
     if (entity.hasComponent<SpriteComponent>()) {
         auto& sprite = entity.getComponent<SpriteComponent>();
         sprite.flipX = !ai.facingRight;
-        float pulse = (std::sin(SDL_GetTicks() * 0.005f * ai.bossPhase) + 1.0f) * 0.5f;
+        float pulse = (std::sin(m_frameTicks * 0.005f * ai.bossPhase) + 1.0f) * 0.5f;
         switch (ai.bossPhase) {
             case 1: sprite.setColor(200, static_cast<Uint8>(40 + 40 * pulse), 180); break;
             case 2: sprite.setColor(220, static_cast<Uint8>(100 * pulse), 100); break;

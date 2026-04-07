@@ -965,8 +965,8 @@ void PlayState::updatePlaytest(float dt) {
 
             // Score pickups: health = very high when low HP, shards = moderate, buffs = low
             float score = 0;
-            bool isHealth = (e.getTag().find("health") != std::string::npos);
-            bool isShard = (e.getTag().find("shard") != std::string::npos);
+            bool isHealth = e.isHealthPickup;
+            bool isShard = e.isShardPickup;
             if (isHealth) score = (hpPct < 0.35f) ? 100.0f : 20.0f;
             else if (isShard) score = 10.0f;
             else score = 15.0f; // shield/speed/damage boost

@@ -52,4 +52,5 @@ private:
     CombatSystem* m_combatSystem = nullptr;
     class Level* m_level = nullptr;
     Player* m_player = nullptr;
+    Uint32 m_frameTicks = 0; // Cached SDL_GetTicks() per update frame
 };

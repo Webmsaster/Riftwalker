@@ -306,7 +306,7 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
             int targetDim = target.dimension;
             entities.forEach([&](Entity& minion) {
                 if (!minion.isAlive()) return;
-                if (minion.getTag() != "enemy_minion") return;
+                if (!minion.isMinion) return;
                 if (minion.dimension != 0 && minion.dimension != targetDim) return;
                 // Purple particles on each dying minion
                 if (m_particles && minion.hasComponent<TransformComponent>()) {
@@ -520,7 +520,7 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
             }
         }
         // Piercing projectiles pass through enemies (still destroyed by tiles)
-        if (piercing && other->getTag() != "player") {
+        if (piercing && !other->isPlayer) {
             // Don't destroy on enemy hit — keep going
             return;
         }
