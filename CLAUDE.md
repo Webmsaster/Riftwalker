@@ -33,8 +33,8 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **QoL**: Last selected class + difficulty persisted between sessions
 - **Audio**: Missing SFX added to 5 states (Credits, Ending, GameOver, RunSummary, Splash)
 - **Mouse**: RunSummaryState accepts mouse click to continue
-- **Performance**: Entity type flags eliminate 52 string::find() per frame, RenderSystem vector reuse, HUD texture cache
-- 71 commits, 42 files changed, +1780 lines
+- **Performance**: Entity type flags eliminate 55 string::find() per frame, RenderSystem vector reuse, HUD texture cache
+- 75 commits, 51 files changed, +1834 lines
 
 *Wave 1 (earlier):*
 - **Complete Localization**: 408 EN + 408 DE string pairs — ALL player-facing UI strings use LOC() macro
