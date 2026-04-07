@@ -653,6 +653,11 @@ void Localization::loadStrings() {
     m_en["tip.52"] = "TIP: Phoenix Feather relic auto-revives you once per run — invaluable for bosses!";
     m_en["tip.53"] = "TIP: Each New Game+ tier unlocks unique modifiers AND bonus shard rewards.";
     m_en["tip.54"] = "TIP: The Void Beam pierces through all enemies in a line — great for corridors.";
+    m_en["tip.55"] = "TIP: Dimensional Plating upgrade reduces all incoming damage by 10% per level.";
+    m_en["tip.56"] = "TIP: The Fortune Teller NPC can reveal secret rooms on the map.";
+    m_en["tip.57"] = "TIP: Stomping on enemies from above deals bonus damage based on fall height.";
+    m_en["tip.58"] = "TIP: Elemental enemies take extra damage from their opposing element.";
+    m_en["tip.59"] = "TIP: The Blacksmith NPC permanently enhances your weapons at higher story stages.";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1588,6 +1593,11 @@ void Localization::loadStrings() {
     m_de["tip.52"] = "TIPP: Das Phoenixfeder-Relikt belebt dich einmal pro Lauf wieder — unbezahlbar gegen Bosse!";
     m_de["tip.53"] = "TIPP: Jede New Game+ Stufe schaltet einzigartige Modifikatoren UND Bonus-Splitter frei.";
     m_de["tip.54"] = "TIPP: Der Leerestrahl durchbohrt alle Gegner in einer Linie — ideal fuer Korridore.";
+    m_de["tip.55"] = "TIPP: Dimensionspanzerung reduziert allen eingehenden Schaden um 10% pro Stufe.";
+    m_de["tip.56"] = "TIPP: Die Wahrsagerin kann Geheimraeume auf der Karte enthuellen.";
+    m_de["tip.57"] = "TIPP: Von oben auf Gegner stampfen verursacht Bonusschaden basierend auf Fallhoehe.";
+    m_de["tip.58"] = "TIPP: Elementargegner nehmen Extraschaden von ihrem gegensaetzlichen Element.";
+    m_de["tip.59"] = "TIPP: Der Schmied verstaerkt deine Waffen permanent bei hoeheren Story-Stufen.";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
