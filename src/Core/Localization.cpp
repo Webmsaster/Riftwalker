@@ -654,6 +654,22 @@ void Localization::loadStrings() {
     m_en["tip.53"] = "TIP: Each New Game+ tier unlocks unique modifiers AND bonus shard rewards.";
     m_en["tip.54"] = "TIP: The Void Beam pierces through all enemies in a line — great for corridors.";
 
+    // Input action names (shown in Keybindings screen)
+    m_en["action.move_left"]       = "Move Left";
+    m_en["action.move_right"]      = "Move Right";
+    m_en["action.look_up"]         = "Look Up";
+    m_en["action.look_down"]       = "Look Down";
+    m_en["action.jump"]            = "Jump";
+    m_en["action.dash"]            = "Dash";
+    m_en["action.melee"]           = "Melee Attack";
+    m_en["action.ranged"]          = "Ranged Attack";
+    m_en["action.dim_switch"]      = "Dimension Switch";
+    m_en["action.interact"]        = "Interact";
+    m_en["action.pause"]           = "Pause";
+    m_en["action.slam"]            = "Ground Slam";
+    m_en["action.shield"]          = "Rift Shield";
+    m_en["action.phase"]           = "Phase Strike";
+
     // Buff pickups (in-game floating text)
     m_en["pickup.shield"]          = "SHIELD";
     m_en["pickup.speed"]           = "SPEED UP";
@@ -1572,6 +1588,22 @@ void Localization::loadStrings() {
     m_de["tip.52"] = "TIPP: Das Phoenixfeder-Relikt belebt dich einmal pro Lauf wieder — unbezahlbar gegen Bosse!";
     m_de["tip.53"] = "TIPP: Jede New Game+ Stufe schaltet einzigartige Modifikatoren UND Bonus-Splitter frei.";
     m_de["tip.54"] = "TIPP: Der Leerestrahl durchbohrt alle Gegner in einer Linie — ideal fuer Korridore.";
+
+    // Input action names
+    m_de["action.move_left"]       = "Links bewegen";
+    m_de["action.move_right"]      = "Rechts bewegen";
+    m_de["action.look_up"]         = "Nach oben schauen";
+    m_de["action.look_down"]       = "Nach unten schauen";
+    m_de["action.jump"]            = "Springen";
+    m_de["action.dash"]            = "Dash";
+    m_de["action.melee"]           = "Nahkampf-Angriff";
+    m_de["action.ranged"]          = "Fernkampf-Angriff";
+    m_de["action.dim_switch"]      = "Dimensionswechsel";
+    m_de["action.interact"]        = "Interagieren";
+    m_de["action.pause"]           = "Pause";
+    m_de["action.slam"]            = "Bodenstampfer";
+    m_de["action.shield"]          = "Rissschild";
+    m_de["action.phase"]           = "Phasenschlag";
 
     // Buff pickups
     m_de["pickup.shield"]          = "SCHILD";

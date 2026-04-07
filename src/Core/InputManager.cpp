@@ -1,4 +1,5 @@
 #include "InputManager.h"
+#include "Localization.h"
 #include "SaveUtils.h"
 #include <algorithm>
 #include <cstring>
@@ -238,20 +239,20 @@ Action InputManager::getActionForKey(SDL_Scancode key) const {
 
 std::string InputManager::getActionName(Action action) {
     switch (action) {
-        case Action::MoveLeft:        return "Move Left";
-        case Action::MoveRight:       return "Move Right";
-        case Action::MoveUp:          return "Look Up";
-        case Action::MoveDown:        return "Look Down";
-        case Action::Jump:            return "Jump";
-        case Action::Dash:            return "Dash";
-        case Action::Attack:          return "Melee Attack";
-        case Action::RangedAttack:    return "Ranged Attack";
-        case Action::DimensionSwitch: return "Dimension Switch";
-        case Action::Interact:        return "Interact";
-        case Action::Pause:           return "Pause";
-        case Action::Ability1:        return "Ground Slam";
-        case Action::Ability2:        return "Rift Shield";
-        case Action::Ability3:        return "Phase Strike";
+        case Action::MoveLeft:        return LOC("action.move_left");
+        case Action::MoveRight:       return LOC("action.move_right");
+        case Action::MoveUp:          return LOC("action.look_up");
+        case Action::MoveDown:        return LOC("action.look_down");
+        case Action::Jump:            return LOC("action.jump");
+        case Action::Dash:            return LOC("action.dash");
+        case Action::Attack:          return LOC("action.melee");
+        case Action::RangedAttack:    return LOC("action.ranged");
+        case Action::DimensionSwitch: return LOC("action.dim_switch");
+        case Action::Interact:        return LOC("action.interact");
+        case Action::Pause:           return LOC("action.pause");
+        case Action::Ability1:        return LOC("action.slam");
+        case Action::Ability2:        return LOC("action.shield");
+        case Action::Ability3:        return LOC("action.phase");
         default:                      return "Unknown";
     }
 }
