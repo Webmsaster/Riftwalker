@@ -403,7 +403,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
 
         // Chain name + reward
         char rewardText[64];
-        snprintf(rewardText, sizeof(rewardText), "%s — +%d Shards", m_eventChain.getName(), m_chainRewardShards);
+        snprintf(rewardText, sizeof(rewardText), LOC("hud.chain_reward"), m_eventChain.getName(), m_chainRewardShards);
         SDL_Color rewCol = {cc.r, cc.g, cc.b, alpha};
         SDL_Surface* rewSurf = TTF_RenderText_Blended(font, rewardText, rewCol);
         if (rewSurf) {
