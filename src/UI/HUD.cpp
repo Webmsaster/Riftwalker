@@ -1252,16 +1252,45 @@ void HUD::renderBar(SDL_Renderer* renderer, int x, int y, int w, int h,
 
 void HUD::renderText(SDL_Renderer* renderer, TTF_Font* font,
                       const char* text, int x, int y, SDL_Color color) {
-    if (!font || !text) return;
+    if (!font || !text || !*text) return;
+
+    // Build cache key: text + RGBA bytes
+    std::string key(text);
+    key += static_cast<char>(color.r);
+    key += static_cast<char>(color.g);
+    key += static_cast<char>(color.b);
+    key += static_cast<char>(color.a);
+
+    auto it = m_textCache.find(key);
+    if (it != m_textCache.end()) {
+        int sw = static_cast<int>(it->second.w * g_hudScale);
+        int sh = static_cast<int>(it->second.h * g_hudScale);
+        SDL_Rect rect = {x, y, sw, sh};
+        SDL_RenderCopy(renderer, it->second.texture, nullptr, &rect);
+        return;
+    }
+
+    // Evict cache if too large
+    if (m_textCache.size() >= MAX_TEXT_CACHE) {
+        clearTextCache();
+    }
+
     SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
     if (!surface) return;
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     if (texture) {
-        int sw = static_cast<int>(surface->w * g_hudScale);
-        int sh = static_cast<int>(surface->h * g_hudScale);
-        SDL_Rect rect = {x, y, sw, sh};
+        int sw = surface->w;
+        int sh = surface->h;
+        m_textCache[key] = {texture, sw, sh};
+        SDL_Rect rect = {x, y, static_cast<int>(sw * g_hudScale), static_cast<int>(sh * g_hudScale)};
         SDL_RenderCopy(renderer, texture, nullptr, &rect);
-        SDL_DestroyTexture(texture);
     }
     SDL_FreeSurface(surface);
+}
+
+void HUD::clearTextCache() {
+    for (auto& [k, v] : m_textCache) {
+        if (v.texture) SDL_DestroyTexture(v.texture);
+    }
+    m_textCache.clear();
 }

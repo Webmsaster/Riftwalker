@@ -24,16 +24,21 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         srcRect = anim.getCurrentSrcRect();
     }
 
-    // Preserve sprite aspect ratio: fit into entity rect, anchor at bottom-center
+    // Scale sprite to be visually larger than collision box, anchored at bottom-center.
+    // Collision boxes are small for precise hit detection; sprites need to be 2x taller
+    // to look correct. Aspect ratio is preserved from the sprite source dimensions.
     if (srcRect.w > 0 && srcRect.h > 0 && rect.w > 0 && rect.h > 0) {
         float spriteAR = static_cast<float>(srcRect.w) / srcRect.h;
-        float rectAR = static_cast<float>(rect.w) / rect.h;
-        if (std::abs(spriteAR - rectAR) > 0.05f) {
-            // Fit by height, adjust width to preserve aspect ratio
-            int newW = static_cast<int>(rect.h * spriteAR);
-            rect.x -= (newW - rect.w) / 2; // Center horizontally
-            rect.w = newW;
-        }
+        int renderH = rect.h * 2;
+        int renderW = static_cast<int>(renderH * spriteAR);
+
+        // Anchor at bottom-center of collision box
+        int centerX = rect.x + rect.w / 2;
+        int bottomY = rect.y + rect.h;
+        rect.x = centerX - renderW / 2;
+        rect.y = bottomY - renderH;
+        rect.w = renderW;
+        rect.h = renderH;
     }
 
     // Apply color modulation and alpha (run through color-blind filter)
@@ -70,7 +75,7 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     // Code-driven animation transforms (single-frame sprites animated via rect/angle)
     double renderAngle = 0.0;
     {
-        float t = SDL_GetTicks() * 0.001f; // Time in seconds
+        float t = m_frameTicks * 0.001f; // Time in seconds (cached per-frame)
         AnimState state = sprite.animState;
 
         switch (state) {
@@ -206,6 +211,7 @@ void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
                           const Camera& camera, int currentDimension, float dimBlendAlpha,
                           float interpolation) {
     ZoneScopedN("RenderEntities");
+    m_frameTicks = SDL_GetTicks(); // Cache once per frame
     m_renderEntries.clear(); // Reuse capacity from previous frame
 
     entities.forEach([&](Entity& e) {
@@ -228,7 +234,7 @@ void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
             // Ghost shimmer for other-dimension entities
             bool isEnemy = e.isEnemy;
             if (isEnemy) {
-                float shimmer = 0.15f + 0.1f * std::sin(SDL_GetTicks() * 0.005f + e.dimension * 3.14f);
+                float shimmer = 0.15f + 0.1f * std::sin(m_frameTicks * 0.005f + e.dimension * 3.14f);
                 alpha = shimmer;
             } else {
                 alpha = dimBlendAlpha * 0.3f;
@@ -269,12 +275,11 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 
     // Pickup hover animation: bob up/down + pulsing glow ring
     if (entity.isPickup) {
-        Uint32 ticks = SDL_GetTicks();
         // Sine-wave hover (±3 pixel bob)
-        float hover = std::sin(ticks * 0.004f + entity.dimension * 1.5f) * 3.0f;
+        float hover = std::sin(m_frameTicks * 0.004f + entity.dimension * 1.5f) * 3.0f;
         screenRect.y += static_cast<int>(hover);
         // Pulsing glow aura behind pickup
-        float pulse = 0.5f + 0.5f * std::sin(ticks * 0.005f + entity.dimension * 2.0f);
+        float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.005f + entity.dimension * 2.0f);
         auto& sprite = entity.getComponent<SpriteComponent>();
         Uint8 glowA = static_cast<Uint8>(20 + 25 * pulse * alpha);
         int glowExpand = 4 + static_cast<int>(pulse * 3);
@@ -506,7 +511,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         }
 
         // Subtle glow aura (pulsing)
-        Uint32 ticks = SDL_GetTicks();
+        Uint32 ticks = m_frameTicks;
         float glowPulse = 0.5f + 0.5f * std::sin(ticks * 0.004f);
         Uint8 ga = static_cast<Uint8>(20 * glowPulse * alpha);
         fillRect(renderer, dx - 3, dy - 3, dw + 6, dh + 6, cr, cg, cb, ga);
@@ -642,7 +647,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     if (entity.isEnemy && entity.hasComponent<AIComponent>()) {
         auto& ai = entity.getComponent<AIComponent>();
         if (ai.element != EnemyElement::None) {
-            float time = SDL_GetTicks() * 0.004f;
+            float time = m_frameTicks * 0.004f;
             float pulse = 0.4f + 0.6f * std::abs(std::sin(time));
             Uint8 glowA = static_cast<Uint8>(40 * pulse * alpha);
             Uint8 r = 0, g = 0, b = 0;
@@ -661,7 +666,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 
         // Juggle visual: ascending arrows + hit count dots
         if (ai.state == AIState::Juggled) {
-            float time = SDL_GetTicks() * 0.006f;
+            float time = m_frameTicks * 0.006f;
             int centerX = screenRect.x + screenRect.w / 2;
             int topY = screenRect.y - 6;
             Uint8 ja = static_cast<Uint8>(200 * alpha);
@@ -687,7 +692,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 
         // Stun visual: rotating stars above stunned enemies
         if (ai.state == AIState::Stunned) {
-            float time = SDL_GetTicks() * 0.005f;
+            float time = m_frameTicks * 0.005f;
             int starCount = 3;
             int orbitR = screenRect.w / 2 + 4;
             int centerX = screenRect.x + screenRect.w / 2;
@@ -763,7 +768,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 
         // Mini-boss golden aura + HP bar
         if (ai.isMiniBoss) {
-            float time = SDL_GetTicks() * 0.003f;
+            float time = m_frameTicks * 0.003f;
             float pulse = 0.5f + 0.5f * std::sin(time * 2.0f);
             Uint8 auraA = static_cast<Uint8>(50 * pulse * alpha);
             SDL_Rect mbGlow = {screenRect.x - 5, screenRect.y - 5, screenRect.w + 10, screenRect.h + 10};
@@ -805,7 +810,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 
     // Player edge glow: dimension-colored outline to make player pop against dark backgrounds
     if (tag == "player" && alpha > 0.5f) {
-        Uint32 ticks = SDL_GetTicks();
+        Uint32 ticks = m_frameTicks;
         float pulse = 0.6f + 0.4f * std::sin(ticks * 0.003f);
         // Dimension color: blue for A, red for B
         Uint8 glowR, glowG, glowB;
@@ -867,7 +872,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 void RenderSystem::renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
-    float time = SDL_GetTicks() * 0.005f;
+    float time = m_frameTicks * 0.005f;
 
     // Floating bob
     int bob = static_cast<int>(std::sin(time) * 3);
@@ -976,7 +981,7 @@ void RenderSystem::renderPlayerTurret(SDL_Renderer* renderer, SDL_Rect rect, Ent
         auto& hp = entity.getComponent<HealthComponent>();
         lifePct = std::max(0.0f, hp.currentHP / std::max(0.01f, hp.maxHP));
     }
-    float time = SDL_GetTicks() * 0.001f;
+    float time = m_frameTicks * 0.001f;
     float pulse = 0.7f + 0.3f * std::sin(time * (3.0f + (1.0f - lifePct) * 8.0f));
 
     // Base platform
@@ -1025,7 +1030,7 @@ void RenderSystem::renderShockTrap(SDL_Renderer* renderer, SDL_Rect rect, Entity
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     int cx = x + w / 2;
     int cy = y + h / 2;
-    float time = SDL_GetTicks() * 0.001f;
+    float time = m_frameTicks * 0.001f;
 
     // Pulse effect (flat diamond shape)
     float pulse = 0.5f + 0.5f * std::sin(time * 5.0f);

@@ -2,6 +2,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <set>
+#include <string>
+#include <unordered_map>
 #include "Game/WeaponSystem.h"
 
 class Player;
@@ -15,6 +17,7 @@ struct AbilityComponent;
 class HUD {
 public:
     ~HUD() {
+        clearTextCache();
         if (m_hudTarget) SDL_DestroyTexture(m_hudTarget);
         if (m_ngPlusTex) SDL_DestroyTexture(m_ngPlusTex);
     }
@@ -85,4 +88,13 @@ private:
     SDL_Texture* m_hudTarget = nullptr;
     int m_hudTargetW = 0;
     int m_hudTargetH = 0;
+
+    // Text texture cache: avoids per-frame TTF_RenderText + SDL_CreateTextureFromSurface
+    struct CachedText {
+        SDL_Texture* texture = nullptr;
+        int w = 0, h = 0;
+    };
+    std::unordered_map<std::string, CachedText> m_textCache;
+    static constexpr size_t MAX_TEXT_CACHE = 128;
+    void clearTextCache();
 };
