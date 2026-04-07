@@ -673,6 +673,8 @@ void Localization::loadStrings() {
     m_en["hud.floor_miniboss"]     = "F%d / Zone %d  MINI-BOSS";
     m_en["hud.floor"]              = "F%d / Zone %d";
     m_en["hud.chain_reward"]       = "%s — +%d Shards";
+    m_en["hud.weapon_melee"]       = "MELEE";
+    m_en["hud.weapon_ranged"]      = "RANGED";
     m_en["npc.nav_hint"]           = "[W/S] Navigate  [Enter] Select  [Esc] Close";
 
     // Combat challenges
@@ -1448,6 +1450,8 @@ void Localization::loadStrings() {
     m_de["hud.floor_miniboss"]     = "E%d / Zone %d  MINI-BOSS";
     m_de["hud.floor"]              = "E%d / Zone %d";
     m_de["hud.chain_reward"]       = "%s — +%d Splitter";
+    m_de["hud.weapon_melee"]       = "NAHKAMPF";
+    m_de["hud.weapon_ranged"]      = "FERNKAMPF";
     m_de["npc.nav_hint"]           = "[W/S] Navigieren  [Enter] Waehlen  [Esc] Schliessen";
 
     // Combat challenges

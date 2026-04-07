@@ -1160,7 +1160,7 @@ void PlayState::renderWeaponSwitchDisplay(SDL_Renderer* renderer, TTF_Font* font
     }
 
     // Small category label ("MELEE" / "RANGED") above the weapon name
-    const char* category = m_weaponSwitchIsMelee ? "MELEE" : "RANGED";
+    const char* category = m_weaponSwitchIsMelee ? LOC("hud.weapon_melee") : LOC("hud.weapon_ranged");
     Uint8 catAlpha = static_cast<Uint8>(alpha * 140);
     SDL_Color catColor = {200, 200, 200, catAlpha};
     SDL_Surface* catSurf = TTF_RenderText_Blended(font, category, catColor);
