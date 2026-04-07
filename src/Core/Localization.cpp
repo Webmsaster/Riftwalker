@@ -648,6 +648,11 @@ void Localization::loadStrings() {
     m_en["tip.47"] = "TIP: Mini-bosses are stronger elites that appear mid-floor. Extra rewards!";
     m_en["tip.48"] = "TIP: Kill streaks without getting hit multiply your shard gains.";
     m_en["tip.49"] = "TIP: The Rift Shotgun fires 5 pellets — devastating at close range.";
+    m_en["tip.50"] = "TIP: Visit the Bestiary to learn enemy weaknesses and effective weapons.";
+    m_en["tip.51"] = "TIP: Rift repairs in Dimension B are riskier but reduce more entropy.";
+    m_en["tip.52"] = "TIP: Phoenix Feather relic auto-revives you once per run — invaluable for bosses!";
+    m_en["tip.53"] = "TIP: Each New Game+ tier unlocks unique modifiers AND bonus shard rewards.";
+    m_en["tip.54"] = "TIP: The Void Beam pierces through all enemies in a line — great for corridors.";
 
     // Buff pickups (in-game floating text)
     m_en["pickup.shield"]          = "SHIELD";
@@ -1562,6 +1567,11 @@ void Localization::loadStrings() {
     m_de["tip.47"] = "TIPP: Mini-Bosse sind staerkere Elites mitten im Level. Extra Belohnungen!";
     m_de["tip.48"] = "TIPP: Kill-Serien ohne Treffer zu kassieren multiplizieren deine Splitter.";
     m_de["tip.49"] = "TIPP: Die Riss-Schrotflinte feuert 5 Kugeln — verheerend auf kurze Distanz.";
+    m_de["tip.50"] = "TIPP: Im Bestiarium findest du Gegnerschwaechen und effektive Waffen.";
+    m_de["tip.51"] = "TIPP: Rissreparaturen in Dimension B sind riskanter, reduzieren aber mehr Entropie.";
+    m_de["tip.52"] = "TIPP: Das Phoenixfeder-Relikt belebt dich einmal pro Lauf wieder — unbezahlbar gegen Bosse!";
+    m_de["tip.53"] = "TIPP: Jede New Game+ Stufe schaltet einzigartige Modifikatoren UND Bonus-Splitter frei.";
+    m_de["tip.54"] = "TIPP: Der Leerestrahl durchbohrt alle Gegner in einer Linie — ideal fuer Korridore.";
 
     // Buff pickups
     m_de["pickup.shield"]          = "SCHILD";
