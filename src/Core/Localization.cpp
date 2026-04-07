@@ -673,6 +673,11 @@ void Localization::loadStrings() {
     m_en["tip.72"] = "TIP: Attack buffering queues your next attack during cooldown for snappy combat.";
     m_en["tip.73"] = "TIP: Chain Whip has the longest melee range and pierces through enemies.";
     m_en["tip.74"] = "TIP: Press M to toggle the minimap on or off during gameplay.";
+    m_en["tip.75"] = "TIP: Void Hunger relic gives +1% permanent damage per kill — scales insanely!";
+    m_en["tip.76"] = "TIP: Chaos Orb relic grants random effects every 30 seconds — never boring!";
+    m_en["tip.77"] = "TIP: The Phase Daggers crit every 5th hit — fast weapons mean more crits!";
+    m_en["tip.78"] = "TIP: Entropy Sponge relic removes passive entropy but kills add 5% each.";
+    m_en["tip.79"] = "TIP: F9 or F12 takes a screenshot at any time — share your best moments!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1628,6 +1633,11 @@ void Localization::loadStrings() {
     m_de["tip.72"] = "TIPP: Angriffs-Pufferung reiht deinen naechsten Angriff waehrend der Abklingzeit ein.";
     m_de["tip.73"] = "TIPP: Die Kettenpeitsche hat die groesste Nahkampf-Reichweite und durchbohrt Gegner.";
     m_de["tip.74"] = "TIPP: Druecke M um die Minikarte waehrend des Spiels ein- oder auszublenden.";
+    m_de["tip.75"] = "TIPP: Leerehunger-Relikt gibt +1% permanenten Schaden pro Kill — skaliert enorm!";
+    m_de["tip.76"] = "TIPP: Chaoskugel-Relikt gewaehrt alle 30 Sekunden Zufallseffekte — nie langweilig!";
+    m_de["tip.77"] = "TIPP: Phasendolche kritten jeden 5. Treffer — schnelle Waffen bedeuten mehr Krits!";
+    m_de["tip.78"] = "TIPP: Entropieschwamm entfernt passive Entropie, aber Kills fuegen je 5% hinzu.";
+    m_de["tip.79"] = "TIPP: F9 oder F12 macht jederzeit einen Screenshot — teile deine besten Momente!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
