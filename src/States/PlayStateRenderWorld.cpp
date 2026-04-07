@@ -1290,7 +1290,7 @@ void PlayState::renderNPCs(SDL_Renderer* renderer, TTF_Font* font) {
             float blink = 0.5f + 0.5f * std::sin(ticks * 0.008f);
             SDL_Color hc = {255, 255, 255, static_cast<Uint8>(200 * blink)};
             char hint[64];
-            std::snprintf(hint, sizeof(hint), "[F] %s", npc.name);
+            std::snprintf(hint, sizeof(hint), "[F] %s", NPCSystem::getName(npc.type));
             SDL_Surface* hs = TTF_RenderText_Blended(font, hint, hc);
             if (hs) {
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
@@ -1333,7 +1333,7 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
 
     // NPC name
     SDL_Color nameColor = {180, 140, 255, 255};
-    SDL_Surface* ns = TTF_RenderText_Blended(font, npc.name, nameColor);
+    SDL_Surface* ns = TTF_RenderText_Blended(font, NPCSystem::getName(npc.type), nameColor);
     if (ns) {
         SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
         if (nt) {
