@@ -280,6 +280,7 @@ void LoreState::handleEvent(const SDL_Event& event) {
 
     // Right-click to go back
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        AudioManager::instance().play(SFX::MenuConfirm);
         if (game) game->changeState(StateID::Menu);
     }
 

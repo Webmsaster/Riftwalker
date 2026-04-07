@@ -103,6 +103,7 @@ void UpgradeState::handleEvent(const SDL_Event& event) {
 
     // Right-click to go back
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        AudioManager::instance().play(SFX::MenuConfirm);
         game->changeState(StateID::Menu);
     }
 

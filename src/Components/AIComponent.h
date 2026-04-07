@@ -81,8 +81,8 @@ struct AIComponent : public Component {
     float loseRange = 300.0f;
 
     // Patrol
-    Vec2 patrolStart;
-    Vec2 patrolEnd;
+    Vec2 patrolStart{0, 0};
+    Vec2 patrolEnd{0, 0};
     bool patrolForward = true;
     float patrolSpeed = 80.0f;
 
@@ -154,7 +154,7 @@ struct AIComponent : public Component {
     // Boss telegraph system
     float bossTelegraphTimer = 0;      // countdown until telegraphed attack fires
     int bossTelegraphAttack = -1;      // which attack pattern is being telegraphed (-1 = none)
-    Vec2 bossTelegraphDir;             // stored direction for telegraphed attack
+    Vec2 bossTelegraphDir{0, 0};       // stored direction for telegraphed attack
 
     // Void Wyrm specific
     float wyrmOrbitAngle = 0;       // current orbit angle around player
@@ -310,7 +310,7 @@ struct AIComponent : public Component {
     float burnDmgTick = 0;     // burn damage tick timer
     float freezeTimer = 0;     // ice weapon slow remaining (50% speed reduction)
 
-    Vec2 targetPosition;
+    Vec2 targetPosition{0, 0};
     bool facingRight = true;
 
     void stun(float duration) {

@@ -3,8 +3,8 @@
 #include "Core/Camera.h" // for Vec2
 
 struct TransformComponent : public Component {
-    Vec2 position;
-    Vec2 prevPosition;  // Position at start of last physics step (for render interpolation)
+    Vec2 position{0, 0};
+    Vec2 prevPosition{0, 0};  // Position at start of last physics step (for render interpolation)
     Vec2 scale{1.0f, 1.0f};
     int width = 32;
     int height = 32;

@@ -136,6 +136,7 @@ void PauseState::handleEvent(const SDL_Event& event) {
 
     // Right-click to resume (same as ESC)
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+        AudioManager::instance().play(SFX::MenuConfirm);
         game->popState();
         return;
     }

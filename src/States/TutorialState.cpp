@@ -38,10 +38,13 @@ void TutorialState::handleEvent(const SDL_Event& event) {
 
     // Mouse click: left = next, right = back
     if (event.type == SDL_MOUSEBUTTONDOWN) {
-        if (event.button.button == SDL_BUTTON_LEFT)
+        if (event.button.button == SDL_BUTTON_LEFT) {
+            AudioManager::instance().play(SFX::MenuSelect);
             nextPage();
-        else if (event.button.button == SDL_BUTTON_RIGHT)
+        } else if (event.button.button == SDL_BUTTON_RIGHT) {
+            AudioManager::instance().play(SFX::MenuSelect);
             prevPage();
+        }
     }
 
     // Mouse wheel: forward/back

@@ -162,7 +162,7 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     m_options[OPT_HUDSCALE].value   = 100; // HUD scale 100%
                     m_options[OPT_LANGUAGE].value   = 0;   // English
                     m_options[OPT_CRT].value        = 0;   // CRT off
-                    for (size_t i = 0; i < m_options.size() - 3; i++) applyOption(static_cast<int>(i));
+                    for (int i = 0; i < static_cast<int>(m_options.size()) - 3; i++) applyOption(i);
                     game->saveSettings();
                     AudioManager::instance().play(SFX::MenuConfirm);
                     // Re-enter to refresh labels after language reset
@@ -385,7 +385,7 @@ void OptionsState::update(float dt) {
             m_options[OPT_HUDSCALE].value   = 100;
             m_options[OPT_LANGUAGE].value    = 0;
             m_options[OPT_CRT].value         = 0;
-            for (size_t i = 0; i < m_options.size() - 3; i++) applyOption(static_cast<int>(i));
+            for (int i = 0; i < static_cast<int>(m_options.size()) - 3; i++) applyOption(i);
             game->saveSettings();
             AudioManager::instance().play(SFX::MenuConfirm);
             { int sel = m_selected; enter(); m_selected = sel; }
