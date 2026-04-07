@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Localization.h"
+#include "Game/ClassSystem.h"
 #include <tracy/Tracy.hpp>
 #include "States/MenuState.h"
 #include "States/PlayState.h"
@@ -492,6 +493,8 @@ void Game::loadSaveData() {
             else if (key == "crt_effect")      { g_crtEffect = (static_cast<int>(value) != 0); }
             else if (key == "window_width")    { int w = static_cast<int>(value); if (w >= 640 && w <= 7680) WINDOW_WIDTH = w; }
             else if (key == "window_height")   { int h = static_cast<int>(value); if (h >= 480 && h <= 4320) WINDOW_HEIGHT = h; }
+            else if (key == "last_class")      { int c = static_cast<int>(value); if (c >= 0 && c < static_cast<int>(PlayerClass::COUNT)) g_selectedClass = static_cast<PlayerClass>(c); }
+            else if (key == "last_difficulty")  { int d = static_cast<int>(value); if (d >= 0 && d <= 2) g_selectedDifficulty = static_cast<GameDifficulty>(d); }
         }
         cfg.close();
         // Apply loaded window resolution (before fullscreen check)
@@ -531,6 +534,8 @@ void Game::saveSettings() {
         f << "crt_effect "       << (g_crtEffect ? 1 : 0) << "\n";
         f << "window_width "     << WINDOW_WIDTH  << "\n";
         f << "window_height "    << WINDOW_HEIGHT << "\n";
+        f << "last_class "       << static_cast<int>(g_selectedClass) << "\n";
+        f << "last_difficulty "  << static_cast<int>(g_selectedDifficulty) << "\n";
     });
 }
 
