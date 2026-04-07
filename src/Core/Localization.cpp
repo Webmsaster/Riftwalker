@@ -751,6 +751,16 @@ void Localization::loadStrings() {
     m_en["tip.97"] = "TIP: NPC engineers can upgrade your attack speed — worth the shards in long runs!";
     m_en["tip.98"] = "TIP: The Gambling Rift event is high risk/high reward — only gamble when you can afford to lose!";
     m_en["tip.99"] = "TIP: Hold charged attack for maximum damage — release when the glow reaches full intensity!";
+    m_en["tip.100"] = "TIP: New Game+ enemies scale with each ascension tier — adapt your build accordingly!";
+    m_en["tip.101"] = "TIP: Ice tiles reduce friction — use the momentum for speed or be careful not to slide into spikes!";
+    m_en["tip.102"] = "TIP: Conveyor belts push you in their direction — use them for speed boosts or avoid their traps!";
+    m_en["tip.103"] = "TIP: The Void Hammer's charged attack creates a 3x3 AoE shockwave — devastating in crowds!";
+    m_en["tip.104"] = "TIP: Rift Shotgun fires 5 projectiles in a fan — deadly at close range but weak at distance!";
+    m_en["tip.105"] = "TIP: Grappling Hook can pull you to walls for traversal or yank enemies toward you!";
+    m_en["tip.106"] = "TIP: Dimension Launcher hits both dimensions simultaneously — clears enemies you can't even see!";
+    m_en["tip.107"] = "TIP: Breakable walls sometimes hide secret rooms with rare relics and extra shards!";
+    m_en["tip.108"] = "TIP: Look for NPC Smiths to improve weapon range and attack speed for shard payment!";
+    m_en["tip.109"] = "TIP: Splitter elites spawn two smaller copies on death — be ready for the second wave!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1783,6 +1793,16 @@ void Localization::loadStrings() {
     m_de["tip.97"] = "TIPP: NPC-Ingenieure koennen dein Angriffstempo erhoehen — lohnt sich bei langen Laeufen!";
     m_de["tip.98"] = "TIPP: Das Gluecksspiel-Riss-Event ist riskant — nur setzen wenn du Verlust verkraften kannst!";
     m_de["tip.99"] = "TIPP: Halte geladenen Angriff fuer maximalen Schaden — loslassen wenn der Glow voll leuchtet!";
+    m_de["tip.100"] = "TIPP: New Game+ Gegner skalieren mit jedem Aufstiegstier — passe deinen Build an!";
+    m_de["tip.101"] = "TIPP: Eisfliesen reduzieren Reibung — nutze den Schwung oder rutsche nicht in Stacheln!";
+    m_de["tip.102"] = "TIPP: Foerderbaender schieben dich in ihre Richtung — nutze sie oder meide ihre Fallen!";
+    m_de["tip.103"] = "TIPP: Der Leere-Hammer erzeugt eine 3x3-Schockwelle — verheerend in Menschenmengen!";
+    m_de["tip.104"] = "TIPP: Riss-Schrotflinte feuert 5 Projektile im Faecher — toedlich nah, schwach auf Distanz!";
+    m_de["tip.105"] = "TIPP: Enterhaken zieht dich zu Waenden oder reisst Gegner zu dir — vielseitig einsetzbar!";
+    m_de["tip.106"] = "TIPP: Dimensionswerfer trifft beide Dimensionen gleichzeitig — raeume unsichtbare Gegner!";
+    m_de["tip.107"] = "TIPP: Zerstoerbare Waende verbergen manchmal Geheimraeume mit seltenen Relikten und Splittern!";
+    m_de["tip.108"] = "TIPP: NPC-Schmiede verbessern Waffenreichweite und Angriffstempo gegen Splitterbezahlung!";
+    m_de["tip.109"] = "TIPP: Spalter-Eliten erzeugen bei Tod zwei kleinere Kopien — sei bereit fuer die zweite Welle!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
