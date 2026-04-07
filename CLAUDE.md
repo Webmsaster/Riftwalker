@@ -5,7 +5,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-07 performance + onboarding + music session):**
+**Recent Updates (2026-04-07 overnight performance + polish session):**
+- **Entity Type Flags**: 10 new boolean flags on Entity (isBoss, isDimResidue, isPlayerTurret, isPlayerTrap, isMinion, isEntropyMinion, isShadowClone, isEnemyEcho, isHealthPickup, isShardPickup) — eliminates ~40 per-frame string comparisons across 22 files
+- **EntityRenderType Enum**: 34-value enum replacing 25+ string comparison chain in RenderSystem with O(1) switch dispatch — eliminates ~750 string comparisons/frame
+- **forEach Template**: EntityManager::forEach converted from std::function to template — eliminates type erasure, heap allocation, and virtual dispatch at 86 call sites
+- **SDL_GetTicks Optimization Extended**: Cached in AISystem (m_frameTicks), PlayerAbilities, Player.cpp, all 5 boss systems — replaces ~25 additional redundant syscalls
+- **isPlayer Flag Fix**: Changed from substring find to exact match (tag == "player")
+- **90 Gameplay Tips**: 10 new tips (80→90) covering elite modifiers, boss mechanics, daily runs, weapon mastery — localized EN+DE
+- 6 commits, 26 files changed
+
+**Previous Updates (2026-04-07 performance + onboarding + music session):**
 - **Sprite Rendering Fix**: Sprites now render at 2x collision box height with correct aspect ratio, anchored at bottom-center. Fixes sprites appearing cut-off/tiny when collision box was much smaller than texture.
 - **HUD Text Cache**: TTF text textures cached (string+color key) — reused until text changes instead of recreating every frame. Eliminates ~30 per-frame SDL_CreateTextureFromSurface calls in HUD.
 - **SDL_GetTicks Optimization**: Cached once per render frame in RenderSystem (m_frameTicks) and PlayState, replacing ~25 redundant system calls across RenderSystem, PlayStateRender, PlayStateRenderHUD, PlayStateRenderOverlays, PlayStateRenderWorld, PlayStateRenderCombatUI.
@@ -42,7 +51,7 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Audio**: Missing SFX added to 5 states (Credits, Ending, GameOver, RunSummary, Splash)
 - **Mouse**: RunSummaryState accepts mouse click to continue
 - **Performance**: Entity type flags eliminate 55 string::find() per frame, RenderSystem vector reuse, HUD texture cache
-- **80 gameplay tips** (was 35 at session start), 749 EN + 978 DE keys total
+- **90 gameplay tips** (was 35 at session start), 845 EN + 1153 DE keys total
 - 79 commits, 51 files changed, +1867 lines
 
 *Wave 1 (earlier):*
