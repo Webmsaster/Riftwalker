@@ -246,7 +246,7 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
     // --- Enemy dots (red for regular, orange pulsing for bosses) ---
     if (entities) {
         entities->forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos) return;
+            if (!e.isEnemy) return;
             if (!e.hasComponent<TransformComponent>()) return;
 
             auto& et = e.getComponent<TransformComponent>();
