@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Camera.h"
+#include "Core/Localization.h"
 
 enum class RandomEventType {
     Merchant,           // Sells 1 run buff (cheaper than shop)
@@ -35,23 +36,23 @@ struct RandomEvent {
 
     const char* getName() const {
         switch (type) {
-            case RandomEventType::Merchant:           return "Merchant";
+            case RandomEventType::Merchant:           return LOC("event.merchant");
             case RandomEventType::Shrine:             return getShrineName();
-            case RandomEventType::DimensionalAnomaly: return "Anomaly";
-            case RandomEventType::RiftEcho:           return "Rift Echo";
-            case RandomEventType::SuitRepairStation:  return "Repair Station";
-            case RandomEventType::GamblingRift:       return "Gambling Rift";
+            case RandomEventType::DimensionalAnomaly: return LOC("event.anomaly");
+            case RandomEventType::RiftEcho:           return LOC("event.rift_echo");
+            case RandomEventType::SuitRepairStation:  return LOC("event.repair_station");
+            case RandomEventType::GamblingRift:       return LOC("event.gambling");
         }
         return "???";
     }
 
     const char* getShrineName() const {
         switch (shrineType) {
-            case ShrineType::Power:    return "Shrine of Power";
-            case ShrineType::Vitality: return "Shrine of Vitality";
-            case ShrineType::Speed:    return "Shrine of Speed";
-            case ShrineType::Entropy:  return "Shrine of Entropy";
-            case ShrineType::Shards:   return "Shrine of Shards";
+            case ShrineType::Power:    return LOC("event.shrine_power");
+            case ShrineType::Vitality: return LOC("event.shrine_vitality");
+            case ShrineType::Speed:    return LOC("event.shrine_speed");
+            case ShrineType::Entropy:  return LOC("event.shrine_entropy");
+            case ShrineType::Shards:   return LOC("event.shrine_shards");
             case ShrineType::Renewal:  return "Shrine of Renewal";
             default:                   return "Shrine";
         }
@@ -100,10 +101,10 @@ struct EventChain {
 
     const char* getName() const {
         switch (type) {
-            case EventChainType::MerchantQuest:   return "Merchant's Quest";
-            case EventChainType::DimensionalTear:  return "Dimensional Tear";
-            case EventChainType::EntropySurge:     return "Entropy Surge";
-            case EventChainType::LostCache:        return "Lost Cache";
+            case EventChainType::MerchantQuest:   return LOC("chain.merchant_quest");
+            case EventChainType::DimensionalTear:  return LOC("chain.dim_tear");
+            case EventChainType::EntropySurge:     return LOC("chain.entropy_surge");
+            case EventChainType::LostCache:        return LOC("chain.lost_cache");
             default: return "???";
         }
     }

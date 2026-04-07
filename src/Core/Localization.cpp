@@ -675,6 +675,24 @@ void Localization::loadStrings() {
     m_en["hud.chain_reward"]       = "%s — +%d Shards";
     m_en["hud.weapon_melee"]       = "MELEE";
     m_en["hud.weapon_ranged"]      = "RANGED";
+
+    // Random events
+    m_en["event.merchant"]         = "Merchant";
+    m_en["event.anomaly"]          = "Anomaly";
+    m_en["event.rift_echo"]        = "Rift Echo";
+    m_en["event.repair_station"]   = "Repair Station";
+    m_en["event.gambling"]         = "Gambling Rift";
+    m_en["event.shrine_power"]     = "Shrine of Power";
+    m_en["event.shrine_vitality"]  = "Shrine of Vitality";
+    m_en["event.shrine_speed"]     = "Shrine of Speed";
+    m_en["event.shrine_entropy"]   = "Shrine of Entropy";
+    m_en["event.shrine_shards"]    = "Shrine of Shards";
+
+    // Event chains
+    m_en["chain.merchant_quest"]   = "Merchant's Quest";
+    m_en["chain.dim_tear"]         = "Dimensional Tear";
+    m_en["chain.entropy_surge"]    = "Entropy Surge";
+    m_en["chain.lost_cache"]       = "Lost Cache";
     m_en["npc.nav_hint"]           = "[W/S] Navigate  [Enter] Select  [Esc] Close";
 
     // Combat challenges
@@ -1452,6 +1470,24 @@ void Localization::loadStrings() {
     m_de["hud.chain_reward"]       = "%s — +%d Splitter";
     m_de["hud.weapon_melee"]       = "NAHKAMPF";
     m_de["hud.weapon_ranged"]      = "FERNKAMPF";
+
+    // Random events
+    m_de["event.merchant"]         = "Haendler";
+    m_de["event.anomaly"]          = "Anomalie";
+    m_de["event.rift_echo"]        = "Riss-Echo";
+    m_de["event.repair_station"]   = "Reparaturstation";
+    m_de["event.gambling"]         = "Gluecksriss";
+    m_de["event.shrine_power"]     = "Schrein der Kraft";
+    m_de["event.shrine_vitality"]  = "Schrein der Vitalitaet";
+    m_de["event.shrine_speed"]     = "Schrein der Schnelligkeit";
+    m_de["event.shrine_entropy"]   = "Schrein der Entropie";
+    m_de["event.shrine_shards"]    = "Schrein der Splitter";
+
+    // Event chains
+    m_de["chain.merchant_quest"]   = "Haendlerquest";
+    m_de["chain.dim_tear"]         = "Dimensionsriss";
+    m_de["chain.entropy_surge"]    = "Entropie-Welle";
+    m_de["chain.lost_cache"]       = "Verlorener Schatz";
     m_de["npc.nav_hint"]           = "[W/S] Navigieren  [Enter] Waehlen  [Esc] Schliessen";
 
     // Combat challenges
