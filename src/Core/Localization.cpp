@@ -663,6 +663,11 @@ void Localization::loadStrings() {
     m_en["tip.62"] = "TIP: Soul Siphon relic heals 3 HP per kill — essential for survival runs.";
     m_en["tip.63"] = "TIP: The Combo Amplifier upgrade increases damage dealt during combos.";
     m_en["tip.64"] = "TIP: Daily Runs use a unique seed — compete for the highest leaderboard score!";
+    m_en["tip.65"] = "TIP: Time Dilator relic cuts ability cooldowns by 30% — combos never stop!";
+    m_en["tip.66"] = "TIP: Reflector enemies cycle their shield every 4 seconds. Time your attacks!";
+    m_en["tip.67"] = "TIP: The Rift Crossbow pierces multiple enemies — line up your shots!";
+    m_en["tip.68"] = "TIP: Summoner enemies are fragile alone. Kill the summoner before the minions!";
+    m_en["tip.69"] = "TIP: Check the pause menu for active relic synergies and current build stats.";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1608,6 +1613,11 @@ void Localization::loadStrings() {
     m_de["tip.62"] = "TIPP: Seelensauger-Relikt heilt 3 HP pro Kill — unverzichtbar fuer Ueberlebenslaeufe.";
     m_de["tip.63"] = "TIPP: Der Komboverstaerker erhoeht den Schaden waehrend Kombos.";
     m_de["tip.64"] = "TIPP: Tageslaeufe nutzen einen einzigartigen Seed — kaempfe um den hoechsten Ranglistenplatz!";
+    m_de["tip.65"] = "TIPP: Zeitdehner-Relikt senkt Faehigkeits-Abklingzeiten um 30% — Kombos hoeren nie auf!";
+    m_de["tip.66"] = "TIPP: Spiegelwachen wechseln ihren Schild alle 4 Sekunden. Timing ist alles!";
+    m_de["tip.67"] = "TIPP: Die Riss-Armbrust durchbohrt mehrere Gegner — richte deine Schuesse aus!";
+    m_de["tip.68"] = "TIPP: Beschworer sind allein zerbrechlich. Toete den Beschworer vor den Dienern!";
+    m_de["tip.69"] = "TIPP: Im Pausenmenue findest du aktive Relikt-Synergien und aktuelle Build-Werte.";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
