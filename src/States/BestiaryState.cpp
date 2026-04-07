@@ -559,7 +559,11 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
 
     drawText(renderer, font, LOC("bestiary.abilities"), infoX, infoBlockY, {160, 130, 200, 200});
     {
-        SDL_Surface* as = TTF_RenderText_Blended(font, entry.abilities, {180, 165, 195, 190});
+        char abilKey[32];
+        std::snprintf(abilKey, sizeof(abilKey), "enemy.%d.abil", static_cast<int>(entry.type));
+        const char* abilLoc = LOC(abilKey);
+        const char* abilText = (std::strcmp(abilLoc, abilKey) == 0) ? entry.abilities : abilLoc;
+        SDL_Surface* as = TTF_RenderText_Blended(font, abilText, {180, 165, 195, 190});
         if (as) {
             SDL_Texture* at = SDL_CreateTextureFromSurface(renderer, as);
             if (at) {
@@ -577,7 +581,11 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     int weakY = infoBlockY + 100;
     drawText(renderer, font, LOC("bestiary.weakness"), infoX, weakY, {255, 200, 80, 210});
     {
-        SDL_Surface* ws = TTF_RenderText_Blended(font, entry.weakness, {230, 210, 160, 190});
+        char weakKey[32];
+        std::snprintf(weakKey, sizeof(weakKey), "enemy.%d.weak", static_cast<int>(entry.type));
+        const char* weakLoc = LOC(weakKey);
+        const char* weakText = (std::strcmp(weakLoc, weakKey) == 0) ? entry.weakness : weakLoc;
+        SDL_Surface* ws = TTF_RenderText_Blended(font, weakText, {230, 210, 160, 190});
         if (ws) {
             SDL_Texture* wt = SDL_CreateTextureFromSurface(renderer, ws);
             if (wt) {
@@ -595,7 +603,11 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     int effY = weakY + 100;
     drawText(renderer, font, LOC("bestiary.effective"), infoX, effY, {100, 220, 160, 210});
     {
-        SDL_Surface* es = TTF_RenderText_Blended(font, entry.effectiveWeapons, {160, 215, 185, 185});
+        char effKey[32];
+        std::snprintf(effKey, sizeof(effKey), "enemy.%d.eff", static_cast<int>(entry.type));
+        const char* effLoc = LOC(effKey);
+        const char* effText = (std::strcmp(effLoc, effKey) == 0) ? entry.effectiveWeapons : effLoc;
+        SDL_Surface* es = TTF_RenderText_Blended(font, effText, {160, 215, 185, 185});
         if (es) {
             SDL_Texture* et = SDL_CreateTextureFromSurface(renderer, es);
             if (et) {

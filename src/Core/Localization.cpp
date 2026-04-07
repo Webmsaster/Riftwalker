@@ -1673,6 +1673,24 @@ void Localization::loadStrings() {
     m_de["enemy.13.name"] = "Rissschwaermer";        // Swarmer
     m_de["enemy.14.name"] = "Gravitationsbrunnen";   // GravityWell
     m_de["enemy.15.name"] = "Mimik";                 // Mimic
+
+    // Bestiary weakness texts (DE only)
+    m_de["enemy.0.weak"]  = "Langsame Bewegung, vorhersagbare Patrouille";
+    m_de["enemy.1.weak"]  = "Wenig HP, verwundbar beim Sturzflug";
+    m_de["enemy.2.weak"]  = "Kann sich nicht bewegen, Nahkampf-Reichweite nutzen";
+    m_de["enemy.3.weak"]  = "Anlauf vor Angriff, verwundbar beim Stopp";
+    m_de["enemy.4.weak"]  = "Verwundbar direkt nach dem Phasenwechsel";
+    m_de["enemy.5.weak"]  = "Sehr wenig HP, ein Nahkampftreffer toetet";
+    m_de["enemy.6.weak"]  = "Ungeschuetzt von hinten, Ruestung 0.35";
+    m_de["enemy.7.weak"]  = "Decke beobachten, wenig HP";
+    m_de["enemy.8.weak"]  = "Zerbrechlich wenn allein, erst Diener toeten";
+    m_de["enemy.9.weak"]  = "Lange Vorwarnzeit, wenig HP";
+    m_de["enemy.10.weak"] = "Vorhersagbarer 3s-Teleport-Zyklus, zerbrechlich";
+    m_de["enemy.11.weak"] = "Schild alle 4s fuer 1s unten, von hinten angreifen";
+    m_de["enemy.12.weak"] = "Langsam, wenig direkter Schaden, schnell toeten bevor er heilt";
+    m_de["enemy.13.weak"] = "Wenig HP, einzeln leicht zu toeten";
+    m_de["enemy.14.weak"] = "Langsame Bewegung, aus Distanz bekaempfbar";
+    m_de["enemy.15.weak"] = "Vorhersagbar nach Enthuellen, hoher Schaden aber langsam";
     m_de["lore.19.text"]  = "Voidwalker, Berserker, Phantom, Technomancer — vier Wege durch den Riss, jeder geboren aus einer anderen Philosophie des Ueberlebens. Der Voidwalker umarmt das Dazwischen. Der Berserker trotzt ihm. Das Phantom gleitet hindurch. Der Technomancer schreibt es um.";
 
     // Buff pickups
