@@ -1691,6 +1691,42 @@ void Localization::loadStrings() {
     m_de["enemy.13.weak"] = "Wenig HP, einzeln leicht zu toeten";
     m_de["enemy.14.weak"] = "Langsame Bewegung, aus Distanz bekaempfbar";
     m_de["enemy.15.weak"] = "Vorhersagbar nach Enthuellen, hoher Schaden aber langsam";
+
+    // Bestiary abilities (DE)
+    m_de["enemy.0.abil"]  = "Nahkampf, patrouilliert Plattformen";
+    m_de["enemy.1.abil"]  = "Sturzflug, Luftpatrouille, 250px Sturzgeschw.";
+    m_de["enemy.2.abil"]  = "Fernkampf alle 1.8s, 300px Erkennung";
+    m_de["enemy.3.abil"]  = "Sturmangriff 350px/s, Rueckstoss 350";
+    m_de["enemy.4.abil"]  = "Phasenwechsel alle 3s, Nahkampf bei Annaeherung";
+    m_de["enemy.5.abil"]  = "80px Explosionsradius, Feuer-Element, schneller Ansturm";
+    m_de["enemy.6.abil"]  = "Frontalschild, 35% Ruestung, langsam aber zaeh";
+    m_de["enemy.7.abil"]  = "Deckenklammer, Fallhinterhalt bei 400px/s";
+    m_de["enemy.8.abil"]  = "Beschwort 3 Diener alle 6s, Blitz-Affinitaet";
+    m_de["enemy.9.abil"]  = "400px Reichweite, 0.8s Vorwarnung, weicht bei Annaeherung";
+    m_de["enemy.10.abil"] = "Teleportiert sich alle 3s hinter den Spieler";
+    m_de["enemy.11.abil"] = "Frontalschild (4s aktiv / 1s Pause), 0.2 Ruestung";
+    m_de["enemy.12.abil"] = "Entzieht 2HP/0.5s nah, heilt sich gleichviel. Schneller unter 50% HP";
+    m_de["enemy.13.abil"] = "Schnelle Zickzack-Bewegung, erscheint in Gruppen, springt Spieler an";
+    m_de["enemy.14.abil"] = "Gravitationsfeld zieht Spieler in 120px, schwebend, pulsierend";
+    m_de["enemy.15.abil"] = "Als Kiste getarnt, Hinterhalt-Ausfallschritt (18 SCH, 300 Rueckstoss)";
+
+    // Bestiary effective weapons (DE)
+    m_de["enemy.0.eff"]   = "Jede Waffe. Nahkampf-Kombo-Abschluss betaeubt.";
+    m_de["enemy.1.eff"]   = "Fernkampfwaffen. Eis verlangsamt Sturzflug.";
+    m_de["enemy.2.eff"]   = "Nahkampf in Reichweite. Durch Geschosse dashen.";
+    m_de["enemy.3.eff"]   = "Seitlich ausweichen, nach Sturm kontern.";
+    m_de["enemy.4.eff"]   = "Dimension abgleichen. Nach Phasenwechsel angreifen.";
+    m_de["enemy.5.eff"]   = "Aus Distanz schiessen. Eis friert fest.";
+    m_de["enemy.6.eff"]   = "Von hinten angreifen. Blitzketten durchdringen Schild.";
+    m_de["enemy.7.eff"]   = "Fernkampfwaffen wirken gut. Feuer raeumt Decken.";
+    m_de["enemy.8.eff"]   = "Schadensschub auf Beschworer. Diener ignorieren wenn moeglich.";
+    m_de["enemy.9.eff"]   = "Zwischen Schuessen dashen. Distanz schnell schliessen.";
+    m_de["enemy.10.eff"]  = "Nach Teleport angreifen. Fernkampfwaffen.";
+    m_de["enemy.11.eff"]  = "Auf Schild-Pause warten. Von hinten angreifen.";
+    m_de["enemy.12.eff"]  = "Schadensschub zum schnellen Toeten. Distanz halten.";
+    m_de["enemy.13.eff"]  = "Flaechenangriffe oder breite Nahkampfschlaege. Nicht umzingeln lassen.";
+    m_de["enemy.14.eff"]  = "Fernkampf ausserhalb des Zugradius. Bei Zug wegdashen.";
+    m_de["enemy.15.eff"]  = "Vorsichtig an Kisten herangehen. Ausfallschritt parieren.";
     m_de["lore.19.text"]  = "Voidwalker, Berserker, Phantom, Technomancer — vier Wege durch den Riss, jeder geboren aus einer anderen Philosophie des Ueberlebens. Der Voidwalker umarmt das Dazwischen. Der Berserker trotzt ihm. Das Phantom gleitet hindurch. Der Technomancer schreibt es um.";
 
     // Buff pickups
