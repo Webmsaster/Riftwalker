@@ -268,7 +268,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     // Pickup hover animation: bob up/down + pulsing glow ring
-    if (tag.find("pickup_") == 0) {
+    if (entity.isPickup) {
         Uint32 ticks = SDL_GetTicks();
         // Sine-wave hover (±3 pixel bob)
         float hover = std::sin(ticks * 0.004f + entity.dimension * 1.5f) * 3.0f;
@@ -487,7 +487,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         fillRect(renderer, dx + dw - 5, dy + dh - 5, 2, 2, 180, 175, 160, a);
         // Top-left specular highlight
         fillRect(renderer, dx + 2, dy + 1, dw / 3, 1, 200, 160, 90, static_cast<Uint8>(a * 0.4f));
-    } else if (tag.find("pickup_") == 0) {
+    } else if (entity.isPickup) {
         renderPickup(renderer, screenRect, entity, alpha);
     } else if (tag == "projectile") {
         renderProjectile(renderer, screenRect, entity, alpha);
