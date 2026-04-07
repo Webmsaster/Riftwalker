@@ -658,6 +658,11 @@ void Localization::loadStrings() {
     m_en["tip.57"] = "TIP: Stomping on enemies from above deals bonus damage based on fall height.";
     m_en["tip.58"] = "TIP: Elemental enemies take extra damage from their opposing element.";
     m_en["tip.59"] = "TIP: The Blacksmith NPC permanently enhances your weapons at higher story stages.";
+    m_en["tip.60"] = "TIP: Entropy Anchor relic cuts entropy gain by 40% during boss fights.";
+    m_en["tip.61"] = "TIP: Wall sliding lets you reach hidden areas above normal jump height.";
+    m_en["tip.62"] = "TIP: Soul Siphon relic heals 3 HP per kill — essential for survival runs.";
+    m_en["tip.63"] = "TIP: The Combo Amplifier upgrade increases damage dealt during combos.";
+    m_en["tip.64"] = "TIP: Daily Runs use a unique seed — compete for the highest leaderboard score!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1598,6 +1603,11 @@ void Localization::loadStrings() {
     m_de["tip.57"] = "TIPP: Von oben auf Gegner stampfen verursacht Bonusschaden basierend auf Fallhoehe.";
     m_de["tip.58"] = "TIPP: Elementargegner nehmen Extraschaden von ihrem gegensaetzlichen Element.";
     m_de["tip.59"] = "TIPP: Der Schmied verstaerkt deine Waffen permanent bei hoeheren Story-Stufen.";
+    m_de["tip.60"] = "TIPP: Entropieanker-Relikt senkt Entropiezunahme um 40% bei Bosskaempfen.";
+    m_de["tip.61"] = "TIPP: Wandrutschen ermoeglicht verborgene Bereiche ueber normaler Sprunghoehe.";
+    m_de["tip.62"] = "TIPP: Seelensauger-Relikt heilt 3 HP pro Kill — unverzichtbar fuer Ueberlebenslaeufe.";
+    m_de["tip.63"] = "TIPP: Der Komboverstaerker erhoeht den Schaden waehrend Kombos.";
+    m_de["tip.64"] = "TIPP: Tageslaeufe nutzen einen einzigartigen Seed — kaempfe um den hoechsten Ranglistenplatz!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
