@@ -518,7 +518,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
         if (font) {
             char hpText[32];
-            std::snprintf(hpText, sizeof(hpText), "HP %.0f/%.0f", hp.currentHP, hp.maxHP);
+            std::snprintf(hpText, sizeof(hpText), LOC("hud.hp_display"), hp.currentHP, hp.maxHP);
             renderText(renderer, font, hpText, margin + hpBarOffset + 10, margin + 4, {255, 255, 255, 220});
         }
     }
@@ -567,7 +567,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
         if (font) {
             char entText[32];
-            std::snprintf(entText, sizeof(entText), "ENTROPY %.0f%%", ep * 100);
+            std::snprintf(entText, sizeof(entText), LOC("hud.entropy_display"), ep * 100);
             renderText(renderer, font, entText, margin + 10, ey + 4, {255, 255, 255, 220});
         }
     }
@@ -829,17 +829,17 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             bool zoneBoss = isBossFloor(m_currentFloor);
             bool midBoss = isMidBossFloor(m_currentFloor);
             if (zoneBoss) {
-                std::snprintf(floorText, sizeof(floorText), "F%d / Zone %d  BOSS", m_currentFloor, zone);
+                std::snprintf(floorText, sizeof(floorText), LOC("hud.floor_boss"), m_currentFloor, zone);
                 float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
                 Uint8 a = static_cast<Uint8>(220 * pulse);
                 renderText(renderer, font, floorText, infoX, infoY, {255, 80, 60, a});
             } else if (midBoss) {
-                std::snprintf(floorText, sizeof(floorText), "F%d / Zone %d  MINI-BOSS", m_currentFloor, zone);
+                std::snprintf(floorText, sizeof(floorText), LOC("hud.floor_miniboss"), m_currentFloor, zone);
                 float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.006f);
                 Uint8 a = static_cast<Uint8>(200 * pulse);
                 renderText(renderer, font, floorText, infoX, infoY, {255, 180, 60, a});
             } else {
-                std::snprintf(floorText, sizeof(floorText), "F%d / Zone %d", m_currentFloor, zone);
+                std::snprintf(floorText, sizeof(floorText), LOC("hud.floor"), m_currentFloor, zone);
                 renderText(renderer, font, floorText, infoX, infoY, {180, 180, 200, 180});
             }
 

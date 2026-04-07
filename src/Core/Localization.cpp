@@ -667,6 +667,11 @@ void Localization::loadStrings() {
     m_en["hud.chain_stage"]        = "CHAIN: Stage %d/%d";
     m_en["hud.zone"]               = "ZONE %d";
     m_en["hud.xp_bar"]            = "Lv.%d  %d/%d";
+    m_en["hud.hp_display"]         = "HP %.0f/%.0f";
+    m_en["hud.entropy_display"]    = "ENTROPY %.0f%%";
+    m_en["hud.floor_boss"]         = "F%d / Zone %d  BOSS";
+    m_en["hud.floor_miniboss"]     = "F%d / Zone %d  MINI-BOSS";
+    m_en["hud.floor"]              = "F%d / Zone %d";
     m_en["npc.nav_hint"]           = "[W/S] Navigate  [Enter] Select  [Esc] Close";
 
     // Combat challenges
@@ -1436,6 +1441,11 @@ void Localization::loadStrings() {
     m_de["hud.chain_stage"]        = "KETTE: Stufe %d/%d";
     m_de["hud.zone"]               = "ZONE %d";
     m_de["hud.xp_bar"]            = "Lv.%d  %d/%d";
+    m_de["hud.hp_display"]         = "HP %.0f/%.0f";
+    m_de["hud.entropy_display"]    = "ENTROPIE %.0f%%";
+    m_de["hud.floor_boss"]         = "E%d / Zone %d  BOSS";
+    m_de["hud.floor_miniboss"]     = "E%d / Zone %d  MINI-BOSS";
+    m_de["hud.floor"]              = "E%d / Zone %d";
     m_de["npc.nav_hint"]           = "[W/S] Navigieren  [Enter] Waehlen  [Esc] Schliessen";
 
     // Combat challenges
