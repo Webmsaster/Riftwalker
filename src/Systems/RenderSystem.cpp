@@ -206,13 +206,7 @@ void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
                           const Camera& camera, int currentDimension, float dimBlendAlpha,
                           float interpolation) {
     ZoneScopedN("RenderEntities");
-    struct RenderEntry {
-        Entity* entity;
-        int layer;
-        float alpha;
-    };
-    std::vector<RenderEntry> entries;
-    entries.reserve(128);
+    m_renderEntries.clear(); // Reuse capacity from previous frame
 
     entities.forEach([&](Entity& e) {
         if (!e.visible || !e.hasComponent<SpriteComponent>() || !e.hasComponent<TransformComponent>())
@@ -242,13 +236,13 @@ void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
             if (alpha < 0.05f) return;
         }
 
-        entries.push_back({&e, sprite.renderLayer, alpha});
+        m_renderEntries.push_back({&e, sprite.renderLayer, alpha});
     });
 
-    std::sort(entries.begin(), entries.end(),
+    std::sort(m_renderEntries.begin(), m_renderEntries.end(),
         [](const RenderEntry& a, const RenderEntry& b) { return a.layer < b.layer; });
 
-    for (auto& entry : entries) {
+    for (auto& entry : m_renderEntries) {
         renderEntity(renderer, *entry.entity, camera, entry.alpha, interpolation);
     }
 }

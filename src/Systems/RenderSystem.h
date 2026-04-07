@@ -52,4 +52,12 @@ private:
     // Helper
     void fillRect(SDL_Renderer* r, int x, int y, int w, int h, Uint8 cr, Uint8 cg, Uint8 cb, Uint8 ca);
     void drawLine(SDL_Renderer* r, int x1, int y1, int x2, int y2, Uint8 cr, Uint8 cg, Uint8 cb, Uint8 ca);
+
+    // Reusable render sort buffer (avoids per-frame allocation)
+    struct RenderEntry {
+        Entity* entity;
+        int layer;
+        float alpha;
+    };
+    std::vector<RenderEntry> m_renderEntries;
 };
