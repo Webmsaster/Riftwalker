@@ -506,7 +506,7 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     if (isBoss) std::snprintf(loreKey, sizeof(loreKey), "boss.%d.lore", typeIdx);
     else std::snprintf(loreKey, sizeof(loreKey), "enemy.%d.lore", typeIdx);
     const char* loreLoc = LOC(loreKey);
-    const std::string& loreText = (std::strcmp(loreLoc, loreKey) == 0) ? entry.lore : std::string(loreLoc);
+    const char* loreText = (std::strcmp(loreLoc, loreKey) == 0) ? entry.lore : loreLoc;
     int loreMaxW = infoW - 20;
     int loreUsedH = drawTextWrapped(renderer, font, loreText,
                                     infoX, loreY, loreMaxW,
