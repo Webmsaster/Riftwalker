@@ -49,7 +49,7 @@ void PlayState::renderCollapseWarning(SDL_Renderer* renderer) {
         std::snprintf(buf, sizeof(buf), LOC("hud.collapse"), secs, tenths);
 
         // Pulsing red-white text
-        Uint8 pulse = static_cast<Uint8>(200 + 55 * std::sin(SDL_GetTicks() * 0.01f));
+        Uint8 pulse = static_cast<Uint8>(200 + 55 * std::sin(m_frameTicks * 0.01f));
         SDL_Color tc = {pulse, static_cast<Uint8>(pulse / 4), 0, 255};
         SDL_Surface* ts = TTF_RenderText_Blended(font, buf, tc);
         if (ts) {
@@ -221,7 +221,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             float cx = std::max(25.0f, std::min(static_cast<float>(SCREEN_WIDTH - 25), sx));
             float cy = std::max(25.0f, std::min(static_cast<float>(SCREEN_HEIGHT - 25), sy));
 
-            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.005f + i * 1.5f);
+            float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.005f + i * 1.5f);
             Uint8 pa = static_cast<Uint8>(120 + 80 * pulse);
             int requiredDim = m_level->getRiftRequiredDimension(i);
             Uint8 rr = (requiredDim == 2) ? 255 : 90;
@@ -262,13 +262,13 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 // Urgency-based pulsing during collapse
                 float urgency = m_collapseTimer / std::max(1.0f, m_collapseMaxTime);
                 float pulseSpeed = 0.006f + urgency * 0.012f;
-                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * pulseSpeed);
+                float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * pulseSpeed);
                 pa = static_cast<Uint8>(160 + 95 * pulse);
                 gr = static_cast<Uint8>(80 + 175 * urgency);
                 gg = static_cast<Uint8>(255 - 80 * urgency);
             } else {
                 // Calm green pulsing when exit is simply active
-                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.004f);
+                float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.004f);
                 pa = static_cast<Uint8>(120 + 80 * pulse);
                 gr = 60;
                 gg = 220;

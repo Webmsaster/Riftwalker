@@ -80,7 +80,7 @@ void PlayState::renderDeathSequence(SDL_Renderer* renderer) {
 
     // Layer 4: Scanline flicker effect (brief horizontal lines for glitch feel)
     if (progress > 0.1f && progress < 0.9f) {
-        Uint8 scanAlpha = static_cast<Uint8>(30 + 40 * std::sin(SDL_GetTicks() * 0.03f));
+        Uint8 scanAlpha = static_cast<Uint8>(30 + 40 * std::sin(m_frameTicks * 0.03f));
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, scanAlpha);
         int scanStep = 4 + (std::rand() % 3); // slightly randomized spacing
         for (int y = 0; y < SCREEN_HEIGHT; y += scanStep) {
@@ -93,7 +93,7 @@ void PlayState::renderDeathSequence(SDL_Renderer* renderer) {
     if (font && progress > 0.15f) {
         float textAlpha = std::min(1.0f, (progress - 0.15f) * 2.5f);
         Uint8 ta = static_cast<Uint8>(textAlpha * 255);
-        float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.012f);
+        float pulse = 0.6f + 0.4f * std::sin(m_frameTicks * 0.012f);
         Uint8 tr = static_cast<Uint8>(200 * pulse + 55);
         SDL_Color deathColor = {tr, 20, 10, ta};
         SDL_Surface* ds = TTF_RenderText_Blended(font, LOC("gameover.suit_failure"), deathColor);

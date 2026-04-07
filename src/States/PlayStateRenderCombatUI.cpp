@@ -98,7 +98,7 @@ void PlayState::renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_SetRenderDrawColor(renderer, 25, 15, 40, a);
     SDL_Rect bg = {popX, popY, popW, popH};
     SDL_RenderFillRect(renderer, &bg);
-    float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.006f);
+    float pulse = 0.6f + 0.4f * std::sin(m_frameTicks * 0.006f);
     Uint8 borderA = static_cast<Uint8>(a * pulse);
     SDL_SetRenderDrawColor(renderer, 160, 100, 255, borderA);
     SDL_RenderDrawRect(renderer, &bg);
@@ -168,7 +168,7 @@ void PlayState::renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font
         SDL_SetRenderDrawColor(renderer, 30, 25, 10, a);
         SDL_Rect bg = {popX, popY, popW, popH};
         SDL_RenderFillRect(renderer, &bg);
-        float gPulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.008f);
+        float gPulse = 0.7f + 0.3f * std::sin(m_frameTicks * 0.008f);
         SDL_SetRenderDrawColor(renderer, 255, 200, 50, static_cast<Uint8>(a * gPulse));
         SDL_RenderDrawRect(renderer, &bg);
 

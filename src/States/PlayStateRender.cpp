@@ -102,7 +102,7 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     Vec2 camPos = m_camera.getPosition();
-    Uint32 ticks = SDL_GetTicks();
+    Uint32 ticks = m_frameTicks;
 
     // Animated energy field: subtle diagonal grid lines for living background
     {
@@ -600,6 +600,7 @@ void PlayState::renderDimensionBorder(SDL_Renderer* renderer) {
 
 void PlayState::render(SDL_Renderer* renderer) {
     ZoneScopedN("PlayStateRender");
+    m_frameTicks = SDL_GetTicks(); // Cache once per render frame
     // Parallax background
     renderBackground(renderer);
 
@@ -667,7 +668,7 @@ void PlayState::render(SDL_Renderer* renderer) {
         if (speed > 350.0f || m_player->isDashing) {
             float intensity = m_player->isDashing ? 1.0f : std::min(1.0f, (speed - 350.0f) / 400.0f);
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
-            Uint32 ticks = SDL_GetTicks();
+            Uint32 ticks = m_frameTicks;
             bool movingRight = phys.velocity.x > 0;
             for (int i = 0; i < 6; i++) {
                 // Deterministic but varied positions
@@ -740,7 +741,7 @@ void PlayState::render(SDL_Renderer* renderer) {
     {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
         Vec2 cam2 = m_camera.getPosition();
-        Uint32 ticks = SDL_GetTicks();
+        Uint32 ticks = m_frameTicks;
 
         // Rift light shafts
         if (m_level) {

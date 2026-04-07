@@ -260,6 +260,7 @@ private:
     // Tutorial hints (context-based, first run only)
     void renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font);
     void renderKeyBox(SDL_Renderer* renderer, TTF_Font* font, const char* key, int x, int y, Uint8 alpha);
+    Uint32 m_frameTicks = 0;           // Per-frame SDL_GetTicks() cache (set at start of render)
     bool m_tutorialActive = false;     // true only on first run (totalRuns == 0), disabled for smoke/playtest
     float m_tutorialTimer = 0;
     int m_tutorialHintIndex = 0;      // Current hint to show

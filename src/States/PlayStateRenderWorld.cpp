@@ -53,7 +53,7 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
     // Iris shrinks from maxR to 0 as progress goes 0->1
     float irisR = maxR * (1.0f - progress);
     float glowWidth = 12.0f;
-    Uint32 ticks = SDL_GetTicks();
+    Uint32 ticks = m_frameTicks;
     float pulse = 0.8f + 0.2f * std::sin(ticks * 0.008f);
 
     // Iris wipe: dark fill outside shrinking circle (2-pixel scanline steps for performance)
@@ -163,7 +163,7 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
 void PlayState::renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font) {
     if (!m_level) return;
 
-    Uint32 ticks = SDL_GetTicks();
+    Uint32 ticks = m_frameTicks;
     int currentDim = m_dimManager.getCurrentDimension();
     auto& events = m_level->getRandomEvents();
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -733,7 +733,7 @@ void PlayState::renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font) {
 void PlayState::renderNPCs(SDL_Renderer* renderer, TTF_Font* font) {
     if (!m_level) return;
 
-    Uint32 ticks = SDL_GetTicks();
+    Uint32 ticks = m_frameTicks;
     int currentDim = m_dimManager.getCurrentDimension();
     auto& npcs = m_level->getNPCs();
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
