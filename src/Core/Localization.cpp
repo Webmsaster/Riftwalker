@@ -686,6 +686,38 @@ void Localization::loadStrings() {
     m_en["hud.weapon_melee"]       = "MELEE";
     m_en["hud.weapon_ranged"]      = "RANGED";
 
+    // NPC names
+    m_en["npc.scholar"]            = "Rift Scholar";
+    m_en["npc.refugee"]            = "Dim. Refugee";
+    m_en["npc.engineer"]           = "Lost Engineer";
+    m_en["npc.echo"]               = "Echo of Self";
+    m_en["npc.blacksmith"]         = "Blacksmith";
+    m_en["npc.fortune"]            = "Fortune Teller";
+    m_en["npc.merchant"]           = "Void Merchant";
+
+    // NPC greetings (stage 0/1/2)
+    m_en["npc.scholar.g0"]         = "Knowledge is power in the rift.";
+    m_en["npc.scholar.g1"]         = "Welcome back! I've found something crucial...";
+    m_en["npc.scholar.g2"]         = "You again! I've deciphered the final texts.";
+    m_en["npc.refugee.g0"]         = "Let's make a deal...";
+    m_en["npc.refugee.g1"]         = "You came back! I found supplies to share.";
+    m_en["npc.refugee.g2"]         = "My friend! I can finally repay your kindness.";
+    m_en["npc.engineer.g0"]        = "I can fix that for you.";
+    m_en["npc.engineer.g1"]        = "I've been studying rift energy. Better results!";
+    m_en["npc.engineer.g2"]        = "My masterwork is complete. This one's on me.";
+    m_en["npc.echo.g0"]            = "Face yourself!";
+    m_en["npc.echo.g1"]            = "Stronger now... Can you match me again?";
+    m_en["npc.echo.g2"]            = "One final test. Prove your mastery.";
+    m_en["npc.blacksmith.g0"]      = "Shards fuel my forge. Let me improve your gear.";
+    m_en["npc.blacksmith.g1"]      = "Your weapons have seen battle. I can do more now.";
+    m_en["npc.blacksmith.g2"]      = "For you, my finest work. Free of charge.";
+    m_en["npc.fortune.g0"]         = "Cross my palm with shards, and I'll show you secrets.";
+    m_en["npc.fortune.g1"]         = "The patterns grow clearer. I see more now.";
+    m_en["npc.fortune.g2"]         = "The rifts have shown me everything. My final gift...";
+    m_en["npc.merchant.g0"]        = "Dimensional artifacts, fresh from the void.";
+    m_en["npc.merchant.g1"]        = "Ah, you return! I've acquired new inventory.";
+    m_en["npc.merchant.g2"]        = "For a valued customer, my rarest stock.";
+
     // Random events
     m_en["event.merchant"]         = "Merchant";
     m_en["event.anomaly"]          = "Anomaly";
@@ -1490,6 +1522,38 @@ void Localization::loadStrings() {
     m_de["hud.chain_reward"]       = "%s — +%d Splitter";
     m_de["hud.weapon_melee"]       = "NAHKAMPF";
     m_de["hud.weapon_ranged"]      = "FERNKAMPF";
+
+    // NPC names
+    m_de["npc.scholar"]            = "Rissgelehrter";
+    m_de["npc.refugee"]            = "Dim.-Fluechtling";
+    m_de["npc.engineer"]           = "Verlorener Ingenieur";
+    m_de["npc.echo"]               = "Echo deiner Selbst";
+    m_de["npc.blacksmith"]         = "Schmied";
+    m_de["npc.fortune"]            = "Wahrsagerin";
+    m_de["npc.merchant"]           = "Leere-Haendler";
+
+    // NPC greetings (stage 0/1/2)
+    m_de["npc.scholar.g0"]         = "Wissen ist Macht im Riss.";
+    m_de["npc.scholar.g1"]         = "Willkommen zurueck! Ich habe etwas Entscheidendes gefunden...";
+    m_de["npc.scholar.g2"]         = "Du wieder! Ich habe die letzten Texte entschluesselt.";
+    m_de["npc.refugee.g0"]         = "Lass uns handeln...";
+    m_de["npc.refugee.g1"]         = "Du bist zurueck! Ich habe Vorraete zum Teilen gefunden.";
+    m_de["npc.refugee.g2"]         = "Mein Freund! Ich kann endlich deine Guete erwidern.";
+    m_de["npc.engineer.g0"]        = "Ich kann das fuer dich reparieren.";
+    m_de["npc.engineer.g1"]        = "Ich habe Rissenergie studiert. Bessere Ergebnisse!";
+    m_de["npc.engineer.g2"]        = "Mein Meisterwerk ist fertig. Das geht aufs Haus.";
+    m_de["npc.echo.g0"]            = "Stelle dich selbst!";
+    m_de["npc.echo.g1"]            = "Staerker jetzt... Kannst du es wieder mit mir aufnehmen?";
+    m_de["npc.echo.g2"]            = "Ein letzter Test. Beweise deine Meisterschaft.";
+    m_de["npc.blacksmith.g0"]      = "Splitter befeuern meine Schmiede. Ich verbessere deine Ausruestung.";
+    m_de["npc.blacksmith.g1"]      = "Deine Waffen haben Schlachten gesehen. Ich kann mehr tun.";
+    m_de["npc.blacksmith.g2"]      = "Fuer dich, mein bestes Werk. Kostenlos.";
+    m_de["npc.fortune.g0"]         = "Kreuz meine Hand mit Splittern, und ich zeige dir Geheimnisse.";
+    m_de["npc.fortune.g1"]         = "Die Muster werden klarer. Ich sehe mehr.";
+    m_de["npc.fortune.g2"]         = "Die Risse haben mir alles gezeigt. Mein letztes Geschenk...";
+    m_de["npc.merchant.g0"]        = "Dimensionale Artefakte, frisch aus der Leere.";
+    m_de["npc.merchant.g1"]        = "Ah, du kehrst zurueck! Neuer Bestand eingetroffen.";
+    m_de["npc.merchant.g2"]        = "Fuer einen geschaetzten Kunden, mein seltenster Bestand.";
 
     // Random events
     m_de["event.merchant"]         = "Haendler";

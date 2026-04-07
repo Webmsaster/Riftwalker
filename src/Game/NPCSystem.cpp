@@ -1,4 +1,5 @@
 #include "NPCSystem.h"
+#include "Core/Localization.h"
 
 NPCData NPCSystem::createNPC(NPCType type, Vec2 pos, int dimension) {
     NPCData npc;
@@ -50,13 +51,13 @@ NPCData NPCSystem::createNPC(NPCType type, Vec2 pos, int dimension) {
 
 const char* NPCSystem::getName(NPCType type) {
     switch (type) {
-        case NPCType::RiftScholar: return "Rift Scholar";
-        case NPCType::DimRefugee: return "Dim. Refugee";
-        case NPCType::LostEngineer: return "Lost Engineer";
-        case NPCType::EchoOfSelf: return "Echo of Self";
-        case NPCType::Blacksmith: return "Blacksmith";
-        case NPCType::FortuneTeller: return "Fortune Teller";
-        case NPCType::VoidMerchant: return "Void Merchant";
+        case NPCType::RiftScholar: return LOC("npc.scholar");
+        case NPCType::DimRefugee: return LOC("npc.refugee");
+        case NPCType::LostEngineer: return LOC("npc.engineer");
+        case NPCType::EchoOfSelf: return LOC("npc.echo");
+        case NPCType::Blacksmith: return LOC("npc.blacksmith");
+        case NPCType::FortuneTeller: return LOC("npc.fortune");
+        case NPCType::VoidMerchant: return LOC("npc.merchant");
         default: return "Unknown";
     }
 }
@@ -64,33 +65,33 @@ const char* NPCSystem::getName(NPCType type) {
 const char* NPCSystem::getGreeting(NPCType type, int storyStage) {
     switch (type) {
         case NPCType::RiftScholar:
-            if (storyStage >= 2) return "You again! I've deciphered the final texts.";
-            if (storyStage >= 1) return "Welcome back! I've found something crucial...";
-            return "Knowledge is power in the rift.";
+            if (storyStage >= 2) return LOC("npc.scholar.g2");
+            if (storyStage >= 1) return LOC("npc.scholar.g1");
+            return LOC("npc.scholar.g0");
         case NPCType::DimRefugee:
-            if (storyStage >= 2) return "My friend! I can finally repay your kindness.";
-            if (storyStage >= 1) return "You came back! I found supplies to share.";
-            return "Let's make a deal...";
+            if (storyStage >= 2) return LOC("npc.refugee.g2");
+            if (storyStage >= 1) return LOC("npc.refugee.g1");
+            return LOC("npc.refugee.g0");
         case NPCType::LostEngineer:
-            if (storyStage >= 2) return "My masterwork is complete. This one's on me.";
-            if (storyStage >= 1) return "I've been studying rift energy. Better results!";
-            return "I can fix that for you.";
+            if (storyStage >= 2) return LOC("npc.engineer.g2");
+            if (storyStage >= 1) return LOC("npc.engineer.g1");
+            return LOC("npc.engineer.g0");
         case NPCType::EchoOfSelf:
-            if (storyStage >= 2) return "One final test. Prove your mastery.";
-            if (storyStage >= 1) return "Stronger now... Can you match me again?";
-            return "Face yourself!";
+            if (storyStage >= 2) return LOC("npc.echo.g2");
+            if (storyStage >= 1) return LOC("npc.echo.g1");
+            return LOC("npc.echo.g0");
         case NPCType::Blacksmith:
-            if (storyStage >= 2) return "For you, my finest work. Free of charge.";
-            if (storyStage >= 1) return "Your weapons have seen battle. I can do more now.";
-            return "Shards fuel my forge. Let me improve your gear.";
+            if (storyStage >= 2) return LOC("npc.blacksmith.g2");
+            if (storyStage >= 1) return LOC("npc.blacksmith.g1");
+            return LOC("npc.blacksmith.g0");
         case NPCType::FortuneTeller:
-            if (storyStage >= 2) return "The rifts have shown me everything. My final gift...";
-            if (storyStage >= 1) return "The patterns grow clearer. I see more now.";
-            return "Cross my palm with shards, and I'll show you secrets.";
+            if (storyStage >= 2) return LOC("npc.fortune.g2");
+            if (storyStage >= 1) return LOC("npc.fortune.g1");
+            return LOC("npc.fortune.g0");
         case NPCType::VoidMerchant:
-            if (storyStage >= 2) return "For a valued customer, my rarest stock.";
-            if (storyStage >= 1) return "Ah, you return! I've acquired new inventory.";
-            return "Dimensional artifacts, fresh from the void.";
+            if (storyStage >= 2) return LOC("npc.merchant.g2");
+            if (storyStage >= 1) return LOC("npc.merchant.g1");
+            return LOC("npc.merchant.g0");
         default: return "";
     }
 }
