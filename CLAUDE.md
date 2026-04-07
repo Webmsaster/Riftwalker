@@ -5,7 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-06 overnight autonomous session — 2 waves):**
+**Recent Updates (2026-04-07 performance + onboarding + music session):**
+- **Sprite Rendering Fix**: Sprites now render at 2x collision box height with correct aspect ratio, anchored at bottom-center. Fixes sprites appearing cut-off/tiny when collision box was much smaller than texture.
+- **HUD Text Cache**: TTF text textures cached (string+color key) — reused until text changes instead of recreating every frame. Eliminates ~30 per-frame SDL_CreateTextureFromSurface calls in HUD.
+- **SDL_GetTicks Optimization**: Cached once per render frame in RenderSystem (m_frameTicks) and PlayState, replacing ~25 redundant system calls across RenderSystem, PlayStateRender, PlayStateRenderHUD, PlayStateRenderOverlays, PlayStateRenderWorld, PlayStateRenderCombatUI.
+- **Tutorial System**: 6-page onboarding state (Welcome, Controls, Combat, Dimensions, Progression, Ready). Visual key icons, dimension A/B comparison, rift portal effect. Full EN+DE localization (50 new keys). Auto-redirects first-time players; accessible anytime from Menu.
+- **Music v3 Pipeline**: SoundFont-based rendering tool (gen_music_v3.py). Renders MIDI compositions through FluidSynth for professional audio quality. All 7 MIDI files ready. Requires FluidR3_GM.sf2 SoundFont.
+- 4 commits, 10 files changed, +950 lines
+
+**Previous Updates (2026-04-06 overnight autonomous session — 2 waves):**
 
 *Wave 2 (late night — autonomous session):*
 - **Massive Localization Extension**: 512 EN + 553 DE keys (1290-line Localization.cpp)
