@@ -741,6 +741,16 @@ void Localization::loadStrings() {
     m_en["tip.87"] = "TIP: Mid-bosses appear every 5 floors — they drop better loot than regular enemies!";
     m_en["tip.88"] = "TIP: Daily Runs use a shared seed — compete with others on the leaderboard!";
     m_en["tip.89"] = "TIP: Weapon mastery tiers unlock at 15, 50, 100, and 200 kills — keep using your favorites!";
+    m_en["tip.90"] = "TIP: Secret rooms hide behind breakable walls — look for cracked tiles near dead ends!";
+    m_en["tip.91"] = "TIP: Relic synergies activate when you hold specific relic pairs — check the Pause menu!";
+    m_en["tip.92"] = "TIP: Chain Lightning weapon combo: kill an Electric enemy to arc damage to neighbors!";
+    m_en["tip.93"] = "TIP: Berserker's Blood Rage triggers at low HP — risk it for massive damage output!";
+    m_en["tip.94"] = "TIP: Phantom's Phase Strike becomes invisible after dashing — ambush unaware enemies!";
+    m_en["tip.95"] = "TIP: Technomancer turrets auto-fire at nearby enemies — place them at chokepoints!";
+    m_en["tip.96"] = "TIP: Voidwalker gains Rift Charge after dimension switches — bonus damage on next hit!";
+    m_en["tip.97"] = "TIP: NPC engineers can upgrade your attack speed — worth the shards in long runs!";
+    m_en["tip.98"] = "TIP: The Gambling Rift event is high risk/high reward — only gamble when you can afford to lose!";
+    m_en["tip.99"] = "TIP: Hold charged attack for maximum damage — release when the glow reaches full intensity!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1763,6 +1773,16 @@ void Localization::loadStrings() {
     m_de["tip.87"] = "TIPP: Mittlere Bosse erscheinen alle 5 Etagen — sie droppen bessere Beute!";
     m_de["tip.88"] = "TIPP: Taegliche Laeufe nutzen einen gemeinsamen Seed — konkurriere auf der Bestenliste!";
     m_de["tip.89"] = "TIPP: Waffenmeisterung schaltet bei 15, 50, 100 und 200 Kills frei — nutze deine Favoriten!";
+    m_de["tip.90"] = "TIPP: Geheimraeume verstecken sich hinter zerstoerbaren Waenden — achte auf rissige Fliesen!";
+    m_de["tip.91"] = "TIPP: Relikt-Synergien aktivieren sich bei bestimmten Paaren — pruefe das Pausenmenue!";
+    m_de["tip.92"] = "TIPP: Kettenblitz-Waffen-Kombo: Toete einen Elektro-Gegner fuer Bogenentladung an Nachbarn!";
+    m_de["tip.93"] = "TIPP: Berserkers Blutrausch aktiviert bei niedrigem HP — riskiere es fuer massiven Schaden!";
+    m_de["tip.94"] = "TIPP: Phantom wird nach dem Dash unsichtbar — ueberrasche ahnungslose Gegner!";
+    m_de["tip.95"] = "TIPP: Technomancer-Geschuetze feuern automatisch auf nahe Feinde — platziere sie an Engpaessen!";
+    m_de["tip.96"] = "TIPP: Leerenwandler erhaelt Rissladung nach Dimensionswechsel — Bonusschaden beim naechsten Treffer!";
+    m_de["tip.97"] = "TIPP: NPC-Ingenieure koennen dein Angriffstempo erhoehen — lohnt sich bei langen Laeufen!";
+    m_de["tip.98"] = "TIPP: Das Gluecksspiel-Riss-Event ist riskant — nur setzen wenn du Verlust verkraften kannst!";
+    m_de["tip.99"] = "TIPP: Halte geladenen Angriff fuer maximalen Schaden — loslassen wenn der Glow voll leuchtet!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
