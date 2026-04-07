@@ -269,7 +269,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         return;
     }
 
-    const std::string& tag = entity.getTag();
+    const auto rType = entity.renderType;
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
@@ -402,45 +402,44 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     if (renderSprite(renderer, screenRect, entity, alpha)) {
         // Sprite rendered successfully — skip procedural, but still apply overlays below
     } else
-    // Custom rendering based on entity type
-    if (tag == "player") {
-        renderPlayer(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_walker") {
-        renderWalker(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_flyer") {
-        renderFlyer(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_turret") {
-        renderTurret(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_charger") {
-        renderCharger(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_phaser") {
-        renderPhaser(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_exploder") {
-        renderExploder(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_shielder") {
-        renderShielder(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_crawler") {
-        renderCrawler(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_summoner") {
-        renderSummoner(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_sniper") {
-        renderSniper(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_teleporter") {
-        renderTeleporter(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_reflector") {
-        renderReflector(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_leech") {
-        renderLeech(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_swarmer") {
-        renderSwarmer(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_gravitywell") {
-        renderGravityWell(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_mimic") {
-        renderMimic(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_minion") {
-        // Minions use walker renderer but smaller
-        renderWalker(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_boss") {
+    // Procedural rendering based on entity type (switch on cached enum — no string compares)
+    switch (rType) {
+    case EntityRenderType::Player:
+        renderPlayer(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyWalker:
+    case EntityRenderType::EnemyMinion:
+        renderWalker(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyFlyer:
+        renderFlyer(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyTurret:
+        renderTurret(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyCharger:
+        renderCharger(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyPhaser:
+        renderPhaser(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyExploder:
+        renderExploder(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyShielder:
+        renderShielder(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyCrawler:
+        renderCrawler(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemySummoner:
+        renderSummoner(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemySniper:
+        renderSniper(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyTeleporter:
+        renderTeleporter(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyReflector:
+        renderReflector(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyLeech:
+        renderLeech(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemySwarmer:
+        renderSwarmer(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyGravityWell:
+        renderGravityWell(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyMimic:
+        renderMimic(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyBoss: {
         int bt = 0;
         if (entity.hasComponent<AIComponent>()) bt = entity.getComponent<AIComponent>().bossType;
         if (bt == 5) renderEntropyIncarnate(renderer, screenRect, entity, alpha);
@@ -449,11 +448,13 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         else if (bt == 2) renderDimensionalArchitect(renderer, screenRect, entity, alpha);
         else if (bt == 1) renderVoidWyrm(renderer, screenRect, entity, alpha);
         else renderBoss(renderer, screenRect, entity, alpha);
-    } else if (tag == "player_turret") {
-        renderPlayerTurret(renderer, screenRect, entity, alpha);
-    } else if (tag == "player_trap") {
-        renderShockTrap(renderer, screenRect, entity, alpha);
-    } else if (tag == "enemy_crate") {
+        break;
+    }
+    case EntityRenderType::PlayerTurret:
+        renderPlayerTurret(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::PlayerTrap:
+        renderShockTrap(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::EnemyCrate: {
         // Professional breakable crate with wood grain, metal bands, gradient
         auto& sprite = entity.getComponent<SpriteComponent>();
         Uint8 a = static_cast<Uint8>(sprite.color.a * alpha);
@@ -492,11 +493,18 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         fillRect(renderer, dx + dw - 5, dy + dh - 5, 2, 2, 180, 175, 160, a);
         // Top-left specular highlight
         fillRect(renderer, dx + 2, dy + 1, dw / 3, 1, 200, 160, 90, static_cast<Uint8>(a * 0.4f));
-    } else if (entity.isPickup) {
-        renderPickup(renderer, screenRect, entity, alpha);
-    } else if (tag == "projectile") {
-        renderProjectile(renderer, screenRect, entity, alpha);
-    } else {
+        break;
+    }
+    case EntityRenderType::PickupHealth:
+    case EntityRenderType::PickupShield:
+    case EntityRenderType::PickupSpeed:
+    case EntityRenderType::PickupDamage:
+    case EntityRenderType::PickupShard:
+    case EntityRenderType::Pickup:
+        renderPickup(renderer, screenRect, entity, alpha); break;
+    case EntityRenderType::Projectile:
+        renderProjectile(renderer, screenRect, entity, alpha); break;
+    default: {
         // Professional default renderer: layered body with glow, gradient, and details
         auto& sprite = entity.getComponent<SpriteComponent>();
         Uint8 a = static_cast<Uint8>(sprite.color.a * alpha);
@@ -559,7 +567,9 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
             fillRect(renderer, dx + dw / 3, eyeY2, 2, 2, 255, 255, 255, a);
             fillRect(renderer, dx + 2 * dw / 3 - 2, eyeY2, 2, 2, 255, 255, 255, a);
         }
+        break;
     }
+    } // end switch
 
     // Hit flash: overlay when enemy just took damage (differentiated by weight class)
     if (entity.isEnemy && entity.hasComponent<HealthComponent>()) {
@@ -618,7 +628,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         bool hasOwnBar = false;
         if (entity.hasComponent<AIComponent>()) {
             auto& aiCheck = entity.getComponent<AIComponent>();
-            hasOwnBar = aiCheck.isElite || aiCheck.isMiniBoss || tag == "enemy_boss";
+            hasOwnBar = aiCheck.isElite || aiCheck.isMiniBoss || entity.isBoss;
         }
         if (!hasOwnBar && hpShow.damageShowTimer > 0 && hpShow.getPercent() < 1.0f) {
             float fadeAlpha = std::min(1.0f, hpShow.damageShowTimer / 0.5f); // fade out in last 0.5s
@@ -809,7 +819,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     }
 
     // Player edge glow: dimension-colored outline to make player pop against dark backgrounds
-    if (tag == "player" && alpha > 0.5f) {
+    if (entity.isPlayer && alpha > 0.5f) {
         Uint32 ticks = m_frameTicks;
         float pulse = 0.6f + 0.4f * std::sin(ticks * 0.003f);
         // Dimension color: blue for A, red for B
@@ -877,28 +887,28 @@ void RenderSystem::renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     // Floating bob
     int bob = static_cast<int>(std::sin(time) * 3);
 
-    const std::string& tag = entity.getTag();
-    if (tag == "pickup_health") {
+    const auto pType = entity.renderType;
+    if (pType == EntityRenderType::PickupHealth) {
         // Green cross
         int cy = y + bob;
         fillRect(renderer, x + w / 3, cy, w / 3, h, 60, 220, 60, a);
         fillRect(renderer, x, cy + h / 3, w, h / 3, 60, 220, 60, a);
         fillRect(renderer, x - 1, cy - 1, w + 2, h + 2, 80, 255, 80, static_cast<Uint8>(a * 0.2f));
-    } else if (tag == "pickup_shield") {
+    } else if (pType == EntityRenderType::PickupShield) {
         // Blue circle with inner ring
         int cy = y + bob;
         int cx = x + w / 2;
         fillRect(renderer, x + 1, cy + 1, w - 2, h - 2, 80, 160, 255, a);
         fillRect(renderer, cx - 3, cy + h / 3, 6, h / 3, 200, 230, 255, a);
         fillRect(renderer, x - 1, cy - 1, w + 2, h + 2, 100, 180, 255, static_cast<Uint8>(a * 0.3f));
-    } else if (tag == "pickup_speed") {
+    } else if (pType == EntityRenderType::PickupSpeed) {
         // Yellow lightning bolt shape
         int cy = y + bob;
         fillRect(renderer, x + w / 3, cy, w / 3, h / 2, 255, 255, 80, a);
         fillRect(renderer, x + w / 6, cy + h / 3, w * 2 / 3, h / 4, 255, 255, 80, a);
         fillRect(renderer, x + w / 3, cy + h / 2, w / 3, h / 2, 255, 255, 80, a);
         fillRect(renderer, x - 1, cy - 1, w + 2, h + 2, 255, 255, 120, static_cast<Uint8>(a * 0.25f));
-    } else if (tag == "pickup_damage") {
+    } else if (pType == EntityRenderType::PickupDamage) {
         // Red sword/arrow up
         int cy = y + bob;
         int cx = x + w / 2;

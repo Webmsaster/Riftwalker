@@ -8,6 +8,20 @@
 
 class EntityManager;
 
+// Render dispatch enum — set automatically by setTag(), used by RenderSystem
+enum class EntityRenderType : uint8_t {
+    Unknown = 0,
+    Player, EnemyWalker, EnemyFlyer, EnemyTurret, EnemyCharger,
+    EnemyPhaser, EnemyExploder, EnemyShielder, EnemyCrawler, EnemySummoner,
+    EnemySniper, EnemyTeleporter, EnemyReflector, EnemyLeech, EnemySwarmer,
+    EnemyGravityWell, EnemyMimic, EnemyMinion, EnemyBoss,
+    EnemyEntropyMinion, EnemyShadowClone, EnemyEcho,
+    PlayerTurret, PlayerTrap, EnemyCrate,
+    PickupHealth, PickupShield, PickupSpeed, PickupDamage, PickupShard,
+    Projectile, DimResidue, GrappleHook,
+    Pickup // generic fallback
+};
+
 class Entity {
 public:
     Entity(EntityManager* manager, std::string tag = "");
@@ -34,6 +48,42 @@ public:
         isEnemyEcho = (tag == "enemy_echo");
         isHealthPickup = (tag.find("health") != std::string::npos);
         isShardPickup = (tag.find("shard") != std::string::npos);
+        // Render dispatch type
+        if (tag == "player") renderType = EntityRenderType::Player;
+        else if (tag == "enemy_walker") renderType = EntityRenderType::EnemyWalker;
+        else if (tag == "enemy_flyer") renderType = EntityRenderType::EnemyFlyer;
+        else if (tag == "enemy_turret") renderType = EntityRenderType::EnemyTurret;
+        else if (tag == "enemy_charger") renderType = EntityRenderType::EnemyCharger;
+        else if (tag == "enemy_phaser") renderType = EntityRenderType::EnemyPhaser;
+        else if (tag == "enemy_exploder") renderType = EntityRenderType::EnemyExploder;
+        else if (tag == "enemy_shielder") renderType = EntityRenderType::EnemyShielder;
+        else if (tag == "enemy_crawler") renderType = EntityRenderType::EnemyCrawler;
+        else if (tag == "enemy_summoner") renderType = EntityRenderType::EnemySummoner;
+        else if (tag == "enemy_sniper") renderType = EntityRenderType::EnemySniper;
+        else if (tag == "enemy_teleporter") renderType = EntityRenderType::EnemyTeleporter;
+        else if (tag == "enemy_reflector") renderType = EntityRenderType::EnemyReflector;
+        else if (tag == "enemy_leech") renderType = EntityRenderType::EnemyLeech;
+        else if (tag == "enemy_swarmer") renderType = EntityRenderType::EnemySwarmer;
+        else if (tag == "enemy_gravitywell") renderType = EntityRenderType::EnemyGravityWell;
+        else if (tag == "enemy_mimic") renderType = EntityRenderType::EnemyMimic;
+        else if (tag == "enemy_minion") renderType = EntityRenderType::EnemyMinion;
+        else if (tag == "enemy_boss") renderType = EntityRenderType::EnemyBoss;
+        else if (tag == "enemy_entropy_minion") renderType = EntityRenderType::EnemyEntropyMinion;
+        else if (tag == "enemy_shadow_clone") renderType = EntityRenderType::EnemyShadowClone;
+        else if (tag == "enemy_echo") renderType = EntityRenderType::EnemyEcho;
+        else if (tag == "player_turret") renderType = EntityRenderType::PlayerTurret;
+        else if (tag == "player_trap") renderType = EntityRenderType::PlayerTrap;
+        else if (tag == "enemy_crate") renderType = EntityRenderType::EnemyCrate;
+        else if (tag == "pickup_health") renderType = EntityRenderType::PickupHealth;
+        else if (tag == "pickup_shield") renderType = EntityRenderType::PickupShield;
+        else if (tag == "pickup_speed") renderType = EntityRenderType::PickupSpeed;
+        else if (tag == "pickup_damage") renderType = EntityRenderType::PickupDamage;
+        else if (tag == "pickup_shard") renderType = EntityRenderType::PickupShard;
+        else if (tag == "projectile") renderType = EntityRenderType::Projectile;
+        else if (tag == "dim_residue") renderType = EntityRenderType::DimResidue;
+        else if (tag == "grapple_hook") renderType = EntityRenderType::GrappleHook;
+        else if (isPickup) renderType = EntityRenderType::Pickup;
+        else renderType = EntityRenderType::Unknown;
     }
 
     template <typename T, typename... Args>
@@ -79,6 +129,7 @@ public:
     bool isEnemyEcho = false;
     bool isHealthPickup = false;
     bool isShardPickup = false;
+    EntityRenderType renderType = EntityRenderType::Unknown;
 
 private:
     EntityManager* m_manager;
