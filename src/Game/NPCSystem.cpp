@@ -196,24 +196,18 @@ std::vector<const char*> NPCSystem::getDialogOptions(NPCType type, int storyStag
 
 const char* NPCSystem::getQuestOffer(NPCType type) {
     switch (type) {
-        case NPCType::RiftScholar:
-            return "I need data on the rift creatures. Defeat 10 enemies\nand I'll reward you with rift shards.";
-        case NPCType::LostEngineer:
-            return "Help me calibrate the rift sensors. Repair 3 rifts\non this floor and I'll pay you — plus stabilize your suit.";
-        case NPCType::FortuneTeller:
-            return "The void hides many secrets. Find 2 secret rooms\non this floor, and I'll share a powerful vision.";
+        case NPCType::RiftScholar:    return LOC("npc.quest.scholar");
+        case NPCType::LostEngineer:   return LOC("npc.quest.engineer");
+        case NPCType::FortuneTeller:  return LOC("npc.quest.fortune");
         default: return "";
     }
 }
 
 const char* NPCSystem::getQuestProgress(NPCType type) {
     switch (type) {
-        case NPCType::RiftScholar:
-            return "Keep hunting those creatures. I can sense more data flowing in...";
-        case NPCType::LostEngineer:
-            return "The sensors are picking up your repairs. Keep going!";
-        case NPCType::FortuneTeller:
-            return "I sense you've found some hidden places... keep searching.";
+        case NPCType::RiftScholar:    return LOC("npc.qprog.scholar");
+        case NPCType::LostEngineer:   return LOC("npc.qprog.engineer");
+        case NPCType::FortuneTeller:  return LOC("npc.qprog.fortune");
         default: return "";
     }
 }

@@ -764,6 +764,14 @@ void Localization::loadStrings() {
     m_en["npc.merch.s1.opt2"]      = "[Buy random relic (35 shards)]";
     m_en["npc.merch.s0.opt"]       = "[Buy relic (50 shards)]";
 
+    // NPC quest offers & progress
+    m_en["npc.quest.scholar"]      = "I need data on the rift creatures. Defeat 10 enemies\nand I'll reward you with rift shards.";
+    m_en["npc.quest.engineer"]     = "Help me calibrate the rift sensors. Repair 3 rifts\non this floor and I'll pay you — plus stabilize your suit.";
+    m_en["npc.quest.fortune"]      = "The void hides many secrets. Find 2 secret rooms\non this floor, and I'll share a powerful vision.";
+    m_en["npc.qprog.scholar"]      = "Keep hunting those creatures. I can sense more data flowing in...";
+    m_en["npc.qprog.engineer"]     = "The sensors are picking up your repairs. Keep going!";
+    m_en["npc.qprog.fortune"]      = "I sense you've found some hidden places... keep searching.";
+
     // Random events
     m_en["event.merchant"]         = "Merchant";
     m_en["event.anomaly"]          = "Anomaly";
@@ -1646,6 +1654,14 @@ void Localization::loadStrings() {
     m_de["npc.merch.s1.opt1"]      = "[Relikt kaufen (60 Splitter)]";
     m_de["npc.merch.s1.opt2"]      = "[Zufaelliges Relikt kaufen (35 Splitter)]";
     m_de["npc.merch.s0.opt"]       = "[Relikt kaufen (50 Splitter)]";
+
+    // NPC quest offers & progress
+    m_de["npc.quest.scholar"]      = "Ich brauche Daten ueber die Risskreaturen. Besiege 10 Gegner\nund ich belohne dich mit Risssplittern.";
+    m_de["npc.quest.engineer"]     = "Hilf mir die Risssensoren zu kalibrieren. Repariere 3 Risse\nauf dieser Etage und ich bezahle dich — plus Anzugstabilisierung.";
+    m_de["npc.quest.fortune"]      = "Die Leere verbirgt viele Geheimnisse. Finde 2 Geheimraeume\nauf dieser Etage, und ich teile eine maechtige Vision.";
+    m_de["npc.qprog.scholar"]      = "Jage weiter diese Kreaturen. Ich spuere mehr Daten einfliessen...";
+    m_de["npc.qprog.engineer"]     = "Die Sensoren erfassen deine Reparaturen. Weiter so!";
+    m_de["npc.qprog.fortune"]      = "Ich spuere, du hast verborgene Orte gefunden... suche weiter.";
 
     // Random events
     m_de["event.merchant"]         = "Haendler";
