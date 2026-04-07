@@ -718,6 +718,13 @@ void Localization::loadStrings() {
     m_en["npc.merchant.g1"]        = "Ah, you return! I've acquired new inventory.";
     m_en["npc.merchant.g2"]        = "For a valued customer, my rarest stock.";
 
+    // NPC dialog options (most visible action text)
+    m_en["npc.opt.leave"]          = "[Leave]";
+    m_en["npc.opt.fight"]          = "[Fight!]";
+    m_en["npc.opt.not_yet"]        = "[Not yet...]";
+    m_en["npc.opt.browse"]         = "[Browse wares]";
+    m_en["npc.opt.read_fortune"]   = "[Read my fortune]";
+
     // Random events
     m_en["event.merchant"]         = "Merchant";
     m_en["event.anomaly"]          = "Anomaly";
@@ -1554,6 +1561,13 @@ void Localization::loadStrings() {
     m_de["npc.merchant.g0"]        = "Dimensionale Artefakte, frisch aus der Leere.";
     m_de["npc.merchant.g1"]        = "Ah, du kehrst zurueck! Neuer Bestand eingetroffen.";
     m_de["npc.merchant.g2"]        = "Fuer einen geschaetzten Kunden, mein seltenster Bestand.";
+
+    // NPC dialog options
+    m_de["npc.opt.leave"]          = "[Gehen]";
+    m_de["npc.opt.fight"]          = "[Kaempfen!]";
+    m_de["npc.opt.not_yet"]        = "[Noch nicht...]";
+    m_de["npc.opt.browse"]         = "[Waren ansehen]";
+    m_de["npc.opt.read_fortune"]   = "[Zukunft lesen]";
 
     // Random events
     m_de["event.merchant"]         = "Haendler";

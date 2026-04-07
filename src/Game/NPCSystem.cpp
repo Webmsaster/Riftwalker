@@ -146,53 +146,53 @@ std::vector<const char*> NPCSystem::getDialogOptions(NPCType type, int storyStag
     switch (type) {
         case NPCType::RiftScholar:
             if (storyStage >= 2)
-                return {"[Learn the truth (+40 Shards, heal)]", "[Leave]"};
+                return {"[Learn the truth (+40 Shards, heal)]", LOC("npc.opt.leave")};
             if (storyStage >= 1)
-                return {"[Listen (+25 Shards, -entropy)]", "[Ask about the Sovereign]", "[Leave]"};
+                return {"[Listen (+25 Shards, -entropy)]", "[Ask about the Sovereign]", LOC("npc.opt.leave")};
             // Stage 0: offer quest option alongside normal options
             if (!hasActiveQuest)
                 return {"[Listen to tip (+15 Shards)]", "[Ask about enemies]",
-                        "[Accept quest: Hunt 10 creatures]", "[Leave]"};
-            return {"[Listen to tip (+15 Shards)]", "[Ask about enemies]", "[Leave]"};
+                        "[Accept quest: Hunt 10 creatures]", LOC("npc.opt.leave")};
+            return {"[Listen to tip (+15 Shards)]", "[Ask about enemies]", LOC("npc.opt.leave")};
         case NPCType::DimRefugee:
             if (storyStage >= 2)
-                return {"[Accept gift (free Relic)]", "[Leave]"};
+                return {"[Accept gift (free Relic)]", LOC("npc.opt.leave")};
             if (storyStage >= 1)
-                return {"[Free healing (+30 HP)]", "[Trade 15 HP for 60 Shards]", "[Leave]"};
-            return {"[Trade 20 HP for 50 Shards]", "[Trade 30 HP for 80 Shards]", "[Leave]"};
+                return {"[Free healing (+30 HP)]", "[Trade 15 HP for 60 Shards]", LOC("npc.opt.leave")};
+            return {"[Trade 20 HP for 50 Shards]", "[Trade 30 HP for 80 Shards]", LOC("npc.opt.leave")};
         case NPCType::LostEngineer:
             if (storyStage >= 2)
-                return {"[Permanent upgrade (+25% DMG)]", "[Leave]"};
+                return {"[Permanent upgrade (+25% DMG)]", LOC("npc.opt.leave")};
             if (storyStage >= 1)
-                return {"[Upgrade weapon (+40% DMG, 60s)]", "[Tune attacks (+20% speed, 45s)]", "[Leave]"};
+                return {"[Upgrade weapon (+40% DMG, 60s)]", "[Tune attacks (+20% speed, 45s)]", LOC("npc.opt.leave")};
             // Stage 0: offer quest option alongside normal options
             if (!hasActiveQuest)
                 return {"[Upgrade weapon (+30% DMG, 45s)]",
-                        "[Accept quest: Repair 3 rifts]", "[Leave]"};
-            return {"[Upgrade weapon (+30% DMG, 45s)]", "[Leave]"};
+                        "[Accept quest: Repair 3 rifts]", LOC("npc.opt.leave")};
+            return {"[Upgrade weapon (+30% DMG, 45s)]", LOC("npc.opt.leave")};
         case NPCType::EchoOfSelf:
-            return {"[Fight!]", "[Not yet...]"};
+            return {LOC("npc.opt.fight"), LOC("npc.opt.not_yet")};
         case NPCType::Blacksmith:
             if (storyStage >= 2)
-                return {"[Accept masterwork (free +30% both)]", "[Leave]"};
+                return {"[Accept masterwork (free +30% both)]", LOC("npc.opt.leave")};
             if (storyStage >= 1)
                 return {"[Sharpen melee +25% DMG (35 shards)]", "[Reinforce ranged +25% DMG (35 shards)]",
-                        "[Hone speed +15% ATK SPD (45 shards)]", "[Leave]"};
-            return {"[Sharpen melee +20% DMG (40 shards)]", "[Reinforce ranged +20% DMG (40 shards)]", "[Leave]"};
+                        "[Hone speed +15% ATK SPD (45 shards)]", LOC("npc.opt.leave")};
+            return {"[Sharpen melee +20% DMG (40 shards)]", "[Reinforce ranged +20% DMG (40 shards)]", LOC("npc.opt.leave")};
         case NPCType::FortuneTeller:
             if (storyStage >= 2)
-                return {"[Reveal all secrets (free)]", "[Boss foresight (+20% DMG vs boss)]", "[Leave]"};
+                return {"[Reveal all secrets (free)]", "[Boss foresight (+20% DMG vs boss)]", LOC("npc.opt.leave")};
             if (storyStage >= 1)
-                return {"[Reveal hidden rooms (20 shards)]", "[Reveal ambushes (15 shards)]", "[Leave]"};
-            return {"[Reveal secrets (30 shards)]", "[Read my fortune]", "[Leave]"};
+                return {"[Reveal hidden rooms (20 shards)]", "[Reveal ambushes (15 shards)]", LOC("npc.opt.leave")};
+            return {"[Reveal secrets (30 shards)]", LOC("npc.opt.read_fortune"), LOC("npc.opt.leave")};
         case NPCType::VoidMerchant:
             if (storyStage >= 2)
-                return {"[Buy legendary relic (80 shards)]", "[Buy random relic (40 shards)]", "[Leave]"};
+                return {"[Buy legendary relic (80 shards)]", "[Buy random relic (40 shards)]", LOC("npc.opt.leave")};
             if (storyStage >= 1)
-                return {"[Buy relic (60 shards)]", "[Buy random relic (35 shards)]", "[Leave]"};
-            return {"[Buy relic (50 shards)]", "[Browse wares]", "[Leave]"};
+                return {"[Buy relic (60 shards)]", "[Buy random relic (35 shards)]", LOC("npc.opt.leave")};
+            return {"[Buy relic (50 shards)]", LOC("npc.opt.browse"), LOC("npc.opt.leave")};
         default:
-            return {"[Leave]"};
+            return {LOC("npc.opt.leave")};
     }
 }
 
