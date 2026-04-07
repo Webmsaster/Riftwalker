@@ -835,7 +835,7 @@ void PlayState::render(SDL_Renderer* renderer) {
 
         // Pickup item glows (make collectibles visually pop)
         m_entities.forEach([&](Entity& e) {
-            if (e.getTag().find("pickup_") != 0 || !e.isAlive()) return;
+            if (!e.isPickup || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>()) return;
             auto& pt = e.getComponent<TransformComponent>();
             float px = pt.getCenter().x - cam.x;
