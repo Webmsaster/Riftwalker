@@ -62,6 +62,10 @@ void RunSummaryState::handleEvent(const SDL_Event& event) {
                 game->changeState(StateID::Menu);
             }
         }
+        if (event.type == SDL_MOUSEBUTTONDOWN) {
+            AudioManager::instance().play(SFX::MenuConfirm);
+            game->changeState(StateID::Menu);
+        }
     }
 }
 
