@@ -46,7 +46,7 @@ void Player::fireGrapplingHook(const Vec2& dir) {
 
     hookCol.onTrigger = [playerPtr, cs, hookDamage](Entity* self, Entity* other) {
         if (!other || !other->isAlive()) return;
-        if (other->getTag() == "player") return;
+        if (other->isPlayer) return;
 
         // Hit an enemy: deal damage and start pulling
         if (other->hasComponent<HealthComponent>() && other->hasComponent<AIComponent>()) {

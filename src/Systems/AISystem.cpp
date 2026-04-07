@@ -955,7 +955,7 @@ void AISystem::explode(Entity& entity, EntityManager& entities) {
                 float dmg = ai.explodeDamage * falloff;
                 hp.takeDamage(dmg);
                 if (m_combatSystem) {
-                    bool isPlayer = (target.getTag() == "player");
+                    bool isPlayer = (target.isPlayer);
                     m_combatSystem->addDamageEvent(targetPos, dmg, isPlayer, false, false, center);
                 }
             }

@@ -236,7 +236,7 @@ void PhysicsSystem::resolveTerrainCollision(Entity& entity, Level* level, int cu
             bool doCeilingCornerCorrection = false;
             if (std::abs(minOverlapX) >= std::abs(minOverlapY) &&
                 minOverlapY > 0 && phys.velocity.y < 0 &&
-                entity.getTag() == "player" &&
+                entity.isPlayer &&
                 std::abs(minOverlapX) <= cornerCorrectionThreshold) {
                 doCeilingCornerCorrection = true;
             }

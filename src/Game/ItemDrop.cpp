@@ -48,7 +48,7 @@ Entity& ItemDrop::spawnHealthOrb(EntityManager& entities, Vec2 pos, int dimensio
     col.mask = LAYER_TILE | LAYER_PLAYER;
     col.type = ColliderType::Trigger;
     col.onTrigger = [player](Entity* self, Entity* other) {
-        if (other->getTag() == "player" && other->hasComponent<HealthComponent>()) {
+        if (other->isPlayer && other->hasComponent<HealthComponent>()) {
             // VampiricEdge: block health orb pickup healing
             if (player && other->hasComponent<RelicComponent>()) {
                 auto& rc = other->getComponent<RelicComponent>();
@@ -103,7 +103,7 @@ Entity& ItemDrop::spawnRiftShard(EntityManager& entities, Vec2 pos, int dimensio
     col.mask = LAYER_TILE | LAYER_PLAYER;
     col.type = ColliderType::Trigger;
     col.onTrigger = [value, player](Entity* self, Entity* other) {
-        if (other->getTag() == "player") {
+        if (other->isPlayer) {
             // Add shards to player's pending counter (consumed by PlayState each frame)
             if (player) {
                 player->riftShardsCollected += value;
@@ -146,7 +146,7 @@ Entity& ItemDrop::spawnShieldOrb(EntityManager& entities, Vec2 pos, int dimensio
     col.mask = LAYER_TILE | LAYER_PLAYER;
     col.type = ColliderType::Trigger;
     col.onTrigger = [player](Entity* self, Entity* other) {
-        if (other->getTag() == "player" && player) {
+        if (other->isPlayer && player) {
             player->hasShield = true;
             player->shieldTimer = 8.0f;
             player->pickupShieldPending = true;
@@ -186,7 +186,7 @@ Entity& ItemDrop::spawnSpeedBoost(EntityManager& entities, Vec2 pos, int dimensi
     col.mask = LAYER_TILE | LAYER_PLAYER;
     col.type = ColliderType::Trigger;
     col.onTrigger = [player](Entity* self, Entity* other) {
-        if (other->getTag() == "player" && player) {
+        if (other->isPlayer && player) {
             player->speedBoostTimer = 6.0f;
             player->pickupSpeedPending = true;
             AudioManager::instance().play(SFX::Pickup);
@@ -225,7 +225,7 @@ Entity& ItemDrop::spawnDamageBoost(EntityManager& entities, Vec2 pos, int dimens
     col.mask = LAYER_TILE | LAYER_PLAYER;
     col.type = ColliderType::Trigger;
     col.onTrigger = [player](Entity* self, Entity* other) {
-        if (other->getTag() == "player" && player) {
+        if (other->isPlayer && player) {
             player->damageBoostTimer = 8.0f;
             player->pickupDamagePending = true;
             AudioManager::instance().play(SFX::Pickup);
@@ -303,7 +303,7 @@ Entity& ItemDrop::spawnWeaponDrop(EntityManager& entities, Vec2 pos, int dimensi
     col.mask = LAYER_TILE | LAYER_PLAYER;
     col.type = ColliderType::Trigger;
     col.onTrigger = [weapon, player, melee](Entity* self, Entity* other) {
-        if (other->getTag() == "player" && other->hasComponent<CombatComponent>() && player) {
+        if (other->isPlayer && other->hasComponent<CombatComponent>() && player) {
             auto& combat = other->getComponent<CombatComponent>();
             if (WeaponSystem::isMelee(weapon))
                 combat.currentMelee = weapon;

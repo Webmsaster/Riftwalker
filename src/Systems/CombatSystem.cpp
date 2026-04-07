@@ -67,7 +67,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
     auto& combat = attacker.getComponent<CombatComponent>();
     auto& transform = attacker.getComponent<TransformComponent>();
 
-    bool isPlayer = (attacker.getTag() == "player");
+    bool isPlayer = (attacker.isPlayer);
     auto& atkData = combat.getCurrentAttackData();
 
     if (combat.currentAttack == AttackType::Ranged) {
@@ -123,7 +123,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
 
         if (distSq < attackRadius * attackRadius) {
             // Phantom Phase Through: negate enemy hits during dash
-            if (!isPlayer && target.getTag() == "player" && m_player && m_player->isPhaseThrough()) {
+            if (!isPlayer && target.isPlayer && m_player && m_player->isPhaseThrough()) {
                 // Deal phase damage back to the attacker
                 if (attacker.hasComponent<HealthComponent>()) {
                     attacker.getComponent<HealthComponent>().takeDamage(m_player->phaseDamage);
@@ -141,7 +141,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             }
 
             // Rift Shield check: absorb hits while shield is active
-            if (!isPlayer && target.getTag() == "player" && target.hasComponent<AbilityComponent>()) {
+            if (!isPlayer && target.isPlayer && target.hasComponent<AbilityComponent>()) {
                 auto& targetAbil = target.getComponent<AbilityComponent>();
                 if (targetAbil.abilities[1].active && targetAbil.shieldHitsRemaining > 0) {
                     targetAbil.shieldHitsRemaining = std::max(0, targetAbil.shieldHitsRemaining - 1);
@@ -224,7 +224,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             }
 
             // Parry check: if enemy hits player during parry window, negate damage
-            if (!isPlayer && target.getTag() == "player" && target.hasComponent<CombatComponent>()) {
+            if (!isPlayer && target.isPlayer && target.hasComponent<CombatComponent>()) {
                 auto& playerCombat = target.getComponent<CombatComponent>();
                 if (playerCombat.isParrying) {
                     playerCombat.isParrying = false;
@@ -496,7 +496,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             }
 
             // Defensive relic multiplier (GlassHeart, DualityGem armor, FortifiedSoul)
-            if (!isPlayer && target.getTag() == "player" && target.hasComponent<RelicComponent>()) {
+            if (!isPlayer && target.isPlayer && target.hasComponent<RelicComponent>()) {
                 damage *= RelicSystem::getDamageTakenMult(
                     target.getComponent<RelicComponent>(), currentDim);
             }
@@ -514,7 +514,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 if (m_camera) m_camera->shake(2.0f, 0.08f);
             } else {
                 // Skip if player has active i-frames (no phantom feedback)
-                bool targetIsPlayer = (!isPlayer && target.getTag() == "player");
+                bool targetIsPlayer = (!isPlayer && target.isPlayer);
                 if (targetIsPlayer && hp.isInvincible()) return;
                 hp.takeDamage(damage);
                 m_damageEvents.push_back({targetCenter, damage, !isPlayer, isCrit, false, transform.getCenter()});
@@ -706,7 +706,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             }
 
             // Relic: ThornMail - reflect damage when player is hit
-            if (!isPlayer && target.getTag() == "player" && target.hasComponent<RelicComponent>()) {
+            if (!isPlayer && target.isPlayer && target.hasComponent<RelicComponent>()) {
                 auto& relics = target.getComponent<RelicComponent>();
                 float thornDmg = RelicSystem::getThornDamage(relics);
                 if (thornDmg > 0 && attacker.hasComponent<HealthComponent>()) {
@@ -792,7 +792,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             }
 
             // Element effects on hit (enemy hitting player)
-            if (!isPlayer && target.getTag() == "player" && attacker.hasComponent<AIComponent>()) {
+            if (!isPlayer && target.isPlayer && attacker.hasComponent<AIComponent>()) {
                 auto& ai = attacker.getComponent<AIComponent>();
                 if (ai.element == EnemyElement::Ice) {
                     // Apply freeze: slow player for 1.5 seconds

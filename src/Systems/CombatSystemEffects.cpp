@@ -247,13 +247,13 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
                         float falloff = 1.0f - (edist / explodeRadius) * 0.5f;
                         float dmg = explodeDmg * falloff;
                         // Defensive relic multiplier for player
-                        if (nearby.getTag() == "player" && nearby.hasComponent<RelicComponent>()) {
+                        if (nearby.isPlayer && nearby.hasComponent<RelicComponent>()) {
                             dmg *= RelicSystem::getDamageTakenMult(
                                 nearby.getComponent<RelicComponent>(), currentDim);
                         }
                         nearby.getComponent<HealthComponent>().takeDamage(dmg);
                         m_damageEvents.push_back({nt.getCenter(), dmg,
-                            nearby.getTag() == "player", false});
+                            nearby.isPlayer, false});
                         if (nearby.hasComponent<PhysicsBody>()) {
                             Vec2 kb = {edx, edy - 80.0f};
                             float len = std::sqrt(kb.x * kb.x + kb.y * kb.y);
@@ -493,7 +493,7 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
             // Only apply damage and track event if target has no active i-frames
             if (!hp.isInvincible()) {
                 float finalDmg = damage;
-                bool isPlayerDamage = (other->getTag() == "player");
+                bool isPlayerDamage = (other->isPlayer);
                 // Defensive relic multiplier when projectile hits the player
                 if (isPlayerDamage && other->hasComponent<RelicComponent>()) {
                     finalDmg *= RelicSystem::getDamageTakenMult(
