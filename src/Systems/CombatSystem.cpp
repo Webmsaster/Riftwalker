@@ -111,9 +111,9 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
         }
 
         // Player attacks enemies, enemies attack player
-        bool targetIsEnemy = target.getTag().find("enemy") != std::string::npos;
+        bool targetIsEnemy = target.isEnemy;
         if (isPlayer && !targetIsEnemy) return;
-        if (!isPlayer && target.getTag() != "player") return;
+        if (!isPlayer && !target.isPlayer) return;
 
         auto& targetTransform = target.getComponent<TransformComponent>();
         Vec2 targetCenter = targetTransform.getCenter();
@@ -191,7 +191,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
 
                         // AoE burst damage
                         entities.forEach([&](Entity& nearby) {
-                            if (nearby.getTag().find("enemy") == std::string::npos) return;
+                            if (!nearby.isEnemy) return;
                             if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
                             auto& nt = nearby.getComponent<TransformComponent>();
                             float dx = nt.getCenter().x - burstCenter.x;
@@ -766,7 +766,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     Entity* nearestTarget = nullptr;
                     entities.forEach([&](Entity& nearby) {
                         if (&nearby == &target || !nearby.isAlive()) return;
-                        if (nearby.getTag().find("enemy") == std::string::npos) return;
+                        if (!nearby.isEnemy) return;
                         if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
                         if (nearby.dimension != 0 && nearby.dimension != currentDim) return;
                         auto& nt = nearby.getComponent<TransformComponent>();
@@ -866,7 +866,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         Entity* nearestTarget = nullptr;
                         entities.forEach([&](Entity& nearby) {
                             if (&nearby == &target || !nearby.isAlive()) return;
-                            if (nearby.getTag().find("enemy") == std::string::npos) return;
+                            if (!nearby.isEnemy) return;
                             if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
                             if (nearby.dimension != 0 && nearby.dimension != currentDim) return;
                             auto& nt = nearby.getComponent<TransformComponent>();
@@ -933,7 +933,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     float chainDmg = damage * 0.3f;
                     entities.forEach([&](Entity& nearby) {
                         if (&nearby == &target || !nearby.isAlive()) return;
-                        if (nearby.getTag().find("enemy") == std::string::npos) return;
+                        if (!nearby.isEnemy) return;
                         if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
                         if (nearby.dimension != 0 && nearby.dimension != currentDim) return;
                         auto& nt = nearby.getComponent<TransformComponent>();

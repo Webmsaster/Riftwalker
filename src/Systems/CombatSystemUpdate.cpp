@@ -41,7 +41,7 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
             bool anyInRange = false;
             entities.forEach([&](Entity& target) {
                 if (anyInRange) return; // already found one, skip rest of pre-check
-                if (target.getTag().find("enemy") == std::string::npos) return;
+                if (!target.isEnemy) return;
                 if (!target.hasComponent<TransformComponent>()) return;
                 if (target.dimension != 0 && target.dimension != currentDim) return;
                 auto& tt = target.getComponent<TransformComponent>();
@@ -53,7 +53,7 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
 
             if (anyInRange) {
             entities.forEach([&](Entity& target) {
-                if (target.getTag().find("enemy") == std::string::npos) return;
+                if (!target.isEnemy) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                 if (target.dimension != 0 && target.dimension != currentDim) return;
 
@@ -161,7 +161,7 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
 void CombatSystem::processBurnDoT(EntityManager& entities, float dt) {
     // Process element burn DoT on enemies
     entities.forEach([&](Entity& e) {
-        if (e.getTag().find("enemy") == std::string::npos) return;
+        if (!e.isEnemy) return;
         if (!e.hasComponent<AIComponent>()) return;
         auto& ai = e.getComponent<AIComponent>();
         if (ai.burnTimer > 0) {
@@ -226,7 +226,7 @@ void CombatSystem::processBurnDoT(EntityManager& entities, float dt) {
 void CombatSystem::processFreezeDecay(EntityManager& entities, float dt) {
     // Process freeze slow decay on enemies
     entities.forEach([&](Entity& e) {
-        if (e.getTag().find("enemy") == std::string::npos) return;
+        if (!e.isEnemy) return;
         if (!e.hasComponent<AIComponent>()) return;
         auto& ai = e.getComponent<AIComponent>();
         if (ai.freezeTimer > 0) {
@@ -280,7 +280,7 @@ void CombatSystem::processZombieSweep(EntityManager& entities, int currentDim) {
     // Without this, enemies at HP <= 0 remain alive as "zombies".
     entities.forEach([&](Entity& e) {
         if (!e.isAlive()) return;
-        if (e.getTag().find("enemy") == std::string::npos) return;
+        if (!e.isEnemy) return;
         if (!e.hasComponent<HealthComponent>()) return;
         auto& hp = e.getComponent<HealthComponent>();
         if (hp.currentHP > 0) return;

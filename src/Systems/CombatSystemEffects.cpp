@@ -159,7 +159,7 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
     }
 
     // Drop items from enemies (mini-bosses drop 3x, elites drop 2x loot)
-    if (isPlayer && target.getTag().find("enemy") != std::string::npos) {
+    if (isPlayer && target.isEnemy) {
         int dropCount = 1;
         if (target.hasComponent<AIComponent>()) {
             auto& tAI = target.getComponent<AIComponent>();
@@ -281,7 +281,7 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
             float chainRadius = 100.0f;
             entities.forEach([&](Entity& nearby) {
                 if (&nearby == &target || !nearby.isAlive()) return;
-                if (nearby.getTag().find("enemy") == std::string::npos) return;
+                if (!nearby.isEnemy) return;
                 if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
                 auto& nt = nearby.getComponent<TransformComponent>();
                 float cdx = nt.getCenter().x - targetCenter.x;
@@ -646,7 +646,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
         Entity* nearest = nullptr;
         float bestDist = radius * radius;
         entities.forEach([&](Entity& e) {
-            if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+            if (!e.isEnemy || !e.isAlive()) return;
             if (!e.hasComponent<TransformComponent>() || !e.hasComponent<HealthComponent>()) return;
             if (e.dimension != 0 && e.dimension != currentDim) return;
             auto& et = e.getComponent<TransformComponent>();
@@ -707,7 +707,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float counterRange = 120.0f;
 
             entities.forEach([&](Entity& target) {
-                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                 if (target.dimension != 0 && target.dimension != currentDim) return;
                 auto& tt = target.getComponent<TransformComponent>();
@@ -771,7 +771,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float counterRange = 160.0f;
 
             entities.forEach([&](Entity& target) {
-                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                 if (target.dimension != 0 && target.dimension != currentDim) return;
                 auto& tt = target.getComponent<TransformComponent>();
@@ -809,7 +809,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float vortexRange = 150.0f;
 
             entities.forEach([&](Entity& target) {
-                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                 if (target.dimension != 0 && target.dimension != currentDim) return;
                 auto& tt = target.getComponent<TransformComponent>();
@@ -855,7 +855,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float counterRange = 140.0f;
 
             entities.forEach([&](Entity& target) {
-                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                 if (target.dimension != 0 && target.dimension != currentDim) return;
                 auto& tt = target.getComponent<TransformComponent>();
@@ -888,7 +888,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float lashRange = 180.0f;
 
             entities.forEach([&](Entity& target) {
-                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                 if (target.dimension != 0 && target.dimension != currentDim) return;
                 auto& tt = target.getComponent<TransformComponent>();
@@ -946,7 +946,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             struct TargetInfo { Entity* e; float dist; };
             std::vector<TargetInfo> targets;
             entities.forEach([&](Entity& e) {
-                if (e.getTag().find("enemy") == std::string::npos || !e.isAlive()) return;
+                if (!e.isEnemy || !e.isAlive()) return;
                 if (!e.hasComponent<TransformComponent>() || !e.hasComponent<HealthComponent>()) return;
                 if (e.dimension != 0 && e.dimension != currentDim) return;
                 auto& et = e.getComponent<TransformComponent>();
@@ -992,7 +992,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float counterKB = 1200.0f;
 
             entities.forEach([&](Entity& target) {
-                if (target.getTag().find("enemy") == std::string::npos || !target.isAlive()) return;
+                if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                 if (target.dimension != 0 && target.dimension != currentDim) return;
                 auto& tt = target.getComponent<TransformComponent>();

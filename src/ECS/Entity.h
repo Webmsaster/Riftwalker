@@ -18,7 +18,13 @@ public:
     bool isAlive() const { return m_alive; }
 
     const std::string& getTag() const { return m_tag; }
-    void setTag(const std::string& tag) { m_tag = tag; }
+    void setTag(const std::string& tag) {
+        m_tag = tag;
+        isEnemy = (tag.find("enemy") != std::string::npos);
+        isPlayer = (tag.find("player") != std::string::npos);
+        isPickup = (tag.find("pickup") != std::string::npos);
+        isProjectile = (tag.find("projectile") != std::string::npos);
+    }
 
     template <typename T, typename... Args>
     T& addComponent(Args&&... args) {
@@ -47,6 +53,12 @@ public:
     // Dimension the entity belongs to (0 = both, 1 = dim A, 2 = dim B)
     int dimension = 0;
     bool visible = true;
+
+    // Fast type flags (set automatically by setTag, avoids per-frame string::find)
+    bool isEnemy = false;
+    bool isPlayer = false;
+    bool isPickup = false;
+    bool isProjectile = false;
 
 private:
     EntityManager* m_manager;

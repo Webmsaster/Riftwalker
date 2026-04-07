@@ -226,7 +226,7 @@ void RenderSystem::render(SDL_Renderer* renderer, EntityManager& entities,
             alpha = 1.0f;
         } else {
             // Ghost shimmer for other-dimension entities
-            bool isEnemy = e.getTag().find("enemy") != std::string::npos;
+            bool isEnemy = e.isEnemy;
             if (isEnemy) {
                 float shimmer = 0.15f + 0.1f * std::sin(SDL_GetTicks() * 0.005f + e.dimension * 3.14f);
                 alpha = shimmer;
@@ -313,7 +313,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     // Spawn-in effect: dimensional rift opening + scale-up + white tint
     bool spawning = false;
     float spawnProgress = 1.0f;
-    if (tag.find("enemy") != std::string::npos && entity.hasComponent<AIComponent>()) {
+    if (entity.isEnemy && entity.hasComponent<AIComponent>()) {
         auto& ai = entity.getComponent<AIComponent>();
         if (ai.spawnTimer > 0 && ai.spawnTimerInitial > 0) {
             spawning = true;
@@ -557,7 +557,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     }
 
     // Hit flash: overlay when enemy just took damage (differentiated by weight class)
-    if (tag.find("enemy") != std::string::npos && entity.hasComponent<HealthComponent>()) {
+    if (entity.isEnemy && entity.hasComponent<HealthComponent>()) {
         auto& hp = entity.getComponent<HealthComponent>();
 
         // Determine flash color + duration by enemy weight class
@@ -596,7 +596,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     }
 
     // Freeze tint: blue overlay while enemy is slowed by ice weapon
-    if (tag.find("enemy") != std::string::npos && entity.hasComponent<AIComponent>()) {
+    if (entity.isEnemy && entity.hasComponent<AIComponent>()) {
         float freezeT = entity.getComponent<AIComponent>().freezeTimer;
         if (freezeT > 0) {
             // Pulsing blue tint intensity
@@ -608,7 +608,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     }
 
     // HP bar for regular enemies (visible briefly after taking damage)
-    if (tag.find("enemy") != std::string::npos && entity.hasComponent<HealthComponent>()) {
+    if (entity.isEnemy && entity.hasComponent<HealthComponent>()) {
         auto& hpShow = entity.getComponent<HealthComponent>();
         bool hasOwnBar = false;
         if (entity.hasComponent<AIComponent>()) {
@@ -639,7 +639,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     }
 
     // Element aura for elemental enemies
-    if (tag.find("enemy") != std::string::npos && entity.hasComponent<AIComponent>()) {
+    if (entity.isEnemy && entity.hasComponent<AIComponent>()) {
         auto& ai = entity.getComponent<AIComponent>();
         if (ai.element != EnemyElement::None) {
             float time = SDL_GetTicks() * 0.004f;
@@ -828,7 +828,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     }
 
     // Enemy rim light: element/type-specific colored additive outline
-    if (tag.find("enemy") != std::string::npos && alpha > 0.4f &&
+    if (entity.isEnemy && alpha > 0.4f &&
         entity.hasComponent<AIComponent>() && entity.hasComponent<SpriteComponent>() &&
         entity.getComponent<SpriteComponent>().texture) {
         auto& ai = entity.getComponent<AIComponent>();

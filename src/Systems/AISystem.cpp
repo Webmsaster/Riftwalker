@@ -287,7 +287,7 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
                     Vec2 center = t.getCenter();
                     entities.forEach([&](Entity& other) {
                         if (&other == e || !other.isAlive()) return;
-                        if (other.getTag().find("enemy") == std::string::npos) return;
+                        if (!other.isEnemy) return;
                         if (!other.hasComponent<TransformComponent>() || !other.hasComponent<HealthComponent>()) return;
                         auto& ot = other.getComponent<TransformComponent>();
                         float dist = std::abs(ot.getCenter().x - center.x) + std::abs(ot.getCenter().y - center.y);
