@@ -24,8 +24,9 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Bug Fix**: HUD texture leak — destructor frees m_hudTarget
 - **Bug Fix**: BestiaryState dead mouse code — early return prevented mouse hover/click/wheel
 - **Bug Fix**: ResourceManager null renderer guard in getTexture/createColorTexture
-- **Navigation**: PageUp/PageDown/Home/End in all 6 scrollable states (Achievements, Bestiary, RunHistory, DailyLeaderboard, Upgrades, Lore)
-- 26 commits, 30 files changed, +814 lines
+- **Navigation**: PageUp/PageDown/Home/End in all 6 scrollable states
+- **589 EN + 668 DE** localization keys total (1496-line Localization.cpp)
+- 32 commits, ~32 files changed, +900 lines
 
 *Wave 1 (earlier):*
 - **Complete Localization**: 408 EN + 408 DE string pairs — ALL player-facing UI strings use LOC() macro
