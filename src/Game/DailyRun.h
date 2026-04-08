@@ -67,7 +67,7 @@ public:
     int getTodayRank(int score) const;
 
     // Compact per-day summary for "previous days" display
-    struct DaySummary { std::string date; int bestScore; };
+    struct DaySummary { std::string date; int bestScore = 0; };
     std::vector<DaySummary> getDaySummaries() const;
 
     void save(const std::string& path) const;
