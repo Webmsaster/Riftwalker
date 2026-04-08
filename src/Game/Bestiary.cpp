@@ -292,8 +292,9 @@ const char* Bestiary::getLocalizedName(EnemyType type) {
 
 const char* Bestiary::getLocalizedBossName(int bossType) {
     const auto& entry = getBossEntry(bossType);
+    // Existing key convention: boss.N.bname (used by BestiaryState)
     char key[32];
-    std::snprintf(key, sizeof(key), "enemy.boss.%d.name", bossType);
+    std::snprintf(key, sizeof(key), "boss.%d.bname", bossType);
     const char* loc = LOC(key);
     return (std::strcmp(loc, key) == 0) ? entry.name : loc;
 }
