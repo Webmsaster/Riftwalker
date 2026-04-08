@@ -10,8 +10,8 @@ struct CombatComponent;
 
 struct DamageEvent {
     Vec2 position;
-    float damage;
-    bool isPlayerDamage; // true = player took damage, false = enemy took damage
+    float damage = 0;
+    bool isPlayerDamage = false; // true = player took damage, false = enemy took damage
     bool isCritical = false;
     bool feedbackHandled = false; // true = source already did shake/flash/SFX
     Vec2 sourcePos{0, 0}; // World position of damage source (for directional indicators)
@@ -32,17 +32,17 @@ struct KillEvent {
 
 // Visual ghost that persists after entity is destroyed (shrink + fade death animation)
 struct DeathEffect {
-    Vec2 position;         // World center position
-    float width, height;   // Original entity size (world units)
-    SDL_Color color;       // Entity sprite color
-    SDL_Texture* texture;  // Sprite texture (owned by ResourceManager, safe to keep)
-    SDL_Rect srcRect;      // Sprite source rect
-    bool flipX;
-    float timer;           // Counts up from 0
-    float maxLife;         // Total animation duration
-    bool isBoss;
-    bool isElite;
-    float flashPhase;      // 0-1, white flash at start
+    Vec2 position;                    // World center position
+    float width = 0, height = 0;      // Original entity size (world units)
+    SDL_Color color{255, 255, 255, 255}; // Entity sprite color
+    SDL_Texture* texture = nullptr;   // Sprite texture (owned by ResourceManager, safe to keep)
+    SDL_Rect srcRect{0, 0, 32, 32};   // Sprite source rect
+    bool flipX = false;
+    float timer = 0;                  // Counts up from 0
+    float maxLife = 0.3f;             // Total animation duration (non-zero default prevents NaN)
+    bool isBoss = false;
+    bool isElite = false;
+    float flashPhase = 0;             // 0-1, white flash at start
 };
 
 class CombatSystem {
