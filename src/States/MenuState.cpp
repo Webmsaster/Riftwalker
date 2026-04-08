@@ -12,6 +12,17 @@
 #include <cstdio>
 #include <cstdlib>
 
+void MenuState::onResume() {
+    // Reset selection to first button when resuming from a pushed state
+    // (e.g. Achievements, RunHistory, DailyLeaderboard). Without this, the
+    // previously-highlighted button stays selected after popState.
+    if (!m_buttons.empty()) {
+        m_buttons[m_selectedButton].setSelected(false);
+        m_selectedButton = 0;
+        m_buttons[0].setSelected(true);
+    }
+}
+
 void MenuState::enter() {
     // Load persistent data
     AscensionSystem::load("ascension_save.dat");

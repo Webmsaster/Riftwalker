@@ -11,6 +11,9 @@ public:
     virtual ~GameState() = default;
     virtual void enter() {}
     virtual void exit() {}
+    // Called when a pushed state is popped and this state becomes active again.
+    // Unlike enter() which fires on changeState, this is only for popState resumes.
+    virtual void onResume() {}
     virtual void handleEvent([[maybe_unused]] const SDL_Event& event) {}
     virtual void update(float dt) = 0;
     virtual void render(SDL_Renderer* renderer) = 0;

@@ -462,6 +462,7 @@ void Game::popState() {
         saveSaveData(); // Save after state exit to persist shop purchases etc.
         m_currentState = m_stateStack.top();
         m_stateStack.pop();
+        if (m_currentState) m_currentState->onResume();
     }
 }
 
