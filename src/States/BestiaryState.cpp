@@ -363,16 +363,9 @@ void BestiaryState::render(SDL_Renderer* renderer) {
         // Localized enemy/boss name (fallback to struct data for EN)
         const char* locEnemyName;
         if (isBoss) {
-            // Boss names: use boss.N.bname keys, fallback to struct
-            char bossKey[32];
-            std::snprintf(bossKey, sizeof(bossKey), "boss.%d.bname", typeIdx);
-            const char* bLoc = LOC(bossKey);
-            locEnemyName = (std::strcmp(bLoc, bossKey) == 0) ? entry.name : bLoc;
+            locEnemyName = Bestiary::getLocalizedBossName(typeIdx);
         } else {
-            char bNameKey[32];
-            std::snprintf(bNameKey, sizeof(bNameKey), "enemy.%d.name", typeIdx);
-            const char* bLocName = LOC(bNameKey);
-            locEnemyName = (std::strcmp(bLocName, bNameKey) == 0) ? entry.name : bLocName;
+            locEnemyName = Bestiary::getLocalizedName(static_cast<EnemyType>(typeIdx));
         }
         const char* displayName = entry.discovered ? locEnemyName : (isBoss ? LOC("bestiary.boss_label") : "???");
         SDL_Color nameColor = entry.discovered ?
@@ -474,21 +467,11 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     int infoY  = DETAIL_Y + 28;
     int infoW  = DETAIL_W - 536;
 
-    // Name header
+    // Name header (localized via Bestiary helper)
     SDL_Color nameColor = isBoss ? SDL_Color{255, 195, 90, 255} : SDL_Color{225, 210, 235, 255};
-    // Localized enemy/boss name for detail view
-    const char* detEnemyName;
-    if (isBoss) {
-        char bossKey[32];
-        std::snprintf(bossKey, sizeof(bossKey), "boss.%d.bname", typeIdx);
-        const char* bLoc = LOC(bossKey);
-        detEnemyName = (std::strcmp(bLoc, bossKey) == 0) ? entry.name : bLoc;
-    } else {
-        char detNameKey[32];
-        std::snprintf(detNameKey, sizeof(detNameKey), "enemy.%d.name", typeIdx);
-        const char* detLocN = LOC(detNameKey);
-        detEnemyName = (std::strcmp(detLocN, detNameKey) == 0) ? entry.name : detLocN;
-    }
+    const char* detEnemyName = isBoss
+        ? Bestiary::getLocalizedBossName(typeIdx)
+        : Bestiary::getLocalizedName(static_cast<EnemyType>(typeIdx));
     drawText(renderer, font, detEnemyName, infoX, infoY, nameColor, 1.4f);
 
     // Divider line
