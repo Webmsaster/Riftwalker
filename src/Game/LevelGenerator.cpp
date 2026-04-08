@@ -94,8 +94,8 @@ Level LevelGenerator::generateCandidate(int difficulty, int seed, LevelTopology&
     for (int i = 0; i < roomCount; i++) {
         bool useTemplate = (m_rng() % 5 < 2) && !templates.empty();
 
-        int rw;
-        int rh;
+        int rw = 0;
+        int rh = 0;
         int templateIdx = -1;
 
         if (useTemplate) {
