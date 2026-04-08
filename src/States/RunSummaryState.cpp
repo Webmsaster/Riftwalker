@@ -268,8 +268,8 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
     };
 
     int statCount = 11;
-    int baseY = 500;
-    int statH = 76;
+    int baseY = 440;  // Reduced from 500 to fit balance panel + NEW RECORD banner
+    int statH = 68;   // Reduced from 76: 11 * 68 = 748 + baseY 440 = 1188
     float revealDelay = 0.35f;
 
     for (int i = 0; i < statCount; i++) {

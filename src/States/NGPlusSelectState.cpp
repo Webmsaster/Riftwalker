@@ -89,7 +89,7 @@ void NGPlusSelectState::handleEvent(const SDL_Event& event) {
     int cardW        = 1400;
     int cardH        = (totalOptions > 6) ? 100 : 156;
     int cardX        = SCREEN_WIDTH / 2 - cardW / 2;
-    int startY       = 310;
+    int startY       = (totalOptions > 6) ? 240 : 310;
 
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x, my = event.motion.y;
@@ -196,7 +196,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         }
     }
 
-    // Subtitle
+    // Subtitle (below title — title is at y=120, ~60px tall after 1.8x scale)
     {
         SDL_Color sc = {120, 100, 160, 180};
         SDL_Surface* ss = TTF_RenderUTF8_Blended(font,
@@ -204,7 +204,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
-                SDL_Rect r = {SCREEN_WIDTH / 2 - ss->w / 2, 118, ss->w, ss->h};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - ss->w / 2, 195, ss->w, ss->h};
                 SDL_RenderCopy(renderer, st, nullptr, &r);
                 SDL_DestroyTexture(st);
             }
@@ -214,17 +214,19 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
 
     // Option cards — Normal + unlocked NG+ tiers + one locked next tier
     int cardW = 1400;
-    int cardH = 156;
-    int cardX = SCREEN_WIDTH / 2 - cardW / 2;
-    int startY = 310;
     int totalOptions = m_maxTier + 2; // Normal + all unlocked + one locked (next)
     if (totalOptions > 11) totalOptions = 11;
+    // Compact cards when showing many tiers so they fit the screen
+    int cardH = (totalOptions > 6) ? 100 : 156;
+    int cardX = SCREEN_WIDTH / 2 - cardW / 2;
+    // Start higher when many tiers to fit 11 × (100+16) = 1276 + title area
+    int startY = (totalOptions > 6) ? 240 : 310;
 
     for (int i = 0; i < totalOptions; i++) {
         bool unlocked = (i <= m_maxTier + 1) && (i <= 10);
         bool isNextChallenge = (i == m_maxTier + 1) && (i <= 10);
         bool selected = (i == m_selected);
-        int y = startY + i * (cardH + 8);
+        int y = startY + i * (cardH + 16);
 
         SDL_Color col = s_tierColors[i];
 
