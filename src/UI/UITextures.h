@@ -6,8 +6,9 @@
 // 9-slice texture rendering: stretches center while preserving corner/edge detail
 inline void renderNineSlice(SDL_Renderer* renderer, SDL_Texture* tex,
                             const SDL_Rect& dst, int border) {
-    int tw, th;
-    SDL_QueryTexture(tex, nullptr, nullptr, &tw, &th);
+    if (!tex) return; // Guard against null texture
+    int tw = 0, th = 0;
+    if (SDL_QueryTexture(tex, nullptr, nullptr, &tw, &th) != 0 || tw <= 0 || th <= 0) return;
     int sb = std::min(border, std::min(tw / 3, th / 3));
     int db = std::min(border, std::min(dst.w / 3, dst.h / 3));
 
