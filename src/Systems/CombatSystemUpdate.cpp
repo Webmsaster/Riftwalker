@@ -224,6 +224,9 @@ void CombatSystem::processBurnDoT(EntityManager& entities, float dt) {
 }
 
 void CombatSystem::processFreezeDecay(EntityManager& entities, float dt) {
+    // Cache once — was called per-enemy in forEach below
+    Uint32 frameTicks = SDL_GetTicks();
+    bool emitIceParticles = (frameTicks % 8 == 0);
     // Process freeze slow decay on enemies
     entities.forEach([&](Entity& e) {
         if (!e.isEnemy) return;
@@ -232,7 +235,7 @@ void CombatSystem::processFreezeDecay(EntityManager& entities, float dt) {
         if (ai.freezeTimer > 0) {
             ai.freezeTimer -= dt;
             // Periodic ice crystal particles while frozen
-            if (m_particles && e.hasComponent<TransformComponent>() && SDL_GetTicks() % 8 == 0) {
+            if (m_particles && e.hasComponent<TransformComponent>() && emitIceParticles) {
                 auto& t = e.getComponent<TransformComponent>();
                 Vec2 center = t.getCenter();
                 float ox = (static_cast<float>(std::rand() % 20) - 10.0f);
