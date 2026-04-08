@@ -1,8 +1,11 @@
 #include "AchievementSystem.h"
 #include "Core/SaveUtils.h"
+#include "Core/Localization.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
 
 void AchievementSystem::init() {
     m_achievements = {
@@ -60,7 +63,11 @@ bool AchievementSystem::unlock(const std::string& id) {
     for (auto& a : m_achievements) {
         if (a.id == id && !a.unlocked) {
             a.unlocked = true;
-            m_notification.name = a.name;
+            // Pick localized name (falls back to hardcoded EN if key missing)
+            char nameKey[64];
+            std::snprintf(nameKey, sizeof(nameKey), "ach.%s.name", a.id.c_str());
+            const char* locName = LOC(nameKey);
+            m_notification.name = (std::strcmp(locName, nameKey) == 0) ? a.name : locName;
             m_notification.rewardText = a.rewardDesc;
             m_notification.timer = m_notification.duration;
             return true;
