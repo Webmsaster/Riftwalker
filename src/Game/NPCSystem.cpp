@@ -202,12 +202,9 @@ const char* NPCSystem::getQuestProgress(NPCType type) {
 
 const char* NPCSystem::getQuestComplete(NPCType type) {
     switch (type) {
-        case NPCType::RiftScholar:
-            return "Excellent work! The data you gathered is invaluable.\nHere are your shards, as promised.";
-        case NPCType::LostEngineer:
-            return "Sensors fully calibrated! Your suit readings look better too.\nTake this payment — you've earned it.";
-        case NPCType::FortuneTeller:
-            return "Your discoveries have amplified my visions tenfold!\nAs promised — a glimpse of what awaits on the next floor.";
+        case NPCType::RiftScholar:    return LOC("npc.qdone.scholar");
+        case NPCType::LostEngineer:   return LOC("npc.qdone.engineer");
+        case NPCType::FortuneTeller:  return LOC("npc.qdone.fortune");
         default: return "";
     }
 }

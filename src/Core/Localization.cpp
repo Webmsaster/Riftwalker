@@ -916,6 +916,11 @@ void Localization::loadStrings() {
     m_en["npc.qprog.engineer"]     = "The sensors are picking up your repairs. Keep going!";
     m_en["npc.qprog.fortune"]      = "I sense you've found some hidden places... keep searching.";
 
+    // NPC quest completion messages
+    m_en["npc.qdone.scholar"]  = "Excellent work! The data you gathered is invaluable.\nHere are your shards, as promised.";
+    m_en["npc.qdone.engineer"] = "Sensors fully calibrated! Your suit readings look better too.\nTake this payment — you've earned it.";
+    m_en["npc.qdone.fortune"]  = "Your discoveries have amplified my visions tenfold!\nAs promised — a glimpse of what awaits on the next floor.";
+
     // NPC story lines (7 NPCs × 3 stages)
     m_en["npc.scholar.d0"]  = "The dimensional rifts grow unstable. Each repair\nweakens the Void Sovereign's grip on reality.";
     m_en["npc.scholar.d1"]  = "Ancient texts reveal the rifts aren't natural.\nSomeone — or something — tore the dimensions apart.";
@@ -2141,6 +2146,10 @@ void Localization::loadStrings() {
     m_de["npc.qprog.scholar"]      = "Jage weiter diese Kreaturen. Ich spuere mehr Daten einfliessen...";
     m_de["npc.qprog.engineer"]     = "Die Sensoren erfassen deine Reparaturen. Weiter so!";
     m_de["npc.qprog.fortune"]      = "Ich spuere, du hast verborgene Orte gefunden... suche weiter.";
+
+    m_de["npc.qdone.scholar"]  = "Hervorragende Arbeit! Die gesammelten Daten sind unbezahlbar.\nHier sind deine Splitter, wie versprochen.";
+    m_de["npc.qdone.engineer"] = "Sensoren vollstaendig kalibriert! Auch deine Anzugwerte sehen besser aus.\nNimm diese Bezahlung — du hast sie verdient.";
+    m_de["npc.qdone.fortune"]  = "Deine Entdeckungen haben meine Visionen verzehnfacht!\nWie versprochen — ein Blick auf das, was im naechsten Stock wartet.";
 
     // NPC story lines (7 NPCs × 3 stages)
     m_de["npc.scholar.d0"]  = "Die Dimensionsrisse werden instabiler. Jede Reparatur\nschwaeecht den Griff des Leere-Souverains auf die Realitaet.";
