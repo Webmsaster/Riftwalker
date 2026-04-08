@@ -124,9 +124,10 @@ void AISystem::updateCrawler(Entity& entity, float dt, const Vec2& playerPos) {
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
-    float dist = distanceTo(pos, playerPos);
+    float distSq = distanceToSq(pos, playerPos);
 
     float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float detectSq = effectiveDetect * effectiveDetect;
 
     if (ai.onCeiling && !ai.dropping) {
         // Patrol on ceiling
@@ -140,7 +141,7 @@ void AISystem::updateCrawler(Entity& entity, float dt, const Vec2& playerPos) {
 
         // Drop when player is directly below and close
         float horizDist = std::abs(pos.x - playerPos.x);
-        if (horizDist < 30.0f && playerPos.y > pos.y && dist < effectiveDetect) {
+        if (horizDist < 30.0f && playerPos.y > pos.y && distSq < detectSq) {
             ai.dropping = true;
             ai.onCeiling = false;
             phys.useGravity = true;
@@ -160,12 +161,12 @@ void AISystem::updateCrawler(Entity& entity, float dt, const Vec2& playerPos) {
         }
     } else {
         // On ground: chase like a walker
-        if (dist < effectiveDetect) {
+        if (distSq < detectSq) {
             float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
             phys.velocity.x = dirX * ai.chaseSpeed * ai.dimSpeedMod;
             ai.facingRight = dirX > 0;
 
-            if (dist < ai.attackRange) {
+            if (distSq < ai.attackRange * ai.attackRange) {
                 ai.attackTimer -= dt;
 
                 // Visual wind-up telegraph
@@ -205,7 +206,7 @@ void AISystem::updateSummoner(Entity& entity, float dt, const Vec2& playerPos, E
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
-    float dist = distanceTo(pos, playerPos);
+    float distSq = distanceToSq(pos, playerPos);
 
     // Count active minions
     ai.activeMinions = 0;
@@ -223,15 +224,15 @@ void AISystem::updateSummoner(Entity& entity, float dt, const Vec2& playerPos, E
             ai.facingRight = dirX > 0;
 
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < ai.detectRange) ai.state = AIState::Chase;
+            if (distSq < ai.detectRange * ai.detectRange) ai.state = AIState::Chase;
             break;
         }
         case AIState::Chase: {
             // Keep distance from player, retreat if too close
-            if (dist < 100.0f) {
+            if (distSq < 10000.0f) { // 100²
                 float dirX = (playerPos.x > pos.x) ? -1.0f : 1.0f;
                 phys.velocity.x = dirX * ai.chaseSpeed;
-            } else if (dist > ai.attackRange) {
+            } else if (distSq > ai.attackRange * ai.attackRange) {
                 float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
                 phys.velocity.x = dirX * ai.patrolSpeed;
             } else {
@@ -284,7 +285,7 @@ void AISystem::updateSummoner(Entity& entity, float dt, const Vec2& playerPos, E
                 AudioManager::instance().play(SFX::SummonerSummon);
             }
 
-            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            if (distSq > ai.loseRange * ai.loseRange) ai.state = AIState::Patrol;
             break;
         }
         default: break;
