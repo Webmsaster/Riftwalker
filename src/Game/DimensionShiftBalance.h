@@ -155,11 +155,11 @@ inline bool isBreatherFloor(int floor) {
 // Zone-based stat multipliers for enemies (logarithmic scaling)
 // Returns {hpMult, dmgMult, speedMult}
 struct ZoneScaling {
-    float hpMult;
-    float dmgMult;
-    float speedMult;
-    float eliteChance;   // 0-100
-    float miniBossChance; // 0-100
+    float hpMult = 1.0f;
+    float dmgMult = 1.0f;
+    float speedMult = 1.0f;
+    float eliteChance = 0;    // 0-100
+    float miniBossChance = 0; // 0-100
 };
 
 inline ZoneScaling getZoneScaling(int floor) {

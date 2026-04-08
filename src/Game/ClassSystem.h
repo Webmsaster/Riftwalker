@@ -10,27 +10,27 @@ enum class PlayerClass {
 };
 
 struct ClassData {
-    PlayerClass id;
-    const char* name;
-    const char* description;
-    const char* passiveName;
-    const char* passiveDesc;
-    const char* abilityMod;
-    SDL_Color color;
-    float baseHP;
-    float baseSpeed;
+    PlayerClass id = PlayerClass::Voidwalker;
+    const char* name = "";
+    const char* description = "";
+    const char* passiveName = "";
+    const char* passiveDesc = "";
+    const char* abilityMod = "";
+    SDL_Color color{255, 255, 255, 255};
+    float baseHP = 100.0f;
+    float baseSpeed = 250.0f;
     // Passive params
-    float switchHeal;         // Voidwalker: HP healed on dim-switch
-    float switchCDReduction;  // Voidwalker: switch cooldown multiplier
-    float lowHPThreshold;     // Berserker: HP% threshold for Blood Rage
-    float rageDmgBonus;       // Berserker: DMG multiplier when Blood Rage active
-    float rageAtkSpeedBonus;  // Berserker: attack speed bonus in Blood Rage
-    float dashLengthMult;     // Phantom: dash duration multiplier
-    float postDashInvisTime;  // Phantom: invisibility after dash
+    float switchHeal = 0;         // Voidwalker: HP healed on dim-switch
+    float switchCDReduction = 1.0f; // Voidwalker: switch cooldown multiplier
+    float lowHPThreshold = 0;     // Berserker: HP% threshold for Blood Rage
+    float rageDmgBonus = 1.0f;    // Berserker: DMG multiplier when Blood Rage active
+    float rageAtkSpeedBonus = 1.0f; // Berserker: attack speed bonus in Blood Rage
+    float dashLengthMult = 1.0f;  // Phantom: dash duration multiplier
+    float postDashInvisTime = 0;  // Phantom: invisibility after dash
     // Technomancer params
-    float turretDamageMult;   // Technomancer: turret/trap damage multiplier (Construct Mastery)
-    float turretDurationMult; // Technomancer: turret/trap duration multiplier
-    float rangedDmgBonus;     // Technomancer: +10% ranged damage
+    float turretDamageMult = 1.0f; // Technomancer: turret/trap damage multiplier (Construct Mastery)
+    float turretDurationMult = 1.0f; // Technomancer: turret/trap duration multiplier
+    float rangedDmgBonus = 1.0f;  // Technomancer: +10% ranged damage
 };
 
 class ClassSystem {
