@@ -53,6 +53,13 @@ struct AnimationComponent : public Component {
         auto& anim = it->second;
         if (anim.frames.empty()) return;
 
+        // Defensive bounds clamp: if currentFrame was left out-of-range (e.g. by
+        // reassigning animations[currentAnim] with fewer frames), snap back to 0
+        // before indexing.
+        if (currentFrame < 0 || currentFrame >= static_cast<int>(anim.frames.size())) {
+            currentFrame = 0;
+        }
+
         frameTimer += dt;
         // Process multiple frames if dt is large (prevents frame skipping)
         int maxAdvances = 8; // safety limit
