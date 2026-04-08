@@ -771,6 +771,11 @@ void Localization::loadStrings() {
     m_en["tip.117"] = "TIP: The Void Beam weapon drains enemies continuously — great for stationary targets like turrets!";
     m_en["tip.118"] = "TIP: Each zone has a unique theme and enemy composition — adapt your loadout to the zone!";
     m_en["tip.119"] = "TIP: Parry timing is tight (0.15s window) but rewarding — guaranteed crit on your next hit!";
+    m_en["tip.120"] = "TIP: Holding attack mid-combo triggers a charged finisher — spend the full combo meter for max damage!";
+    m_en["tip.121"] = "TIP: Mini-bosses drop 3x more loot than normal enemies and sometimes weapon unlocks!";
+    m_en["tip.122"] = "TIP: The rift shield relic absorbs hits but breaks for 10 seconds afterward — time your switches carefully!";
+    m_en["tip.123"] = "TIP: Spikes deal 20% of max HP per hit — not a raw number, so high-HP builds take BIGGER spike damage!";
+    m_en["tip.124"] = "TIP: Destroying all crates in a room grants a small luck bonus for the next pickup roll!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1823,6 +1828,11 @@ void Localization::loadStrings() {
     m_de["tip.117"] = "TIPP: Die Leerestrahl-Waffe entzieht Gegnern kontinuierlich HP — ideal gegen stationaere Ziele!";
     m_de["tip.118"] = "TIPP: Jede Zone hat ein eigenes Thema und andere Gegner — passe deine Ausruestung an die Zone an!";
     m_de["tip.119"] = "TIPP: Das Parieren hat ein enges Zeitfenster (0,15s) aber lohnt sich — garantierter Krit danach!";
+    m_de["tip.120"] = "TIPP: Angriff in Combo halten loest einen aufgeladenen Finisher aus — nutze volle Combo-Leiste fuer Max-Schaden!";
+    m_de["tip.121"] = "TIPP: Mini-Bosse droppen 3x mehr Beute als normale Gegner und manchmal Waffen-Unlocks!";
+    m_de["tip.122"] = "TIPP: Das Rissschild-Relikt absorbiert Treffer bricht aber danach fuer 10 Sekunden — plane deine Wechsel sorgfaeltig!";
+    m_de["tip.123"] = "TIPP: Stacheln verursachen 20% des Max-HP pro Treffer — kein Fixwert, High-HP-Builds nehmen MEHR Stachelschaden!";
+    m_de["tip.124"] = "TIPP: Das Zerstoeren aller Kisten in einem Raum gibt einen kleinen Glueck-Bonus fuer den naechsten Pickup!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
