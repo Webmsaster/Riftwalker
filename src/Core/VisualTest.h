@@ -76,6 +76,21 @@ private:
         WaitLore,
         CaptureLore,
         BackFromLore,
+        // --- Bestiary screen ---
+        NavToBestiary,
+        WaitBestiary,
+        CaptureBestiary,
+        BackFromBestiary,
+        // --- Challenges screen ---
+        NavToChallenges,
+        WaitChallenges,
+        CaptureChallenges,
+        BackFromChallenges,
+        // --- Credits screen ---
+        NavToCredits,
+        WaitCredits,
+        CaptureCredits,
+        BackFromCredits,
         // --- Done ---
         Done
     };

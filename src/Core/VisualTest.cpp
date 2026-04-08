@@ -322,6 +322,101 @@ bool VisualTest::update(int frameCount, Game* game) {
         break;
 
     case Phase::BackFromLore:
+        if (m_phaseFrame >= 30) {
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::NavToBestiary);
+        }
+        break;
+
+    // ========== BESTIARY SCREEN ==========
+
+    case Phase::NavToBestiary:
+        if (m_phaseFrame < 90) break;
+        // Navigate to button 6 (Bestiary): 6x S then Enter
+        if (m_phaseFrame == 90)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 95)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 100) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 105) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 110) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 115) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 125) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 130) nextPhase(Phase::WaitBestiary);
+        break;
+
+    case Phase::WaitBestiary:
+        if (m_phaseFrame >= 90) nextPhase(Phase::CaptureBestiary);
+        break;
+
+    case Phase::CaptureBestiary:
+        capture(game, "bestiary");
+        nextPhase(Phase::BackFromBestiary);
+        break;
+
+    case Phase::BackFromBestiary:
+        if (m_phaseFrame >= 30) {
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::NavToChallenges);
+        }
+        break;
+
+    // ========== CHALLENGES SCREEN ==========
+
+    case Phase::NavToChallenges:
+        if (m_phaseFrame < 90) break;
+        // Navigate to button 4 (Challenges): 4x S then Enter
+        if (m_phaseFrame == 90)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 95)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 100) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 105) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 115) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 120) nextPhase(Phase::WaitChallenges);
+        break;
+
+    case Phase::WaitChallenges:
+        if (m_phaseFrame >= 90) nextPhase(Phase::CaptureChallenges);
+        break;
+
+    case Phase::CaptureChallenges:
+        capture(game, "challenges");
+        nextPhase(Phase::BackFromChallenges);
+        break;
+
+    case Phase::BackFromChallenges:
+        if (m_phaseFrame >= 30) {
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::NavToCredits);
+        }
+        break;
+
+    // ========== CREDITS SCREEN ==========
+
+    case Phase::NavToCredits:
+        if (m_phaseFrame < 90) break;
+        // Navigate to button 10 (Credits): 10x S then Enter
+        if (m_phaseFrame == 90)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 95)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 100) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 105) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 110) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 115) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 120) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 125) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 130) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 135) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 145) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 150) nextPhase(Phase::WaitCredits);
+        break;
+
+    case Phase::WaitCredits:
+        if (m_phaseFrame >= 90) nextPhase(Phase::CaptureCredits);
+        break;
+
+    case Phase::CaptureCredits:
+        capture(game, "credits");
+        nextPhase(Phase::BackFromCredits);
+        break;
+
+    case Phase::BackFromCredits:
         nextPhase(Phase::Done);
         break;
 
