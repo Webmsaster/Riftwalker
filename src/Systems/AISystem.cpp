@@ -819,7 +819,9 @@ void AISystem::updatePhaser(Entity& entity, float dt, const Vec2& playerPos, int
     Vec2 pos = transform.getCenter();
 
     bool sameDim = (entity.dimension == 0 || entity.dimension == playerDim);
-    float dist = distanceTo(pos, playerPos);
+    float distSq = distanceToSq(pos, playerPos);
+    float detectSq = ai.detectRange * ai.detectRange;
+    float atkSq = ai.attackRange * ai.attackRange;
 
     // Phase ability
     ai.phaseTimer -= dt;
@@ -827,7 +829,7 @@ void AISystem::updatePhaser(Entity& entity, float dt, const Vec2& playerPos, int
         // Switch to player's dimension
         entity.dimension = playerDim;
         ai.phaseTimer = ai.phaseCooldown;
-    } else if (ai.phaseTimer <= 0 && sameDim && dist < ai.detectRange) {
+    } else if (ai.phaseTimer <= 0 && sameDim && distSq < detectSq) {
         // Randomly phase out to confuse player
         if (std::rand() % 100 < 30) {
             entity.dimension = (entity.dimension == 1) ? 2 : 1;
@@ -847,12 +849,12 @@ void AISystem::updatePhaser(Entity& entity, float dt, const Vec2& playerPos, int
 
     // Movement (similar to walker when in same dimension)
     if (sameDim) {
-        if (dist < ai.detectRange) {
+        if (distSq < detectSq) {
             float dirX = (playerPos.x > pos.x) ? 1.0f : -1.0f;
             phys.velocity.x = dirX * ai.chaseSpeed;
             ai.facingRight = dirX > 0;
 
-            if (dist < ai.attackRange) {
+            if (distSq < atkSq) {
                 ai.attackTimer -= dt;
 
                 // Visual wind-up telegraph
@@ -886,7 +888,7 @@ void AISystem::updateExploder(Entity& entity, float dt, const Vec2& playerPos, E
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
-    float dist = distanceTo(pos, playerPos);
+    float distSq = distanceToSq(pos, playerPos);
 
     // Explode if HP depleted (killed by combat)
     if (entity.hasComponent<HealthComponent>()) {
@@ -908,7 +910,7 @@ void AISystem::updateExploder(Entity& entity, float dt, const Vec2& playerPos, E
             ai.facingRight = dirX > 0;
 
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < effectiveDetect) ai.state = AIState::Chase;
+            if (distSq < effectiveDetect * effectiveDetect) ai.state = AIState::Chase;
             break;
         }
         case AIState::Chase: {
@@ -918,11 +920,11 @@ void AISystem::updateExploder(Entity& entity, float dt, const Vec2& playerPos, E
             ai.facingRight = dirX > 0;
 
             // Explode on contact
-            if (dist < ai.attackRange) {
+            if (distSq < ai.attackRange * ai.attackRange) {
                 explode(entity, entities);
                 return;
             }
-            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            if (distSq > ai.loseRange * ai.loseRange) ai.state = AIState::Patrol;
             break;
         }
         default: break;

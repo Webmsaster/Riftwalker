@@ -21,8 +21,11 @@ void AISystem::updateShielder(Entity& entity, float dt, const Vec2& playerPos) {
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
-    float dist = distanceTo(pos, playerPos);
+    float distSq = distanceToSq(pos, playerPos);
     float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float detectSq = effectiveDetect * effectiveDetect;
+    float atkSq = ai.attackRange * ai.attackRange;
+    float loseSq = ai.loseRange * ai.loseRange;
     float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
 
     switch (ai.state) {
@@ -33,7 +36,7 @@ void AISystem::updateShielder(Entity& entity, float dt, const Vec2& playerPos) {
             ai.facingRight = dirX > 0;
 
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < effectiveDetect) {
+            if (distSq < detectSq) {
                 ai.state = AIState::Chase;
                 ai.shieldUp = true;
             }
@@ -48,7 +51,7 @@ void AISystem::updateShielder(Entity& entity, float dt, const Vec2& playerPos) {
 
             // Shielder Bash: when player is very close, push with shield
             if (ai.shielderBashCooldown > 0) ai.shielderBashCooldown -= dt;
-            if (dist < 25.0f && ai.shielderBashCooldown <= 0 && m_player) {
+            if (distSq < 625.0f && ai.shielderBashCooldown <= 0 && m_player) {
                 auto* playerEntity = m_player->getEntity();
                 if (playerEntity && playerEntity->hasComponent<PhysicsBody>()) {
                     auto& playerPhys = playerEntity->getComponent<PhysicsBody>();
@@ -64,11 +67,11 @@ void AISystem::updateShielder(Entity& entity, float dt, const Vec2& playerPos) {
                 }
             }
 
-            if (dist < ai.attackRange) {
+            if (distSq < atkSq) {
                 ai.state = AIState::Attack;
                 ai.attackTimer = ai.attackWindup; // wind-up before first attack
             }
-            if (dist > ai.loseRange) {
+            if (distSq > loseSq) {
                 ai.state = AIState::Patrol;
                 ai.shieldUp = false;
             }
@@ -104,7 +107,8 @@ void AISystem::updateShielder(Entity& entity, float dt, const Vec2& playerPos) {
                 }
             }
 
-            if (dist > ai.attackRange * 1.5f) ai.state = AIState::Chase;
+            float atkLoseSq = ai.attackRange * 1.5f * ai.attackRange * 1.5f;
+            if (distSq > atkLoseSq) ai.state = AIState::Chase;
             break;
         }
         default: break;
