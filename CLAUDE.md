@@ -5,14 +5,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-07 overnight performance + polish session):**
+**Recent Updates (2026-04-08 continued autonomous performance + content session):**
+- **DailyRun Optimization**: Replaced O(n²) string allocations with strcmp + unordered_set (prune/rank/best)
+- **AI Squared Distance**: 6 enemy types (Walker, Turret, Charger, Phaser, Exploder, Shielder) now use sqrt-free distance comparisons via distanceToSq()
+- **120 Gameplay Tips**: 40 new tips (80→120) covering elite modifiers, boss mechanics, weapon strategies, class abilities, relics, zones, entropy management, parry timing — all localized EN+DE
+- **Bug Fixes**: Uninitialized Vec2 members in TransformComponent + AIComponent, size_t underflow in OptionsState, missing SFX on right-click-back in 4 states
+- 6 commits, 10 files changed
+
+**Previous Updates (2026-04-07 overnight performance + polish session):**
 - **Entity Type Flags**: 10 new boolean flags on Entity (isBoss, isDimResidue, isPlayerTurret, isPlayerTrap, isMinion, isEntropyMinion, isShadowClone, isEnemyEcho, isHealthPickup, isShardPickup) — eliminates ~40 per-frame string comparisons across 22 files
 - **EntityRenderType Enum**: 34-value enum replacing 25+ string comparison chain in RenderSystem with O(1) switch dispatch — eliminates ~750 string comparisons/frame
 - **forEach Template**: EntityManager::forEach converted from std::function to template — eliminates type erasure, heap allocation, and virtual dispatch at 86 call sites
 - **SDL_GetTicks Optimization Extended**: Cached in AISystem (m_frameTicks), PlayerAbilities, Player.cpp, all 5 boss systems — replaces ~25 additional redundant syscalls
 - **isPlayer Flag Fix**: Changed from substring find to exact match (tag == "player")
-- **90 Gameplay Tips**: 10 new tips (80→90) covering elite modifiers, boss mechanics, daily runs, weapon mastery — localized EN+DE
-- 6 commits, 26 files changed
+- 10 commits, 35 files changed
 
 **Previous Updates (2026-04-07 performance + onboarding + music session):**
 - **Sprite Rendering Fix**: Sprites now render at 2x collision box height with correct aspect ratio, anchored at bottom-center. Fixes sprites appearing cut-off/tiny when collision box was much smaller than texture.
@@ -51,7 +57,7 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Audio**: Missing SFX added to 5 states (Credits, Ending, GameOver, RunSummary, Splash)
 - **Mouse**: RunSummaryState accepts mouse click to continue
 - **Performance**: Entity type flags eliminate 55 string::find() per frame, RenderSystem vector reuse, HUD texture cache
-- **90 gameplay tips** (was 35 at session start), 845 EN + 1153 DE keys total
+- **120 gameplay tips** (was 35 at session start), 905 EN + 1213 DE keys total
 - 79 commits, 51 files changed, +1867 lines
 
 *Wave 1 (earlier):*
