@@ -761,6 +761,16 @@ void Localization::loadStrings() {
     m_en["tip.107"] = "TIP: Breakable walls sometimes hide secret rooms with rare relics and extra shards!";
     m_en["tip.108"] = "TIP: Look for NPC Smiths to improve weapon range and attack speed for shard payment!";
     m_en["tip.109"] = "TIP: Splitter elites spawn two smaller copies on death — be ready for the second wave!";
+    m_en["tip.110"] = "TIP: Entropy above 80% triggers visual distortion and random input glitches — keep it low!";
+    m_en["tip.111"] = "TIP: Blood Frenzy + Berserker Core relics stack for massive damage at low HP — glass cannon build!";
+    m_en["tip.112"] = "TIP: The Rift Guardian telegraphs shockwaves with a brief glow — jump to avoid ground damage!";
+    m_en["tip.113"] = "TIP: The Temporal Weaver slows time in Phase 2 — your attacks also slow down, adjust timing!";
+    m_en["tip.114"] = "TIP: Achievements give permanent stat bonuses — unlock them to make future runs easier!";
+    m_en["tip.115"] = "TIP: Cursed relics have powerful effects but harsh downsides — weigh the risk carefully!";
+    m_en["tip.116"] = "TIP: Wall-jumping lets you reach secret areas and dodge ground-based boss attacks!";
+    m_en["tip.117"] = "TIP: The Void Beam weapon drains enemies continuously — great for stationary targets like turrets!";
+    m_en["tip.118"] = "TIP: Each zone has a unique theme and enemy composition — adapt your loadout to the zone!";
+    m_en["tip.119"] = "TIP: Parry timing is tight (0.15s window) but rewarding — guaranteed crit on your next hit!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1803,6 +1813,16 @@ void Localization::loadStrings() {
     m_de["tip.107"] = "TIPP: Zerstoerbare Waende verbergen manchmal Geheimraeume mit seltenen Relikten und Splittern!";
     m_de["tip.108"] = "TIPP: NPC-Schmiede verbessern Waffenreichweite und Angriffstempo gegen Splitterbezahlung!";
     m_de["tip.109"] = "TIPP: Spalter-Eliten erzeugen bei Tod zwei kleinere Kopien — sei bereit fuer die zweite Welle!";
+    m_de["tip.110"] = "TIPP: Entropie ueber 80% loest visuelle Stoerungen und zufaellige Eingabefehler aus — halte sie niedrig!";
+    m_de["tip.111"] = "TIPP: Blutrausch + Berserkerkern-Relikten stapeln massiven Schaden bei niedrigem HP — Glaskanonen-Build!";
+    m_de["tip.112"] = "TIPP: Der Risswaechter telegrafiert Schockwellen mit kurzem Leuchten — springe um Bodenschaden zu meiden!";
+    m_de["tip.113"] = "TIPP: Der Zeitenweber verlangsamt die Zeit in Phase 2 — deine Angriffe verlangsamen sich auch!";
+    m_de["tip.114"] = "TIPP: Errungenschaften geben permanente Stat-Boni — schalte sie frei fuer leichtere zukuenftige Laeufe!";
+    m_de["tip.115"] = "TIPP: Verfluchte Relikte haben starke Effekte aber harte Nachteile — waege das Risiko sorgfaeltig!";
+    m_de["tip.116"] = "TIPP: Wandspruenge erreichen Geheimbereiche und weichen bodenbasierten Boss-Angriffen aus!";
+    m_de["tip.117"] = "TIPP: Die Leerestrahl-Waffe entzieht Gegnern kontinuierlich HP — ideal gegen stationaere Ziele!";
+    m_de["tip.118"] = "TIPP: Jede Zone hat ein eigenes Thema und andere Gegner — passe deine Ausruestung an die Zone an!";
+    m_de["tip.119"] = "TIPP: Das Parieren hat ein enges Zeitfenster (0,15s) aber lohnt sich — garantierter Krit danach!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
