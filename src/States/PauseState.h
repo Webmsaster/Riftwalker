@@ -12,6 +12,9 @@ public:
 
 private:
     void renderRunStats(SDL_Renderer* renderer, TTF_Font* font);
+    // Reset all confirm states except the one matching `keepIdx` (-1 = clear all).
+    // Used so clicking a different action auto-cancels any pending confirm.
+    void clearConfirmsExcept(int keepIdx);
 
     std::vector<Button> m_buttons;
     int m_selectedButton = 0;

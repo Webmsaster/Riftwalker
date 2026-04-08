@@ -23,6 +23,17 @@ static constexpr int PANEL_W      = 2320;
 static constexpr int PANEL_H      = 920;
 static constexpr int BOTTOM_BAR_Y = GameState::SCREEN_HEIGHT - 3;
 
+void PauseState::clearConfirmsExcept(int keepIdx) {
+    if (keepIdx != 1 && m_confirmRestart) {
+        m_confirmRestart = false;
+        m_buttons[1].setText(LOC("pause.restart"));
+    }
+    if (keepIdx != 4 && m_confirmAbandon) {
+        m_confirmAbandon = false;
+        m_buttons[4].setText(LOC("pause.abandon"));
+    }
+}
+
 void PauseState::enter() {
     int cx = SCREEN_WIDTH / 2;
     int startY = 600;
@@ -38,8 +49,9 @@ void PauseState::enter() {
     m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 4, btnW, btnH, LOC("pause.abandon"));
     m_buttons.emplace_back(cx - btnW / 2, startY + (btnH + gap) * 5, btnW, btnH, LOC("pause.quit_menu"));
 
-    m_buttons[0].onClick = [this]() { game->popState(); };
+    m_buttons[0].onClick = [this]() { clearConfirmsExcept(-1); game->popState(); };
     m_buttons[1].onClick = [this]() {
+        clearConfirmsExcept(1); // cancel any pending Abandon confirm
         if (!m_confirmRestart) {
             m_confirmRestart = true;
             m_buttons[1].setText(LOC("pause.restart_confirm"));
@@ -51,9 +63,10 @@ void PauseState::enter() {
         }
         game->changeState(StateID::Menu);
     };
-    m_buttons[2].onClick = [this]() { game->pushState(StateID::DailyLeaderboard); };
-    m_buttons[3].onClick = [this]() { game->pushState(StateID::Options); };
+    m_buttons[2].onClick = [this]() { clearConfirmsExcept(-1); game->pushState(StateID::DailyLeaderboard); };
+    m_buttons[3].onClick = [this]() { clearConfirmsExcept(-1); game->pushState(StateID::Options); };
     m_buttons[4].onClick = [this]() {
+        clearConfirmsExcept(4); // cancel any pending Restart confirm
         if (!m_confirmAbandon) {
             m_confirmAbandon = true;
             m_buttons[4].setText(LOC("pause.abandon_confirm"));
@@ -65,7 +78,7 @@ void PauseState::enter() {
         }
         game->changeState(StateID::Menu);
     };
-    m_buttons[5].onClick = [this]() { game->changeState(StateID::Menu); };
+    m_buttons[5].onClick = [this]() { clearConfirmsExcept(-1); game->changeState(StateID::Menu); };
 
     m_selectedButton = 0;
     m_buttons[0].setSelected(true);
