@@ -35,7 +35,7 @@ void RenderSystem::renderEnemyHPBar(SDL_Renderer* renderer, int x, int y, int w,
     float lagPct = hp.getLagPercent();
     if (lagPct > pct) {
         int lagW = static_cast<int>(barW * lagPct);
-        Uint32 ticks = SDL_GetTicks();
+        Uint32 ticks = m_frameTicks;
         float flicker = 0.7f + 0.3f * std::sin(ticks * 0.01f);
         fillRect(renderer, barX, barY, lagW, barH,
                  static_cast<Uint8>(220 * flicker), static_cast<Uint8>(140 * flicker),
@@ -113,7 +113,7 @@ void RenderSystem::renderWalker(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     if (entity.hasComponent<AIComponent>()) {
         auto aiSt = entity.getComponent<AIComponent>().state;
         if (aiSt == AIState::Patrol || aiSt == AIState::Idle) {
-            float bobTime = SDL_GetTicks() * 0.003f;
+            float bobTime = m_frameTicks * 0.003f;
             int bob = static_cast<int>(std::sin(bobTime) * 2.0f);
             y += bob;
         }
@@ -123,7 +123,7 @@ void RenderSystem::renderWalker(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     fillRect(renderer, x + 3, y + h, w - 6, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
 
     // Animated legs
-    float time = SDL_GetTicks() * 0.006f;
+    float time = m_frameTicks * 0.006f;
     int legOff = static_cast<int>(std::sin(time) * 2);
     fillRect(renderer, x + 2, y + h - 8 + legOff, w / 3, 8, 150, 40, 40, a);
     fillRect(renderer, x + w - w / 3 - 2, y + h - 8 - legOff, w / 3, 8, 150, 40, 40, a);
@@ -166,7 +166,7 @@ void RenderSystem::renderFlyer(SDL_Renderer* renderer, SDL_Rect rect, Entity& en
     if (entity.hasComponent<AIComponent>()) {
         auto aiSt = entity.getComponent<AIComponent>().state;
         if (aiSt == AIState::Patrol || aiSt == AIState::Idle) {
-            float fig8Time = SDL_GetTicks() * 0.003f;
+            float fig8Time = m_frameTicks * 0.003f;
             int fig8X = static_cast<int>(std::sin(fig8Time) * 3.0f);
             int fig8Y = static_cast<int>(std::sin(fig8Time * 2.0f) * 2.0f);
             x += fig8X;
@@ -176,7 +176,7 @@ void RenderSystem::renderFlyer(SDL_Renderer* renderer, SDL_Rect rect, Entity& en
 
     int cx = x + w / 2, cy = y + h / 2;
 
-    float time = SDL_GetTicks() * 0.012f;
+    float time = m_frameTicks * 0.012f;
     int wingOff = static_cast<int>(std::sin(time) * 5);
 
     // Wings (animated flap)
@@ -248,7 +248,7 @@ void RenderSystem::renderTurret(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     if (entity.hasComponent<AIComponent>()) {
         auto aiSt = entity.getComponent<AIComponent>().state;
         if (aiSt == AIState::Idle || aiSt == AIState::Patrol) {
-            float scanTime = SDL_GetTicks() * 0.003f;
+            float scanTime = m_frameTicks * 0.003f;
             int scanLen = w / 2 + 6;
             int scanCX = x + w / 2;
             int scanCY = y + 6;
@@ -328,7 +328,7 @@ void RenderSystem::renderPhaser(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     auto& sprite = entity.getComponent<SpriteComponent>();
 
-    float time = SDL_GetTicks() * 0.005f;
+    float time = m_frameTicks * 0.005f;
     int shimmer = static_cast<int>(std::sin(time) * 3);
 
     // Drop shadow (faint for ghostly entity)
@@ -349,7 +349,7 @@ void RenderSystem::renderPhaser(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     fillRect(renderer, x + w / 4 + shimmer, faceY, w / 2, h / 5, 220, 200, 255, a);
 
     // Dimension-shifting eyes
-    Uint32 t = SDL_GetTicks();
+    Uint32 t = m_frameTicks;
     bool phase1 = (t / 200) % 2 == 0;
     Uint8 eyeR = phase1 ? 100 : 200;
     Uint8 eyeB = phase1 ? 200 : 100;
@@ -371,7 +371,7 @@ void RenderSystem::renderPhaser(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 void RenderSystem::renderExploder(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
-    float time = SDL_GetTicks() * 0.01f;
+    float time = m_frameTicks * 0.01f;
 
     // Pulsing orange-red body (gets faster at low HP)
     float hpPct = 1.0f;
@@ -464,7 +464,7 @@ void RenderSystem::renderShielder(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     fillRect(renderer, x + 6, visorY, w - 12, 3, 200, 240, 255, a);
 
     // Shield (large, on the front side)
-    float time = SDL_GetTicks() * 0.003f;
+    float time = m_frameTicks * 0.003f;
     Uint8 shieldAlpha = static_cast<Uint8>(a * (0.7f + 0.3f * std::sin(time)));
     int shieldW = 6;
     int shieldH = h - 4;
@@ -494,7 +494,7 @@ void RenderSystem::renderCrawler(SDL_Renderer* renderer, SDL_Rect rect, Entity& 
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     auto& sprite = entity.getComponent<SpriteComponent>();
     bool flipped = sprite.flipX;
-    float time = SDL_GetTicks() * 0.005f;
+    float time = m_frameTicks * 0.005f;
 
     bool onCeiling = false;
     if (entity.hasComponent<AIComponent>()) {
@@ -553,7 +553,7 @@ void RenderSystem::renderSummoner(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     auto& sprite = entity.getComponent<SpriteComponent>();
-    float time = SDL_GetTicks() * 0.004f;
+    float time = m_frameTicks * 0.004f;
 
     // Drop shadow
     fillRect(renderer, x + 3, y + h, w - 6, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
@@ -609,7 +609,7 @@ void RenderSystem::renderSniper(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     auto& sprite = entity.getComponent<SpriteComponent>();
     bool flipped = sprite.flipX;
-    float time = SDL_GetTicks() * 0.004f;
+    float time = m_frameTicks * 0.004f;
 
     bool telegraphing = false;
     if (entity.hasComponent<AIComponent>()) {
@@ -709,7 +709,7 @@ void RenderSystem::renderTeleporter(SDL_Renderer* renderer, SDL_Rect rect, Entit
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     int cx = x + w / 2;
     auto& sprite = entity.getComponent<SpriteComponent>();
-    float time = SDL_GetTicks() * 0.004f;
+    float time = m_frameTicks * 0.004f;
 
     // Drop shadow
     fillRect(renderer, x + 2, y + h, w - 4, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
@@ -780,7 +780,7 @@ void RenderSystem::renderReflector(SDL_Renderer* renderer, SDL_Rect rect, Entity
     int cy = y + h / 2;
     auto& sprite = entity.getComponent<SpriteComponent>();
     bool flipped = sprite.flipX;
-    float time = SDL_GetTicks() * 0.004f;
+    float time = m_frameTicks * 0.004f;
 
     // Drop shadow
     fillRect(renderer, x + 3, y + h, w - 6, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
@@ -858,7 +858,7 @@ void RenderSystem::renderLeech(SDL_Renderer* renderer, SDL_Rect rect, Entity& en
     int cx = x + w / 2;
     auto& sprite = entity.getComponent<SpriteComponent>();
     bool flipped = sprite.flipX;
-    float time = SDL_GetTicks() * 0.005f;
+    float time = m_frameTicks * 0.005f;
 
     // Drop shadow
     fillRect(renderer, x + 3, y + h, w - 6, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
@@ -928,7 +928,7 @@ void RenderSystem::renderSwarmer(SDL_Renderer* renderer, SDL_Rect rect, Entity& 
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     int cx = x + w / 2, cy = y + h / 2;
     auto& sprite = entity.getComponent<SpriteComponent>();
-    float time = SDL_GetTicks() * 0.01f;
+    float time = m_frameTicks * 0.01f;
 
     // Drop shadow
     fillRect(renderer, x + 2, y + h, w - 4, 2, 0, 0, 0, static_cast<Uint8>(a * 0.3f));
@@ -956,7 +956,7 @@ void RenderSystem::renderGravityWell(SDL_Renderer* renderer, SDL_Rect rect, Enti
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     int cx = x + w / 2, cy = y + h / 2;
-    float time = SDL_GetTicks() * 0.003f;
+    float time = m_frameTicks * 0.003f;
 
     // Outer gravity ring (pulsing)
     float pulse = std::sin(time * 2.0f) * 0.3f + 0.7f;
@@ -1011,7 +1011,7 @@ void RenderSystem::renderMimic(SDL_Renderer* renderer, SDL_Rect rect, Entity& en
         fillRect(renderer, x + 2, y + h * 2 / 3, w - 4, 1, 100, 65, 25, a);
         fillRect(renderer, x + w / 2, y + 2, 1, h - 4, 100, 65, 25, a);
         // Slight shimmer to hint (subtle)
-        float shimmer = std::sin(SDL_GetTicks() * 0.002f) * 0.05f;
+        float shimmer = std::sin(m_frameTicks * 0.002f) * 0.05f;
         if (shimmer > 0.02f) {
             fillRect(renderer, x + w / 2 - 2, y + h / 2 - 2, 4, 4, 200, 50, 50,
                      static_cast<Uint8>(30 * shimmer * 20.0f));
@@ -1020,7 +1020,7 @@ void RenderSystem::renderMimic(SDL_Renderer* renderer, SDL_Rect rect, Entity& en
         // Revealed: angry red creature bursting out of crate
         auto& sprite = entity.getComponent<SpriteComponent>();
         bool flipped = sprite.flipX;
-        float time = SDL_GetTicks() * 0.008f;
+        float time = m_frameTicks * 0.008f;
 
         // Drop shadow
         fillRect(renderer, x + 2, y + h, w - 4, 3, 0, 0, 0, static_cast<Uint8>(a * 0.3f));

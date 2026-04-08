@@ -12,7 +12,7 @@ void RenderSystem::renderBoss(SDL_Renderer* renderer, SDL_Rect rect, Entity& ent
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     auto& sprite = entity.getComponent<SpriteComponent>();
     bool flipped = sprite.flipX;
-    float time = SDL_GetTicks() * 0.004f;
+    float time = m_frameTicks * 0.004f;
 
     int bossPhase = 1;
     if (entity.hasComponent<AIComponent>()) {
@@ -182,7 +182,7 @@ void RenderSystem::renderVoidWyrm(SDL_Renderer* renderer, SDL_Rect rect, Entity&
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     auto& sprite = entity.getComponent<SpriteComponent>();
     bool flipped = sprite.flipX;
-    float time = SDL_GetTicks() * 0.004f;
+    float time = m_frameTicks * 0.004f;
 
     int bossPhase = 1;
     bool diving = false;
@@ -304,7 +304,7 @@ void RenderSystem::renderDimensionalArchitect(SDL_Renderer* renderer, SDL_Rect r
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     auto& sprite = entity.getComponent<SpriteComponent>();
-    float time = SDL_GetTicks() * 0.004f;
+    float time = m_frameTicks * 0.004f;
 
     int bossPhase = 1;
     float beamAngle = 0;
@@ -453,7 +453,7 @@ void RenderSystem::renderTemporalWeaver(SDL_Renderer* renderer, SDL_Rect rect, E
     Uint8 a = static_cast<Uint8>(255 * alpha);
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     auto& sprite = entity.getComponent<SpriteComponent>();
-    float time = SDL_GetTicks() * 0.003f;
+    float time = m_frameTicks * 0.003f;
 
     int bossPhase = 1;
     if (entity.hasComponent<AIComponent>()) {
@@ -734,7 +734,7 @@ void RenderSystem::renderEntropyIncarnate(SDL_Renderer* renderer, SDL_Rect rect,
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     int cx = x + w / 2, cy = y + h / 2;
     auto& sprite = entity.getComponent<SpriteComponent>();
-    float time = SDL_GetTicks() * 0.004f;
+    float time = m_frameTicks * 0.004f;
 
     auto& ai = entity.getComponent<AIComponent>();
     int phase = ai.bossPhase;
