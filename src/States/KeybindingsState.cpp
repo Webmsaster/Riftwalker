@@ -113,7 +113,7 @@ void KeybindingsState::handleEvent(const SDL_Event& event) {
     // Mouse hover: update selection (not while listening for a key)
     if (event.type == SDL_MOUSEMOTION && !m_listening) {
         int mx = event.motion.x, my = event.motion.y;
-        const int startY = 240, itemH = 96, cardW = 1000, cardX = SCREEN_WIDTH / 2 - cardW / 2;
+        const int startY = 240, itemH = 72, cardW = 1100, cardX = SCREEN_WIDTH / 2 - cardW / 2;
         for (int i = 0; i < totalItems(); i++) {
             int y = startY + i * itemH;
             SDL_Rect card = {cardX, y, cardW, itemH - 6};
@@ -130,7 +130,7 @@ void KeybindingsState::handleEvent(const SDL_Event& event) {
     // Mouse click: select + confirm (not while listening)
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && !m_listening) {
         int mx = event.button.x, my = event.button.y;
-        const int startY = 240, itemH = 96, cardW = 1000, cardX = SCREEN_WIDTH / 2 - cardW / 2;
+        const int startY = 240, itemH = 72, cardW = 1100, cardX = SCREEN_WIDTH / 2 - cardW / 2;
         for (int i = 0; i < totalItems(); i++) {
             int y = startY + i * itemH;
             SDL_Rect card = {cardX, y, cardW, itemH - 6};
@@ -200,9 +200,11 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
         }
     }
 
+    // 16 items (14 actions + Reset + Back). Tight vertical layout so
+    // nothing overflows below SCREEN_HEIGHT (1440) - 40 nav hint.
     int startY = 240;
-    int itemH = 96;
-    int cardW = 1000;
+    int itemH = 72;
+    int cardW = 1100;
     int cardX = SCREEN_WIDTH / 2 - cardW / 2;
 
     for (int i = 0; i < totalItems(); i++) {
