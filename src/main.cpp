@@ -93,7 +93,10 @@ std::vector<int> parseSeedList(const char* value) {
         char* end = nullptr;
         long parsed = std::strtol(cursor, &end, 10);
         if (end == cursor) break;
-        seeds.push_back(static_cast<int>(parsed));
+        // Skip out-of-int-range values instead of silently truncating
+        if (parsed >= std::numeric_limits<int>::min() && parsed <= std::numeric_limits<int>::max()) {
+            seeds.push_back(static_cast<int>(parsed));
+        }
         cursor = end;
         if (*cursor == ',') cursor++;
     }
