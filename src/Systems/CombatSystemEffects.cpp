@@ -235,6 +235,7 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
             else if (tAI.eliteMod == EliteModifier::Explosive) {
                 float explodeDmg = 40.0f;
                 float explodeRadius = 80.0f;
+                float explodeRadiusSq = explodeRadius * explodeRadius;
                 entities.forEach([&](Entity& nearby) {
                     if (&nearby == &target || !nearby.isAlive()) return;
                     if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
@@ -242,8 +243,9 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
                     auto& nt = nearby.getComponent<TransformComponent>();
                     float edx = nt.getCenter().x - targetCenter.x;
                     float edy = nt.getCenter().y - targetCenter.y;
-                    float edist = std::sqrt(edx * edx + edy * edy);
-                    if (edist < explodeRadius) {
+                    float edistSq = edx * edx + edy * edy;
+                    if (edistSq < explodeRadiusSq) {
+                        float edist = std::sqrt(edistSq);
                         float falloff = 1.0f - (edist / explodeRadius) * 0.5f;
                         float dmg = explodeDmg * falloff;
                         // Defensive relic multiplier for player
@@ -328,8 +330,7 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
                 Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
                 float pdx = playerPos.x - targetCenter.x;
                 float pdy = playerPos.y - targetCenter.y;
-                float playerDist = std::sqrt(pdx * pdx + pdy * pdy);
-                if (playerDist < 80.0f) {
+                if (pdx * pdx + pdy * pdy < 80.0f * 80.0f) {
                     // Check i-frames before applying poison
                     if (m_player->getEntity()->hasComponent<HealthComponent>() &&
                         !m_player->getEntity()->getComponent<HealthComponent>().isInvincible()) {
