@@ -267,15 +267,34 @@ void TutorialState::renderPage(SDL_Renderer* renderer, TTF_Font* font) {
             y += 30;
             renderLine(LOC("tut.page.welcome.4"), y, {160, 140, 200, 255}); y += lineH;
             renderLine(LOC("tut.page.welcome.5"), y, {160, 140, 200, 255});
-            // Decorative rift portal visualization
+            // Decorative rift portal visualization — concentric horizontal
+            // slices to simulate an elliptical glow (SDL has no native oval)
             float pulse = 0.5f + 0.5f * std::sin(m_time * 2.0f);
             int riftCX = cx, riftCY = contentY + 550;
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
             for (int ring = 4; ring >= 0; ring--) {
-                int rSize = 60 + ring * 20 + static_cast<int>(pulse * 8);
-                Uint8 ra = static_cast<Uint8>((40 - ring * 7) * m_fadeIn);
+                int rw = 120 + ring * 40 + static_cast<int>(pulse * 16);
+                int rh = 40 + ring * 14 + static_cast<int>(pulse * 6);
+                Uint8 ra = static_cast<Uint8>((60 - ring * 10) * m_fadeIn);
                 SDL_SetRenderDrawColor(renderer, 140, 80, 255, ra);
-                SDL_Rect rr = {riftCX - rSize, riftCY - rSize / 3, rSize * 2, rSize * 2 / 3};
-                SDL_RenderFillRect(renderer, &rr);
+                // Sample an ellipse using horizontal scanlines for a smooth shape
+                for (int y2 = -rh; y2 <= rh; y2++) {
+                    float ny = static_cast<float>(y2) / rh;
+                    float w = rw * std::sqrt(std::max(0.0f, 1.0f - ny * ny));
+                    SDL_RenderDrawLine(renderer,
+                        riftCX - static_cast<int>(w), riftCY + y2,
+                        riftCX + static_cast<int>(w), riftCY + y2);
+                }
+            }
+            // Bright inner core
+            SDL_SetRenderDrawColor(renderer, 220, 180, 255,
+                static_cast<Uint8>(180 * m_fadeIn));
+            for (int y2 = -12; y2 <= 12; y2++) {
+                float ny = static_cast<float>(y2) / 12.0f;
+                float w = 36.0f * std::sqrt(std::max(0.0f, 1.0f - ny * ny));
+                SDL_RenderDrawLine(renderer,
+                    riftCX - static_cast<int>(w), riftCY + y2,
+                    riftCX + static_cast<int>(w), riftCY + y2);
             }
             break;
         }

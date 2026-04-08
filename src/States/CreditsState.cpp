@@ -268,16 +268,31 @@ void CreditsState::render(SDL_Renderer* renderer) {
         SDL_RenderDrawLine(renderer, 0, SCREEN_HEIGHT - 1 - i, SCREEN_WIDTH, SCREEN_HEIGHT - 1 - i);
     }
 
+    // Solid backdrop strip at the bottom so scrolling credit lines don't
+    // visually collide with the ESC hint.
+    {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_Rect backdrop = {0, SCREEN_HEIGHT - 90, SCREEN_WIDTH, 90};
+        SDL_SetRenderDrawColor(renderer, 8, 4, 16, 230);
+        SDL_RenderFillRect(renderer, &backdrop);
+        // Soft top edge fade into the backdrop
+        for (int i = 0; i < 20; i++) {
+            Uint8 a = static_cast<Uint8>(230 - i * 11);
+            SDL_SetRenderDrawColor(renderer, 8, 4, 16, a);
+            SDL_RenderDrawLine(renderer, 0, SCREEN_HEIGHT - 90 - i,
+                               SCREEN_WIDTH, SCREEN_HEIGHT - 90 - i);
+        }
+    }
+
     // Controls hint at bottom
     TTF_Font* hintFont = m_fontBody ? m_fontBody : game->getFont();
     if (hintFont) {
-        SDL_Color hint = {80, 60, 100, 180};
+        SDL_Color hint = {140, 110, 170, 220};
         SDL_Surface* surf = TTF_RenderUTF8_Blended(hintFont, LOC("credits.back"), hint);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
-                SDL_SetTextureAlphaMod(tex, 180);
-                SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, SCREEN_HEIGHT - 60,
+                SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, SCREEN_HEIGHT - 55,
                                 surf->w, surf->h};
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
