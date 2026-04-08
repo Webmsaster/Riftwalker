@@ -3,11 +3,11 @@
 #include <cstdint>
 
 struct TrailPoint {
-    float x, y;
-    float life;
-    float maxLife;
-    float size;
-    uint8_t r, g, b, a;
+    float x = 0, y = 0;
+    float life = 0;
+    float maxLife = 1.0f;  // non-zero default prevents NaN in life/maxLife alpha math
+    float size = 0;
+    uint8_t r = 255, g = 255, b = 255, a = 255;
 };
 
 class TrailSystem {

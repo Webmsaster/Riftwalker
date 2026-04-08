@@ -30,11 +30,11 @@ enum class SynergyID {
 };
 
 struct SynergyData {
-    SynergyID id;
-    const char* name;
-    const char* description;
-    RelicID relicA;
-    RelicID relicB;
+    SynergyID id = SynergyID::COUNT;
+    const char* name = "";
+    const char* description = "";
+    RelicID relicA = RelicID::None;
+    RelicID relicB = RelicID::None;
     WeaponID requiredWeapon = WeaponID::COUNT; // COUNT = no weapon required (relic-only synergy)
 };
 

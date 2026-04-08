@@ -24,11 +24,11 @@ enum class RunBuffID {
 };
 
 struct RunBuff {
-    RunBuffID id;
+    RunBuffID id = RunBuffID::MaxHPBoost;
     std::string name;
     std::string description;
-    int cost;
-    BuffTier tier;
+    int cost = 0;
+    BuffTier tier = BuffTier::Common;
     bool purchased = false;
 };
 
