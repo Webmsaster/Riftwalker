@@ -131,6 +131,16 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
         if (!e->isAlive()) continue;
         auto& ai = e->getComponent<AIComponent>();
         auto& t = e->getComponent<TransformComponent>();
+
+        // Reset per-frame synergy flags BEFORE the pre-pass writes to them.
+        // (Previously this reset was inside the main per-entity loop below,
+        // which ran AFTER the pre-pass and silently wiped its results —
+        // Summoner speed/damage buffs never applied to minions.)
+        ai.synergySummonerBuff = false;
+        ai.summonerBuffSpeedMult = 1.0f;
+        ai.summonerBuffDamageMult = 1.0f;
+        ai.synergyProtectTarget = nullptr;
+
         if (ai.enemyType == EnemyType::Summoner && ai.state == AIState::Chase && nSummoners < 8)
             summoners[nSummoners++] = {t.getCenter(), e};
         if (ai.enemyType == EnemyType::Shielder && ai.state != AIState::Patrol && nShielders < 8)
@@ -424,11 +434,9 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
             }
         }
 
-        // --- Synergy pre-pass: reset and compute per-frame synergy flags ---
-        ai.synergySummonerBuff = false;
-        ai.summonerBuffSpeedMult = 1.0f;
-        ai.summonerBuffDamageMult = 1.0f;
-        ai.synergyProtectTarget = nullptr;
+        // Synergy flags (synergySummonerBuff, summonerBuffSpeedMult, etc.)
+        // are reset + populated above in the pre-pass — do NOT reset here,
+        // or the Summoner buff will be silently wiped before it applies.
 
         // --- Enrage: after being hit 5 times, speed up attacks ---
         if (ai.timesHit >= 5 && !ai.isEnraged) {
