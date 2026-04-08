@@ -33,10 +33,10 @@
 
 struct FloatingDamageNumber {
     Vec2 position;
-    float value;
-    float lifetime;
-    float maxLifetime;
-    bool isPlayerDamage;
+    float value = 0;
+    float lifetime = 0;
+    float maxLifetime = 1.0f; // non-zero default prevents NaN in alpha math
+    bool isPlayerDamage = false;
     bool isCritical = false;
     bool isHeal = false;
     bool isShard = false;
@@ -613,11 +613,11 @@ private:
 
     // Foreground fog (atmospheric depth layer)
     struct FogParticle {
-        float x, y;
-        float vx;
-        float width, height;
-        float alpha;
-        float alphaPhase; // For pulsing
+        float x = 0, y = 0;
+        float vx = 0;
+        float width = 0, height = 0;
+        float alpha = 0;
+        float alphaPhase = 0; // For pulsing
     };
     static constexpr int MAX_FOG_PARTICLES = 8;
     FogParticle m_fogParticles[MAX_FOG_PARTICLES];
