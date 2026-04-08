@@ -683,26 +683,27 @@ void PlayState::updatePostCombat(float dt) {
     }
 
     // Lore: new enemy type discoveries (first kill triggers)
+    // Previously used forEach + currentHP<=0 but every kill path calls
+    // destroy() synchronously, so by the time updatePostCombat runs the
+    // killed entities are already filtered out by forEach's isAlive() gate —
+    // these three lore fragments were unreachable. Use Bestiary kill counts
+    // instead (updated via Bestiary::onEnemyKill() on every kill path).
     if (auto* lore = game->getLoreSystem()) {
-        m_entities.forEach([&](Entity& e) {
-            if (!e.isAlive() || !e.hasComponent<AIComponent>()) return;
-            auto& ai = e.getComponent<AIComponent>();
-            if (e.hasComponent<HealthComponent>() &&
-                e.getComponent<HealthComponent>().currentHP <= 0) {
-                if (ai.enemyType == EnemyType::Swarmer && !lore->isDiscovered(LoreID::SwarmNature)) {
-                    lore->discover(LoreID::SwarmNature);
-                    AudioManager::instance().play(SFX::LoreDiscover);
-                }
-                if (ai.enemyType == EnemyType::GravityWell && !lore->isDiscovered(LoreID::GravityAnomaly)) {
-                    lore->discover(LoreID::GravityAnomaly);
-                    AudioManager::instance().play(SFX::LoreDiscover);
-                }
-                if (ai.enemyType == EnemyType::Mimic && ai.mimicRevealed && !lore->isDiscovered(LoreID::MimicDeception)) {
-                    lore->discover(LoreID::MimicDeception);
-                    AudioManager::instance().play(SFX::LoreDiscover);
-                }
-            }
-        });
+        if (Bestiary::getEntry(EnemyType::Swarmer).killCount > 0 &&
+            !lore->isDiscovered(LoreID::SwarmNature)) {
+            lore->discover(LoreID::SwarmNature);
+            AudioManager::instance().play(SFX::LoreDiscover);
+        }
+        if (Bestiary::getEntry(EnemyType::GravityWell).killCount > 0 &&
+            !lore->isDiscovered(LoreID::GravityAnomaly)) {
+            lore->discover(LoreID::GravityAnomaly);
+            AudioManager::instance().play(SFX::LoreDiscover);
+        }
+        if (Bestiary::getEntry(EnemyType::Mimic).killCount > 0 &&
+            !lore->isDiscovered(LoreID::MimicDeception)) {
+            lore->discover(LoreID::MimicDeception);
+            AudioManager::instance().play(SFX::LoreDiscover);
+        }
     }
 
     // Lore: Rift Ecology — discover 5+ secret rooms
