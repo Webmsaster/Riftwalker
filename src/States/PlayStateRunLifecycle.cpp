@@ -156,7 +156,10 @@ void PlayState::startNewRun() {
     m_unlockedBossWeaponThisRun = false;
     m_aoeKillCountThisRun = 0;
     m_dashKillsThisRunForWeapon = 0;
-    std::memset(m_unlockNotifs, 0, sizeof(m_unlockNotifs));
+    // NOTE: Cannot memset to 0 — UnlockNotification has a non-zero default
+    // for maxTimer (4.0f). memset would make timer/maxTimer division return
+    // NaN in the render path. Reset each entry to a default-constructed value.
+    for (auto& n : m_unlockNotifs) n = UnlockNotification{};
     m_unlockNotifHead = 0;
 
     // Event chain: 30% chance to start a chain per run
