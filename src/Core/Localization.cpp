@@ -211,6 +211,24 @@ void Localization::loadStrings() {
     m_en["class.unlock.phantom"]       = "Complete floor 3 in any run";
     m_en["class.unlock.technomancer"]  = "Repair 30 rifts total across all runs";
 
+    // Kill feed
+    m_en["killfeed.enemy"]              = "Enemy";
+    m_en["killfeed.boss"]               = "BOSS";
+    m_en["killfeed.prefix_miniboss"]    = "[MINI-BOSS] ";
+    m_en["killfeed.prefix_elite"]       = "[ELITE] ";
+    m_en["killfeed.method_dash"]        = " (Dash)";
+    m_en["killfeed.method_charged"]     = " (Charged)";
+    m_en["killfeed.method_slam"]        = " (Slam)";
+    m_en["killfeed.method_finisher"]    = " (Finisher)";
+    m_en["killfeed.method_aerial"]      = " (Aerial)";
+    m_en["killfeed.method_ranged"]      = " (Ranged)";
+    m_en["killfeed.template"]           = "%s%s killed%s";
+
+    // Unlock notifications
+    m_en["unlock.template"]             = "%s UNLOCKED: %s";
+    m_en["unlock.weapon"]               = "WEAPON";
+    m_en["unlock.class"]                = "CLASS";
+
     // Weapon names
     m_en["weapon.name.riftblade"]       = "Rift Blade";
     m_en["weapon.name.voidhammer"]      = "Void Hammer";
@@ -1240,6 +1258,24 @@ void Localization::loadStrings() {
     m_de["class.unlock.berserker"]     = "Toete insgesamt 50 Gegner in allen Laeufen";
     m_de["class.unlock.phantom"]       = "Erreiche Etage 3 in einem Lauf";
     m_de["class.unlock.technomancer"]  = "Repariere insgesamt 30 Risse in allen Laeufen";
+
+    // Kill feed
+    m_de["killfeed.enemy"]              = "Gegner";
+    m_de["killfeed.boss"]               = "BOSS";
+    m_de["killfeed.prefix_miniboss"]    = "[MINI-BOSS] ";
+    m_de["killfeed.prefix_elite"]       = "[ELITE] ";
+    m_de["killfeed.method_dash"]        = " (Dash)";
+    m_de["killfeed.method_charged"]     = " (Aufgeladen)";
+    m_de["killfeed.method_slam"]        = " (Schlag)";
+    m_de["killfeed.method_finisher"]    = " (Finisher)";
+    m_de["killfeed.method_aerial"]      = " (Luftangriff)";
+    m_de["killfeed.method_ranged"]      = " (Fernkampf)";
+    m_de["killfeed.template"]           = "%s%s besiegt%s";
+
+    // Unlock notifications
+    m_de["unlock.template"]             = "%s FREIGESCHALTET: %s";
+    m_de["unlock.weapon"]               = "WAFFE";
+    m_de["unlock.class"]                = "KLASSE";
 
     // Weapon names (German translations)
     m_de["weapon.name.riftblade"]       = "Rissklinge";

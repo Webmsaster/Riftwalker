@@ -1,7 +1,10 @@
 #include "Bestiary.h"
 #include "Core/SaveUtils.h"
+#include "Core/Localization.h"
 #include <vector>
 #include <fstream>
+#include <cstdio>
+#include <cstring>
 
 static std::vector<BestiaryEntry> s_entries;
 static std::vector<BestiaryEntry> s_bossEntries;
@@ -276,6 +279,23 @@ const BestiaryEntry& Bestiary::getBossEntry(int bossType) {
     init();
     if (bossType >= 0 && bossType < static_cast<int>(s_bossEntries.size())) return s_bossEntries[bossType];
     return s_bossEntries[0];
+}
+
+const char* Bestiary::getLocalizedName(EnemyType type) {
+    const auto& entry = getEntry(type);
+    char key[32];
+    std::snprintf(key, sizeof(key), "enemy.%d.name", static_cast<int>(type));
+    const char* loc = LOC(key);
+    // LOC returns the key itself if not found — fall back to hardcoded entry name
+    return (std::strcmp(loc, key) == 0) ? entry.name : loc;
+}
+
+const char* Bestiary::getLocalizedBossName(int bossType) {
+    const auto& entry = getBossEntry(bossType);
+    char key[32];
+    std::snprintf(key, sizeof(key), "enemy.boss.%d.name", bossType);
+    const char* loc = LOC(key);
+    return (std::strcmp(loc, key) == 0) ? entry.name : loc;
 }
 
 int Bestiary::getDiscoveredCount() {

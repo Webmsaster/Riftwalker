@@ -30,6 +30,10 @@ public:
     // Boss entries: 0=Guardian, 1=Wyrm, 2=Architect, 3=TemporalWeaver, 4=VoidSovereign, 5=EntropyIncarnate
     static const BestiaryEntry& getBossEntry(int bossType);
 
+    // Localized name (LOC key enemy.N.name / enemy.boss.N with fallback to entry.name)
+    static const char* getLocalizedName(EnemyType type);
+    static const char* getLocalizedBossName(int bossType);
+
     static void save(const std::string& filepath);
     static void load(const std::string& filepath);
 };

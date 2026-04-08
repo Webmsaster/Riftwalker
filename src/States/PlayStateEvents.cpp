@@ -1042,28 +1042,28 @@ void PlayState::addKillFeedEntry(const KillEvent& ke) {
     auto& entry = m_killFeed[m_killFeedHead % MAX_KILL_FEED];
     entry.timer = 4.0f; // visible for 4 seconds
 
-    // Get enemy name from Bestiary
-    const char* enemyName = "Enemy";
+    // Get localized enemy name from Bestiary
+    const char* enemyName = LOC("killfeed.enemy");
     if (ke.enemyType >= 0 && ke.enemyType < static_cast<int>(EnemyType::Boss)) {
-        enemyName = Bestiary::getEntry(static_cast<EnemyType>(ke.enemyType)).name;
+        enemyName = Bestiary::getLocalizedName(static_cast<EnemyType>(ke.enemyType));
     } else if (ke.wasBoss) {
-        enemyName = "BOSS";
+        enemyName = LOC("killfeed.boss");
     }
 
     // Build kill text with context
     const char* prefix = "";
-    if (ke.wasMiniBoss) prefix = "[MINI-BOSS] ";
-    else if (ke.wasElite) prefix = "[ELITE] ";
+    if (ke.wasMiniBoss) prefix = LOC("killfeed.prefix_miniboss");
+    else if (ke.wasElite) prefix = LOC("killfeed.prefix_elite");
 
     const char* method = "";
-    if (ke.wasDash) method = " (Dash)";
-    else if (ke.wasCharged) method = " (Charged)";
-    else if (ke.wasSlam) method = " (Slam)";
-    else if (ke.wasComboFinisher) method = " (Finisher)";
-    else if (ke.wasAerial) method = " (Aerial)";
-    else if (ke.wasRanged) method = " (Ranged)";
+    if (ke.wasDash) method = LOC("killfeed.method_dash");
+    else if (ke.wasCharged) method = LOC("killfeed.method_charged");
+    else if (ke.wasSlam) method = LOC("killfeed.method_slam");
+    else if (ke.wasComboFinisher) method = LOC("killfeed.method_finisher");
+    else if (ke.wasAerial) method = LOC("killfeed.method_aerial");
+    else if (ke.wasRanged) method = LOC("killfeed.method_ranged");
 
-    std::snprintf(entry.text, sizeof(entry.text), "%s%s killed%s", prefix, enemyName, method);
+    std::snprintf(entry.text, sizeof(entry.text), LOC("killfeed.template"), prefix, enemyName, method);
 
     // Color based on kill type
     if (ke.wasBoss) entry.color = {255, 80, 80, 255};
@@ -1085,7 +1085,8 @@ void PlayState::updateKillFeed(float dt) {
 void PlayState::pushUnlockNotification(const char* name, bool isWeapon) {
     auto& notif = m_unlockNotifs[m_unlockNotifHead % MAX_UNLOCK_NOTIFS];
     std::snprintf(notif.text, sizeof(notif.text),
-                  "%s UNLOCKED: %s", isWeapon ? "WEAPON" : "CLASS", name);
+                  LOC("unlock.template"),
+                  isWeapon ? LOC("unlock.weapon") : LOC("unlock.class"), name);
     notif.timer = notif.maxTimer;
     m_unlockNotifHead++;
 
