@@ -23,9 +23,9 @@ enum class ShrineType {
 };
 
 struct RandomEvent {
-    RandomEventType type;
+    RandomEventType type = RandomEventType::Merchant;
     Vec2 position;
-    int dimension;       // Which dimension this event appears in
+    int dimension = 0;   // Which dimension this event appears in
     bool used = false;
     bool active = true;
 
