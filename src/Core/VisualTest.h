@@ -39,6 +39,7 @@ private:
         CaptureClassSel,
         SelectClass,
         WaitDiffSelect,
+        CaptureDiffSelect,
         SelectDifficulty,
         WaitGameplay,
         CaptureGameplay,
@@ -60,6 +61,21 @@ private:
         WaitAchievements,
         CaptureAchievements,
         BackFromAchievements,
+        // --- Tutorial screen ---
+        NavToTutorial,
+        WaitTutorial,
+        CaptureTutorial,
+        BackFromTutorial,
+        // --- Options screen ---
+        NavToOptions,
+        WaitOptions,
+        CaptureOptions,
+        BackFromOptions,
+        // --- Lore screen ---
+        NavToLore,
+        WaitLore,
+        CaptureLore,
+        BackFromLore,
         // --- Done ---
         Done
     };

@@ -82,8 +82,13 @@ bool VisualTest::update(int frameCount, Game* game) {
 
     case Phase::WaitDiffSelect:
         if (m_phaseFrame >= 120) {
-            nextPhase(Phase::SelectDifficulty);
+            nextPhase(Phase::CaptureDiffSelect);
         }
+        break;
+
+    case Phase::CaptureDiffSelect:
+        capture(game, "difficulty");
+        nextPhase(Phase::SelectDifficulty);
         break;
 
     case Phase::SelectDifficulty:
@@ -210,6 +215,108 @@ bool VisualTest::update(int frameCount, Game* game) {
         break;
 
     case Phase::BackFromAchievements:
+        if (m_phaseFrame >= 60) {
+            // Achievements is pushState, so ESC pops back to menu
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::NavToTutorial);
+        }
+        break;
+
+    // ========== TUTORIAL SCREEN ==========
+
+    case Phase::NavToTutorial:
+        if (m_phaseFrame < 90) break; // Wait for menu to be back
+        // After menu reset, navigate to button 1 (Tutorial)
+        if (m_phaseFrame == 90) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 100) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 105) nextPhase(Phase::WaitTutorial);
+        break;
+
+    case Phase::WaitTutorial:
+        if (m_phaseFrame >= 90) {
+            nextPhase(Phase::CaptureTutorial);
+        }
+        break;
+
+    case Phase::CaptureTutorial:
+        capture(game, "tutorial");
+        nextPhase(Phase::BackFromTutorial);
+        break;
+
+    case Phase::BackFromTutorial:
+        if (m_phaseFrame >= 30) {
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::NavToOptions);
+        }
+        break;
+
+    // ========== OPTIONS SCREEN ==========
+
+    case Phase::NavToOptions:
+        if (m_phaseFrame < 90) break; // Wait for menu transition
+        // From button 0, navigate down to button 11 (Options)
+        if (m_phaseFrame == 90)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 95)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 100) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 105) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 110) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 115) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 120) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 125) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 130) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 135) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 140) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 150) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 155) nextPhase(Phase::WaitOptions);
+        break;
+
+    case Phase::WaitOptions:
+        if (m_phaseFrame >= 90) {
+            nextPhase(Phase::CaptureOptions);
+        }
+        break;
+
+    case Phase::CaptureOptions:
+        capture(game, "options");
+        nextPhase(Phase::BackFromOptions);
+        break;
+
+    case Phase::BackFromOptions:
+        if (m_phaseFrame >= 30) {
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::NavToLore);
+        }
+        break;
+
+    // ========== LORE SCREEN ==========
+
+    case Phase::NavToLore:
+        if (m_phaseFrame < 90) break;
+        // Navigate to button 8 (Lore)
+        if (m_phaseFrame == 90)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 95)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 100) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 105) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 110) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 115) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 120) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 125) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 135) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 140) nextPhase(Phase::WaitLore);
+        break;
+
+    case Phase::WaitLore:
+        if (m_phaseFrame >= 90) {
+            nextPhase(Phase::CaptureLore);
+        }
+        break;
+
+    case Phase::CaptureLore:
+        capture(game, "lore");
+        nextPhase(Phase::BackFromLore);
+        break;
+
+    case Phase::BackFromLore:
         nextPhase(Phase::Done);
         break;
 
