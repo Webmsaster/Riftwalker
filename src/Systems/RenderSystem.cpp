@@ -824,8 +824,12 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         }
     }
 
-    // Player edge glow: dimension-colored outline to make player pop against dark backgrounds
-    if (entity.isPlayer && alpha > 0.5f) {
+    // Player edge glow: dimension-colored sprite outline to make player pop
+    // against dark backgrounds. Uses 4-direction sprite offsets (like enemy
+    // rim light) so the glow follows the actual sprite shape, not the
+    // collision box — otherwise the player appears framed in a rectangle.
+    if (entity.isPlayer && alpha > 0.5f && entity.hasComponent<SpriteComponent>() &&
+        entity.getComponent<SpriteComponent>().texture) {
         Uint32 ticks = m_frameTicks;
         float pulse = 0.6f + 0.4f * std::sin(ticks * 0.003f);
         // Dimension color: blue for A, red for B
@@ -835,17 +839,41 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         } else {
             glowR = 80; glowG = 140; glowB = 255;
         }
-        Uint8 glowA = static_cast<Uint8>(30 * pulse * alpha);
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
-        // Outer glow (expanded rect)
-        SDL_SetRenderDrawColor(renderer, glowR, glowG, glowB, glowA);
-        SDL_Rect outerGlow = {screenRect.x - 3, screenRect.y - 3, screenRect.w + 6, screenRect.h + 6};
-        SDL_RenderFillRect(renderer, &outerGlow);
-        // Inner glow (tighter, brighter)
-        SDL_SetRenderDrawColor(renderer, glowR, glowG, glowB, static_cast<Uint8>(glowA * 1.5f));
-        SDL_Rect innerGlow = {screenRect.x - 1, screenRect.y - 1, screenRect.w + 2, screenRect.h + 2};
-        SDL_RenderDrawRect(renderer, &innerGlow);
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+        // Recompute the sprite rect exactly the same way renderSprite() does
+        // (2x collision height, anchored at bottom-center) so the glow lines
+        // up with the actual drawn sprite.
+        auto& spr = entity.getComponent<SpriteComponent>();
+        SDL_Rect srcRect = spr.srcRect;
+        if (entity.hasComponent<AnimationComponent>())
+            srcRect = entity.getComponent<AnimationComponent>().getCurrentSrcRect();
+
+        SDL_Rect spriteRect = screenRect;
+        if (srcRect.w > 0 && srcRect.h > 0 && spriteRect.w > 0 && spriteRect.h > 0) {
+            float spriteAR = static_cast<float>(srcRect.w) / srcRect.h;
+            int renderH = spriteRect.h * 2;
+            int renderW = static_cast<int>(renderH * spriteAR);
+            int centerX = spriteRect.x + spriteRect.w / 2;
+            int bottomY = spriteRect.y + spriteRect.h;
+            spriteRect.x = centerX - renderW / 2;
+            spriteRect.y = bottomY - renderH;
+            spriteRect.w = renderW;
+            spriteRect.h = renderH;
+        }
+
+        Uint8 glowA = static_cast<Uint8>(40 * pulse * alpha);
+        SDL_RendererFlip flip = spr.flipX ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+
+        SDL_SetTextureBlendMode(spr.texture, SDL_BLENDMODE_ADD);
+        SDL_SetTextureColorMod(spr.texture, glowR, glowG, glowB);
+        SDL_SetTextureAlphaMod(spr.texture, glowA);
+        // 4-direction pixel offsets (same pattern as enemy rim light)
+        static const int glowOff[][2] = {{2,0},{-2,0},{0,2},{0,-2}};
+        for (auto& off : glowOff) {
+            SDL_Rect glowRect = {spriteRect.x + off[0], spriteRect.y + off[1], spriteRect.w, spriteRect.h};
+            SDL_RenderCopyEx(renderer, spr.texture, &srcRect, &glowRect, 0.0, nullptr, flip);
+        }
+        SDL_SetTextureBlendMode(spr.texture, SDL_BLENDMODE_BLEND);
     }
 
     // Enemy rim light: element/type-specific colored additive outline
