@@ -89,6 +89,9 @@ private:
     int m_hudTargetW = 0;
     int m_hudTargetH = 0;
 
+    // Cached SDL_GetTicks() — set once per render() call, used by all pulse/animation math
+    Uint32 m_frameTicks = 0;
+
     // Text texture cache: avoids per-frame TTF_RenderText + SDL_CreateTextureFromSurface
     struct CachedText {
         SDL_Texture* texture = nullptr;

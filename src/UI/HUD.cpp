@@ -160,7 +160,7 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
         if (rx < mapX || rx >= mapX + mapW || ry < mapY || ry >= mapY + mapH) continue;
 
         bool repaired = repairedRifts && repairedRifts->count(i) > 0;
-        float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.006f);
+        float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.006f);
 
         Uint8 alpha = static_cast<Uint8>(160 + 90 * pulse);
         if (repaired) {
@@ -194,7 +194,7 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
             if (level->isExitActive()) {
                 // Collapse active: urgent pulsing green diamond
                 // Fast pulse (0.015 rad/ms) to draw attention
-                float ePulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.015f);
+                float ePulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.015f);
                 Uint8 eAlpha = clampU8(180 + 75 * ePulse);
 
                 // Outer glow ring (fades in/out with pulse)
@@ -257,7 +257,7 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
 
             if (e.isBoss) {
                 // Boss: larger pulsing orange dot
-                float bPulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.008f);
+                float bPulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.008f);
                 SDL_SetRenderDrawColor(renderer, 255, 140, 40, clampU8(200 + 55 * bPulse));
                 SDL_Rect er = {emx - 3, emy - 3, 6, 6};
                 SDL_RenderFillRect(renderer, &er);
@@ -281,7 +281,7 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
         int playerMY = offsetY + static_cast<int>((pt.getCenter().y / tileSize) * scale);
 
         if (playerMX >= mapX && playerMX < mapX + mapW && playerMY >= mapY && playerMY < mapY + mapH) {
-            Uint32 t = SDL_GetTicks();
+            Uint32 t = m_frameTicks;
             // Blink: white on, dim cyan off (400ms period)
             if ((t / 400) % 2 == 0) {
                 SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -345,6 +345,9 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                  const Player* player, const SuitEntropy* entropy,
                  const DimensionManager* dimMgr,
                  int screenW, int screenH, int fps, int riftShards) {
+    // Cache once per frame — eliminates ~23 per-frame SDL_GetTicks syscalls in HUD render
+    m_frameTicks = m_frameTicks;
+
     // Recreate offscreen texture if screen size changed
     if (!m_hudTarget || m_hudTargetW != screenW || m_hudTargetH != screenH) {
         if (m_hudTarget) SDL_DestroyTexture(m_hudTarget);
@@ -412,7 +415,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
         // Blood Rage indicator for Berserker
         if (player->isBloodRageActive()) {
-            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.012f);
+            float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.012f);
             Uint8 a = static_cast<Uint8>(180 * pulse);
             SDL_SetRenderDrawColor(renderer, 255, 60, 30, a);
             SDL_Rect rageRect = {iconX - 4, iconY - 4, iconSize + 8, iconSize + 8};
@@ -448,7 +451,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
             // Pulsing border at high stacks
             if (player->momentumStacks >= 3) {
-                float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.01f);
+                float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.01f);
                 Uint8 a = static_cast<Uint8>(150 * pulse);
                 SDL_SetRenderDrawColor(renderer, 255, 100, 30, a);
                 SDL_Rect glowRect = {iconX - 4, iconY - 4, iconSize + 8, iconSize + 8};
@@ -465,7 +468,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
         // Phantom Phase Through indicator (active during dash)
         if (player->isPhaseThrough()) {
-            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.025f);
+            float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.025f);
             Uint8 a = static_cast<Uint8>(220 * pulse);
             SDL_SetRenderDrawColor(renderer, 60, 220, 200, a);
             SDL_Rect phaseRect = {iconX - 6, iconY - 6, iconSize + 12, iconSize + 12};
@@ -485,7 +488,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         // Rift Charge indicator for Voidwalker (Dimensional Affinity)
         if (player->isRiftChargeActive()) {
             float pct = player->riftChargeTimer / player->riftChargeDuration;
-            float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.015f);
+            float pulse = 0.6f + 0.4f * std::sin(m_frameTicks * 0.015f);
             Uint8 a = static_cast<Uint8>(200 * pulse);
             SDL_SetRenderDrawColor(renderer, 80, 160, 255, a);
             SDL_Rect chargeRect = {iconX - 4, iconY - 4, iconSize + 8, iconSize + 8};
@@ -511,7 +514,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         else hpColor = {220, 50, 50, 255};
 
         if (pct < 0.3f) {
-            float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.008f);
+            float pulse = 0.7f + 0.3f * std::sin(m_frameTicks * 0.008f);
             hpColor.r = static_cast<Uint8>(hpColor.r * pulse);
         }
 
@@ -533,7 +536,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         SDL_Color xpColor = {255, 215, 0, 255}; // Gold
         // Slight pulse when close to leveling up
         if (xpPct > 0.8f) {
-            float pulse = 0.8f + 0.2f * std::sin(SDL_GetTicks() * 0.008f);
+            float pulse = 0.8f + 0.2f * std::sin(m_frameTicks * 0.008f);
             xpColor.g = static_cast<Uint8>(215 * pulse);
         }
 
@@ -560,7 +563,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         else entropyColor = {220, 50, 50, 255};
 
         if (ep >= 0.75f) {
-            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.01f);
+            float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.01f);
             entropyColor.r = static_cast<Uint8>(entropyColor.r * (0.7f + 0.3f * pulse));
         }
 
@@ -623,7 +626,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
             // Pulsing glow at high tiers
             if (tier >= 2) {
-                float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
+                float pulse = 0.6f + 0.4f * std::sin(m_frameTicks * 0.008f);
                 resColor.a = clampU8(200 + 55 * pulse);
             }
 
@@ -670,7 +673,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             // Pulsing at high combos
             if (combat.comboCount >= 5) {
                 float pulseRate = 0.008f + (combat.comboCount - 5) * 0.002f;
-                float pulse = 0.05f * std::sin(SDL_GetTicks() * pulseRate);
+                float pulse = 0.05f * std::sin(m_frameTicks * pulseRate);
                 comboScale += pulse;
             }
 
@@ -773,11 +776,11 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
 
         // Pulsing alpha
-        float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.01f);
+        float pulse = 0.7f + 0.3f * std::sin(m_frameTicks * 0.01f);
         fColor.a = clampU8(180 + 75 * pulse);
 
         // Pulsing scale
-        float fScale = 1.0f + 0.1f * std::sin(SDL_GetTicks() * 0.012f);
+        float fScale = 1.0f + 0.1f * std::sin(m_frameTicks * 0.012f);
 
         int finisherY = 220; // below combo area (scaled for 2K)
         SDL_Surface* fSurf = TTF_RenderUTF8_Blended(font, finisherName, fColor);
@@ -833,12 +836,12 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             bool midBoss = isMidBossFloor(m_currentFloor);
             if (zoneBoss) {
                 std::snprintf(floorText, sizeof(floorText), LOC("hud.floor_boss"), m_currentFloor, zone);
-                float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.008f);
+                float pulse = 0.6f + 0.4f * std::sin(m_frameTicks * 0.008f);
                 Uint8 a = static_cast<Uint8>(220 * pulse);
                 renderText(renderer, font, floorText, infoX, infoY, {255, 80, 60, a});
             } else if (midBoss) {
                 std::snprintf(floorText, sizeof(floorText), LOC("hud.floor_miniboss"), m_currentFloor, zone);
-                float pulse = 0.7f + 0.3f * std::sin(SDL_GetTicks() * 0.006f);
+                float pulse = 0.7f + 0.3f * std::sin(m_frameTicks * 0.006f);
                 Uint8 a = static_cast<Uint8>(200 * pulse);
                 renderText(renderer, font, floorText, infoX, infoY, {255, 180, 60, a});
             } else {
@@ -874,7 +877,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             std::snprintf(timerText, sizeof(timerText), "%02d:%02d", mins, secs);
             SDL_Color timerCol = {160, 160, 180, 150}; // dim default
             if (m_runTime < 600.0f) { // under 10 minutes — gold pulse
-                float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.005f);
+                float pulse = 0.6f + 0.4f * std::sin(m_frameTicks * 0.005f);
                 Uint8 a = static_cast<Uint8>(200 * pulse);
                 timerCol = {255, 215, 80, a};
             }
@@ -909,7 +912,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         }
         if (m_ngPlusTex) {
             // Pulsing gold via color modulation (no per-frame texture recreation)
-            float pulse = 0.85f + 0.15f * std::sin(SDL_GetTicks() * 0.003f);
+            float pulse = 0.85f + 0.15f * std::sin(m_frameTicks * 0.003f);
             Uint8 ngR = 255, ngG = static_cast<Uint8>(200 * pulse), ngB = 30;
             SDL_SetTextureColorMod(m_ngPlusTex, ngR, ngG, ngB);
             SDL_SetTextureAlphaMod(m_ngPlusTex, 230);
@@ -1012,7 +1015,7 @@ void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
                     if (remain>0.05f) { char cdTxt[8]; std::snprintf(cdTxt,sizeof(cdTxt),"%.1f",remain); renderText(renderer,font,cdTxt,ix+4,abY+iconSize/2-10,{255,255,255,220}); }
                 }
             }
-            if (ready) { float pulse=0.5f+0.5f*std::sin(SDL_GetTicks()*0.006f); SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,static_cast<Uint8>(140+60*pulse)); }
+            if (ready) { float pulse=0.5f+0.5f*std::sin(m_frameTicks*0.006f); SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,static_cast<Uint8>(140+60*pulse)); }
             else SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,60);
             SDL_RenderDrawRect(renderer, &bg);
             if (m_abilityReadyFlash[i]>0) { float flashT=m_abilityReadyFlash[i]/0.35f; Uint8 flashA=static_cast<Uint8>(180*flashT); auto& rc=abilities[i].readyColor; SDL_SetRenderDrawColor(renderer,rc.r,rc.g,rc.b,flashA); SDL_Rect flashRect={ix-4,abY-4,iconSize+8,iconSize+8}; SDL_RenderFillRect(renderer,&flashRect); }
@@ -1097,8 +1100,8 @@ void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
                 SDL_SetRenderDrawColor(renderer,0,0,0,160); SDL_Rect cover={ix,abStartY,abIconSize,coverH}; SDL_RenderFillRect(renderer,&cover);
                 if (font) { float remain=0; if(player->playerClass==PlayerClass::Technomancer){if(i==0)remain=player->turretCooldownTimer;else if(i==1)remain=player->trapCooldownTimer;else remain=abil.abilities[2].cooldownTimer;}else{remain=abil.abilities[i].cooldownTimer;} if(remain>0.05f){char cdTxt[8];std::snprintf(cdTxt,sizeof(cdTxt),"%.1f",remain);renderText(renderer,font,cdTxt,ix+3,abStartY+abIconSize/2-5,{255,255,255,220});} }
             }
-            if (active) { float pulse=0.5f+0.5f*std::sin(SDL_GetTicks()*0.01f); Uint8 gA=static_cast<Uint8>(100+80*pulse); SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,gA); SDL_Rect glow={ix-2,abStartY-2,abIconSize+4,abIconSize+4}; SDL_RenderDrawRect(renderer,&glow); }
-            if (ready&&!active){float pulse=0.5f+0.5f*std::sin(SDL_GetTicks()*0.006f);SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,static_cast<Uint8>(150+50*pulse));}else{SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,static_cast<Uint8>(active?200:60));}
+            if (active) { float pulse=0.5f+0.5f*std::sin(m_frameTicks*0.01f); Uint8 gA=static_cast<Uint8>(100+80*pulse); SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,gA); SDL_Rect glow={ix-2,abStartY-2,abIconSize+4,abIconSize+4}; SDL_RenderDrawRect(renderer,&glow); }
+            if (ready&&!active){float pulse=0.5f+0.5f*std::sin(m_frameTicks*0.006f);SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,static_cast<Uint8>(150+50*pulse));}else{SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,static_cast<Uint8>(active?200:60));}
             SDL_RenderDrawRect(renderer,&bg);
             if (font) renderText(renderer,font,abIcons[i].label,ix+9,abStartY+abIconSize+1,{c.r,c.g,c.b,static_cast<Uint8>(ready?200:80)});
         }
@@ -1220,7 +1223,7 @@ void HUD::renderBar(SDL_Renderer* renderer, int x, int y, int w, int h,
         SDL_RenderFillRect(renderer, &specular);
 
         // Animated shimmer (subtle moving highlight)
-        Uint32 ticks = SDL_GetTicks();
+        Uint32 ticks = m_frameTicks;
         int shimmerX = x + static_cast<int>((ticks % 3000) * fillW / 3000.0f);
         if (shimmerX < x + fillW - 16) {
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 25);
