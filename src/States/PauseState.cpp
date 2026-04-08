@@ -96,16 +96,14 @@ void PauseState::handleEvent(const SDL_Event& event) {
                 m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
                 m_buttons[m_selectedButton].setSelected(true);
                 AudioManager::instance().play(SFX::MenuSelect);
-                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
-                if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
+                clearConfirmsExcept(-1);
                 break;
             case SDL_SCANCODE_S: case SDL_SCANCODE_DOWN:
                 m_buttons[m_selectedButton].setSelected(false);
                 m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
                 m_buttons[m_selectedButton].setSelected(true);
                 AudioManager::instance().play(SFX::MenuSelect);
-                if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
-                if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
+                clearConfirmsExcept(-1);
                 break;
             case SDL_SCANCODE_RETURN: case SDL_SCANCODE_SPACE:
                 AudioManager::instance().play(SFX::MenuConfirm);
@@ -143,8 +141,7 @@ void PauseState::handleEvent(const SDL_Event& event) {
             m_selectedButton = (m_selectedButton + 1) % btnCount;
         m_buttons[m_selectedButton].setSelected(true);
         AudioManager::instance().play(SFX::MenuSelect);
-        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
-        if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
+        clearConfirmsExcept(-1);
     }
 
     // Right-click to resume (same as ESC)
@@ -183,16 +180,14 @@ void PauseState::update(float dt) {
         m_selectedButton = (m_selectedButton - 1 + static_cast<int>(m_buttons.size())) % static_cast<int>(m_buttons.size());
         m_buttons[m_selectedButton].setSelected(true);
         AudioManager::instance().play(SFX::MenuSelect);
-        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
-        if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
+        clearConfirmsExcept(-1);
     }
     if (input.isActionPressed(Action::MenuDown)) {
         m_buttons[m_selectedButton].setSelected(false);
         m_selectedButton = (m_selectedButton + 1) % static_cast<int>(m_buttons.size());
         m_buttons[m_selectedButton].setSelected(true);
         AudioManager::instance().play(SFX::MenuSelect);
-        if (m_confirmAbandon) { m_confirmAbandon = false; m_buttons[4].setText(LOC("pause.abandon")); }
-        if (m_confirmRestart) { m_confirmRestart = false; m_buttons[1].setText(LOC("pause.restart")); }
+        clearConfirmsExcept(-1);
     }
     if (input.isActionPressed(Action::Confirm)) {
         AudioManager::instance().play(SFX::MenuConfirm);
