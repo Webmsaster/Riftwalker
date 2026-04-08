@@ -78,7 +78,9 @@ public:
         m_damageEvents.clear();
         m_damageEvents.reserve(64);
         m_deathEffects.clear();
+        m_deathEffects.reserve(16);
         parryEvents.clear();
+        parryEvents.reserve(16);
         killEvents.reserve(32);
     }
 
@@ -118,7 +120,8 @@ public:
     // Death effects (consumed by PlayState for ghost rendering)
     std::vector<DeathEffect> consumeDeathEffects() {
         auto effects = std::move(m_deathEffects);
-        m_deathEffects.clear();
+        // Re-reserve after move to avoid reallocation on next frame's first push_back
+        m_deathEffects.reserve(16);
         return effects;
     }
 
