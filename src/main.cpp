@@ -541,7 +541,8 @@ int main(int argc, char* argv[]) {
             continue;
         }
         if (std::strncmp(argv[i], "--playtest-runs=", 16) == 0) {
-            g_playtestRuns = std::max(1, std::atoi(argv[i] + 16));
+            int runs = 1;
+            if (parseIntArg(argv[i] + 16, runs)) g_playtestRuns = std::max(1, runs);
             continue;
         }
         if (std::strncmp(argv[i], "--playtest-class=", 17) == 0) {
@@ -591,11 +592,13 @@ int main(int argc, char* argv[]) {
             continue;
         }
         if (std::strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
-            g_forcedRunSeed = std::atoi(argv[++i]);
+            int seed = 0;
+            if (parseIntArg(argv[++i], seed)) g_forcedRunSeed = seed;
             continue;
         }
         if (std::strncmp(argv[i], "--seed=", 7) == 0) {
-            g_forcedRunSeed = std::atoi(argv[i] + 7);
+            int seed = 0;
+            if (parseIntArg(argv[i] + 7, seed)) g_forcedRunSeed = seed;
             continue;
         }
         if (std::strncmp(argv[i], "--smoke-target-floor=", 21) == 0) {
