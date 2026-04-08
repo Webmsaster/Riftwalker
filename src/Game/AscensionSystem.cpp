@@ -75,12 +75,7 @@ void AscensionSystem::save(const std::string& filepath) {
 
 void AscensionSystem::load(const std::string& filepath) {
     init();
-    std::ifstream f(filepath);
-    if (!f.is_open() || f.peek() == std::ifstream::traits_type::eof()) {
-        f.close();
-        f.open(filepath + ".bak");
-        if (f.is_open()) SDL_Log("Using backup ascension save: %s.bak", filepath.c_str());
-    }
+    std::ifstream f = openWithBackupFallback(filepath);
     if (!f) return;
     f >> currentLevel >> riftCores;
     if (currentLevel < 0) currentLevel = 0;

@@ -89,12 +89,7 @@ void ChallengeMode::save(const std::string& filepath) {
 
 void ChallengeMode::load(const std::string& filepath) {
     init();
-    std::ifstream f(filepath);
-    if (!f.is_open() || f.peek() == std::ifstream::traits_type::eof()) {
-        f.close();
-        f.open(filepath + ".bak");
-        if (f.is_open()) SDL_Log("Using backup challenge save: %s.bak", filepath.c_str());
-    }
+    std::ifstream f = openWithBackupFallback(filepath);
     if (!f) return;
     std::string header;
     std::getline(f, header);
