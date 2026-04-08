@@ -2,7 +2,10 @@
 #include "Core/ResourceManager.h"
 
 Button::Button(int x, int y, int w, int h, const std::string& text)
-    : m_rect{x, y, w, h}, m_text(text) {}
+    : m_rect{x, y, w, h}, m_text(text) {
+    baseX = x; // Initialize baseX to match constructor position (prevents off-screen render)
+    entranceProgress = 1.0f; // Default: no entrance animation (states must opt-in)
+}
 
 void Button::update(float dt) {
     float target = (m_selected && enabled) ? 1.0f : 0.0f;

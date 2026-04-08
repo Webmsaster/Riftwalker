@@ -58,8 +58,9 @@ const MutatorData& ChallengeMode::getMutatorData(MutatorID id) {
     return s_mutators[0];
 }
 
-int ChallengeMode::getChallengeCount() { return static_cast<int>(ChallengeID::COUNT); }
-int ChallengeMode::getMutatorCount() { return static_cast<int>(MutatorID::COUNT); }
+// Excludes "None" entry (index 0) — only counts selectable challenges
+int ChallengeMode::getChallengeCount() { return static_cast<int>(ChallengeID::COUNT) - 1; }
+int ChallengeMode::getMutatorCount() { return static_cast<int>(MutatorID::COUNT) - 1; }
 
 ChallengeBest ChallengeMode::bestScores[static_cast<int>(ChallengeID::COUNT)] = {};
 

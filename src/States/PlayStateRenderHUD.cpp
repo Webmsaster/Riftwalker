@@ -714,10 +714,10 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
     // Active challenge indicator (top center, below boss bar)
     if (m_combatChallenge.active && !m_combatChallenge.completed) {
         int cx = SCREEN_WIDTH / 2;
-        int cy = m_isBossLevel ? 60 : 28;
+        int cy = m_isBossLevel ? 130 : 70;
 
-        // Background panel
-        int panelW = 240, panelH = 36;
+        // Background panel (2K-scaled: was 240x36 in 720p)
+        int panelW = 560, panelH = 90;
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 20, 20, 30, 180);
         SDL_Rect bg = {cx - panelW / 2, cy - panelH / 2, panelW, panelH};
@@ -733,7 +733,7 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {cx - ns->w / 2, cy - panelH / 2 + 2, ns->w, ns->h};
+                SDL_Rect nr = {cx - ns->w / 2, cy - panelH / 2 + 6, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }
@@ -746,7 +746,7 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
-                SDL_Rect dr = {cx - ds->w / 2, cy - panelH / 2 + 16, ds->w, ds->h};
+                SDL_Rect dr = {cx - ds->w / 2, cy - panelH / 2 + 46, ds->w, ds->h};
                 SDL_RenderCopy(renderer, dt, nullptr, &dr);
                 SDL_DestroyTexture(dt);
             }
@@ -757,12 +757,12 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
         if (m_combatChallenge.type == CombatChallengeType::MultiKill &&
             m_combatChallenge.currentCount > 0 && m_combatChallenge.maxTimer > 0) {
             float pct = m_combatChallenge.timer / m_combatChallenge.maxTimer;
-            int barW = panelW - 8;
-            SDL_Rect barBg = {cx - barW / 2, cy + panelH / 2 - 5, barW, 3};
+            int barW = panelW - 16;
+            SDL_Rect barBg = {cx - barW / 2, cy + panelH / 2 - 12, barW, 6};
             SDL_SetRenderDrawColor(renderer, 40, 40, 50, 200);
             SDL_RenderFillRect(renderer, &barBg);
-            SDL_Rect barFill = {cx - barW / 2, cy + panelH / 2 - 5,
-                                static_cast<int>(barW * pct), 3};
+            SDL_Rect barFill = {cx - barW / 2, cy + panelH / 2 - 12,
+                                static_cast<int>(barW * pct), 6};
             Uint8 r = static_cast<Uint8>(255 * (1.0f - pct));
             Uint8 g = static_cast<Uint8>(255 * pct);
             SDL_SetRenderDrawColor(renderer, r, g, 50, 230);
@@ -776,7 +776,7 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
             if (cs) {
                 SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
                 if (ct) {
-                    SDL_Rect cr = {cx + panelW / 2 + 4, cy - cs->h / 2, cs->w, cs->h};
+                    SDL_Rect cr = {cx + panelW / 2 + 8, cy - cs->h / 2, cs->w, cs->h};
                     SDL_RenderCopy(renderer, ct, nullptr, &cr);
                     SDL_DestroyTexture(ct);
                 }
@@ -792,7 +792,7 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
         if (rs) {
             SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
             if (rt) {
-                SDL_Rect rr = {cx + panelW / 2 - rs->w - 4, cy - panelH / 2 + 2, rs->w, rs->h};
+                SDL_Rect rr = {cx + panelW / 2 - rs->w - 8, cy - panelH / 2 + 6, rs->w, rs->h};
                 SDL_RenderCopy(renderer, rt, nullptr, &rr);
                 SDL_DestroyTexture(rt);
             }
