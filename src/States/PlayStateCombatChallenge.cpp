@@ -40,15 +40,15 @@ void PlayState::checkRiftInteraction() {
     int currentDim = m_dimManager.getCurrentDimension();
 
     m_nearRiftIndex = -1;
-    float nearestRiftDist = 60.0f;
+    float nearestRiftDistSq = 60.0f * 60.0f;
     for (int i = 0; i < static_cast<int>(rifts.size()); i++) {
         // FIX: Skip already-repaired rifts
         if (m_repairedRiftIndices.count(i)) continue;
         float dx = playerPos.x - rifts[i].x;
         float dy = playerPos.y - rifts[i].y;
-        float dist = std::sqrt(dx * dx + dy * dy);
-        if (dist < nearestRiftDist) {
-            nearestRiftDist = dist;
+        float distSq = dx * dx + dy * dy;
+        if (distSq < nearestRiftDistSq) {
+            nearestRiftDistSq = distSq;
             m_nearRiftIndex = i;
         }
     }
@@ -185,9 +185,8 @@ void PlayState::checkExitReached() {
     Vec2 exitPos = m_level->getExitPoint();
     float dx = playerPos.x - exitPos.x;
     float dy = playerPos.y - exitPos.y;
-    float dist = std::sqrt(dx * dx + dy * dy);
 
-    if (dist < 50.0f) {
+    if (dx * dx + dy * dy < 50.0f * 50.0f) {
         // FIX: Exit only works after all rifts are repaired (collapse started).
         // This enforces the core game loop: repair rifts -> collapse -> escape.
         if (!m_collapsing) {

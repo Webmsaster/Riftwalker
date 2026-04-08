@@ -238,9 +238,11 @@ void PlayState::updateSecretRoomHints(float dt) {
             static_cast<float>(sr.entranceY * tileSize + tileSize / 2)
         };
 
-        float dist = std::sqrt((pPos.x - entrancePos.x) * (pPos.x - entrancePos.x) +
-                                (pPos.y - entrancePos.y) * (pPos.y - entrancePos.y));
-        if (dist > hintRadius) continue;
+        float edx = pPos.x - entrancePos.x;
+        float edy = pPos.y - entrancePos.y;
+        float distSq = edx * edx + edy * edy;
+        if (distSq > hintRadius * hintRadius) continue;
+        float dist = std::sqrt(distSq);
 
         // Intensity increases as player gets closer (0.0 at edge, 1.0 at wall)
         float proximity = 1.0f - (dist / hintRadius);
@@ -295,9 +297,8 @@ void PlayState::checkEventInteraction() {
 
         float dx = playerCenter.x - event.position.x;
         float dy = playerCenter.y - event.position.y;
-        float dist = std::sqrt(dx * dx + dy * dy);
 
-        if (dist < 60.0f) {
+        if (dx * dx + dy * dy < 60.0f * 60.0f) {
             m_nearEventIndex = i;
 
             // Interact with Up/W
@@ -476,9 +477,8 @@ void PlayState::checkNPCInteraction() {
 
         float dx = playerCenter.x - npc.position.x;
         float dy = playerCenter.y - npc.position.y;
-        float dist = std::sqrt(dx * dx + dy * dy);
 
-        if (dist < 60.0f) {
+        if (dx * dx + dy * dy < 60.0f * 60.0f) {
             m_nearNPCIndex = i;
 
             if (input.isActionPressed(Action::Interact)) {
