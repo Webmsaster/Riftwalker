@@ -15,6 +15,7 @@
 #include <cstring>
 #include <ctime>
 #include <functional>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -77,6 +78,8 @@ bool parseIntArg(const char* value, int& out) {
     char* end = nullptr;
     long parsed = std::strtol(value, &end, 10);
     if (!end || *end != '\0') return false;
+    // Reject values outside int range (cast would be implementation-defined)
+    if (parsed < std::numeric_limits<int>::min() || parsed > std::numeric_limits<int>::max()) return false;
     out = static_cast<int>(parsed);
     return true;
 }
