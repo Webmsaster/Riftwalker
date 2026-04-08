@@ -5,7 +5,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-08 continued autonomous performance + content session):**
+**Recent Updates (2026-04-09 mega autonomous session — 45+ commits):**
+- **sqrt elimination pass**: hot-path distance checks across combat (PlayerCombat, CombatSystemEffects, PlayerAbilities, Player grapple), physics (gravity well, tunneling), render (projectile trail), interaction (rift/exit/NPC/event/secret-room), update loops (turret scan, boss effects, pickup magnet, residue zones). ~40 sqrt calls per frame eliminated in slow-entity paths
+- **SDL_GetTicks caching**: RenderSystemPlayer (8 calls), RenderSystemEnemies (20 calls), RenderSystemBosses (5 calls), HUD (23 calls), CombatSystemUpdate freeze decay hoist — ~60 syscalls per frame eliminated
+- **Heap allocation fix**: consumeDamageEvents/DeathEffects re-reserve after std::move (prevents fresh allocation each frame in combat hot path)
+- **Localization gap fixes (9 echte UI bugs for DE players)**: Weapon names (12), kill feed template+prefix+method+enemy names, unlock notifications (weapon/class), achievement unlock popup, lore discovery notification, shrine effects (6) + event chain stages (12), weapon unlock requirements (13), NPC quest-complete messages (3). ~100 new loc keys
+- **Critical memset bug**: UnlockNotification memset zero'd struct's non-zero maxTimer default → unlock banners never appeared + NaN in render alpha math. Replaced with default-construct assignment
+- **Struct hardening pass**: 40+ POD members in 15 structs now have explicit default initializers (AnimFrame, DamageIndicator, FloatingDamageNumber, FogParticle, RandomEvent, DamageEvent, DeathEffect, SpawnPoint, CrateSpawn, EmitterPos, RoomTemplate, LGRoom, DaySummary, ClassData, ZoneScaling, TrailPoint, SynergyData, RunBuff) — prevents NaN-through-zero-divide if ever default-constructed
+- **SDL_QueryTexture guards**: renderNineSlice + SpriteComponent constructor now check return code + positive dimensions (previously read garbage tw/th on API failure)
+- **Save backup fallback symmetry**: 7 load paths (InputManager bindings, Game settings, DailyRun) now use openWithBackupFallback matching their atomicSave counterparts — user can recover from corruption
+- **PauseState UX fix**: Confirm state bleeding between Restart/Abandon buttons (clearConfirmsExcept helper)
+- **CLI validation hardening**: parseIntArg long→int overflow check, parseSeedList out-of-range skip, atoi→parseIntArg for --seed/--playtest-runs
+- **5 new gameplay tips**: 120 → 125 (EN + DE)
+- 45+ commits, ~50 files changed
+
+**Previous Updates (2026-04-08 continued autonomous performance + content session):**
 - **DailyRun Optimization**: Replaced O(n²) string allocations with strcmp + unordered_set (prune/rank/best)
 - **AI Squared Distance**: 6 enemy types (Walker, Turret, Charger, Phaser, Exploder, Shielder) now use sqrt-free distance comparisons via distanceToSq()
 - **120 Gameplay Tips**: 40 new tips (80→120) covering elite modifiers, boss mechanics, weapon strategies, class abilities, relics, zones, entropy management, parry timing — all localized EN+DE
