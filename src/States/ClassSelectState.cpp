@@ -152,7 +152,7 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
 
     // Class cards side by side (auto-size for any count, scaled for 2K)
     int cardW = (ClassSystem::CLASS_COUNT <= 3) ? 680 : 560;
-    int cardH = 880;
+    int cardH = 1100;
     int gap = (ClassSystem::CLASS_COUNT <= 3) ? 60 : 40;
     int totalW = cardW * ClassSystem::CLASS_COUNT + gap * (ClassSystem::CLASS_COUNT - 1);
     int startX = SCREEN_WIDTH / 2 - totalW / 2;
@@ -219,6 +219,9 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     int previewY = y + 60 + static_cast<int>(selected ? this->m_previewBob : 0.0f);
     this->renderClassPreview(renderer, data, cardCx, previewY);
 
+    // Dynamic Y cursor — start below preview
+    int cursorY = y + 310;
+
     // Class name
     SDL_Color nameColor = selected ? data.color :
         SDL_Color{static_cast<Uint8>(data.color.r / 2),
@@ -230,9 +233,10 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
         if (nt) {
             int nw = static_cast<int>(ns->w * 1.4f);
             int nh = static_cast<int>(ns->h * 1.4f);
-            SDL_Rect nr = {cardCx - nw / 2, y + 310, nw, nh};
+            SDL_Rect nr = {cardCx - nw / 2, cursorY, nw, nh};
             SDL_RenderCopy(renderer, nt, nullptr, &nr);
             SDL_DestroyTexture(nt);
+            cursorY += nh + 20;
         }
         SDL_FreeSurface(ns);
     }
@@ -245,17 +249,14 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     Uint8 descA = selected ? 200 : 120;
     SDL_Color descColor = {160, 155, 180, descA};
     std::snprintf(locKey, sizeof(locKey), "class.%s.desc", classKey);
-    SDL_Surface* ds = TTF_RenderText_Blended(font, LOC(locKey), descColor);
+    SDL_Surface* ds = TTF_RenderText_Blended_Wrapped(font, LOC(locKey), descColor, w - 40);
     if (ds) {
         SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
         if (dt) {
-            // Scale down if too wide
-            int maxW = w - 20;
-            float scale = (ds->w > maxW) ? static_cast<float>(maxW) / ds->w : 1.0f;
-            SDL_Rect dr = {cardCx - static_cast<int>(ds->w * scale) / 2, y + 380,
-                           static_cast<int>(ds->w * scale), static_cast<int>(ds->h * scale)};
+            SDL_Rect dr = {cardCx - ds->w / 2, cursorY, ds->w, ds->h};
             SDL_RenderCopy(renderer, dt, nullptr, &dr);
             SDL_DestroyTexture(dt);
+            cursorY += ds->h + 24;
         }
         SDL_FreeSurface(ds);
     }
@@ -269,41 +270,37 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     if (ps) {
         SDL_Texture* pt = SDL_CreateTextureFromSurface(renderer, ps);
         if (pt) {
-            SDL_Rect pr = {cardCx - ps->w / 2, y + 460, ps->w, ps->h};
+            SDL_Rect pr = {cardCx - ps->w / 2, cursorY, ps->w, ps->h};
             SDL_RenderCopy(renderer, pt, nullptr, &pr);
             SDL_DestroyTexture(pt);
+            cursorY += ps->h + 8;
         }
         SDL_FreeSurface(ps);
     }
 
-    // Passive description
+    // Passive description (wrapped)
     SDL_Color pdColor = {140, 135, 160, static_cast<Uint8>(selected ? 200 : 100)};
     std::snprintf(locKey, sizeof(locKey), "class.%s.pdesc", classKey);
-    SDL_Surface* pds = TTF_RenderText_Blended(font, LOC(locKey), pdColor);
+    SDL_Surface* pds = TTF_RenderText_Blended_Wrapped(font, LOC(locKey), pdColor, w - 40);
     if (pds) {
         SDL_Texture* pdt = SDL_CreateTextureFromSurface(renderer, pds);
         if (pdt) {
-            int maxW = w - 20;
-            float scale = (pds->w > maxW) ? static_cast<float>(maxW) / pds->w : 1.0f;
-            SDL_Rect pdr = {cardCx - static_cast<int>(pds->w * scale) / 2, y + 510,
-                            static_cast<int>(pds->w * scale), static_cast<int>(pds->h * scale)};
+            SDL_Rect pdr = {cardCx - pds->w / 2, cursorY, pds->w, pds->h};
             SDL_RenderCopy(renderer, pdt, nullptr, &pdr);
             SDL_DestroyTexture(pdt);
+            cursorY += pds->h + 16;
         }
         SDL_FreeSurface(pds);
     }
 
-    // Ability modification
+    // Ability modification (wrapped)
     SDL_Color amColor = {120, 200, 180, static_cast<Uint8>(selected ? 200 : 100)};
     std::snprintf(locKey, sizeof(locKey), "class.%s.ability", classKey);
-    SDL_Surface* ams = TTF_RenderText_Blended(font, LOC(locKey), amColor);
+    SDL_Surface* ams = TTF_RenderText_Blended_Wrapped(font, LOC(locKey), amColor, w - 40);
     if (ams) {
         SDL_Texture* amt = SDL_CreateTextureFromSurface(renderer, ams);
         if (amt) {
-            int maxW = w - 20;
-            float scale = (ams->w > maxW) ? static_cast<float>(maxW) / ams->w : 1.0f;
-            SDL_Rect amr = {cardCx - static_cast<int>(ams->w * scale) / 2, y + 570,
-                            static_cast<int>(ams->w * scale), static_cast<int>(ams->h * scale)};
+            SDL_Rect amr = {cardCx - ams->w / 2, cursorY, ams->w, ams->h};
             SDL_RenderCopy(renderer, amt, nullptr, &amr);
             SDL_DestroyTexture(amt);
         }
@@ -366,8 +363,8 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
         return; // Skip stats for locked classes
     }
 
-    // Stats: HP and Speed bars
-    int statY = y + 660;
+    // Stats: HP and Speed bars (positioned near bottom of card, leaving room for dynamic content above)
+    int statY = y + h - 220;
     int barW = w - 120;
     int barH = 28;
     int barX = x + 60;

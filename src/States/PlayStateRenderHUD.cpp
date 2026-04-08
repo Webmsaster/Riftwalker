@@ -88,7 +88,11 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 if (rs) {
                     SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
                     if (rt) {
-                        SDL_Rect rr = {SCREEN_WIDTH / 2 - rs->w / 2, 60, rs->w, rs->h};
+                        // Push down if combat challenge panel is showing (avoid overlap)
+                        int rifty = (m_combatChallenge.active && !m_combatChallenge.completed)
+                                    ? (m_isBossLevel ? 200 : 140)
+                                    : 60;
+                        SDL_Rect rr = {SCREEN_WIDTH / 2 - rs->w / 2, rifty, rs->w, rs->h};
                         SDL_RenderCopy(renderer, rt, nullptr, &rr);
                         SDL_DestroyTexture(rt);
                     }
@@ -717,7 +721,15 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
         int cy = m_isBossLevel ? 130 : 70;
 
         // Background panel (2K-scaled: was 240x36 in 720p)
-        int panelW = 560, panelH = 90;
+        // Auto-grow panel width if description text is wide
+        int panelW = 720, panelH = 90;
+        int descTextW = 0;
+        if (m_combatChallenge.desc[0]) {
+            int dw = 0, dh = 0;
+            TTF_SizeText(font, m_combatChallenge.desc, &dw, &dh);
+            descTextW = dw;
+            if (dw + 60 > panelW) panelW = dw + 60;
+        }
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 20, 20, 30, 180);
         SDL_Rect bg = {cx - panelW / 2, cy - panelH / 2, panelW, panelH};
