@@ -72,7 +72,21 @@ const WeaponData& WeaponSystem::getWeaponData(WeaponID id) {
 }
 
 const char* WeaponSystem::getWeaponName(WeaponID id) {
-    return getWeaponData(id).name;
+    switch (id) {
+        case WeaponID::RiftBlade:       return LOC("weapon.name.riftblade");
+        case WeaponID::VoidHammer:      return LOC("weapon.name.voidhammer");
+        case WeaponID::PhaseDaggers:    return LOC("weapon.name.phasedaggers");
+        case WeaponID::EntropyScythe:   return LOC("weapon.name.entropyscythe");
+        case WeaponID::ChainWhip:       return LOC("weapon.name.chainwhip");
+        case WeaponID::GravityGauntlet: return LOC("weapon.name.gravitygauntlet");
+        case WeaponID::ShardPistol:     return LOC("weapon.name.shardpistol");
+        case WeaponID::RiftShotgun:     return LOC("weapon.name.riftshotgun");
+        case WeaponID::VoidBeam:        return LOC("weapon.name.voidbeam");
+        case WeaponID::GrapplingHook:   return LOC("weapon.name.grapplinghook");
+        case WeaponID::DimLauncher:     return LOC("weapon.name.dimlauncher");
+        case WeaponID::RiftCrossbow:    return LOC("weapon.name.riftcrossbow");
+        default: return getWeaponData(id).name;
+    }
 }
 
 bool WeaponSystem::isMelee(WeaponID id) {

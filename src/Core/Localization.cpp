@@ -211,6 +211,20 @@ void Localization::loadStrings() {
     m_en["class.unlock.phantom"]       = "Complete floor 3 in any run";
     m_en["class.unlock.technomancer"]  = "Repair 30 rifts total across all runs";
 
+    // Weapon names
+    m_en["weapon.name.riftblade"]       = "Rift Blade";
+    m_en["weapon.name.voidhammer"]      = "Void Hammer";
+    m_en["weapon.name.phasedaggers"]    = "Phase Daggers";
+    m_en["weapon.name.entropyscythe"]   = "Entropy Scythe";
+    m_en["weapon.name.chainwhip"]       = "Chain Whip";
+    m_en["weapon.name.gravitygauntlet"] = "Gravity Gauntlet";
+    m_en["weapon.name.shardpistol"]     = "Shard Pistol";
+    m_en["weapon.name.riftshotgun"]     = "Rift Shotgun";
+    m_en["weapon.name.voidbeam"]        = "Void Beam";
+    m_en["weapon.name.grapplinghook"]   = "Grappling Hook";
+    m_en["weapon.name.dimlauncher"]     = "Dimensional Launcher";
+    m_en["weapon.name.riftcrossbow"]    = "Rift Crossbow";
+
     // Weapon unlock requirements
     m_en["weapon.unlock.riftblade"]    = "Always available";
     m_en["weapon.unlock.shardpistol"]  = "Always available";
@@ -1226,6 +1240,20 @@ void Localization::loadStrings() {
     m_de["class.unlock.berserker"]     = "Toete insgesamt 50 Gegner in allen Laeufen";
     m_de["class.unlock.phantom"]       = "Erreiche Etage 3 in einem Lauf";
     m_de["class.unlock.technomancer"]  = "Repariere insgesamt 30 Risse in allen Laeufen";
+
+    // Weapon names (German translations)
+    m_de["weapon.name.riftblade"]       = "Rissklinge";
+    m_de["weapon.name.voidhammer"]      = "Leerehammer";
+    m_de["weapon.name.phasedaggers"]    = "Phasendolche";
+    m_de["weapon.name.entropyscythe"]   = "Entropiesense";
+    m_de["weapon.name.chainwhip"]       = "Kettenpeitsche";
+    m_de["weapon.name.gravitygauntlet"] = "Schwerkraftstulpe";
+    m_de["weapon.name.shardpistol"]     = "Splitterpistole";
+    m_de["weapon.name.riftshotgun"]     = "Riss-Schrotflinte";
+    m_de["weapon.name.voidbeam"]        = "Leerestrahl";
+    m_de["weapon.name.grapplinghook"]   = "Enterhaken";
+    m_de["weapon.name.dimlauncher"]     = "Dimensionswerfer";
+    m_de["weapon.name.riftcrossbow"]    = "Riss-Armbrust";
 
     // Weapon unlock requirements
     m_de["weapon.unlock.riftblade"]    = "Immer verfuegbar";
