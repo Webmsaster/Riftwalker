@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstring>
 #include <map>
+#include <unordered_set>
 
 int DailyRun::getTodaySeed() {
     time_t now = time(nullptr);
@@ -61,7 +62,7 @@ int DailyRun::getTodayBest() const {
     auto today = getTodayDate();
     int best = 0;
     for (const auto& e : m_entries) {
-        if (std::string(e.date) == today && e.score > best)
+        if (std::strcmp(e.date, today.c_str()) == 0 && e.score > best)
             best = e.score;
     }
     return best;
@@ -69,25 +70,23 @@ int DailyRun::getTodayBest() const {
 
 int DailyRun::getTodayRank(int score) const {
     auto today = getTodayDate();
+    const char* todayC = today.c_str();
     int rank = 1;
+    bool found = false;
     for (const auto& e : m_entries) {
-        if (std::string(e.date) == today && e.score > score)
-            rank++;
+        if (std::strcmp(e.date, todayC) != 0) continue;
+        if (e.score > score) rank++;
+        else if (e.score == score) found = true;
     }
-    for (const auto& e : m_entries) {
-        if (std::string(e.date) == today && e.score == score)
-            return rank;
-    }
-    return 0;
+    return found ? rank : 0;
 }
 
 std::vector<DailyRun::DaySummary> DailyRun::getDaySummaries() const {
     std::map<std::string, int> bestPerDay;
     for (const auto& e : m_entries) {
-        std::string d(e.date);
-        auto it = bestPerDay.find(d);
+        auto it = bestPerDay.find(e.date);
         if (it == bestPerDay.end() || e.score > it->second)
-            bestPerDay[d] = e.score;
+            bestPerDay[e.date] = e.score;
     }
     std::vector<DaySummary> result;
     result.reserve(bestPerDay.size());
@@ -101,32 +100,25 @@ std::vector<DailyRun::DaySummary> DailyRun::getDaySummaries() const {
 void DailyRun::prune() {
     std::sort(m_entries.begin(), m_entries.end(),
               [](const DailyLeaderboardEntry& a, const DailyLeaderboardEntry& b) {
-                  int dc = std::string(b.date).compare(std::string(a.date));
+                  int dc = std::strcmp(b.date, a.date);
                   if (dc != 0) return dc < 0;
                   return a.score > b.score;
               });
 
-    std::vector<std::string> keptDates;
+    // Collect unique dates (O(1) lookup via set instead of O(n) vector scan)
+    std::unordered_set<std::string> keptDatesSet;
     for (const auto& e : m_entries) {
-        std::string d(e.date);
-        bool found = false;
-        for (auto& kd : keptDates) { if (kd == d) { found = true; break; } }
-        if (!found) {
-            if (static_cast<int>(keptDates.size()) >= MAX_DAYS_KEPT) break;
-            keptDates.push_back(d);
-        }
+        if (static_cast<int>(keptDatesSet.size()) >= MAX_DAYS_KEPT) break;
+        keptDatesSet.insert(e.date);
     }
 
     std::map<std::string, int> countPerDay;
     std::vector<DailyLeaderboardEntry> kept;
     kept.reserve(m_entries.size());
     for (const auto& e : m_entries) {
-        std::string d(e.date);
-        bool inKept = false;
-        for (auto& kd : keptDates) { if (kd == d) { inKept = true; break; } }
-        if (!inKept) continue;
-        if (countPerDay[d] >= MAX_PER_DAY) continue;
-        countPerDay[d]++;
+        if (keptDatesSet.find(e.date) == keptDatesSet.end()) continue;
+        if (countPerDay[e.date] >= MAX_PER_DAY) continue;
+        countPerDay[e.date]++;
         kept.push_back(e);
     }
     m_entries = std::move(kept);

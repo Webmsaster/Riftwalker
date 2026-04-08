@@ -46,6 +46,7 @@ private:
     void attackWindupEffect(Entity& entity, float timer, float windupTime);
 
     float distanceTo(const Vec2& a, const Vec2& b) const;
+    float distanceToSq(const Vec2& a, const Vec2& b) const;
 
     ParticleSystem* m_particles = nullptr;
     Camera* m_camera = nullptr;

@@ -107,6 +107,12 @@ float AISystem::distanceTo(const Vec2& a, const Vec2& b) const {
     return std::sqrt(dx * dx + dy * dy);
 }
 
+float AISystem::distanceToSq(const Vec2& a, const Vec2& b) const {
+    float dx = a.x - b.x;
+    float dy = a.y - b.y;
+    return dx * dx + dy * dy;
+}
+
 void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, int playerDimension) {
     ZoneScopedN("AIUpdate");
     m_frameTicks = SDL_GetTicks();
@@ -561,8 +567,9 @@ void AISystem::updateWalker(Entity& entity, float dt, const Vec2& playerPos) {
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
-    float dist = distanceTo(pos, playerPos);
+    float distSq = distanceToSq(pos, playerPos);
     float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float effectiveDetectSq = effectiveDetect * effectiveDetect;
     float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
 
     switch (ai.state) {
@@ -573,7 +580,7 @@ void AISystem::updateWalker(Entity& entity, float dt, const Vec2& playerPos) {
             ai.facingRight = dirX > 0;
 
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < effectiveDetect) ai.state = AIState::Chase;
+            if (distSq < effectiveDetectSq) ai.state = AIState::Chase;
             break;
         }
         case AIState::Chase: {
@@ -583,7 +590,7 @@ void AISystem::updateWalker(Entity& entity, float dt, const Vec2& playerPos) {
 
             // Walker Lunge: in Chase when dist 40-80px, lunge forward with small jump
             if (ai.walkerLungeTimer > 0) ai.walkerLungeTimer -= dt;
-            if (dist >= 40.0f && dist <= 80.0f && ai.walkerLungeTimer <= 0 && phys.onGround) {
+            if (distSq >= 1600.0f && distSq <= 6400.0f && ai.walkerLungeTimer <= 0 && phys.onGround) {
                 phys.velocity.x = dirX * 250.0f;
                 phys.velocity.y = -120.0f; // small hop
                 ai.walkerLungeTimer = 2.0f;
@@ -592,11 +599,13 @@ void AISystem::updateWalker(Entity& entity, float dt, const Vec2& playerPos) {
                 }
             }
 
-            if (dist < ai.attackRange) {
+            float atkRangeSq = ai.attackRange * ai.attackRange;
+            if (distSq < atkRangeSq) {
                 ai.state = AIState::Attack;
                 ai.attackTimer = ai.attackWindup; // wind-up before first attack
             }
-            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            float loseRangeSq = ai.loseRange * ai.loseRange;
+            if (distSq > loseRangeSq) ai.state = AIState::Patrol;
             break;
         }
         case AIState::Attack: {
@@ -617,7 +626,8 @@ void AISystem::updateWalker(Entity& entity, float dt, const Vec2& playerPos) {
                 if (entity.hasComponent<SpriteComponent>())
                     entity.getComponent<SpriteComponent>().restoreColor();
             }
-            if (dist > ai.attackRange * 1.5f) ai.state = AIState::Chase;
+            float atkLoseSq = ai.attackRange * 1.5f * ai.attackRange * 1.5f;
+            if (distSq > atkLoseSq) ai.state = AIState::Chase;
             break;
         }
         default: break;
@@ -694,11 +704,12 @@ void AISystem::updateTurret(Entity& entity, float dt, const Vec2& playerPos) {
     auto& ai = entity.getComponent<AIComponent>();
     auto& transform = entity.getComponent<TransformComponent>();
     Vec2 pos = transform.getCenter();
-    float dist = distanceTo(pos, playerPos);
+    float detectR = ai.detectRange * ai.dimDetectMod;
+    float distSq = distanceToSq(pos, playerPos);
 
     ai.facingRight = playerPos.x > pos.x;
 
-    if (dist < ai.detectRange * ai.dimDetectMod) {
+    if (distSq < detectR * detectR) {
         ai.attackTimer -= dt;
         if (ai.attackTimer <= 0) {
             auto& combat = entity.getComponent<CombatComponent>();
@@ -718,7 +729,7 @@ void AISystem::updateCharger(Entity& entity, float dt, const Vec2& playerPos) {
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
-    float dist = distanceTo(pos, playerPos);
+    float distSq = distanceToSq(pos, playerPos);
     float effectiveDetect = ai.detectRange * ai.dimDetectMod;
 
     switch (ai.state) {
@@ -729,7 +740,7 @@ void AISystem::updateCharger(Entity& entity, float dt, const Vec2& playerPos) {
             ai.facingRight = dirX > 0;
 
             if (std::abs(pos.x - target.x) < 5.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < effectiveDetect) {
+            if (distSq < effectiveDetect * effectiveDetect) {
                 ai.state = AIState::Chase;
                 ai.attackTimer = ai.chargeWindup / std::max(0.1f, ai.dimSpeedMod);
             }
@@ -750,7 +761,7 @@ void AISystem::updateCharger(Entity& entity, float dt, const Vec2& playerPos) {
                 ai.attackTimer = ai.chargeTime;
                 ai.facingRight = playerPos.x > pos.x;
             }
-            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            if (distSq > ai.loseRange * ai.loseRange) ai.state = AIState::Patrol;
             break;
         }
         case AIState::Attack: {
