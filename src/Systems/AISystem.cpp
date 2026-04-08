@@ -643,8 +643,9 @@ void AISystem::updateFlyer(Entity& entity, float dt, const Vec2& playerPos) {
     auto& transform = entity.getComponent<TransformComponent>();
     auto& phys = entity.getComponent<PhysicsBody>();
     Vec2 pos = transform.getCenter();
-    float dist = distanceTo(pos, playerPos);
+    float distSq = distanceToSq(pos, playerPos);
     float effectiveDetect = ai.detectRange * ai.dimDetectMod;
+    float detectSq = effectiveDetect * effectiveDetect;
     float effectiveChase = ai.chaseSpeed * ai.dimSpeedMod;
 
     switch (ai.state) {
@@ -653,8 +654,8 @@ void AISystem::updateFlyer(Entity& entity, float dt, const Vec2& playerPos) {
             Vec2 dir = (target - pos).normalized();
             phys.velocity = dir * ai.patrolSpeed * ai.dimSpeedMod;
 
-            if (distanceTo(pos, target) < 10.0f) ai.patrolForward = !ai.patrolForward;
-            if (dist < effectiveDetect) {
+            if (distanceToSq(pos, target) < 100.0f) ai.patrolForward = !ai.patrolForward;
+            if (distSq < detectSq) {
                 ai.state = AIState::Chase;
                 ai.attackTimer = ai.attackCooldown * 0.5f; // brief hover before first swoop
             }
@@ -669,16 +670,16 @@ void AISystem::updateFlyer(Entity& entity, float dt, const Vec2& playerPos) {
             ai.attackTimer -= dt;
 
             // Visual wind-up telegraph before swoop
-            if (ai.attackTimer > 0 && ai.attackTimer < ai.attackWindup && dist < effectiveDetect) {
+            if (ai.attackTimer > 0 && ai.attackTimer < ai.attackWindup && distSq < detectSq) {
                 attackWindupEffect(entity, ai.attackTimer, ai.attackWindup);
                 phys.velocity = phys.velocity * 0.5f; // slow down while winding up
             }
 
-            if (ai.attackTimer <= 0 && dist < effectiveDetect) {
+            if (ai.attackTimer <= 0 && distSq < detectSq) {
                 ai.state = AIState::Attack;
                 ai.targetPosition = playerPos;
             }
-            if (dist > ai.loseRange) ai.state = AIState::Patrol;
+            if (distSq > ai.loseRange * ai.loseRange) ai.state = AIState::Patrol;
             break;
         }
         case AIState::Attack: {
@@ -686,7 +687,7 @@ void AISystem::updateFlyer(Entity& entity, float dt, const Vec2& playerPos) {
             Vec2 dir = (ai.targetPosition - pos).normalized();
             phys.velocity = dir * ai.swoopSpeed * ai.dimSpeedMod;
 
-            if (distanceTo(pos, ai.targetPosition) < 20.0f || pos.y > ai.targetPosition.y + 30.0f) {
+            if (distanceToSq(pos, ai.targetPosition) < 400.0f || pos.y > ai.targetPosition.y + 30.0f) {
                 ai.state = AIState::Chase;
                 ai.attackTimer = ai.attackCooldown / std::max(0.1f, ai.dimSpeedMod);
                 auto& combat = entity.getComponent<CombatComponent>();
