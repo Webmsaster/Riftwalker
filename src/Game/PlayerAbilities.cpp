@@ -7,6 +7,7 @@
 #include "Components/ColliderComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/CombatComponent.h"
+#include "Components/RelicComponent.h"
 #include "Components/AnimationComponent.h"
 #include "Components/AIComponent.h"
 #include "Core/AudioManager.h"
@@ -14,7 +15,22 @@
 #include "Game/SpriteConfig.h"
 #include "Game/ItemDrop.h"
 #include "Game/Bestiary.h"
+#include "Game/RelicSystem.h"
 #include <cmath>
+
+// TimeTax relic: pay HP cost per ability activation.
+// Called at each ability activate() site.
+static void payTimeTaxCost(Entity* entity) {
+    if (!entity || !entity->hasComponent<RelicComponent>()) return;
+    auto& relics = entity->getComponent<RelicComponent>();
+    float cost = RelicSystem::getAbilityHPCost(relics);
+    if (cost > 0.0f && entity->hasComponent<HealthComponent>()) {
+        auto& hp = entity->getComponent<HealthComponent>();
+        // Direct deduction (bypass i-frames and armor — this is a self-imposed cost,
+        // not incoming damage). Don't let it kill the player outright.
+        hp.currentHP = std::max(1.0f, hp.currentHP - cost);
+    }
+}
 
 void Player::updateAnimation() {
     auto& phys = m_entity->getComponent<PhysicsBody>();
@@ -318,6 +334,7 @@ void Player::handleAbilities(float dt, const InputManager& input) {
             abil.slamFalling = true;
             slamFallStartY = t.position.y;
             abil.slamFallStart = t.position.y; // Sync to component for CombatSystem
+            payTimeTaxCost(m_entity);
             abil.activate(0);
             // Brief upward pause before slam
             phys.velocity.y = -50.0f;
@@ -331,6 +348,7 @@ void Player::handleAbilities(float dt, const InputManager& input) {
 
     // Ability 2: Rift Shield — not for Technomancer (uses shock trap instead)
     if (playerClass != PlayerClass::Technomancer && input.isActionPressed(Action::Ability2) && abil.abilities[1].isReady()) {
+        payTimeTaxCost(m_entity);
         abil.activate(1);
         abil.shieldHitsRemaining = abil.shieldMaxHits;
         abil.shieldAbsorbedDamage = 0;
@@ -374,6 +392,7 @@ void Player::handleAbilities(float dt, const InputManager& input) {
         });
 
         if (nearestEnemy) {
+            payTimeTaxCost(m_entity);
             abil.activate(2);
             auto& et = nearestEnemy->getComponent<TransformComponent>();
             Vec2 enemyCenter = et.getCenter();

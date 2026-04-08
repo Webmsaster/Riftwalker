@@ -62,10 +62,15 @@ void PlayState::selectRelic(int index) {
     // RiftMantle: reduce dimension switch cooldown (clamped by safety rail)
     m_dimManager.switchCooldown = std::max(0.20f, 0.5f * RelicSystem::getSwitchCooldownMult(relics));
 
-    // TimeDilator: -30% ability cooldowns (applied once on pickup)
-    if (choice == RelicID::TimeDilator && m_player->getEntity()->hasComponent<AbilityComponent>()) {
+    // TimeDilator: -30% ability cooldowns / TimeTax: -50% ability cooldowns
+    // Both applied once on pickup. Previously TimeTax was dead code —
+    // getAbilityCDMultCursed() was defined but never called, so TimeTax
+    // gave the player neither benefit nor the intended HP cost.
+    if ((choice == RelicID::TimeDilator || choice == RelicID::TimeTax) &&
+        m_player->getEntity()->hasComponent<AbilityComponent>()) {
         auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
-        float cdMult = RelicSystem::getAbilityCooldownMultiplier(relics);
+        float cdMult = RelicSystem::getAbilityCooldownMultiplier(relics)
+                     * RelicSystem::getAbilityCDMultCursed(relics);
         abil.abilities[0].cooldown *= cdMult;
         abil.abilities[1].cooldown *= cdMult;
         abil.abilities[2].cooldown *= cdMult;
