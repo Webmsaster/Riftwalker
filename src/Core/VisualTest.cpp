@@ -451,7 +451,72 @@ bool VisualTest::update(int frameCount, Game* game) {
         break;
 
     case Phase::BackFromCredits:
-        nextPhase(Phase::Done);
+        if (m_phaseFrame >= 30) {
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::NavToRunHistory);
+        }
+        break;
+
+    // ========== RUN HISTORY SCREEN ==========
+
+    case Phase::NavToRunHistory:
+        if (m_phaseFrame < 90) break;
+        // Navigate to button 9 (Run History): 9x S then Enter
+        if (m_phaseFrame == 90)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 95)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 100) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 105) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 110) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 115) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 120) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 125) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 130) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 140) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 145) nextPhase(Phase::WaitRunHistory);
+        break;
+
+    case Phase::WaitRunHistory:
+        if (m_phaseFrame >= 90) nextPhase(Phase::CaptureRunHistory);
+        break;
+
+    case Phase::CaptureRunHistory:
+        capture(game, "run_history");
+        nextPhase(Phase::BackFromRunHistory);
+        break;
+
+    case Phase::BackFromRunHistory:
+        if (m_phaseFrame >= 30) {
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::NavToDailyLB);
+        }
+        break;
+
+    // ========== DAILY LEADERBOARD SCREEN ==========
+
+    case Phase::NavToDailyLB:
+        if (m_phaseFrame < 90) break;
+        // Navigate to button 3 (Daily Leaderboard): 3x S then Enter
+        if (m_phaseFrame == 90)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 95)  injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 100) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 110) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 115) nextPhase(Phase::WaitDailyLB);
+        break;
+
+    case Phase::WaitDailyLB:
+        if (m_phaseFrame >= 90) nextPhase(Phase::CaptureDailyLB);
+        break;
+
+    case Phase::CaptureDailyLB:
+        capture(game, "daily_leaderboard");
+        nextPhase(Phase::BackFromDailyLB);
+        break;
+
+    case Phase::BackFromDailyLB:
+        if (m_phaseFrame >= 30) {
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::Done);
+        }
         break;
 
     // ========== COMPLETE ==========

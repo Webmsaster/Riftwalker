@@ -168,17 +168,30 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
         SDL_RenderFillRect(renderer, &headerBg);
     }
 
+    // Column X offsets — class column is widest to fit "Technomancer" (12 chars)
+    // at the current font pitch. Spread remaining columns across the full panel.
+    const int COL_NUM    = 0;
+    const int COL_CLASS  = 70;
+    const int COL_FLOOR  = 400;
+    const int COL_KILLS  = 580;
+    const int COL_RIFTS  = 760;
+    const int COL_COMBO  = 940;
+    const int COL_TIME   = 1120;
+    const int COL_SHARDS = 1340;
+    const int COL_DIFF   = 1560;
+    const int COL_RESULT = 1700;
+
     SDL_Color headerCol = {160, 150, 200, 255};
-    renderText(renderer, font, "#",                      panelX,        tableY, headerCol);
-    renderText(renderer, font, LOC("history.class"),   panelX + 60,  tableY, headerCol);
-    renderText(renderer, font, LOC("history.floor"),   panelX + 260, tableY, headerCol);
-    renderText(renderer, font, LOC("history.kills"),   panelX + 390, tableY, headerCol);
-    renderText(renderer, font, LOC("history.rifts"),   panelX + 520, tableY, headerCol);
-    renderText(renderer, font, LOC("history.combo"),   panelX + 650, tableY, headerCol);
-    renderText(renderer, font, LOC("history.time"),    panelX + 800, tableY, headerCol);
-    renderText(renderer, font, LOC("history.shards"),  panelX + 960, tableY, headerCol);
-    renderText(renderer, font, LOC("history.diff"),    panelX + 1120, tableY, headerCol);
-    renderText(renderer, font, LOC("history.result"),  panelX + 1240, tableY, headerCol);
+    renderText(renderer, font, "#",                     panelX + COL_NUM,    tableY, headerCol);
+    renderText(renderer, font, LOC("history.class"),    panelX + COL_CLASS,  tableY, headerCol);
+    renderText(renderer, font, LOC("history.floor"),    panelX + COL_FLOOR,  tableY, headerCol);
+    renderText(renderer, font, LOC("history.kills"),    panelX + COL_KILLS,  tableY, headerCol);
+    renderText(renderer, font, LOC("history.rifts"),    panelX + COL_RIFTS,  tableY, headerCol);
+    renderText(renderer, font, LOC("history.combo"),    panelX + COL_COMBO,  tableY, headerCol);
+    renderText(renderer, font, LOC("history.time"),     panelX + COL_TIME,   tableY, headerCol);
+    renderText(renderer, font, LOC("history.shards"),   panelX + COL_SHARDS, tableY, headerCol);
+    renderText(renderer, font, LOC("history.diff"),     panelX + COL_DIFF,   tableY, headerCol);
+    renderText(renderer, font, LOC("history.result"),   panelX + COL_RESULT, tableY, headerCol);
 
     // Separator
     SDL_SetRenderDrawColor(renderer, 80, 70, 120, 150);
@@ -210,48 +223,48 @@ void RunHistoryState::render(SDL_Renderer* renderer) {
 
         // Run number
         std::snprintf(buf, sizeof(buf), "%d", idx + 1);
-        renderText(renderer, font, buf, panelX, ry, rowCol);
+        renderText(renderer, font, buf, panelX + COL_NUM, ry, rowCol);
 
         // Class name
         const char* className = "Unknown";
         if (run.playerClass >= 0 && run.playerClass < static_cast<int>(PlayerClass::COUNT))
             className = ClassSystem::getData(static_cast<PlayerClass>(run.playerClass)).name;
-        renderText(renderer, font, className, panelX + 60, ry, rowCol);
+        renderText(renderer, font, className, panelX + COL_CLASS, ry, rowCol);
 
         // Floor
         std::snprintf(buf, sizeof(buf), "%d", run.rooms);
-        renderText(renderer, font, buf, panelX + 260, ry, rowCol);
+        renderText(renderer, font, buf, panelX + COL_FLOOR, ry, rowCol);
 
         // Kills
         std::snprintf(buf, sizeof(buf), "%d", run.enemies);
-        renderText(renderer, font, buf, panelX + 390, ry, rowCol);
+        renderText(renderer, font, buf, panelX + COL_KILLS, ry, rowCol);
 
         // Rifts
         std::snprintf(buf, sizeof(buf), "%d", run.rifts);
-        renderText(renderer, font, buf, panelX + 520, ry, rowCol);
+        renderText(renderer, font, buf, panelX + COL_RIFTS, ry, rowCol);
 
         // Best combo
         std::snprintf(buf, sizeof(buf), "%d", run.bestCombo);
-        renderText(renderer, font, buf, panelX + 650, ry, rowCol);
+        renderText(renderer, font, buf, panelX + COL_COMBO, ry, rowCol);
 
         // Time (mm:ss)
         int mins = static_cast<int>(run.runTime) / 60;
         int secs = static_cast<int>(run.runTime) % 60;
         std::snprintf(buf, sizeof(buf), "%d:%02d", mins, secs);
-        renderText(renderer, font, buf, panelX + 800, ry, rowCol);
+        renderText(renderer, font, buf, panelX + COL_TIME, ry, rowCol);
 
         // Shards
         std::snprintf(buf, sizeof(buf), "%d", run.shards);
-        renderText(renderer, font, buf, panelX + 960, ry, rowCol);
+        renderText(renderer, font, buf, panelX + COL_SHARDS, ry, rowCol);
 
         // Difficulty
         std::snprintf(buf, sizeof(buf), "%d", run.difficulty);
-        renderText(renderer, font, buf, panelX + 1120, ry, rowCol);
+        renderText(renderer, font, buf, panelX + COL_DIFF, ry, rowCol);
 
         // Death cause
         const char* result = UpgradeSystem::getDeathCauseName(run.deathCause);
         SDL_Color resultCol = (run.deathCause == 5) ? SDL_Color{80, 255, 80, 255} : SDL_Color{255, 80, 80, 220};
-        renderText(renderer, font, result, panelX + 1240, ry, resultCol);
+        renderText(renderer, font, result, panelX + COL_RESULT, ry, resultCol);
     }
 
     // Scroll indicator

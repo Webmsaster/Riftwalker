@@ -91,6 +91,16 @@ private:
         WaitCredits,
         CaptureCredits,
         BackFromCredits,
+        // --- Run History screen ---
+        NavToRunHistory,
+        WaitRunHistory,
+        CaptureRunHistory,
+        BackFromRunHistory,
+        // --- Daily Leaderboard screen ---
+        NavToDailyLB,
+        WaitDailyLB,
+        CaptureDailyLB,
+        BackFromDailyLB,
         // --- Done ---
         Done
     };
