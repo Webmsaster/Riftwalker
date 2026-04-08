@@ -6,13 +6,13 @@
 #include <random>
 
 struct RoomTemplate {
-    int width, height;
+    int width = 0, height = 0;
     std::vector<std::string> layout; // '#' = solid, '.' = empty, '-' = one-way, '^' = spike
                                      // 'S' = spawn, 'E' = exit, 'R' = rift, 'X' = enemy
 };
 
 // Room data shared between generate() and helper methods
-struct LGRoom { int x, y, w, h; };
+struct LGRoom { int x = 0, y = 0, w = 0, h = 0; };
 
 class LevelGenerator {
 public:
