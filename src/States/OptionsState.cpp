@@ -555,32 +555,8 @@ void OptionsState::render(SDL_Renderer* renderer) {
         }
     }
 
-    // Controls reference at bottom (dynamic from current bindings)
-    {
-        SDL_Color hc = {80, 70, 110, 180};
-        auto& input = game->getInput();
-        auto keyName = [&](Action a) -> std::string {
-            const char* n = SDL_GetScancodeName(input.getKeyForAction(a));
-            return (n && n[0]) ? n : "???";
-        };
-        std::string line1 = keyName(Action::MoveLeft) + "/" + keyName(Action::MoveRight) + " - Move    "
-                          + keyName(Action::Jump) + " - Jump    " + keyName(Action::Dash) + " - Dash";
-        std::string line2 = keyName(Action::Attack) + " - Melee    " + keyName(Action::RangedAttack) + " - Ranged    "
-                          + keyName(Action::DimensionSwitch) + " - Dim Switch    " + keyName(Action::Interact) + " - Interact";
-        const std::string lines[] = {line1, line2};
-        for (int i = 0; i < 2; i++) {
-            SDL_Surface* cs = TTF_RenderUTF8_Blended(font, lines[i].c_str(), hc);
-            if (cs) {
-                SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
-                if (ct) {
-                    SDL_Rect cr = {SCREEN_WIDTH / 2 - cs->w / 2, SCREEN_HEIGHT - 100 + i * 44, cs->w, cs->h};
-                    SDL_RenderCopy(renderer, ct, nullptr, &cr);
-                    SDL_DestroyTexture(ct);
-                }
-                SDL_FreeSurface(cs);
-            }
-        }
-    }
+    // Controls reference removed — redundant with the "Controls" submenu button
+    // above (which opens the full Keybindings screen with all actions).
 
     // Navigation hint
     {
@@ -589,7 +565,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
-                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, SCREEN_HEIGHT - 60, ns->w, ns->h};
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - ns->w / 2, SCREEN_HEIGHT - 50, ns->w, ns->h};
                 SDL_RenderCopy(renderer, nt, nullptr, &nr);
                 SDL_DestroyTexture(nt);
             }

@@ -7,6 +7,8 @@
 #include <cstdio>
 #include <algorithm>
 
+bool TutorialState::s_openedFromNewRun = false;
+
 void TutorialState::enter() {
     m_page = 0;
     m_fadeIn = 0;
@@ -88,7 +90,12 @@ void TutorialState::prevPage() {
 
 void TutorialState::finish() {
     AudioManager::instance().play(SFX::MenuConfirm);
-    game->changeState(StateID::ClassSelect);
+    if (s_openedFromNewRun) {
+        s_openedFromNewRun = false; // consume the flag
+        game->changeState(StateID::ClassSelect);
+    } else {
+        game->changeState(StateID::Menu);
+    }
 }
 
 void TutorialState::update(float dt) {

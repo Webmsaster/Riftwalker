@@ -160,13 +160,17 @@ bool VisualTest::update(int frameCount, Game* game) {
     // ========== UPGRADES SCREEN ==========
 
     case Phase::NavToUpgrades:
-        // From menu button 0, navigate down to button 4 (Upgrades)
+        // From menu button 0, navigate down to button 5 (Upgrades)
+        // Menu order: 0:NewRun 1:Tutorial 2:DailyRun 3:DailyLeaderboard
+        //             4:Challenges 5:Upgrades 6:Bestiary 7:Achievements
+        //             8:Lore 9:RunHistory 10:Credits 11:Options 12:Quit
         if (m_phaseFrame == 10) injectKey(SDL_SCANCODE_S);
         if (m_phaseFrame == 15) injectKey(SDL_SCANCODE_S);
         if (m_phaseFrame == 20) injectKey(SDL_SCANCODE_S);
         if (m_phaseFrame == 25) injectKey(SDL_SCANCODE_S);
-        if (m_phaseFrame == 35) injectKey(SDL_SCANCODE_RETURN);
-        if (m_phaseFrame >= 40) nextPhase(Phase::WaitUpgrades);
+        if (m_phaseFrame == 30) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 40) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 45) nextPhase(Phase::WaitUpgrades);
         break;
 
     case Phase::WaitUpgrades:
@@ -192,15 +196,16 @@ bool VisualTest::update(int frameCount, Game* game) {
     case Phase::NavToAchievements:
         if (m_phaseFrame < 90) break; // Wait for menu transition
         // After ESC from Upgrades, menu resets to button 0.
-        // Navigate to button 6 (Achievements): 6x S then Enter
+        // Navigate to button 7 (Achievements): 7x S then Enter
         if (m_phaseFrame == 90) injectKey(SDL_SCANCODE_S);
         if (m_phaseFrame == 95) injectKey(SDL_SCANCODE_S);
         if (m_phaseFrame == 100) injectKey(SDL_SCANCODE_S);
         if (m_phaseFrame == 105) injectKey(SDL_SCANCODE_S);
         if (m_phaseFrame == 110) injectKey(SDL_SCANCODE_S);
         if (m_phaseFrame == 115) injectKey(SDL_SCANCODE_S);
-        if (m_phaseFrame == 125) injectKey(SDL_SCANCODE_RETURN);
-        if (m_phaseFrame >= 130) nextPhase(Phase::WaitAchievements);
+        if (m_phaseFrame == 120) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 130) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 135) nextPhase(Phase::WaitAchievements);
         break;
 
     case Phase::WaitAchievements:

@@ -236,12 +236,9 @@ void UpgradeState::render(SDL_Renderer* renderer) {
         SDL_FreeSurface(titleSurf);
     }
 
-    // Shard count with diamond icon
+    // Shard count with diamond icon (centered under title)
     char shardText[64];
     std::snprintf(shardText, sizeof(shardText), LOC("menu.rift_shards"), upgrades.getRiftShards());
-    renderText(renderer, font, shardText, 0, 0, {200, 160, 255, 255});
-
-    // Re-render centered (need width)
     SDL_Surface* shSurf = TTF_RenderUTF8_Blended(font, shardText, {200, 160, 255, 255});
     if (shSurf) {
         SDL_Texture* shTex = SDL_CreateTextureFromSurface(renderer, shSurf);

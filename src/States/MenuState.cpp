@@ -1,4 +1,5 @@
 #include "MenuState.h"
+#include "TutorialState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
 #include "Core/Localization.h"
@@ -50,10 +51,17 @@ void MenuState::enter() {
 
     idx = 0;
     m_buttons[idx++].onClick = [this, firstTime]() {
-        if (firstTime) game->changeState(StateID::Tutorial);
-        else game->changeState(StateID::ClassSelect);
+        if (firstTime) {
+            TutorialState::s_openedFromNewRun = true;
+            game->changeState(StateID::Tutorial);
+        } else {
+            game->changeState(StateID::ClassSelect);
+        }
     };
-    m_buttons[idx++].onClick = [this]() { game->changeState(StateID::Tutorial); };
+    m_buttons[idx++].onClick = [this]() {
+        TutorialState::s_openedFromNewRun = false;
+        game->changeState(StateID::Tutorial);
+    };
     m_buttons[idx++].onClick = [this]() { g_dailyRunActive = true; game->changeState(StateID::ClassSelect); };
     m_buttons[idx++].onClick = [this]() { game->pushState(StateID::DailyLeaderboard); };
     m_buttons[idx++].onClick = [this]() { game->changeState(StateID::ChallengeSelect); };

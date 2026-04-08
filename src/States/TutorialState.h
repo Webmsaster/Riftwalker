@@ -11,6 +11,11 @@ public:
     void update(float dt) override;
     void render(SDL_Renderer* renderer) override;
 
+    // Set to true before opening Tutorial when user clicks "New Run" as a
+    // first-time player — Tutorial will then continue to ClassSelect instead
+    // of returning to Menu. Default false (opened via Tutorial button from Menu).
+    static bool s_openedFromNewRun;
+
 private:
     void renderPage(SDL_Renderer* renderer, TTF_Font* font);
     void renderPageIndicator(SDL_Renderer* renderer);
