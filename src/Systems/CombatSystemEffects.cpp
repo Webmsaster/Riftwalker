@@ -706,6 +706,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float counterKB = 800.0f;
             float counterRange = 120.0f;
 
+            float counterRangeSq = counterRange * counterRange;
             entities.forEach([&](Entity& target) {
                 if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
@@ -714,11 +715,9 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
                 Vec2 tc = tt.getCenter();
                 float dx = tc.x - playerCenter.x;
                 float dy = tc.y - playerCenter.y;
-                float dist = std::sqrt(dx * dx + dy * dy);
-                if (dist < counterRange) {
-                    Vec2 kd = {dx, dy - 80.0f};
-                    hitTarget(target, counterDmg, counterKB, 0.3f, kd, true);
-                }
+                if (dx * dx + dy * dy >= counterRangeSq) return;
+                Vec2 kd = {dx, dy - 80.0f};
+                hitTarget(target, counterDmg, counterKB, 0.3f, kd, true);
             });
 
             if (m_camera) m_camera->shake(14.0f, 0.35f);
@@ -770,6 +769,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             counterDmg = std::max(counterDmg, 50.0f * dmgMult);
             float counterRange = 160.0f;
 
+            float counterRangeSq = counterRange * counterRange;
             entities.forEach([&](Entity& target) {
                 if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
@@ -778,8 +778,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
                 Vec2 tc = tt.getCenter();
                 float dx = tc.x - playerCenter.x;
                 float dy = tc.y - playerCenter.y;
-                float dist = std::sqrt(dx * dx + dy * dy);
-                if (dist < counterRange) {
+                if (dx * dx + dy * dy < counterRangeSq) {
                     Vec2 kd = {dx, dy - 100.0f};
                     hitTarget(target, counterDmg, 600.0f, 2.0f, kd, true);
                 }
@@ -808,6 +807,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float counterDmg = meleeBaseDmg * 2.0f * dmgMult;
             float vortexRange = 150.0f;
 
+            float vortexRangeSq = vortexRange * vortexRange;
             entities.forEach([&](Entity& target) {
                 if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
@@ -816,8 +816,9 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
                 Vec2 tc = tt.getCenter();
                 float dx = tc.x - playerCenter.x;
                 float dy = tc.y - playerCenter.y;
-                float dist = std::sqrt(dx * dx + dy * dy);
-                if (dist > vortexRange) return;
+                float distSq = dx * dx + dy * dy;
+                if (distSq > vortexRangeSq) return;
+                float dist = std::sqrt(distSq);
 
                 target.getComponent<HealthComponent>().takeDamage(counterDmg);
                 m_damageEvents.push_back({tc, counterDmg, false, false});
@@ -854,6 +855,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float counterDmg = meleeBaseDmg * 2.5f * dmgMult;
             float counterRange = 140.0f;
 
+            float counterRangeSq = counterRange * counterRange;
             entities.forEach([&](Entity& target) {
                 if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
@@ -862,8 +864,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
                 Vec2 tc = tt.getCenter();
                 float dx = tc.x - playerCenter.x;
                 float dy = tc.y - playerCenter.y;
-                float dist = std::sqrt(dx * dx + dy * dy);
-                if (dist < counterRange) {
+                if (dx * dx + dy * dy < counterRangeSq) {
                     Vec2 kd = {dx, dy - 60.0f};
                     hitTarget(target, counterDmg, 500.0f, 0.2f, kd, true);
                 }
@@ -887,6 +888,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float counterDmg = meleeBaseDmg * 2.0f * dmgMult;
             float lashRange = 180.0f;
 
+            float lashRangeSq = lashRange * lashRange;
             entities.forEach([&](Entity& target) {
                 if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
@@ -895,8 +897,9 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
                 Vec2 tc = tt.getCenter();
                 float dx = tc.x - playerCenter.x;
                 float dy = tc.y - playerCenter.y;
-                float dist = std::sqrt(dx * dx + dy * dy);
-                if (dist > lashRange) return;
+                float distSq = dx * dx + dy * dy;
+                if (distSq > lashRangeSq) return;
+                float dist = std::sqrt(distSq);
                 // Piercing line: only hit enemies roughly in attack direction (±45°)
                 float dotProduct = (dx * dir.x + dy * dir.y) / std::max(dist, 1.0f);
                 if (dotProduct < 0.5f) return; // Behind or too far off-axis
@@ -991,6 +994,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             float counterRange = 80.0f;
             float counterKB = 1200.0f;
 
+            float counterRangeSq = counterRange * counterRange;
             entities.forEach([&](Entity& target) {
                 if (!target.isEnemy || !target.isAlive()) return;
                 if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
@@ -999,8 +1003,7 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
                 Vec2 tc = tt.getCenter();
                 float dx = tc.x - playerCenter.x;
                 float dy = tc.y - playerCenter.y;
-                float dist = std::sqrt(dx * dx + dy * dy);
-                if (dist < counterRange) {
+                if (dx * dx + dy * dy < counterRangeSq) {
                     Vec2 kd = {dx, dy - 60.0f};
                     hitTarget(target, counterDmg, counterKB, 0.5f, kd, true);
                 }

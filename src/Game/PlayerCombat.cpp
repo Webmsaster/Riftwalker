@@ -564,8 +564,9 @@ void Player::executeComboFinisher() {
             Vec2 ePos = et.getCenter();
             float dx = ePos.x - playerPos.x;
             float dy = ePos.y - playerPos.y;
-            float dist = std::sqrt(dx * dx + dy * dy);
-            if (dist > radius) return;
+            float distSq = dx * dx + dy * dy;
+            if (distSq > radius * radius) return;
+            float dist = std::sqrt(distSq);
 
             // Apply damage
             eHP.takeDamage(damage);
@@ -662,8 +663,9 @@ void Player::executeComboFinisher() {
             Vec2 ePos = et.getCenter();
             float dx = ePos.x - playerPos.x;
             float dy = ePos.y - playerPos.y;
-            float dist = std::sqrt(dx * dx + dy * dy);
-            if (dist > range) return;
+            float distSq = dx * dx + dy * dy;
+            if (distSq > range * range) return;
+            float dist = std::sqrt(distSq);
 
             // Check arc direction (wide ~120 degree cone in facing direction)
             float dotProd = (dx * hDir) / std::max(1.0f, dist);
@@ -754,13 +756,13 @@ void Player::executeComboFinisher() {
             Vec2 ePos = et.getCenter();
             float dx = ePos.x - playerPos.x;
             float dy = ePos.y - playerPos.y;
-            float dist = std::sqrt(dx * dx + dy * dy);
-            if (dist <= searchRadius) {
-                candidates.push_back({&e, dist});
+            float distSq = dx * dx + dy * dy;
+            if (distSq <= searchRadius * searchRadius) {
+                candidates.push_back({&e, distSq});
             }
         });
 
-        // Sort by distance, take up to 4
+        // Sort by squared distance (monotonic — same order as real distance)
         std::sort(candidates.begin(), candidates.end(),
             [](const EnemyDist& a, const EnemyDist& b) { return a.dist < b.dist; });
 

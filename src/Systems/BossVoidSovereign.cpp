@@ -327,8 +327,8 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, const Vec2& playerP
                 float proj = (lenSq > 0) ? (tx * lx + ty * ly) / lenSq : 0;
                 proj = std::max(0.0f, std::min(1.0f, proj));
                 float cx = pos.x + proj * lx, cy = pos.y + proj * ly;
-                float d2 = std::sqrt((tPos.x - cx) * (tPos.x - cx) + (tPos.y - cy) * (tPos.y - cy));
-                if (d2 < 30.0f && target.hasComponent<HealthComponent>()) {
+                float ddx = tPos.x - cx, ddy = tPos.y - cy;
+                if (ddx * ddx + ddy * ddy < 30.0f * 30.0f && target.hasComponent<HealthComponent>()) {
                     auto& hp = target.getComponent<HealthComponent>();
                     if (!hp.isInvincible()) {
                         float dmg = 40.0f * dt;

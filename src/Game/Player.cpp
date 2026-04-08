@@ -105,18 +105,18 @@ void Player::update(float dt, const InputManager& input) {
         auto& hookPhys = hookProjectile->getComponent<PhysicsBody>();
         auto& playerT = m_entity->getComponent<TransformComponent>();
 
-        // Check if hook stopped (hit terrain)
-        float hookSpeed = std::sqrt(hookPhys.velocity.x * hookPhys.velocity.x +
-                                     hookPhys.velocity.y * hookPhys.velocity.y);
-        if (hookSpeed < 10.0f) {
+        // Check if hook stopped (hit terrain) — squared comparison avoids sqrt
+        float hookSpeedSq = hookPhys.velocity.x * hookPhys.velocity.x +
+                            hookPhys.velocity.y * hookPhys.velocity.y;
+        if (hookSpeedSq < 10.0f * 10.0f) {
             // Hook hit terrain — attach and start swinging
             attachHook(hookT.getCenter());
         }
 
-        // Check max range (300px)
+        // Check max range (300px, squared comparison)
         Vec2 diff = hookT.getCenter() - playerT.getCenter();
-        float dist = std::sqrt(diff.x * diff.x + diff.y * diff.y);
-        if (dist > 300.0f) {
+        float distSq = diff.x * diff.x + diff.y * diff.y;
+        if (distSq > 300.0f * 300.0f) {
             // Out of range — retract
             hookProjectile->destroy();
             hookProjectile = nullptr;

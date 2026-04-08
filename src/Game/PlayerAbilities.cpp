@@ -350,9 +350,9 @@ void Player::handleAbilities(float dt, const InputManager& input) {
 
     // Ability 3: Phase Strike (teleport behind nearest enemy)
     if (input.isActionPressed(Action::Ability3) && abil.abilities[2].isReady() && entityManager) {
-        // Find nearest enemy within range
+        // Find nearest enemy within range (squared distance — avoids sqrt per enemy)
         Entity* nearestEnemy = nullptr;
-        float nearestDist = abil.phaseStrikeRange;
+        float nearestDistSq = abil.phaseStrikeRange * abil.phaseStrikeRange;
         Vec2 playerPos = t.getCenter();
 
         entityManager->forEach([&](Entity& e) {
@@ -365,10 +365,10 @@ void Player::handleAbilities(float dt, const InputManager& input) {
             auto& et = e.getComponent<TransformComponent>();
             float dx = et.getCenter().x - playerPos.x;
             float dy = et.getCenter().y - playerPos.y;
-            float dist = std::sqrt(dx * dx + dy * dy);
+            float distSq = dx * dx + dy * dy;
 
-            if (dist < nearestDist) {
-                nearestDist = dist;
+            if (distSq < nearestDistSq) {
+                nearestDistSq = distSq;
                 nearestEnemy = &e;
             }
         });
