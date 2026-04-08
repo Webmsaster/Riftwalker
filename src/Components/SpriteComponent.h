@@ -72,9 +72,10 @@ struct SpriteComponent : public Component {
     SpriteComponent(SDL_Texture* tex, int layer = 2)
         : texture(tex), renderLayer(layer) {
         if (tex) {
-            int w, h;
-            SDL_QueryTexture(tex, nullptr, nullptr, &w, &h);
-            srcRect = {0, 0, w, h};
+            int w = 0, h = 0;
+            if (SDL_QueryTexture(tex, nullptr, nullptr, &w, &h) == 0 && w > 0 && h > 0) {
+                srcRect = {0, 0, w, h};
+            }
         }
     }
 
