@@ -53,19 +53,19 @@ struct RandomEvent {
             case ShrineType::Speed:    return LOC("event.shrine_speed");
             case ShrineType::Entropy:  return LOC("event.shrine_entropy");
             case ShrineType::Shards:   return LOC("event.shrine_shards");
-            case ShrineType::Renewal:  return "Shrine of Renewal";
-            default:                   return "Shrine";
+            case ShrineType::Renewal:  return LOC("event.shrine_renewal");
+            default:                   return LOC("event.shrine_generic");
         }
     }
 
     const char* getShrineEffect() const {
         switch (shrineType) {
-            case ShrineType::Power:    return "+30% DMG 60s | -15 Max HP";
-            case ShrineType::Vitality: return "+25 Max HP | +8 Entropy";
-            case ShrineType::Speed:    return "+25% Speed 45s | -10 Max HP";
-            case ShrineType::Entropy:  return "-25 Entropy | -15 HP";
-            case ShrineType::Shards:   return "+Shards | +12 Entropy";
-            case ShrineType::Renewal:  return "Full Heal | +5 Entropy";
+            case ShrineType::Power:    return LOC("event.shrine_fx_power");
+            case ShrineType::Vitality: return LOC("event.shrine_fx_vitality");
+            case ShrineType::Speed:    return LOC("event.shrine_fx_speed");
+            case ShrineType::Entropy:  return LOC("event.shrine_fx_entropy");
+            case ShrineType::Shards:   return LOC("event.shrine_fx_shards");
+            case ShrineType::Renewal:  return LOC("event.shrine_fx_renewal");
             default:                   return "";
         }
     }
@@ -122,24 +122,24 @@ struct EventChain {
     const char* getStageDesc() const {
         switch (type) {
             case EventChainType::MerchantQuest:
-                if (stage == 1) return "A merchant seeks a rare artifact...";
-                if (stage == 2) return "The artifact glows nearby!";
-                if (stage == 3) return "Return the artifact to the merchant!";
+                if (stage == 1) return LOC("chain.merchant_s1");
+                if (stage == 2) return LOC("chain.merchant_s2");
+                if (stage == 3) return LOC("chain.merchant_s3");
                 break;
             case EventChainType::DimensionalTear:
-                if (stage == 1) return "A faint tear in reality appears...";
-                if (stage == 2) return "The tear is growing — enemies pour through!";
-                if (stage == 3) return "Seal the rift before it consumes all!";
+                if (stage == 1) return LOC("chain.tear_s1");
+                if (stage == 2) return LOC("chain.tear_s2");
+                if (stage == 3) return LOC("chain.tear_s3");
                 break;
             case EventChainType::EntropySurge:
-                if (stage == 1) return "Strange entropy fluctuations detected...";
-                if (stage == 2) return "Entropy is destabilizing rapidly!";
-                if (stage == 3) return "Stabilize the entropy core!";
+                if (stage == 1) return LOC("chain.entropy_s1");
+                if (stage == 2) return LOC("chain.entropy_s2");
+                if (stage == 3) return LOC("chain.entropy_s3");
                 break;
             case EventChainType::LostCache:
-                if (stage == 1) return "You found an ancient map fragment...";
-                if (stage == 2) return "More fragments — the path becomes clear!";
-                if (stage == 3) return "The cache is here — claim your reward!";
+                if (stage == 1) return LOC("chain.cache_s1");
+                if (stage == 2) return LOC("chain.cache_s2");
+                if (stage == 3) return LOC("chain.cache_s3");
                 break;
             default: break;
         }

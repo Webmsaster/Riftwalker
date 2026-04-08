@@ -955,12 +955,34 @@ void Localization::loadStrings() {
     m_en["event.shrine_speed"]     = "Shrine of Speed";
     m_en["event.shrine_entropy"]   = "Shrine of Entropy";
     m_en["event.shrine_shards"]    = "Shrine of Shards";
+    m_en["event.shrine_renewal"]   = "Shrine of Renewal";
+    m_en["event.shrine_generic"]   = "Shrine";
+    // Shrine effects
+    m_en["event.shrine_fx_power"]    = "+30% DMG 60s | -15 Max HP";
+    m_en["event.shrine_fx_vitality"] = "+25 Max HP | +8 Entropy";
+    m_en["event.shrine_fx_speed"]    = "+25% Speed 45s | -10 Max HP";
+    m_en["event.shrine_fx_entropy"]  = "-25 Entropy | -15 HP";
+    m_en["event.shrine_fx_shards"]   = "+Shards | +12 Entropy";
+    m_en["event.shrine_fx_renewal"]  = "Full Heal | +5 Entropy";
 
     // Event chains
     m_en["chain.merchant_quest"]   = "Merchant's Quest";
     m_en["chain.dim_tear"]         = "Dimensional Tear";
     m_en["chain.entropy_surge"]    = "Entropy Surge";
     m_en["chain.lost_cache"]       = "Lost Cache";
+    // Event chain stage descriptions
+    m_en["chain.merchant_s1"] = "A merchant seeks a rare artifact...";
+    m_en["chain.merchant_s2"] = "The artifact glows nearby!";
+    m_en["chain.merchant_s3"] = "Return the artifact to the merchant!";
+    m_en["chain.tear_s1"]     = "A faint tear in reality appears...";
+    m_en["chain.tear_s2"]     = "The tear is growing — enemies pour through!";
+    m_en["chain.tear_s3"]     = "Seal the rift before it consumes all!";
+    m_en["chain.entropy_s1"]  = "Strange entropy fluctuations detected...";
+    m_en["chain.entropy_s2"]  = "Entropy is destabilizing rapidly!";
+    m_en["chain.entropy_s3"]  = "Stabilize the entropy core!";
+    m_en["chain.cache_s1"]    = "You found an ancient map fragment...";
+    m_en["chain.cache_s2"]    = "More fragments — the path becomes clear!";
+    m_en["chain.cache_s3"]    = "The cache is here — claim your reward!";
     m_en["npc.nav_hint"]           = "[W/S] Navigate  [Enter] Select  [Esc] Close";
 
     // Combat challenges
@@ -2185,12 +2207,32 @@ void Localization::loadStrings() {
     m_de["event.shrine_speed"]     = "Schrein der Schnelligkeit";
     m_de["event.shrine_entropy"]   = "Schrein der Entropie";
     m_de["event.shrine_shards"]    = "Schrein der Splitter";
+    m_de["event.shrine_renewal"]   = "Schrein der Erneuerung";
+    m_de["event.shrine_generic"]   = "Schrein";
+    m_de["event.shrine_fx_power"]    = "+30% SCH 60s | -15 Max HP";
+    m_de["event.shrine_fx_vitality"] = "+25 Max HP | +8 Entropie";
+    m_de["event.shrine_fx_speed"]    = "+25% Tempo 45s | -10 Max HP";
+    m_de["event.shrine_fx_entropy"]  = "-25 Entropie | -15 HP";
+    m_de["event.shrine_fx_shards"]   = "+Splitter | +12 Entropie";
+    m_de["event.shrine_fx_renewal"]  = "Volle Heilung | +5 Entropie";
 
     // Event chains
     m_de["chain.merchant_quest"]   = "Haendlerquest";
     m_de["chain.dim_tear"]         = "Dimensionsriss";
     m_de["chain.entropy_surge"]    = "Entropie-Welle";
     m_de["chain.lost_cache"]       = "Verlorener Schatz";
+    m_de["chain.merchant_s1"] = "Ein Haendler sucht ein seltenes Artefakt...";
+    m_de["chain.merchant_s2"] = "Das Artefakt leuchtet in der Naehe!";
+    m_de["chain.merchant_s3"] = "Bringe das Artefakt zurueck zum Haendler!";
+    m_de["chain.tear_s1"]     = "Ein schwacher Riss in der Realitaet erscheint...";
+    m_de["chain.tear_s2"]     = "Der Riss waechst — Gegner stroemen durch!";
+    m_de["chain.tear_s3"]     = "Versiegle den Riss bevor er alles verschlingt!";
+    m_de["chain.entropy_s1"]  = "Seltsame Entropie-Schwankungen erkannt...";
+    m_de["chain.entropy_s2"]  = "Entropie destabilisiert sich rasant!";
+    m_de["chain.entropy_s3"]  = "Stabilisiere den Entropiekern!";
+    m_de["chain.cache_s1"]    = "Du fandest ein altes Kartenfragment...";
+    m_de["chain.cache_s2"]    = "Mehr Fragmente — der Weg wird klar!";
+    m_de["chain.cache_s3"]    = "Der Schatz ist hier — hole dir deine Belohnung!";
     m_de["npc.nav_hint"]           = "[W/S] Navigieren  [Enter] Waehlen  [Esc] Schliessen";
 
     // Combat challenges
