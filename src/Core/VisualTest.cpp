@@ -1,8 +1,37 @@
 #include "VisualTest.h"
 #include "Game.h"
 #include "ScreenCapture.h"
+#include "../States/GameState.h"
 #include <SDL2/SDL.h>
 #include <string>
+
+static const char* stateIdName(StateID id) {
+    switch (id) {
+        case StateID::Splash: return "Splash";
+        case StateID::Menu: return "Menu";
+        case StateID::Play: return "Play";
+        case StateID::Pause: return "Pause";
+        case StateID::Upgrade: return "Upgrade";
+        case StateID::RunSummary: return "RunSummary";
+        case StateID::GameOver: return "GameOver";
+        case StateID::Options: return "Options";
+        case StateID::ClassSelect: return "ClassSelect";
+        case StateID::DifficultySelect: return "DifficultySelect";
+        case StateID::NGPlusSelect: return "NGPlusSelect";
+        case StateID::Keybindings: return "Keybindings";
+        case StateID::Achievements: return "Achievements";
+        case StateID::Shop: return "Shop";
+        case StateID::ChallengeSelect: return "ChallengeSelect";
+        case StateID::Bestiary: return "Bestiary";
+        case StateID::Lore: return "Lore";
+        case StateID::Ending: return "Ending";
+        case StateID::RunHistory: return "RunHistory";
+        case StateID::DailyLeaderboard: return "DailyLeaderboard";
+        case StateID::Credits: return "Credits";
+        case StateID::Tutorial: return "Tutorial";
+    }
+    return "?";
+}
 
 bool g_visualTest = false;
 
@@ -28,6 +57,9 @@ void VisualTest::capture(Game* game, const char* name) {
     std::snprintf(filename, sizeof(filename), "screenshots/visual_test/%02d_%s.png",
                   m_captureCount, name);
 
+    SDL_Log("VisualTest: capture '%s' while in state '%s'",
+            name, stateIdName(game->getCurrentStateID()));
+
     SDL_Renderer* r = game->getRenderer();
     if (r) {
         ScreenCapture::captureScreenshot(r, std::string(filename));
@@ -42,8 +74,10 @@ bool VisualTest::update(int frameCount, Game* game) {
     // ========== CORE GAMEPLAY FLOW ==========
 
     case Phase::WaitSplash:
-        if (frameCount >= 400) {
-            injectKey(SDL_SCANCODE_SPACE);
+        // Splash auto-transitions to Menu at 2.5s. Wait until we're in Menu
+        // (plus a small settle time) rather than injecting a key — otherwise
+        // the key would be interpreted as Confirm on the first Menu button.
+        if (game->getCurrentStateID() == StateID::Menu && m_phaseFrame >= 60) {
             nextPhase(Phase::CaptureMenu);
         }
         break;

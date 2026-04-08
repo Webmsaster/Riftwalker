@@ -52,6 +52,12 @@ public:
     void setShopDifficulty(int d) { m_shopDifficulty = d; }
     int getShopDifficulty() const { return m_shopDifficulty; }
     TTF_Font* getFont() const { return m_font; }
+    StateID getCurrentStateID() const {
+        for (const auto& kv : m_states) {
+            if (kv.second.get() == m_currentState) return kv.first;
+        }
+        return StateID::Splash;
+    }
     int getFPS() const { return m_timer.getFPS(); }
     float getInterpolation() const { return m_timer.getInterpolation(); }
     SDL_Renderer* getRenderer() const { return m_window ? m_window->getSDLRenderer() : nullptr; }
