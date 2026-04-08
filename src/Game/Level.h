@@ -59,12 +59,12 @@ public:
     bool isRiftActiveInDimension(int index, int dimension) const;
 
     // Enemy spawn points
-    struct SpawnPoint { Vec2 position; int enemyType; int dimension; };
+    struct SpawnPoint { Vec2 position; int enemyType = 0; int dimension = 0; };
     std::vector<SpawnPoint> getEnemySpawns() const { return m_enemySpawns; }
     void addEnemySpawn(Vec2 pos, int type, int dim) { m_enemySpawns.push_back({pos, type, dim}); }
 
     // Breakable crate spawn points
-    struct CrateSpawn { Vec2 position; int dimension; };
+    struct CrateSpawn { Vec2 position; int dimension = 0; };
     std::vector<CrateSpawn> getCrateSpawns() const { return m_crateSpawns; }
     void addCrateSpawn(Vec2 pos, int dim) { m_crateSpawns.push_back({pos, dim}); }
 
@@ -118,7 +118,7 @@ private:
 
     // Laser emitter cache (built on first access)
     mutable bool m_laserCacheDirty = true;
-    struct EmitterPos { int x, y, dim; };
+    struct EmitterPos { int x = 0, y = 0, dim = 0; };
     mutable std::vector<EmitterPos> m_laserEmitters;
     void buildLaserCache() const;
 
