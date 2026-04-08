@@ -178,7 +178,7 @@ void UpgradeState::update(float dt) {
 void UpgradeState::renderText(SDL_Renderer* renderer, TTF_Font* font,
                                const char* text, int x, int y, SDL_Color color) {
     if (!font) return;
-    SDL_Surface* s = TTF_RenderText_Blended(font, text, color);
+    SDL_Surface* s = TTF_RenderUTF8_Blended(font, text, color);
     if (s) {
         SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
         if (t) {
@@ -215,7 +215,7 @@ void UpgradeState::render(SDL_Renderer* renderer) {
     if (!font) return;
 
     // Title with glow
-    SDL_Surface* titleSurf = TTF_RenderText_Blended(font, LOC("upgrades.title"), {160, 110, 240, 255});
+    SDL_Surface* titleSurf = TTF_RenderUTF8_Blended(font, LOC("upgrades.title"), {160, 110, 240, 255});
     if (titleSurf) {
         SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
         if (titleTex) {
@@ -242,7 +242,7 @@ void UpgradeState::render(SDL_Renderer* renderer) {
     renderText(renderer, font, shardText, 0, 0, {200, 160, 255, 255});
 
     // Re-render centered (need width)
-    SDL_Surface* shSurf = TTF_RenderText_Blended(font, shardText, {200, 160, 255, 255});
+    SDL_Surface* shSurf = TTF_RenderUTF8_Blended(font, shardText, {200, 160, 255, 255});
     if (shSurf) {
         SDL_Texture* shTex = SDL_CreateTextureFromSurface(renderer, shSurf);
         if (shTex) {

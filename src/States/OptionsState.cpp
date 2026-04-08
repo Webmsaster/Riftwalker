@@ -423,7 +423,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color c = {140, 100, 220, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("options.title"), c);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("options.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -469,7 +469,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
 
         // Label
         SDL_Color labelColor = selected ? SDL_Color{220, 200, 255, 255} : SDL_Color{140, 130, 170, 255};
-        SDL_Surface* ls = TTF_RenderText_Blended(font, m_options[i].label.c_str(), labelColor);
+        SDL_Surface* ls = TTF_RenderUTF8_Blended(font, m_options[i].label.c_str(), labelColor);
         if (ls) {
             SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
             if (lt) {
@@ -517,7 +517,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
                 // Arrows
                 if (selected) {
                     SDL_Color arrC = {180, 150, 255, 200};
-                    SDL_Surface* la = TTF_RenderText_Blended(font, "<", arrC);
+                    SDL_Surface* la = TTF_RenderUTF8_Blended(font, "<", arrC);
                     if (la) {
                         SDL_Texture* lat = SDL_CreateTextureFromSurface(renderer, la);
                         if (lat) {
@@ -527,7 +527,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
                         }
                         SDL_FreeSurface(la);
                     }
-                    SDL_Surface* ra = TTF_RenderText_Blended(font, ">", arrC);
+                    SDL_Surface* ra = TTF_RenderUTF8_Blended(font, ">", arrC);
                     if (ra) {
                         SDL_Texture* rat = SDL_CreateTextureFromSurface(renderer, ra);
                         if (rat) {
@@ -542,7 +542,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
 
             // Value text
             SDL_Color valColor = selected ? SDL_Color{200, 180, 255, 255} : SDL_Color{120, 110, 150, 255};
-            SDL_Surface* vs = TTF_RenderText_Blended(font, valText.c_str(), valColor);
+            SDL_Surface* vs = TTF_RenderUTF8_Blended(font, valText.c_str(), valColor);
             if (vs) {
                 SDL_Texture* vt = SDL_CreateTextureFromSurface(renderer, vs);
                 if (vt) {
@@ -569,7 +569,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
                           + keyName(Action::DimensionSwitch) + " - Dim Switch    " + keyName(Action::Interact) + " - Interact";
         const std::string lines[] = {line1, line2};
         for (int i = 0; i < 2; i++) {
-            SDL_Surface* cs = TTF_RenderText_Blended(font, lines[i].c_str(), hc);
+            SDL_Surface* cs = TTF_RenderUTF8_Blended(font, lines[i].c_str(), hc);
             if (cs) {
                 SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
                 if (ct) {
@@ -585,7 +585,7 @@ void OptionsState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         SDL_Color nc = {120, 120, 140, 180};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC("options.nav_hint"), nc);
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, LOC("options.nav_hint"), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {

@@ -132,7 +132,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color tc = {220, 200, 255, 255};
-        SDL_Surface* ts = TTF_RenderText_Blended(font, LOC("achievements.title"), tc);
+        SDL_Surface* ts = TTF_RenderUTF8_Blended(font, LOC("achievements.title"), tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
@@ -150,7 +150,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         char buf[64];
         snprintf(buf, sizeof(buf), LOC("achievements.counter"), achSys.getUnlockedCount(), achSys.getTotalCount());
         SDL_Color cc = {180, 160, 200, 200};
-        SDL_Surface* cs = TTF_RenderText_Blended(font, buf, cc);
+        SDL_Surface* cs = TTF_RenderUTF8_Blended(font, buf, cc);
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
@@ -237,7 +237,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         const char* displayDesc = (std::strcmp(locDesc, achDescKey) == 0) ? a.description.c_str() : locDesc;
 
         SDL_Color nameColor = a.unlocked ? SDL_Color{200, 255, 210, 255} : SDL_Color{100, 90, 110, 180};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, displayName, nameColor);
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, displayName, nameColor);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -250,7 +250,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
 
         // Description
         SDL_Color descColor = a.unlocked ? SDL_Color{160, 200, 170, 200} : SDL_Color{80, 70, 90, 140};
-        SDL_Surface* ds = TTF_RenderText_Blended(font, displayDesc, descColor);
+        SDL_Surface* ds = TTF_RenderUTF8_Blended(font, displayDesc, descColor);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
@@ -264,7 +264,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
         // Reward text (right-aligned, golden if unlocked, gray if locked)
         if (!a.rewardDesc.empty()) {
             SDL_Color rwColor = a.unlocked ? SDL_Color{255, 220, 80, 230} : SDL_Color{120, 100, 60, 120};
-            SDL_Surface* rws = TTF_RenderText_Blended(font, a.rewardDesc.c_str(), rwColor);
+            SDL_Surface* rws = TTF_RenderUTF8_Blended(font, a.rewardDesc.c_str(), rwColor);
             if (rws) {
                 SDL_Texture* rwt = SDL_CreateTextureFromSurface(renderer, rws);
                 if (rwt) {
@@ -296,7 +296,7 @@ void AchievementsState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         SDL_Color hc = {140, 120, 180, 160};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("achievements.nav_hint"), hc);
+        SDL_Surface* hs = TTF_RenderUTF8_Blended(font, LOC("achievements.nav_hint"), hc);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {

@@ -244,7 +244,7 @@ void PauseState::render(SDL_Renderer* renderer) {
     if (font) {
         // Glow layer
         SDL_Color glowC = {120, 80, 200, static_cast<Uint8>(60 + 40 * pulse)};
-        SDL_Surface* gs = TTF_RenderText_Blended(font, LOC("pause.title"), glowC);
+        SDL_Surface* gs = TTF_RenderUTF8_Blended(font, LOC("pause.title"), glowC);
         if (gs) {
             SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
             if (gt) {
@@ -258,7 +258,7 @@ void PauseState::render(SDL_Renderer* renderer) {
 
         // Main title
         SDL_Color c = {200, 200, 230, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("pause.title"), c);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("pause.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -312,7 +312,7 @@ void PauseState::render(SDL_Renderer* renderer) {
     // Controls hint
     if (font) {
         SDL_Color hintC = {120, 120, 140, 180};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("pause.nav_hint"), hintC);
+        SDL_Surface* hs = TTF_RenderUTF8_Blended(font, LOC("pause.nav_hint"), hintC);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
@@ -328,7 +328,7 @@ void PauseState::render(SDL_Renderer* renderer) {
 static void renderStatText(SDL_Renderer* renderer, TTF_Font* font,
                             const char* text, int x, int y, SDL_Color color) {
     if (!font || !text) return;
-    SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text, color);
     if (!surface) return;
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     if (texture) {

@@ -222,7 +222,7 @@ void ShopState::render(SDL_Renderer* renderer) {
     // Title
     if (font) {
         SDL_Color titleColor = {200, 150, 255, 255};
-        SDL_Surface* titleSurf = TTF_RenderText_Blended(font, LOC("shop.title"), titleColor);
+        SDL_Surface* titleSurf = TTF_RenderUTF8_Blended(font, LOC("shop.title"), titleColor);
         if (titleSurf) {
             SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
             if (titleTex) {
@@ -238,7 +238,7 @@ void ShopState::render(SDL_Renderer* renderer) {
         std::snprintf(shardText, sizeof(shardText), LOC("menu.rift_shards"),
                      game->getUpgradeSystem().getRiftShards());
         SDL_Color shardColor = {200, 170, 255, 255};
-        SDL_Surface* ss = TTF_RenderText_Blended(font, shardText, shardColor);
+        SDL_Surface* ss = TTF_RenderUTF8_Blended(font, shardText, shardColor);
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
@@ -291,7 +291,7 @@ void ShopState::render(SDL_Renderer* renderer) {
 
         if (font) {
             SDL_Color sc = skipSelected ? SDL_Color{255, 255, 255, 255} : SDL_Color{150, 150, 170, 200};
-            SDL_Surface* ss = TTF_RenderText_Blended(font, LOC("shop.skip"), sc);
+            SDL_Surface* ss = TTF_RenderUTF8_Blended(font, LOC("shop.skip"), sc);
             if (ss) {
                 SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
                 if (st) {
@@ -317,7 +317,7 @@ void ShopState::render(SDL_Renderer* renderer) {
         SDL_RenderDrawRect(renderer, &tutBg);
 
         SDL_Color tutColor = {180, 220, 255, ta};
-        SDL_Surface* ts = TTF_RenderText_Blended(font,
+        SDL_Surface* ts = TTF_RenderUTF8_Blended(font,
             LOC("shop.tutorial"), tutColor);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
@@ -334,7 +334,7 @@ void ShopState::render(SDL_Renderer* renderer) {
     // Instructions at bottom
     if (font) {
         SDL_Color hintColor = {100, 100, 120, 150};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("shop.nav_hint"), hintColor);
+        SDL_Surface* hs = TTF_RenderUTF8_Blended(font, LOC("shop.nav_hint"), hintColor);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
@@ -402,7 +402,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
     if (font) {
         // Tier label
         SDL_Color tc = {tierColor.r, tierColor.g, tierColor.b, 220};
-        SDL_Surface* ts = TTF_RenderText_Blended(font, tierLabel, tc);
+        SDL_Surface* ts = TTF_RenderUTF8_Blended(font, tierLabel, tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
@@ -457,7 +457,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         std::snprintf(buffNameKey, sizeof(buffNameKey), "buff.%d.name", static_cast<int>(buff.id));
         std::snprintf(buffDescKey, sizeof(buffDescKey), "buff.%d.desc", static_cast<int>(buff.id));
         SDL_Color nc = {255, 255, 255, 240};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC(buffNameKey), nc);
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, LOC(buffNameKey), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -470,7 +470,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
 
         // Description (localized)
         SDL_Color dc = {180, 180, 200, 200};
-        SDL_Surface* ds = TTF_RenderText_Blended(font, LOC(buffDescKey), dc);
+        SDL_Surface* ds = TTF_RenderUTF8_Blended(font, LOC(buffDescKey), dc);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
@@ -489,7 +489,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         char costText[32];
         std::snprintf(costText, sizeof(costText), LOC("shop.cost"), buff.cost);
         SDL_Color cc = affordable ? SDL_Color{200, 170, 255, 255} : SDL_Color{200, 60, 60, 255};
-        SDL_Surface* cs = TTF_RenderText_Blended(font, costText, cc);
+        SDL_Surface* cs = TTF_RenderUTF8_Blended(font, costText, cc);
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
@@ -504,7 +504,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
         if (selected && affordable) {
             float blink = 0.5f + 0.5f * std::sin(ticks * 0.008f);
             SDL_Color bc = {180, 255, 180, static_cast<Uint8>(180 * blink)};
-            SDL_Surface* bs = TTF_RenderText_Blended(font, LOC("shop.buy"), bc);
+            SDL_Surface* bs = TTF_RenderUTF8_Blended(font, LOC("shop.buy"), bc);
             if (bs) {
                 SDL_Texture* bt = SDL_CreateTextureFromSurface(renderer, bs);
                 if (bt) {
@@ -516,7 +516,7 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
             }
         } else if (selected && !affordable) {
             SDL_Color errColor = {200, 80, 80, 180};
-            SDL_Surface* errSurf = TTF_RenderText_Blended(font, LOC("shop.no_shards"), errColor);
+            SDL_Surface* errSurf = TTF_RenderUTF8_Blended(font, LOC("shop.no_shards"), errColor);
             if (errSurf) {
                 SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, errSurf);
                 if (nt) {

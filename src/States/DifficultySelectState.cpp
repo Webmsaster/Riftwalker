@@ -137,7 +137,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
         const auto& classData = ClassSystem::getData(g_selectedClass);
         char classText[64];
         std::snprintf(classText, sizeof(classText), LOC("difficulty.class"), classData.name);
-        SDL_Surface* cs = TTF_RenderText_Blended(font, classText, classData.color);
+        SDL_Surface* cs = TTF_RenderUTF8_Blended(font, classText, classData.color);
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
@@ -152,7 +152,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color c = {140, 100, 220, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("difficulty.title"), c);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("difficulty.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -214,7 +214,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
             SDL_Color{static_cast<Uint8>(options[i].color.r / 2),
                       static_cast<Uint8>(options[i].color.g / 2),
                       static_cast<Uint8>(options[i].color.b / 2), 255};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, options[i].name, nameColor);
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, options[i].name, nameColor);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -229,7 +229,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
 
         // Description
         SDL_Color descColor = selected ? SDL_Color{180, 175, 200, 220} : SDL_Color{100, 95, 120, 150};
-        SDL_Surface* ds = TTF_RenderText_Blended(font, options[i].desc, descColor);
+        SDL_Surface* ds = TTF_RenderUTF8_Blended(font, options[i].desc, descColor);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
@@ -244,7 +244,7 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         SDL_Color nc = {60, 55, 85, 140};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC("difficulty.nav_hint"), nc);
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, LOC("difficulty.nav_hint"), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {

@@ -51,7 +51,7 @@ void PlayState::renderCollapseWarning(SDL_Renderer* renderer) {
         // Pulsing red-white text
         Uint8 pulse = static_cast<Uint8>(200 + 55 * std::sin(m_frameTicks * 0.01f));
         SDL_Color tc = {pulse, static_cast<Uint8>(pulse / 4), 0, 255};
-        SDL_Surface* ts = TTF_RenderText_Blended(font, buf, tc);
+        SDL_Surface* ts = TTF_RenderUTF8_Blended(font, buf, tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
@@ -84,7 +84,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 std::snprintf(riftBuf, sizeof(riftBuf), LOC("hud.rifts_counter"),
                               m_levelRiftsRepaired, totalRifts, dimARemaining, dimBRemaining);
                 SDL_Color rc = {180, 130, 255, 200};
-                SDL_Surface* rs = TTF_RenderText_Blended(font, riftBuf, rc);
+                SDL_Surface* rs = TTF_RenderUTF8_Blended(font, riftBuf, rc);
                 if (rs) {
                     SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
                     if (rt) {
@@ -111,7 +111,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             const char* hintText = (m_isBossLevel && !m_bossDefeated)
                 ? LOC("hud.defeat_boss")
                 : LOC("hud.repair_rifts");
-            SDL_Surface* hs = TTF_RenderText_Blended(font, hintText, hc);
+            SDL_Surface* hs = TTF_RenderUTF8_Blended(font, hintText, hc);
             if (hs) {
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
                 if (ht) {
@@ -145,7 +145,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 std::snprintf(hintText, sizeof(hintText), "%s",
                               LOC("hud.rift_dima"));
             }
-            SDL_Surface* hs = TTF_RenderText_Blended(font, hintText, hc);
+            SDL_Surface* hs = TTF_RenderUTF8_Blended(font, hintText, hc);
             if (hs) {
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
                 if (ht) {
@@ -192,7 +192,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
                 std::snprintf(promptText, sizeof(promptText), "%s",
                               LOC("hud.repair_dima"));
             }
-            SDL_Surface* s = TTF_RenderText_Blended(font, promptText, c);
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, promptText, c);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
@@ -304,7 +304,7 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             TTF_Font* font = game->getFont();
             if (font) {
                 SDL_Color labelColor = {gr, gg, 60, pa};
-                SDL_Surface* ls = TTF_RenderText_Blended(font, LOC("hud.exit"), labelColor);
+                SDL_Surface* ls = TTF_RenderUTF8_Blended(font, LOC("hud.exit"), labelColor);
                 if (ls) {
                     SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
                     if (lt) {
@@ -502,7 +502,7 @@ void PlayState::renderDebugOverlay(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_RenderDrawRect(renderer, &bg);
 
     for (int i = 0; i < lineCount; i++) {
-        SDL_Surface* s = TTF_RenderText_Blended(font, lines[i].text, lines[i].color);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, lines[i].text, lines[i].color);
         if (!s) continue;
         SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
         if (t) {
@@ -622,7 +622,7 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
         if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
         const char* bossName = (bt == 5) ? LOC("boss.entropy_incarnate") : (bt == 4) ? LOC("boss.void_sovereign") : (bt == 3) ? LOC("boss.temporal_weaver") : (bt == 2) ? LOC("boss.dim_architect") : (bt == 1) ? LOC("boss.void_wyrm") : LOC("boss.rift_guardian");
         SDL_Color tc = (bt == 5) ? SDL_Color{80, 220, 80, 220} : (bt == 4) ? SDL_Color{180, 80, 255, 220} : (bt == 3) ? SDL_Color{220, 190, 100, 220} : (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
-        SDL_Surface* ts = TTF_RenderText_Blended(font, bossName, tc);
+        SDL_Surface* ts = TTF_RenderUTF8_Blended(font, bossName, tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
@@ -644,7 +644,7 @@ void PlayState::renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font) {
     if (g_activeChallenge != ChallengeID::None) {
         const auto& cd = ChallengeMode::getChallengeData(g_activeChallenge);
         SDL_Color cc = {255, 200, 60, 200};
-        SDL_Surface* s = TTF_RenderText_Blended(font, cd.name, cc);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, cd.name, cc);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -663,7 +663,7 @@ void PlayState::renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font) {
             char timerText[32];
             std::snprintf(timerText, sizeof(timerText), "%d:%02d", mins, secs);
             SDL_Color tc = (m_challengeTimer < 60) ? SDL_Color{255, 60, 60, 255} : SDL_Color{200, 200, 200, 220};
-            SDL_Surface* ts = TTF_RenderText_Blended(font, timerText, tc);
+            SDL_Surface* ts = TTF_RenderUTF8_Blended(font, timerText, tc);
             if (ts) {
                 SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
                 if (tt) {
@@ -680,7 +680,7 @@ void PlayState::renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font) {
         if (g_activeChallenge == ChallengeID::EndlessRift) {
             char scoreText[32];
             std::snprintf(scoreText, sizeof(scoreText), LOC("hud.score"), m_endlessScore);
-            SDL_Surface* ss = TTF_RenderText_Blended(font, scoreText, SDL_Color{200, 180, 255, 220});
+            SDL_Surface* ss = TTF_RenderUTF8_Blended(font, scoreText, SDL_Color{200, 180, 255, 220});
             if (ss) {
                 SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
                 if (st) {
@@ -698,7 +698,7 @@ void PlayState::renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font) {
     for (int i = 0; i < 2; i++) {
         if (g_activeMutators[i] == MutatorID::None) continue;
         const auto& md = ChallengeMode::getMutatorData(g_activeMutators[i]);
-        SDL_Surface* ms = TTF_RenderText_Blended(font, md.name, SDL_Color{180, 180, 220, 160});
+        SDL_Surface* ms = TTF_RenderUTF8_Blended(font, md.name, SDL_Color{180, 180, 220, 160});
         if (ms) {
             SDL_Texture* mt = SDL_CreateTextureFromSurface(renderer, ms);
             if (mt) {
@@ -741,7 +741,7 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
 
         // Challenge name
         SDL_Color gold = {255, 215, 0, 255};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, m_combatChallenge.name, gold);
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, m_combatChallenge.name, gold);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -754,7 +754,7 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
 
         // Description
         SDL_Color desc = {180, 180, 200, 200};
-        SDL_Surface* ds = TTF_RenderText_Blended(font, m_combatChallenge.desc, desc);
+        SDL_Surface* ds = TTF_RenderUTF8_Blended(font, m_combatChallenge.desc, desc);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
@@ -784,7 +784,7 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
             char countBuf[16];
             std::snprintf(countBuf, sizeof(countBuf), "%d/%d",
                          m_combatChallenge.currentCount, m_combatChallenge.targetCount);
-            SDL_Surface* cs = TTF_RenderText_Blended(font, countBuf, gold);
+            SDL_Surface* cs = TTF_RenderUTF8_Blended(font, countBuf, gold);
             if (cs) {
                 SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
                 if (ct) {
@@ -800,7 +800,7 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
         char rewardBuf[24];
         std::snprintf(rewardBuf, sizeof(rewardBuf), "+%d", m_combatChallenge.shardReward);
         SDL_Color shardCol = {100, 200, 255, 160};
-        SDL_Surface* rs = TTF_RenderText_Blended(font, rewardBuf, shardCol);
+        SDL_Surface* rs = TTF_RenderUTF8_Blended(font, rewardBuf, shardCol);
         if (rs) {
             SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
             if (rt) {
@@ -828,7 +828,7 @@ void PlayState::renderCombatChallenge(SDL_Renderer* renderer, TTF_Font* font) {
         std::snprintf(completeBuf, sizeof(completeBuf), LOC("hud.challenge_complete"),
                      m_combatChallenge.shardReward);
         SDL_Color compColor = {255, 215, 0, a};
-        SDL_Surface* cs = TTF_RenderText_Blended(font, completeBuf, compColor);
+        SDL_Surface* cs = TTF_RenderUTF8_Blended(font, completeBuf, compColor);
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
@@ -915,7 +915,7 @@ void PlayState::renderKillFeed(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_Color c = display[i].color;
         Uint8 a = static_cast<Uint8>(c.a * alpha);
 
-        SDL_Surface* surf = TTF_RenderText_Blended(font, display[i].text, {c.r, c.g, c.b, 255});
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, display[i].text, {c.r, c.g, c.b, 255});
         if (surf) {
             int entryX = x - surf->w + slideOffset;
             int entryW = surf->w + 32;
@@ -997,7 +997,7 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
             }
 
             // Create and cache text texture
-            SDL_Surface* surface = TTF_RenderText_Blended(font, buf, color);
+            SDL_Surface* surface = TTF_RenderUTF8_Blended(font, buf, color);
             if (surface) {
                 dn.texW = surface->w;
                 dn.texH = surface->h;
@@ -1006,7 +1006,7 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
             }
             // Create and cache shadow texture
             SDL_Color black = {0, 0, 0, 255};
-            SDL_Surface* shadowSurf = TTF_RenderText_Blended(font, buf, black);
+            SDL_Surface* shadowSurf = TTF_RenderUTF8_Blended(font, buf, black);
             if (shadowSurf) {
                 dn.cachedShadow = SDL_CreateTextureFromSurface(renderer, shadowSurf);
                 SDL_FreeSurface(shadowSurf);
@@ -1085,7 +1085,7 @@ void PlayState::renderQuestHUD(SDL_Renderer* renderer, TTF_Font* font) {
 
         // Text
         SDL_Color questColor = {140, 200, 255, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, buf, questColor);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, buf, questColor);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -1118,7 +1118,7 @@ void PlayState::renderQuestHUD(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_RenderDrawRect(renderer, &bg);
 
         SDL_Color gold = {255, 215, 80, a};
-        SDL_Surface* s = TTF_RenderText_Blended(font, buf, gold);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, buf, gold);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -1158,7 +1158,7 @@ void PlayState::renderWeaponSwitchDisplay(SDL_Renderer* renderer, TTF_Font* font
         ? SDL_Color{255, 200, 80, a}
         : SDL_Color{80, 200, 255, a};
 
-    SDL_Surface* surf = TTF_RenderText_Blended(font, m_weaponSwitchName.c_str(), textColor);
+    SDL_Surface* surf = TTF_RenderUTF8_Blended(font, m_weaponSwitchName.c_str(), textColor);
     if (surf) {
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
         if (tex) {
@@ -1174,7 +1174,7 @@ void PlayState::renderWeaponSwitchDisplay(SDL_Renderer* renderer, TTF_Font* font
     const char* category = m_weaponSwitchIsMelee ? LOC("hud.weapon_melee") : LOC("hud.weapon_ranged");
     Uint8 catAlpha = static_cast<Uint8>(alpha * 140);
     SDL_Color catColor = {200, 200, 200, catAlpha};
-    SDL_Surface* catSurf = TTF_RenderText_Blended(font, category, catColor);
+    SDL_Surface* catSurf = TTF_RenderUTF8_Blended(font, category, catColor);
     if (catSurf) {
         SDL_Texture* catTex = SDL_CreateTextureFromSurface(renderer, catSurf);
         if (catTex) {

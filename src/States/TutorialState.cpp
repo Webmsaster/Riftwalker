@@ -157,7 +157,7 @@ void TutorialState::render(SDL_Renderer* renderer) {
     if (font) {
         Uint8 hintA = static_cast<Uint8>(120 * m_fadeIn);
         const char* hint = LOC("tut.nav_hint");
-        SDL_Surface* s = TTF_RenderText_Blended(font, hint, {150, 150, 170, hintA});
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, hint, {150, 150, 170, hintA});
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -184,7 +184,7 @@ void TutorialState::renderKeyIcon(SDL_Renderer* renderer, int x, int y, int w, i
     SDL_Rect top = {x + 1, y + 1, w - 2, 2};
     SDL_RenderFillRect(renderer, &top);
     // Label
-    SDL_Surface* s = TTF_RenderText_Blended(font, label, {220, 210, 255, 255});
+    SDL_Surface* s = TTF_RenderUTF8_Blended(font, label, {220, 210, 255, 255});
     if (s) {
         SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
         if (t) {
@@ -219,7 +219,7 @@ void TutorialState::renderPage(SDL_Renderer* renderer, TTF_Font* font) {
     int contentY = panelY + 140;
 
     auto renderTitle = [&](const char* key) {
-        SDL_Surface* s = TTF_RenderText_Blended(font, LOC(key), {200, 180, 255, alpha});
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC(key), {200, 180, 255, alpha});
         if (s) {
             int tw = static_cast<int>(s->w * 1.5f);
             int th = static_cast<int>(s->h * 1.5f);
@@ -235,7 +235,7 @@ void TutorialState::renderPage(SDL_Renderer* renderer, TTF_Font* font) {
 
     auto renderLine = [&](const char* text, int y, SDL_Color color = {200, 200, 210, 255}) {
         color.a = alpha;
-        SDL_Surface* s = TTF_RenderText_Blended(font, text, color);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, text, color);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {

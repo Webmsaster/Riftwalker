@@ -21,6 +21,11 @@ static void ensureDirectory(const std::string& path) {
     }
 }
 
+// Max dimension for saved screenshots. Large renders (2K/4K) are scaled down
+// so saved PNGs stay under ~2000px — prevents "image dimension limit" errors
+// when reviewing multiple screenshots via AI tools, and keeps disk usage lower.
+static constexpr int MAX_SCREENSHOT_DIM = 1920;
+
 bool captureScreenshot(SDL_Renderer* renderer, const std::string& filepath) {
     // Use actual renderer output size (may differ from logical size due to HiDPI)
     int rw, rh;
@@ -40,9 +45,38 @@ bool captureScreenshot(SDL_Renderer* renderer, const std::string& filepath) {
         return false;
     }
 
+    // Downscale if either dimension exceeds MAX_SCREENSHOT_DIM
+    SDL_Surface* saveSurface = surface;
+    bool ownsSaveSurface = false;
+    if (rw > MAX_SCREENSHOT_DIM || rh > MAX_SCREENSHOT_DIM) {
+        float sx = static_cast<float>(MAX_SCREENSHOT_DIM) / rw;
+        float sy = static_cast<float>(MAX_SCREENSHOT_DIM) / rh;
+        float scale = (sx < sy) ? sx : sy;
+        int nw = static_cast<int>(rw * scale);
+        int nh = static_cast<int>(rh * scale);
+
+        SDL_Surface* scaled = SDL_CreateRGBSurfaceWithFormat(0, nw, nh, 32,
+                                                             SDL_PIXELFORMAT_ARGB8888);
+        if (scaled) {
+            // SDL_BlitScaled uses linear scaling for smooth downsampling
+            SDL_Rect srcRect = {0, 0, rw, rh};
+            SDL_Rect dstRect = {0, 0, nw, nh};
+            if (SDL_BlitScaled(surface, &srcRect, scaled, &dstRect) == 0) {
+                saveSurface = scaled;
+                ownsSaveSurface = true;
+            } else {
+                SDL_Log("ScreenCapture: BlitScaled failed, saving at full size: %s", SDL_GetError());
+                SDL_FreeSurface(scaled);
+            }
+        }
+    }
+
     ensureDirectory(filepath);
 
-    int result = IMG_SavePNG(surface, filepath.c_str());
+    int result = IMG_SavePNG(saveSurface, filepath.c_str());
+    int savedW = saveSurface->w;
+    int savedH = saveSurface->h;
+    if (ownsSaveSurface) SDL_FreeSurface(saveSurface);
     SDL_FreeSurface(surface);
 
     if (result != 0) {
@@ -50,7 +84,7 @@ bool captureScreenshot(SDL_Renderer* renderer, const std::string& filepath) {
         return false;
     }
 
-    SDL_Log("ScreenCapture: Saved %s (%dx%d)", filepath.c_str(), rw, rh);
+    SDL_Log("ScreenCapture: Saved %s (%dx%d)", filepath.c_str(), savedW, savedH);
     return true;
 }
 

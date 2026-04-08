@@ -303,7 +303,7 @@ void MenuState::renderTitle(SDL_Renderer* renderer, TTF_Font* font) {
     Uint8 tg = static_cast<Uint8>(40 + 20 * (1.0f - dimShift));
     Uint8 tb = static_cast<Uint8>(200 - 80 * dimShift);
 
-    SDL_Surface* surface = TTF_RenderText_Blended(font, "R I F T W A L K E R", {tr, tg, tb, 255});
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, "R I F T W A L K E R", {tr, tg, tb, 255});
     if (!surface) return;
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surface);
     if (!tex) { SDL_FreeSurface(surface); return; }
@@ -333,7 +333,7 @@ void MenuState::renderTitle(SDL_Renderer* renderer, TTF_Font* font) {
     // Subtitle
     Uint8 subAlpha = static_cast<Uint8>(200.0f * m_fadeIn);
     SDL_Color subColor = {120, 100, 165, subAlpha};
-    SDL_Surface* sub = TTF_RenderText_Blended(font, LOC("menu.subtitle"), subColor);
+    SDL_Surface* sub = TTF_RenderUTF8_Blended(font, LOC("menu.subtitle"), subColor);
     if (sub) {
         SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, sub);
         if (st) {
@@ -384,7 +384,7 @@ void MenuState::render(SDL_Renderer* renderer) {
         std::snprintf(shardText, sizeof(shardText), LOC("menu.rift_shards"), shards);
         Uint8 shardAlpha = static_cast<Uint8>(200.0f * m_fadeIn);
         SDL_Color shardColor = {180, 140, 255, shardAlpha};
-        SDL_Surface* ss = TTF_RenderText_Blended(font, shardText, shardColor);
+        SDL_Surface* ss = TTF_RenderUTF8_Blended(font, shardText, shardColor);
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
@@ -415,7 +415,7 @@ void MenuState::render(SDL_Renderer* renderer) {
         Uint8 aa = static_cast<Uint8>(220 * pulse * m_fadeIn);
         SDL_Color ascColor = {255, 180, 60, aa};
         int ascTextH = 16; // fallback
-        SDL_Surface* as = TTF_RenderText_Blended(font, ascText, ascColor);
+        SDL_Surface* as = TTF_RenderUTF8_Blended(font, ascText, ascColor);
         if (as) {
             ascTextH = as->h;
             SDL_Texture* at = SDL_CreateTextureFromSurface(renderer, as);
@@ -431,7 +431,7 @@ void MenuState::render(SDL_Renderer* renderer) {
         // Rift Cores display
         char coreText[64];
         std::snprintf(coreText, sizeof(coreText), LOC("menu.rift_cores"), AscensionSystem::riftCores);
-        SDL_Surface* cs = TTF_RenderText_Blended(font, coreText, SDL_Color{200, 150, 255, static_cast<Uint8>(180 * m_fadeIn)});
+        SDL_Surface* cs = TTF_RenderUTF8_Blended(font, coreText, SDL_Color{200, 150, 255, static_cast<Uint8>(180 * m_fadeIn)});
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
@@ -461,7 +461,7 @@ void MenuState::render(SDL_Renderer* renderer) {
     // Keyboard shortcut hint
     if (font) {
         SDL_Color hintC = {120, 120, 140, 180};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("menu.nav_hint"), hintC);
+        SDL_Surface* hs = TTF_RenderUTF8_Blended(font, LOC("menu.nav_hint"), hintC);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
@@ -476,7 +476,7 @@ void MenuState::render(SDL_Renderer* renderer) {
     // Version at bottom
     if (font) {
         SDL_Color c = {55, 50, 75, 100};
-        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("menu.version"), c);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("menu.version"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -539,7 +539,7 @@ void MenuState::renderDailyInfo(SDL_Renderer* renderer, TTF_Font* font) {
 
     // Helper lambda to render a line of text
     auto drawLine = [&](const char* text, SDL_Color color, int y) {
-        SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
+        SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text, color);
         if (!surface) return;
         SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
         if (texture) {
@@ -602,7 +602,7 @@ void MenuState::renderCareerStats(SDL_Renderer* renderer, TTF_Font* font) {
     Uint8 ta = static_cast<Uint8>(180 * m_fadeIn);
 
     auto drawStat = [&](const char* text, SDL_Color color, int y) {
-        SDL_Surface* s = TTF_RenderText_Blended(font, text, color);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, text, color);
         if (!s) return;
         SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
         if (t) {

@@ -28,7 +28,7 @@ static constexpr int PREVIEW_CY = DETAIL_Y + 260;
 static void drawText(SDL_Renderer* renderer, TTF_Font* font, const char* text,
                      int x, int y, SDL_Color color, float scale = 1.0f) {
     if (!text || text[0] == '\0') return;
-    SDL_Surface* s = TTF_RenderText_Blended(font, text, color);
+    SDL_Surface* s = TTF_RenderUTF8_Blended(font, text, color);
     if (!s) return;
     SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
     if (t) {
@@ -42,7 +42,7 @@ static void drawText(SDL_Renderer* renderer, TTF_Font* font, const char* text,
 static void drawTextCentered(SDL_Renderer* renderer, TTF_Font* font, const char* text,
                               int cx, int y, SDL_Color color, float scale = 1.0f) {
     if (!text || text[0] == '\0') return;
-    SDL_Surface* s = TTF_RenderText_Blended(font, text, color);
+    SDL_Surface* s = TTF_RenderUTF8_Blended(font, text, color);
     if (!s) return;
     SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
     if (t) {
@@ -128,7 +128,7 @@ static int drawTextWrapped(SDL_Renderer* renderer, TTF_Font* font, const char* t
         if (!line.empty() && line.back() == ' ') line.pop_back();
 
         if (!line.empty()) {
-            SDL_Surface* s = TTF_RenderText_Blended(font, line.c_str(), color);
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, line.c_str(), color);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
@@ -580,51 +580,51 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
     int infoBlockY = div2Y + 16;
 
     drawText(renderer, font, LOC("bestiary.abilities"), infoX, infoBlockY, {160, 130, 200, 200});
+    int abilH = 0;
     {
         char abilKey[32];
         if (isBoss) std::snprintf(abilKey, sizeof(abilKey), "boss.%d.abil", typeIdx);
         else std::snprintf(abilKey, sizeof(abilKey), "enemy.%d.abil", typeIdx);
         const char* abilLoc = LOC(abilKey);
         const char* abilText = (std::strcmp(abilLoc, abilKey) == 0) ? entry.abilities : abilLoc;
-        SDL_Surface* as = TTF_RenderText_Blended(font, abilText, {180, 165, 195, 190});
+        SDL_Surface* as = TTF_RenderUTF8_Blended_Wrapped(font, abilText, {180, 165, 195, 190}, infoW - 20);
         if (as) {
             SDL_Texture* at = SDL_CreateTextureFromSurface(renderer, as);
             if (at) {
-                int maxW = infoW - 20;
-                float scale = (as->w > maxW) ? static_cast<float>(maxW) / as->w : 1.0f;
-                SDL_Rect ar = {infoX, infoBlockY + 40, static_cast<int>(as->w * scale), static_cast<int>(as->h * scale)};
+                SDL_Rect ar = {infoX, infoBlockY + 40, as->w, as->h};
                 SDL_RenderCopy(renderer, at, nullptr, &ar);
                 SDL_DestroyTexture(at);
+                abilH = as->h;
             }
             SDL_FreeSurface(as);
         }
     }
 
     // Weakness
-    int weakY = infoBlockY + 100;
+    int weakY = infoBlockY + 40 + std::max(abilH + 24, 80);
     drawText(renderer, font, LOC("bestiary.weakness"), infoX, weakY, {255, 200, 80, 210});
+    int weakH = 0;
     {
         char weakKey[32];
         if (isBoss) std::snprintf(weakKey, sizeof(weakKey), "boss.%d.weak", typeIdx);
         else std::snprintf(weakKey, sizeof(weakKey), "enemy.%d.weak", typeIdx);
         const char* weakLoc = LOC(weakKey);
         const char* weakText = (std::strcmp(weakLoc, weakKey) == 0) ? entry.weakness : weakLoc;
-        SDL_Surface* ws = TTF_RenderText_Blended(font, weakText, {230, 210, 160, 190});
+        SDL_Surface* ws = TTF_RenderUTF8_Blended_Wrapped(font, weakText, {230, 210, 160, 190}, infoW - 20);
         if (ws) {
             SDL_Texture* wt = SDL_CreateTextureFromSurface(renderer, ws);
             if (wt) {
-                int maxW = infoW - 20;
-                float scale = (ws->w > maxW) ? static_cast<float>(maxW) / ws->w : 1.0f;
-                SDL_Rect wr = {infoX, weakY + 40, static_cast<int>(ws->w * scale), static_cast<int>(ws->h * scale)};
+                SDL_Rect wr = {infoX, weakY + 40, ws->w, ws->h};
                 SDL_RenderCopy(renderer, wt, nullptr, &wr);
                 SDL_DestroyTexture(wt);
+                weakH = ws->h;
             }
             SDL_FreeSurface(ws);
         }
     }
 
     // Effective weapons
-    int effY = weakY + 100;
+    int effY = weakY + 40 + std::max(weakH + 24, 80);
     drawText(renderer, font, LOC("bestiary.effective"), infoX, effY, {100, 220, 160, 210});
     {
         char effKey[32];
@@ -632,13 +632,11 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
         else std::snprintf(effKey, sizeof(effKey), "enemy.%d.eff", typeIdx);
         const char* effLoc = LOC(effKey);
         const char* effText = (std::strcmp(effLoc, effKey) == 0) ? entry.effectiveWeapons : effLoc;
-        SDL_Surface* es = TTF_RenderText_Blended(font, effText, {160, 215, 185, 185});
+        SDL_Surface* es = TTF_RenderUTF8_Blended_Wrapped(font, effText, {160, 215, 185, 185}, infoW - 20);
         if (es) {
             SDL_Texture* et = SDL_CreateTextureFromSurface(renderer, es);
             if (et) {
-                int maxW = infoW - 20;
-                float scale = (es->w > maxW) ? static_cast<float>(maxW) / es->w : 1.0f;
-                SDL_Rect er = {infoX, effY + 40, static_cast<int>(es->w * scale), static_cast<int>(es->h * scale)};
+                SDL_Rect er = {infoX, effY + 40, es->w, es->h};
                 SDL_RenderCopy(renderer, et, nullptr, &er);
                 SDL_DestroyTexture(et);
             }

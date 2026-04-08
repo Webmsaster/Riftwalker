@@ -57,7 +57,7 @@ void LoreState::render(SDL_Renderer* renderer) {
     // Title
     if (m_fontTitle) {
         SDL_Color white = {220, 200, 255, 255};
-        SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, LOC("lore.title"), white);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontTitle, LOC("lore.title"), white);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
@@ -74,7 +74,7 @@ void LoreState::render(SDL_Renderer* renderer) {
         char buf[64];
         snprintf(buf, sizeof(buf), LOC("lore.fragments"), m_lore->discoveredCount(), m_lore->totalCount());
         SDL_Color gray = {150, 130, 170, 255};
-        SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, buf, gray);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontSmall, buf, gray);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
@@ -111,7 +111,7 @@ void LoreState::render(SDL_Renderer* renderer) {
             SDL_Color col = selected ? SDL_Color{255, 200, 255, 255} :
                             discovered ? SDL_Color{180, 160, 200, 255} :
                                          SDL_Color{80, 60, 100, 255};
-            SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, title, col);
+            SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontSmall, title, col);
             if (surf) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                 if (tex) {
@@ -144,7 +144,7 @@ void LoreState::render(SDL_Renderer* renderer) {
                 const char* dtLoc = LOC(detailTitleKey);
                 const char* detailTitle = (std::strcmp(dtLoc, detailTitleKey) == 0) ? frag.title.c_str() : dtLoc;
                 SDL_Color purple = {200, 150, 255, 255};
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, detailTitle, purple);
+                SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontTitle, detailTitle, purple);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -191,7 +191,7 @@ void LoreState::render(SDL_Renderer* renderer) {
                     }
                     if (line.empty()) break;
 
-                    SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, line.c_str(), textCol);
+                    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontBody, line.c_str(), textCol);
                     if (surf) {
                         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                         if (tex) {
@@ -208,7 +208,7 @@ void LoreState::render(SDL_Renderer* renderer) {
             // Undiscovered
             if (m_fontBody) {
                 SDL_Color dim = {80, 60, 100, 255};
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, LOC("lore.undiscovered"), dim);
+                SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontBody, LOC("lore.undiscovered"), dim);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -225,7 +225,7 @@ void LoreState::render(SDL_Renderer* renderer) {
     // Controls hint
     if (m_fontSmall) {
         SDL_Color hint = {100, 80, 120, 255};
-        SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, LOC("lore.nav_hint"), hint);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontSmall, LOC("lore.nav_hint"), hint);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {

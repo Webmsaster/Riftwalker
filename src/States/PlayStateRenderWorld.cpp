@@ -108,7 +108,7 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
 
             // Main transition text
             SDL_Color c = {140, 255, 180, ta};
-            SDL_Surface* s = TTF_RenderText_Blended(font, LOC("hud.rift_stabilized"), c);
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("hud.rift_stabilized"), c);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
@@ -151,7 +151,7 @@ void PlayState::renderLevelCompleteTransition(SDL_Renderer* renderer) {
 
             Uint8 tipAlpha = static_cast<Uint8>(textAlpha * 160);
             SDL_Color tipColor = {160, 150, 180, tipAlpha};
-            SDL_Surface* ts = TTF_RenderText_Blended(font, LOC(tipKeys[tipIdx]), tipColor);
+            SDL_Surface* ts = TTF_RenderUTF8_Blended(font, LOC(tipKeys[tipIdx]), tipColor);
             if (ts) {
                 SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
                 if (tt) {
@@ -705,7 +705,7 @@ void PlayState::renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Color hc = {255, 255, 255, static_cast<Uint8>(200 * blink)};
             char hint[64];
             std::snprintf(hint, sizeof(hint), "[F] %s", event.getName());
-            SDL_Surface* hs = TTF_RenderText_Blended(font, hint, hc);
+            SDL_Surface* hs = TTF_RenderUTF8_Blended(font, hint, hc);
             int nameH = 0;
             if (hs) {
                 nameH = hs->h;
@@ -723,7 +723,7 @@ void PlayState::renderRandomEvents(SDL_Renderer* renderer, TTF_Font* font) {
             if (event.type == RandomEventType::Shrine) {
                 SDL_Color ec = event.getShrineColor();
                 ec.a = static_cast<Uint8>(180 * blink);
-                SDL_Surface* es = TTF_RenderText_Blended(font, event.getShrineEffect(), ec);
+                SDL_Surface* es = TTF_RenderUTF8_Blended(font, event.getShrineEffect(), ec);
                 if (es) {
                     SDL_Texture* et = SDL_CreateTextureFromSurface(renderer, es);
                     if (et) {
@@ -1305,7 +1305,7 @@ void PlayState::renderNPCs(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_Color hc = {255, 255, 255, static_cast<Uint8>(200 * blink)};
             char hint[64];
             std::snprintf(hint, sizeof(hint), "[F] %s", NPCSystem::getName(npc.type));
-            SDL_Surface* hs = TTF_RenderText_Blended(font, hint, hc);
+            SDL_Surface* hs = TTF_RenderUTF8_Blended(font, hint, hc);
             if (hs) {
                 SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
                 if (ht) {
@@ -1347,7 +1347,7 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
 
     // NPC name
     SDL_Color nameColor = {180, 140, 255, 255};
-    SDL_Surface* ns = TTF_RenderText_Blended(font, NPCSystem::getName(npc.type), nameColor);
+    SDL_Surface* ns = TTF_RenderUTF8_Blended(font, NPCSystem::getName(npc.type), nameColor);
     if (ns) {
         SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
         if (nt) {
@@ -1362,7 +1362,7 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
     if (stage > 0) {
         const char* stageLabel = (stage >= 2) ? "[Old Friend]" : "[Returning]";
         SDL_Color stageColor = (stage >= 2) ? SDL_Color{255, 215, 80, 200} : SDL_Color{140, 200, 140, 180};
-        SDL_Surface* stS = TTF_RenderText_Blended(font, stageLabel, stageColor);
+        SDL_Surface* stS = TTF_RenderUTF8_Blended(font, stageLabel, stageColor);
         if (stS) {
             SDL_Texture* stT = SDL_CreateTextureFromSurface(renderer, stS);
             if (stT) {
@@ -1377,7 +1377,7 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
     // Greeting text (stage-based)
     const char* greeting = NPCSystem::getGreeting(npc.type, stage);
     SDL_Color textColor = {200, 200, 220, 255};
-    SDL_Surface* ds = TTF_RenderText_Blended(font, greeting, textColor);
+    SDL_Surface* ds = TTF_RenderUTF8_Blended(font, greeting, textColor);
     if (ds) {
         SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
         if (dt) {
@@ -1400,7 +1400,7 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
             std::string line = (nl != std::string::npos) ? story.substr(pos, nl - pos) : story.substr(pos);
             pos = (nl != std::string::npos) ? nl + 1 : story.size();
             if (line.empty()) { lineY += 18; continue; }
-            SDL_Surface* ls = TTF_RenderText_Blended(font, line.c_str(), SDL_Color{160, 160, 180, 200});
+            SDL_Surface* ls = TTF_RenderUTF8_Blended(font, line.c_str(), SDL_Color{160, 160, 180, 200});
             if (ls) {
                 SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
                 if (lt) {
@@ -1433,7 +1433,7 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_RenderDrawLine(renderer, boxX + 28, optY + 4, boxX + 20, optY);
         }
 
-        SDL_Surface* os = TTF_RenderText_Blended(font, options[i], oc);
+        SDL_Surface* os = TTF_RenderUTF8_Blended(font, options[i], oc);
         if (os) {
             SDL_Texture* ot = SDL_CreateTextureFromSurface(renderer, os);
             if (ot) {
@@ -1447,7 +1447,7 @@ void PlayState::renderNPCDialog(SDL_Renderer* renderer, TTF_Font* font) {
     }
 
     // Controls hint
-    SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("npc.nav_hint"),
+    SDL_Surface* hs = TTF_RenderUTF8_Blended(font, LOC("npc.nav_hint"),
                                               SDL_Color{120, 120, 140, 150});
     if (hs) {
         SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);

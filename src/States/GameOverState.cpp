@@ -103,7 +103,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
     if (!font) return;
 
     // Main title with color channel separation (glitch effect)
-    SDL_Surface* textSurf = TTF_RenderText_Blended(font, LOC("gameover.title"), {255, 255, 255, 255});
+    SDL_Surface* textSurf = TTF_RenderUTF8_Blended(font, LOC("gameover.title"), {255, 255, 255, 255});
     if (textSurf) {
         int tw = textSurf->w * 2;
         int th = textSurf->h * 2;
@@ -155,7 +155,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
         float subAlpha = std::min(1.0f, (m_timer - 0.5f) * 2.0f);
         Uint8 sa = static_cast<Uint8>(180 * subAlpha);
         SDL_Color sc = {180, 60, 60, sa};
-        SDL_Surface* ss = TTF_RenderText_Blended(font, m_subtitleText, sc);
+        SDL_Surface* ss = TTF_RenderUTF8_Blended(font, m_subtitleText, sc);
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
@@ -180,7 +180,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
         std::snprintf(buf, sizeof(buf), LOC("gameover.floor_stats"),
                       s_floorsCleared, s_killCount, mins, secs);
 
-        SDL_Surface* ss = TTF_RenderText_Blended(font, buf, statCol);
+        SDL_Surface* ss = TTF_RenderUTF8_Blended(font, buf, statCol);
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
             if (st) {
@@ -215,7 +215,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
 
         // "CRITICAL" text
         SDL_Color critColor = {255, static_cast<Uint8>(60 * pulse), 40, ba};
-        SDL_Surface* cs = TTF_RenderText_Blended(font, LOC("gameover.critical"), critColor);
+        SDL_Surface* cs = TTF_RenderUTF8_Blended(font, LOC("gameover.critical"), critColor);
         if (cs) {
             SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
             if (ct) {
@@ -234,7 +234,7 @@ void GameOverState::render(SDL_Renderer* renderer) {
         float blink = 0.5f + 0.5f * std::sin(m_timer * 3.0f);
         Uint8 pa = static_cast<Uint8>(180 * promptAlpha * blink);
         SDL_Color c2 = {120, 100, 140, pa};
-        SDL_Surface* s2 = TTF_RenderText_Blended(font, LOC("gameover.continue"), c2);
+        SDL_Surface* s2 = TTF_RenderUTF8_Blended(font, LOC("gameover.continue"), c2);
         if (s2) {
             SDL_Texture* t2 = SDL_CreateTextureFromSurface(renderer, s2);
             if (t2) {

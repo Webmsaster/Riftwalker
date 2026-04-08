@@ -294,7 +294,7 @@ void PlayState::renderDynamicEventOverlay(SDL_Renderer* renderer, TTF_Font* font
         // Event name text
         SDL_Color textColor = {m_dynamicEvent.color.r, m_dynamicEvent.color.g,
                                m_dynamicEvent.color.b, a};
-        SDL_Surface* surf = TTF_RenderText_Blended(font, m_dynamicEvent.name, textColor);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, m_dynamicEvent.name, textColor);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
@@ -335,7 +335,7 @@ void PlayState::renderDynamicEventOverlay(SDL_Renderer* renderer, TTF_Font* font
         // Label text (small, above the bar)
         SDL_Color labelColor = {m_dynamicEvent.color.r, m_dynamicEvent.color.g,
                                 m_dynamicEvent.color.b, 200};
-        SDL_Surface* labelSurf = TTF_RenderText_Blended(font, m_dynamicEvent.name, labelColor);
+        SDL_Surface* labelSurf = TTF_RenderUTF8_Blended(font, m_dynamicEvent.name, labelColor);
         if (labelSurf) {
             SDL_Texture* labelTex = SDL_CreateTextureFromSurface(renderer, labelSurf);
             if (labelTex) {

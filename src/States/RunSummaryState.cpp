@@ -130,7 +130,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
     Uint8 alpha = static_cast<Uint8>(255 * m_fadeIn);
 
     // Title with glow
-    SDL_Surface* ts = TTF_RenderText_Blended(font, LOC("summary.title"), {200, 80, 80, 255});
+    SDL_Surface* ts = TTF_RenderUTF8_Blended(font, LOC("summary.title"), {200, 80, 80, 255});
     if (ts) {
         SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
         if (tt) {
@@ -167,7 +167,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
                       WeaponSystem::getWeaponName(rangedWeapon),
                       difficulty, mins, secs);
         SDL_Color infoColor = {cd.color.r, cd.color.g, cd.color.b, alpha};
-        SDL_Surface* is = TTF_RenderText_Blended(font, infoLine, infoColor);
+        SDL_Surface* is = TTF_RenderUTF8_Blended(font, infoLine, infoColor);
         if (is) {
             SDL_Texture* it = SDL_CreateTextureFromSurface(renderer, is);
             if (it) {
@@ -191,7 +191,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             float pulse = 0.8f + 0.2f * std::sin(m_time * 4.0f);
             Uint8 ngA = static_cast<Uint8>(alpha * pulse);
             SDL_Color ngC = {255, 210, 40, ngA};
-            SDL_Surface* ns = TTF_RenderText_Blended(font, title, ngC);
+            SDL_Surface* ns = TTF_RenderUTF8_Blended(font, title, ngC);
             if (ns) {
                 SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
                 if (nt) {
@@ -215,7 +215,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
                 : SDL_Color{255, 120, 80, alpha};    // Death: red-orange
             char causeLine[64];
             std::snprintf(causeLine, sizeof(causeLine), LOC("summary.cause"), causeText);
-            SDL_Surface* cs = TTF_RenderText_Blended(font, causeLine, causeColor);
+            SDL_Surface* cs = TTF_RenderUTF8_Blended(font, causeLine, causeColor);
             if (cs) {
                 SDL_Texture* ct = SDL_CreateTextureFromSurface(renderer, cs);
                 if (ct) {
@@ -237,7 +237,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         if (m_statsTimer > 0.2f) {
             char gradeText[16];
             std::snprintf(gradeText, sizeof(gradeText), LOC("summary.grade"), grade);
-            SDL_Surface* gs = TTF_RenderText_Blended(font, gradeText, gradeColor);
+            SDL_Surface* gs = TTF_RenderUTF8_Blended(font, gradeText, gradeColor);
             if (gs) {
                 SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
                 if (gt) {
@@ -296,7 +296,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         char text[64];
         std::snprintf(text, sizeof(text), "%s", stats[i].label);
         SDL_Color labelColor = {180, 175, 200, ia};
-        SDL_Surface* ls = TTF_RenderText_Blended(font, text, labelColor);
+        SDL_Surface* ls = TTF_RenderUTF8_Blended(font, text, labelColor);
         if (ls) {
             SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
             if (lt) {
@@ -315,7 +315,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         std::snprintf(valText, sizeof(valText), "%d", displayVal);
         SDL_Color valColor = {stats[i].barColor.r, stats[i].barColor.g,
                               stats[i].barColor.b, ia};
-        SDL_Surface* vs = TTF_RenderText_Blended(font, valText, valColor);
+        SDL_Surface* vs = TTF_RenderUTF8_Blended(font, valText, valColor);
         if (vs) {
             SDL_Texture* vt = SDL_CreateTextureFromSurface(renderer, vs);
             if (vt) {
@@ -345,7 +345,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
 
         // Header
         SDL_Color hdrC = {140, 120, 180, ba};
-        SDL_Surface* hs = TTF_RenderText_Blended(font, LOC("summary.balance"), hdrC);
+        SDL_Surface* hs = TTF_RenderUTF8_Blended(font, LOC("summary.balance"), hdrC);
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
@@ -367,7 +367,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         SDL_Color l1c = {(dmgCapped || spdCapped) ? (Uint8)255 : (Uint8)160,
                          (dmgCapped || spdCapped) ? (Uint8)140 : (Uint8)155,
                          (dmgCapped || spdCapped) ? (Uint8)100 : (Uint8)180, ba};
-        SDL_Surface* l1s = TTF_RenderText_Blended(font, line1, l1c);
+        SDL_Surface* l1s = TTF_RenderUTF8_Blended(font, line1, l1c);
         if (l1s) {
             SDL_Texture* l1t = SDL_CreateTextureFromSurface(renderer, l1s);
             if (l1t) {
@@ -384,7 +384,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         std::snprintf(line2, sizeof(line2), LOC("summary.balance_cd"),
                       cdFloorPercent, voidResProcs, peakResidueZones);
         SDL_Color l2c = {160, 155, 180, ba};
-        SDL_Surface* l2s = TTF_RenderText_Blended(font, line2, l2c);
+        SDL_Surface* l2s = TTF_RenderUTF8_Blended(font, line2, l2c);
         if (l2s) {
             SDL_Texture* l2t = SDL_CreateTextureFromSurface(renderer, l2s);
             if (l2t) {
@@ -402,7 +402,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             std::snprintf(line3, sizeof(line3), LOC("summary.balance_hunger"),
                           finalVoidHunger, peakVoidHunger);
             SDL_Color l3c = {180, 140, 100, ba};
-            SDL_Surface* l3s = TTF_RenderText_Blended(font, line3, l3c);
+            SDL_Surface* l3s = TTF_RenderUTF8_Blended(font, line3, l3c);
             if (l3s) {
                 SDL_Texture* l3t = SDL_CreateTextureFromSurface(renderer, l3s);
                 if (l3t) {
@@ -435,7 +435,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         SDL_RenderDrawRect(renderer, &recordBg);
 
         SDL_Color recordColor = {255, 220, 50, ra};
-        SDL_Surface* rs = TTF_RenderText_Blended(font, LOC("summary.new_record"), recordColor);
+        SDL_Surface* rs = TTF_RenderUTF8_Blended(font, LOC("summary.new_record"), recordColor);
         if (rs) {
             SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
             if (rt) {
@@ -487,7 +487,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         // "DAILY SCORE" label
         {
             SDL_Color lc = {180, 160, 220, sa};
-            SDL_Surface* dls = TTF_RenderText_Blended(font, LOC("summary.daily_score"), lc);
+            SDL_Surface* dls = TTF_RenderUTF8_Blended(font, LOC("summary.daily_score"), lc);
             if (dls) {
                 SDL_Texture* dlt = SDL_CreateTextureFromSurface(renderer, dls);
                 if (dlt) {
@@ -507,7 +507,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             SDL_Color sc2 = isNewDailyBest
                 ? SDL_Color{255, 215, 50, sa}
                 : SDL_Color{220, 210, 255, sa};
-            SDL_Surface* dss = TTF_RenderText_Blended(font, dbuf, sc2);
+            SDL_Surface* dss = TTF_RenderUTF8_Blended(font, dbuf, sc2);
             if (dss) {
                 SDL_Texture* dst = SDL_CreateTextureFromSurface(renderer, dss);
                 if (dst) {
@@ -525,7 +525,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         if (isNewDailyBest) {
             Uint8 nba = static_cast<Uint8>(sa * pulse);
             SDL_Color nbc = {255, 230, 80, nba};
-            SDL_Surface* nbs = TTF_RenderText_Blended(font, LOC("summary.new_best"), nbc);
+            SDL_Surface* nbs = TTF_RenderUTF8_Blended(font, LOC("summary.new_best"), nbc);
             if (nbs) {
                 SDL_Texture* nbt = SDL_CreateTextureFromSurface(renderer, nbs);
                 if (nbt) {
@@ -550,7 +550,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
             char rankBuf[32];
             std::snprintf(rankBuf, sizeof(rankBuf), LOC("summary.rank_today"), m_todayRank);
             SDL_Color rc = {160, 200, 140, sa};
-            SDL_Surface* drs = TTF_RenderText_Blended(font, rankBuf, rc);
+            SDL_Surface* drs = TTF_RenderUTF8_Blended(font, rankBuf, rc);
             if (drs) {
                 SDL_Texture* drt = SDL_CreateTextureFromSurface(renderer, drs);
                 if (drt) {
@@ -572,7 +572,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         // Leaderboard hint for daily runs
         if (isDailyRun) {
             SDL_Color lc = {120, 200, 150, pa};
-            SDL_Surface* dls = TTF_RenderText_Blended(font, LOC("summary.leaderboard_hint"), lc);
+            SDL_Surface* dls = TTF_RenderUTF8_Blended(font, LOC("summary.leaderboard_hint"), lc);
             if (dls) {
                 SDL_Texture* dlt = SDL_CreateTextureFromSurface(renderer, dls);
                 if (dlt) {
@@ -585,7 +585,7 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         }
 
         SDL_Color c = {150, 130, 200, pa};
-        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("summary.continue"), c);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("summary.continue"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {

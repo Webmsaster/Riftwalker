@@ -237,7 +237,7 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color c = {220, 160, 60, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("challenges.title"), c);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("challenges.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -269,7 +269,7 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
     // Mutator section (right side)
     {
         SDL_Color mc = {160, 140, 200, 200};
-        SDL_Surface* ms = TTF_RenderText_Blended(font, LOC("challenges.mutators"), mc);
+        SDL_Surface* ms = TTF_RenderUTF8_Blended(font, LOC("challenges.mutators"), mc);
         if (ms) {
             SDL_Texture* mt = SDL_CreateTextureFromSurface(renderer, ms);
             if (mt) {
@@ -298,7 +298,7 @@ void ChallengeSelectState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         SDL_Color nc = {60, 55, 85, 140};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC("challenges.nav_hint"), nc);
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, LOC("challenges.nav_hint"), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -340,7 +340,7 @@ void ChallengeSelectState::renderChallengeCard(SDL_Renderer* renderer, TTF_Font*
     std::snprintf(cDescKey, sizeof(cDescKey), "challenge.%d.desc", static_cast<int>(data.id));
 
     SDL_Color nameColor = selected ? accentColor : SDL_Color{130, 110, 50, 200};
-    SDL_Surface* ns = TTF_RenderText_Blended(font, LOC(cNameKey), nameColor);
+    SDL_Surface* ns = TTF_RenderUTF8_Blended(font, LOC(cNameKey), nameColor);
     if (ns) {
         SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
         if (nt) {
@@ -352,7 +352,7 @@ void ChallengeSelectState::renderChallengeCard(SDL_Renderer* renderer, TTF_Font*
     }
 
     SDL_Color descColor = selected ? SDL_Color{180, 175, 200, 220} : SDL_Color{100, 95, 120, 150};
-    SDL_Surface* ds = TTF_RenderText_Blended(font, LOC(cDescKey), descColor);
+    SDL_Surface* ds = TTF_RenderUTF8_Blended(font, LOC(cDescKey), descColor);
     if (ds) {
         SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
         if (dt) {
@@ -398,7 +398,7 @@ void ChallengeSelectState::renderMutatorToggle(SDL_Renderer* renderer, TTF_Font*
 
     SDL_Color nameColor = active ? SDL_Color{100, 220, 100, 255} :
         (focused ? SDL_Color{180, 170, 210, 255} : SDL_Color{100, 95, 120, 180});
-    SDL_Surface* ns = TTF_RenderText_Blended(font, LOC(mNameKey), nameColor);
+    SDL_Surface* ns = TTF_RenderUTF8_Blended(font, LOC(mNameKey), nameColor);
     if (ns) {
         SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
         if (nt) {
@@ -410,7 +410,7 @@ void ChallengeSelectState::renderMutatorToggle(SDL_Renderer* renderer, TTF_Font*
     }
 
     SDL_Color descColor = {120, 115, 140, static_cast<Uint8>(focused ? 180 : 100)};
-    SDL_Surface* ds = TTF_RenderText_Blended(font, LOC(mDescKey), descColor);
+    SDL_Surface* ds = TTF_RenderUTF8_Blended(font, LOC(mDescKey), descColor);
     if (ds) {
         SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
         if (dt) {

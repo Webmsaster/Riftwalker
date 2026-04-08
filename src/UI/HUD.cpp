@@ -682,7 +682,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             int comboY = 120;
 
             // Render combo text with glow outline and background
-            SDL_Surface* comboSurf = TTF_RenderText_Blended(font, comboText, comboColor);
+            SDL_Surface* comboSurf = TTF_RenderUTF8_Blended(font, comboText, comboColor);
             if (comboSurf) {
                 int tw = static_cast<int>(comboSurf->w * comboScale);
                 int th = static_cast<int>(comboSurf->h * comboScale);
@@ -723,7 +723,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             // Bonus text (slightly scaled at high combos)
             float bonusScale = comboScale > 1.2f ? 1.1f : 1.0f;
             SDL_Color bonusColor = {comboColor.r, comboColor.g, comboColor.b, 180};
-            SDL_Surface* bonusSurf = TTF_RenderText_Blended(font, bonusText, bonusColor);
+            SDL_Surface* bonusSurf = TTF_RenderUTF8_Blended(font, bonusText, bonusColor);
             if (bonusSurf) {
                 SDL_Texture* bonusTex = SDL_CreateTextureFromSurface(renderer, bonusSurf);
                 if (bonusTex) {
@@ -780,7 +780,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         float fScale = 1.0f + 0.1f * std::sin(SDL_GetTicks() * 0.012f);
 
         int finisherY = 220; // below combo area (scaled for 2K)
-        SDL_Surface* fSurf = TTF_RenderText_Blended(font, finisherName, fColor);
+        SDL_Surface* fSurf = TTF_RenderUTF8_Blended(font, finisherName, fColor);
         if (fSurf) {
             SDL_Texture* fTex = SDL_CreateTextureFromSurface(renderer, fSurf);
             if (fTex) {
@@ -898,7 +898,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             if (m_ngPlusTex) SDL_DestroyTexture(m_ngPlusTex);
             char ngBuf[16];
             std::snprintf(ngBuf, sizeof(ngBuf), "NG+%d", m_ngPlusTier);
-            SDL_Surface* ns = TTF_RenderText_Blended(font, ngBuf, {255, 255, 255, 255});
+            SDL_Surface* ns = TTF_RenderUTF8_Blended(font, ngBuf, {255, 255, 255, 255});
             if (ns) {
                 m_ngPlusTex = SDL_CreateTextureFromSurface(renderer, ns);
                 m_ngPlusTexW = ns->w;
@@ -1278,7 +1278,7 @@ void HUD::renderText(SDL_Renderer* renderer, TTF_Font* font,
         clearTextCache();
     }
 
-    SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text, color);
     if (!surface) return;
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     if (texture) {

@@ -244,7 +244,7 @@ void CreditsState::render(SDL_Renderer* renderer) {
             };
         }
 
-        SDL_Surface* surf = TTF_RenderText_Blended(font, m_lines[i].c_str(), col);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, m_lines[i].c_str(), col);
         if (!surf) continue;
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
         if (tex) {
@@ -272,7 +272,7 @@ void CreditsState::render(SDL_Renderer* renderer) {
     TTF_Font* hintFont = m_fontBody ? m_fontBody : game->getFont();
     if (hintFont) {
         SDL_Color hint = {80, 60, 100, 180};
-        SDL_Surface* surf = TTF_RenderText_Blended(hintFont, LOC("credits.back"), hint);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(hintFont, LOC("credits.back"), hint);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {

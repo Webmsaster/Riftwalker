@@ -105,7 +105,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                 const char* flashText = LOC("ending.sealed");
                 if (m_endingType == 1) flashText = LOC("ending.shattered");
                 else if (m_endingType == 2) flashText = LOC("ending.barely");
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, flashText, col);
+                SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontTitle, flashText, col);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -183,7 +183,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                         static_cast<Uint8>(220 * fadeAlpha), 255
                     };
                     if (strlen(lines[i]) == 0) continue;
-                    SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, lines[i], col);
+                    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontBody, lines[i], col);
                     if (surf) {
                         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                         if (tex) {
@@ -202,7 +202,7 @@ void EndingState::render(SDL_Renderer* renderer) {
             // Hint
             if (m_fontSmall && m_phaseTimer > 3.0f) {
                 SDL_Color hint = {60, 50, 80, 255};
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, LOC("ending.skip"), hint);
+                SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontSmall, LOC("ending.skip"), hint);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -231,7 +231,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                 const char* runTitle = LOC("ending.run_complete");
                 if (m_endingType == 1) runTitle = LOC("ending.run_destroyer");
                 else if (m_endingType == 2) runTitle = LOC("ending.run_speedrunner");
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, runTitle, gold);
+                SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontTitle, runTitle, gold);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -264,7 +264,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                         static_cast<Uint8>(200 * lineAlpha),
                         static_cast<Uint8>(220 * lineAlpha), 255
                     };
-                    SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, statLines[i], col);
+                    SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontBody, statLines[i], col);
                     if (surf) {
                         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                         if (tex) {
@@ -285,7 +285,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(130 * pulse),
                     static_cast<Uint8>(180 * pulse), 255
                 };
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, LOC("ending.continue"), hint);
+                SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontSmall, LOC("ending.continue"), hint);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -311,7 +311,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(160 * fadeIn),
                     static_cast<Uint8>(255 * fadeIn), 255
                 };
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontTitle, LOC("ending.thank_you"), col);
+                SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontTitle, LOC("ending.thank_you"), col);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -330,7 +330,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(120 * hintAlpha),
                     static_cast<Uint8>(200 * hintAlpha), 255
                 };
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontBody, LOC("ending.return"), col);
+                SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontBody, LOC("ending.return"), col);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {
@@ -349,7 +349,7 @@ void EndingState::render(SDL_Renderer* renderer) {
                     static_cast<Uint8>(80 * pulse),
                     static_cast<Uint8>(140 * pulse), 255
                 };
-                SDL_Surface* surf = TTF_RenderText_Blended(m_fontSmall, LOC("ending.back"), hint);
+                SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontSmall, LOC("ending.back"), hint);
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                     if (tex) {

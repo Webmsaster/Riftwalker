@@ -47,7 +47,7 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
     char achText[128];
     snprintf(achText, sizeof(achText), LOC("hud.achievement"), notif->name.c_str());
     SDL_Color tc = {200, 255, 210, a};
-    SDL_Surface* ts = TTF_RenderText_Blended(font, achText, tc);
+    SDL_Surface* ts = TTF_RenderUTF8_Blended(font, achText, tc);
     if (ts) {
         SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
         if (tt) {
@@ -64,7 +64,7 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
         char rewardText[128];
         snprintf(rewardText, sizeof(rewardText), LOC("hud.reward"), notif->rewardText.c_str());
         SDL_Color rc = {255, 220, 80, a};
-        SDL_Surface* rs = TTF_RenderText_Blended(font, rewardText, rc);
+        SDL_Surface* rs = TTF_RenderUTF8_Blended(font, rewardText, rc);
         if (rs) {
             SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
             if (rt) {
@@ -118,7 +118,7 @@ void PlayState::renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font) {
 
     // "LORE DISCOVERED" label
     SDL_Color labelColor = {140, 110, 200, a};
-    SDL_Surface* labelSurf = TTF_RenderText_Blended(font, LOC("hud.lore_discovered"), labelColor);
+    SDL_Surface* labelSurf = TTF_RenderUTF8_Blended(font, LOC("hud.lore_discovered"), labelColor);
     if (labelSurf) {
         SDL_Texture* labelTex = SDL_CreateTextureFromSurface(renderer, labelSurf);
         if (labelTex) {
@@ -132,7 +132,7 @@ void PlayState::renderLoreNotification(SDL_Renderer* renderer, TTF_Font* font) {
 
     // Lore title
     SDL_Color titleColor = {220, 200, 255, a};
-    SDL_Surface* titleSurf = TTF_RenderText_Blended(font, loreNotif->title.c_str(), titleColor);
+    SDL_Surface* titleSurf = TTF_RenderUTF8_Blended(font, loreNotif->title.c_str(), titleColor);
     if (titleSurf) {
         SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
         if (titleTex) {
@@ -173,7 +173,7 @@ void PlayState::renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font
         SDL_RenderDrawRect(renderer, &bg);
 
         SDL_Color tc = {255, 220, 80, a};
-        SDL_Surface* ts = TTF_RenderText_Blended(font, n.text, tc);
+        SDL_Surface* ts = TTF_RenderUTF8_Blended(font, n.text, tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
@@ -213,7 +213,7 @@ void PlayState::renderKillStreak(SDL_Renderer* renderer, TTF_Font* font) {
     }
 
     SDL_Color col = {m_killStreakColor.r, m_killStreakColor.g, m_killStreakColor.b, a};
-    SDL_Surface* surf = TTF_RenderText_Blended(font, m_killStreakText.c_str(), col);
+    SDL_Surface* surf = TTF_RenderUTF8_Blended(font, m_killStreakText.c_str(), col);
     if (surf) {
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
         if (tex) {
@@ -296,7 +296,7 @@ void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
 
     float pulse = 1.0f + 0.05f * std::sin(m_levelUpTimer * 12.0f);
     SDL_Color gold = {255, 215, 0, a};
-    SDL_Surface* surf = TTF_RenderText_Blended(font, LOC("hud.level_up"), gold);
+    SDL_Surface* surf = TTF_RenderUTF8_Blended(font, LOC("hud.level_up"), gold);
     if (surf) {
         SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
         if (tex) {
@@ -315,7 +315,7 @@ void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
     char lvlText[32];
     std::snprintf(lvlText, sizeof(lvlText), LOC("hud.level_display"), m_levelUpDisplayLevel);
     SDL_Color lvlColor = {255, 240, 180, static_cast<Uint8>(a * 0.8f)};
-    SDL_Surface* lvlSurf = TTF_RenderText_Blended(font, lvlText, lvlColor);
+    SDL_Surface* lvlSurf = TTF_RenderUTF8_Blended(font, lvlText, lvlColor);
     if (lvlSurf) {
         SDL_Texture* lvlTex = SDL_CreateTextureFromSurface(renderer, lvlSurf);
         if (lvlTex) {

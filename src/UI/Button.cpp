@@ -83,7 +83,7 @@ void Button::render(SDL_Renderer* renderer, TTF_Font* font) {
         // Shadow
         if (enabled) {
             SDL_Color shadow = {0, 0, 0, 100};
-            SDL_Surface* ss = TTF_RenderText_Blended(font, m_text.c_str(), shadow);
+            SDL_Surface* ss = TTF_RenderUTF8_Blended(font, m_text.c_str(), shadow);
             if (ss) {
                 SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
                 if (st) {
@@ -99,7 +99,7 @@ void Button::render(SDL_Renderer* renderer, TTF_Font* font) {
             }
         }
 
-        SDL_Surface* surface = TTF_RenderText_Blended(font, m_text.c_str(), tc);
+        SDL_Surface* surface = TTF_RenderUTF8_Blended(font, m_text.c_str(), tc);
         if (surface) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {

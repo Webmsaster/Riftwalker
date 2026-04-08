@@ -136,7 +136,7 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color c = {140, 100, 220, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("class.title"), c);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("class.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -168,7 +168,7 @@ void ClassSelectState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         SDL_Color nc = {120, 120, 140, 180};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC("class.nav_hint"), nc);
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, LOC("class.nav_hint"), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -227,7 +227,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
         SDL_Color{static_cast<Uint8>(data.color.r / 2),
                   static_cast<Uint8>(data.color.g / 2),
                   static_cast<Uint8>(data.color.b / 2), 255};
-    SDL_Surface* ns = TTF_RenderText_Blended(font, data.name, nameColor);
+    SDL_Surface* ns = TTF_RenderUTF8_Blended(font, data.name, nameColor);
     if (ns) {
         SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
         if (nt) {
@@ -249,7 +249,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     Uint8 descA = selected ? 200 : 120;
     SDL_Color descColor = {160, 155, 180, descA};
     std::snprintf(locKey, sizeof(locKey), "class.%s.desc", classKey);
-    SDL_Surface* ds = TTF_RenderText_Blended_Wrapped(font, LOC(locKey), descColor, w - 40);
+    SDL_Surface* ds = TTF_RenderUTF8_Blended_Wrapped(font, LOC(locKey), descColor, w - 40);
     if (ds) {
         SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
         if (dt) {
@@ -266,7 +266,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
         SDL_Color{255, 220, 100, 255} :
         SDL_Color{140, 120, 80, 180};
     std::snprintf(locKey, sizeof(locKey), "class.%s.passive", classKey);
-    SDL_Surface* ps = TTF_RenderText_Blended(font, LOC(locKey), passColor);
+    SDL_Surface* ps = TTF_RenderUTF8_Blended(font, LOC(locKey), passColor);
     if (ps) {
         SDL_Texture* pt = SDL_CreateTextureFromSurface(renderer, ps);
         if (pt) {
@@ -281,7 +281,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     // Passive description (wrapped)
     SDL_Color pdColor = {140, 135, 160, static_cast<Uint8>(selected ? 200 : 100)};
     std::snprintf(locKey, sizeof(locKey), "class.%s.pdesc", classKey);
-    SDL_Surface* pds = TTF_RenderText_Blended_Wrapped(font, LOC(locKey), pdColor, w - 40);
+    SDL_Surface* pds = TTF_RenderUTF8_Blended_Wrapped(font, LOC(locKey), pdColor, w - 40);
     if (pds) {
         SDL_Texture* pdt = SDL_CreateTextureFromSurface(renderer, pds);
         if (pdt) {
@@ -296,7 +296,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     // Ability modification (wrapped)
     SDL_Color amColor = {120, 200, 180, static_cast<Uint8>(selected ? 200 : 100)};
     std::snprintf(locKey, sizeof(locKey), "class.%s.ability", classKey);
-    SDL_Surface* ams = TTF_RenderText_Blended_Wrapped(font, LOC(locKey), amColor, w - 40);
+    SDL_Surface* ams = TTF_RenderUTF8_Blended_Wrapped(font, LOC(locKey), amColor, w - 40);
     if (ams) {
         SDL_Texture* amt = SDL_CreateTextureFromSurface(renderer, ams);
         if (amt) {
@@ -331,7 +331,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
 
         // "LOCKED" text
         SDL_Color lockColor = {180, 150, 80, 220};
-        SDL_Surface* ls = TTF_RenderText_Blended(font, LOC("class.locked"), lockColor);
+        SDL_Surface* ls = TTF_RenderUTF8_Blended(font, LOC("class.locked"), lockColor);
         if (ls) {
             SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
             if (lt) {
@@ -347,7 +347,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
         // Unlock requirement
         const char* req = ClassSystem::getUnlockRequirement(data.id);
         SDL_Color reqColor = {140, 120, 90, 180};
-        SDL_Surface* rs = TTF_RenderText_Blended(font, req, reqColor);
+        SDL_Surface* rs = TTF_RenderUTF8_Blended(font, req, reqColor);
         if (rs) {
             SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
             if (rt) {
@@ -373,7 +373,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     {
         char hpText[32];
         std::snprintf(hpText, sizeof(hpText), LOC("class.hp"), data.baseHP);
-        SDL_Surface* hs = TTF_RenderText_Blended(font, hpText,
+        SDL_Surface* hs = TTF_RenderUTF8_Blended(font, hpText,
             SDL_Color{200, 80, 80, static_cast<Uint8>(selected ? 220 : 120)});
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
@@ -400,7 +400,7 @@ void ClassSelectState::renderClassCard(SDL_Renderer* renderer, TTF_Font* font,
     {
         char spdText[32];
         std::snprintf(spdText, sizeof(spdText), LOC("class.speed"), data.baseSpeed);
-        SDL_Surface* ss = TTF_RenderText_Blended(font, spdText,
+        SDL_Surface* ss = TTF_RenderUTF8_Blended(font, spdText,
             SDL_Color{80, 180, 200, static_cast<Uint8>(selected ? 220 : 120)});
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);

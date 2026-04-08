@@ -186,7 +186,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
     // Title
     {
         SDL_Color c = {140, 100, 220, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("keybindings.title"), c);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("keybindings.title"), c);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -234,7 +234,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
             // Reset Defaults / Back - centered label
             const char* label = isResetItem(i) ? LOC("keybindings.reset") : LOC("keybindings.back");
             SDL_Color labelColor = selected ? SDL_Color{220, 200, 255, 255} : SDL_Color{140, 130, 170, 255};
-            SDL_Surface* ls = TTF_RenderText_Blended(font, label, labelColor);
+            SDL_Surface* ls = TTF_RenderUTF8_Blended(font, label, labelColor);
             if (ls) {
                 SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
                 if (lt) {
@@ -247,7 +247,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
         } else {
             // Action name (left)
             SDL_Color labelColor = selected ? SDL_Color{220, 200, 255, 255} : SDL_Color{140, 130, 170, 255};
-            SDL_Surface* ls = TTF_RenderText_Blended(font, m_items[i].name.c_str(), labelColor);
+            SDL_Surface* ls = TTF_RenderUTF8_Blended(font, m_items[i].name.c_str(), labelColor);
             if (ls) {
                 SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
                 if (lt) {
@@ -278,7 +278,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
                 keyColor = {120, 110, 150, 255};
             }
 
-            SDL_Surface* ks = TTF_RenderText_Blended(font, keyText.c_str(), keyColor);
+            SDL_Surface* ks = TTF_RenderUTF8_Blended(font, keyText.c_str(), keyColor);
             if (ks) {
                 SDL_Texture* kt = SDL_CreateTextureFromSurface(renderer, ks);
                 if (kt) {
@@ -297,7 +297,7 @@ void KeybindingsState::render(SDL_Renderer* renderer) {
             ? LOC("keybindings.listen_hint")
             : LOC("keybindings.nav_hint");
         SDL_Color nc = {60, 55, 85, 140};
-        SDL_Surface* ns = TTF_RenderText_Blended(font, hint, nc);
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, hint, nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {

@@ -309,7 +309,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
             float pulse = 0.8f + 0.2f * std::sin(m_time * 4.0f);
             Uint8 glowA = static_cast<Uint8>(contentAlpha * pulse * 120);
             SDL_Color glowColor = {220, 40, 60, glowA};
-            SDL_Surface* glowSurf = TTF_RenderText_Blended(font, m_bossName.c_str(), glowColor);
+            SDL_Surface* glowSurf = TTF_RenderUTF8_Blended(font, m_bossName.c_str(), glowColor);
             if (glowSurf) {
                 SDL_Texture* glowTex = SDL_CreateTextureFromSurface(renderer, glowSurf);
                 if (glowTex) {
@@ -331,7 +331,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
 
             // Main boss name (white)
             SDL_Color nameColor = {255, 255, 255, textA};
-            SDL_Surface* nameSurf = TTF_RenderText_Blended(font, m_bossName.c_str(), nameColor);
+            SDL_Surface* nameSurf = TTF_RenderUTF8_Blended(font, m_bossName.c_str(), nameColor);
             if (nameSurf) {
                 SDL_Texture* nameTex = SDL_CreateTextureFromSurface(renderer, nameSurf);
                 if (nameTex) {
@@ -349,7 +349,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
             if (!m_bossSubtitle.empty()) {
                 Uint8 subA = static_cast<Uint8>(contentAlpha * 180);
                 SDL_Color subColor = {180, 140, 200, subA};
-                SDL_Surface* subSurf = TTF_RenderText_Blended(font, m_bossSubtitle.c_str(), subColor);
+                SDL_Surface* subSurf = TTF_RenderUTF8_Blended(font, m_bossSubtitle.c_str(), subColor);
                 if (subSurf) {
                     SDL_Texture* subTex = SDL_CreateTextureFromSurface(renderer, subSurf);
                     if (subTex) {

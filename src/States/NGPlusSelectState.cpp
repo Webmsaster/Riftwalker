@@ -182,7 +182,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
             static_cast<Uint8>(50 * pulse),
             255
         };
-        SDL_Surface* ts = TTF_RenderText_Blended(font, LOC("ngplus.title"), tc);
+        SDL_Surface* ts = TTF_RenderUTF8_Blended(font, LOC("ngplus.title"), tc);
         if (ts) {
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
@@ -199,7 +199,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
     // Subtitle
     {
         SDL_Color sc = {120, 100, 160, 180};
-        SDL_Surface* ss = TTF_RenderText_Blended(font,
+        SDL_Surface* ss = TTF_RenderUTF8_Blended(font,
             LOC("ngplus.subtitle"), sc);
         if (ss) {
             SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
@@ -252,7 +252,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         // "NEXT CHALLENGE" badge for the next unlockable tier
         if (isNextChallenge && !unlocked) {
             SDL_Color bc = {255, 200, 50, 180};
-            SDL_Surface* bs = TTF_RenderText_Blended(font, LOC("ngplus.next_challenge"), bc);
+            SDL_Surface* bs = TTF_RenderUTF8_Blended(font, LOC("ngplus.next_challenge"), bc);
             if (bs) {
                 SDL_Texture* bt = SDL_CreateTextureFromSurface(renderer, bs);
                 if (bt) {
@@ -272,7 +272,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
             nameCol.g = static_cast<Uint8>(nameCol.g * 0.6f);
             nameCol.b = static_cast<Uint8>(nameCol.b * 0.6f);
         }
-        SDL_Surface* ns = TTF_RenderText_Blended(font, LOC(s_tierNameKeys[i]), nameCol);
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, LOC(s_tierNameKeys[i]), nameCol);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
             if (nt) {
@@ -287,7 +287,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
 
         // Description
         SDL_Color descCol = selected ? SDL_Color{175, 170, 195, 220} : SDL_Color{85, 80, 105, 130};
-        SDL_Surface* ds = TTF_RenderText_Blended(font, LOC(s_tierDescKeys[i]), descCol);
+        SDL_Surface* ds = TTF_RenderUTF8_Blended(font, LOC(s_tierDescKeys[i]), descCol);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
@@ -301,7 +301,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
         // Reward line (on selected card only, right-aligned)
         if (selected && i > 0 && s_tierRewardKeys[i]) {
             SDL_Color rc = {255, 215, 60, 200};
-            SDL_Surface* rs = TTF_RenderText_Blended(font, LOC(s_tierRewardKeys[i]), rc);
+            SDL_Surface* rs = TTF_RenderUTF8_Blended(font, LOC(s_tierRewardKeys[i]), rc);
             if (rs) {
                 SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
                 if (rt) {
@@ -317,7 +317,7 @@ void NGPlusSelectState::render(SDL_Renderer* renderer) {
     // Navigation hint
     {
         SDL_Color nc = {60, 55, 85, 130};
-        SDL_Surface* ns = TTF_RenderText_Blended(font,
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font,
             LOC("ngplus.nav_hint"), nc);
         if (ns) {
             SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);

@@ -96,7 +96,7 @@ void PlayState::renderDeathSequence(SDL_Renderer* renderer) {
         float pulse = 0.6f + 0.4f * std::sin(m_frameTicks * 0.012f);
         Uint8 tr = static_cast<Uint8>(200 * pulse + 55);
         SDL_Color deathColor = {tr, 20, 10, ta};
-        SDL_Surface* ds = TTF_RenderText_Blended(font, LOC("gameover.suit_failure"), deathColor);
+        SDL_Surface* ds = TTF_RenderUTF8_Blended(font, LOC("gameover.suit_failure"), deathColor);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {
@@ -131,7 +131,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
     // Title
     {
         SDL_Color tc = {255, 215, 100, 255};
-        SDL_Surface* s = TTF_RenderText_Blended(font, LOC("relic.choose"), tc);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("relic.choose"), tc);
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
@@ -194,7 +194,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
         // CURSED override: override tier display with red "CURSED" label
         if (isCursedRelic) { tierText = LOC("relic.cursed"); tierColor = {255, 50, 50, 255}; }
         {
-            SDL_Surface* s = TTF_RenderText_Blended(font, tierText, tierColor);
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, tierText, tierColor);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
@@ -228,7 +228,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
         const char* rDisplayDesc = (strcmp(rLocDesc, rDescKey) == 0) ? data.description : rLocDesc;
         {
             SDL_Color nc = {255, 255, 255, 255};
-            SDL_Surface* s = TTF_RenderText_Blended(font, rDisplayName, nc);
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, rDisplayName, nc);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
@@ -243,7 +243,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
         // Description
         {
             SDL_Color dc = {180, 180, 200, 220};
-            SDL_Surface* s = TTF_RenderText_Blended(font, rDisplayDesc, dc);
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, rDisplayDesc, dc);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
@@ -260,7 +260,7 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
         std::snprintf(keyBuf, sizeof(keyBuf), "[%d]", i + 1);
         {
             SDL_Color kc = selected ? SDL_Color{255, 255, 255, 255} : SDL_Color{100, 100, 120, 180};
-            SDL_Surface* s = TTF_RenderText_Blended(font, keyBuf, kc);
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, keyBuf, kc);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
@@ -323,7 +323,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
 
         // Chain name
         SDL_Color white = {255, 255, 255, 255};
-        SDL_Surface* nameSurf = TTF_RenderText_Blended(font, m_eventChain.getName(), white);
+        SDL_Surface* nameSurf = TTF_RenderUTF8_Blended(font, m_eventChain.getName(), white);
         if (nameSurf) {
             SDL_Texture* nameTex = SDL_CreateTextureFromSurface(renderer, nameSurf);
             if (nameTex) {
@@ -338,7 +338,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
         const char* desc = m_eventChain.getStageDesc();
         if (desc && desc[0]) {
             SDL_Color dimWhite = {200, 200, 200, 200};
-            SDL_Surface* descSurf = TTF_RenderText_Blended(font, desc, dimWhite);
+            SDL_Surface* descSurf = TTF_RenderUTF8_Blended(font, desc, dimWhite);
             if (descSurf) {
                 SDL_Texture* descTex = SDL_CreateTextureFromSurface(renderer, descSurf);
                 if (descTex) {
@@ -364,7 +364,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
         snprintf(stageText, sizeof(stageText), LOC("hud.chain_stage"), m_eventChain.stage, m_eventChain.maxStages);
 
         SDL_Color textCol = {cc.r, cc.g, cc.b, alpha};
-        SDL_Surface* surf = TTF_RenderText_Blended(font, stageText, textCol);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, stageText, textCol);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
@@ -387,7 +387,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
 
         // "CHAIN COMPLETE" title
         SDL_Color goldCol = {255, 215, 60, alpha};
-        SDL_Surface* titleSurf = TTF_RenderText_Blended(font, LOC("hud.chain_complete"), goldCol);
+        SDL_Surface* titleSurf = TTF_RenderUTF8_Blended(font, LOC("hud.chain_complete"), goldCol);
         if (titleSurf) {
             SDL_Texture* titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
             if (titleTex) {
@@ -405,7 +405,7 @@ void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
         char rewardText[64];
         snprintf(rewardText, sizeof(rewardText), LOC("hud.chain_reward"), m_eventChain.getName(), m_chainRewardShards);
         SDL_Color rewCol = {cc.r, cc.g, cc.b, alpha};
-        SDL_Surface* rewSurf = TTF_RenderText_Blended(font, rewardText, rewCol);
+        SDL_Surface* rewSurf = TTF_RenderUTF8_Blended(font, rewardText, rewCol);
         if (rewSurf) {
             SDL_Texture* rewTex = SDL_CreateTextureFromSurface(renderer, rewSurf);
             if (rewTex) {
@@ -627,8 +627,8 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_RenderFillRect(renderer, &bg);
 
     if (keyLabel) {
-        SDL_Surface* hintSurf = TTF_RenderText_Blended(font, hint, {180, 220, 255, a});
-        SDL_Surface* keySurf = TTF_RenderText_Blended(font, keyLabel, {255, 255, 255, 255});
+        SDL_Surface* hintSurf = TTF_RenderUTF8_Blended(font, hint, {180, 220, 255, a});
+        SDL_Surface* keySurf = TTF_RenderUTF8_Blended(font, keyLabel, {255, 255, 255, 255});
         int totalW = (keySurf ? keySurf->w + 16 : 0) + (hintSurf ? hintSurf->w : 0);
         int startX = SCREEN_WIDTH / 2 - totalW / 2;
 
@@ -649,7 +649,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
         }
     } else {
         SDL_Color color = {180, 220, 255, a};
-        SDL_Surface* surface = TTF_RenderText_Blended(font, hint, color);
+        SDL_Surface* surface = TTF_RenderUTF8_Blended(font, hint, color);
         if (surface) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
@@ -666,7 +666,7 @@ void PlayState::renderTutorialHints(SDL_Renderer* renderer, TTF_Font* font) {
 void PlayState::renderKeyBox(SDL_Renderer* renderer, TTF_Font* font,
                               const char* key, int x, int y, Uint8 alpha) {
     // Render a key label as a bordered box
-    SDL_Surface* surface = TTF_RenderText_Blended(font, key, {255, 255, 255, alpha});
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, key, {255, 255, 255, alpha});
     if (!surface) return;
     int pad = 8;
     SDL_Rect box = {x - pad, y - 4, surface->w + pad * 2, surface->h + 8};
@@ -719,7 +719,7 @@ void PlayState::renderZoneTransition(SDL_Renderer* renderer, TTF_Font* font) {
         char zoneLbl[16];
         snprintf(zoneLbl, sizeof(zoneLbl), LOC("hud.zone"), m_zoneTransitionNumber);
         SDL_Color gold = {255, 200, 50, a};
-        SDL_Surface* s = TTF_RenderText_Blended(font, zoneLbl, gold);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, zoneLbl, gold);
         if (s) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
             if (tex) {
@@ -735,7 +735,7 @@ void PlayState::renderZoneTransition(SDL_Renderer* renderer, TTF_Font* font) {
     // Zone name (large, white, with subtle scale-up via wider dest rect)
     {
         SDL_Color white = {255, 255, 255, a};
-        SDL_Surface* s = TTF_RenderText_Blended(font, m_zoneTransitionName.c_str(), white);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, m_zoneTransitionName.c_str(), white);
         if (s) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
             if (tex) {
@@ -755,7 +755,7 @@ void PlayState::renderZoneTransition(SDL_Renderer* renderer, TTF_Font* font) {
     // Tagline (smaller, dim purple)
     {
         SDL_Color purple = {160, 120, 220, static_cast<Uint8>(a * 0.8f)};
-        SDL_Surface* s = TTF_RenderText_Blended(font, m_zoneTransitionTagline.c_str(), purple);
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, m_zoneTransitionTagline.c_str(), purple);
         if (s) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
             if (tex) {
@@ -821,7 +821,7 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
         Uint8 a = static_cast<Uint8>(alpha * 255);
         // Dim white with slight purple tint
         SDL_Color color = {180, 170, 200, a};
-        SDL_Surface* surf = TTF_RenderText_Blended(font, line1, color);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, line1, color);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
@@ -847,7 +847,7 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
         float alpha = fadeIn * fadeOut;
         Uint8 a = static_cast<Uint8>(alpha * 220);
         SDL_Color color = {140, 130, 160, a};
-        SDL_Surface* surf = TTF_RenderText_Blended(font, line2, color);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, line2, color);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
@@ -869,7 +869,7 @@ void PlayState::renderRunIntro(SDL_Renderer* renderer, TTF_Font* font) {
         Uint8 a = static_cast<Uint8>(alpha * 255);
         // Brighter, bolder — slight red warmth
         SDL_Color color = {220, 200, 210, a};
-        SDL_Surface* surf = TTF_RenderText_Blended(font, line3, color);
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, line3, color);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {

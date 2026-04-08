@@ -11,7 +11,7 @@
 static void renderText(SDL_Renderer* renderer, TTF_Font* font,
                        const char* text, int x, int y, SDL_Color color) {
     if (!font || !text) return;
-    SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text, color);
     if (!surface) return;
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     if (texture) {

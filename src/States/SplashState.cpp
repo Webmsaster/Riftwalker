@@ -104,7 +104,7 @@ void SplashState::render(SDL_Renderer* renderer) {
 
         // Render title at larger size if possible - use the existing font
         // We'll render it centered
-        SDL_Surface* surface = TTF_RenderText_Blended(font, "R I F T W A L K E R", titleColor);
+        SDL_Surface* surface = TTF_RenderUTF8_Blended(font, "R I F T W A L K E R", titleColor);
         if (surface) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
@@ -133,7 +133,7 @@ void SplashState::render(SDL_Renderer* renderer) {
         SDL_Color subColor = { 160, 140, 200, sa }; // Muted purple
 
         TTF_Font* font = game->getFont();
-        SDL_Surface* surface = TTF_RenderText_Blended(font, LOC("splash.subtitle"), subColor);
+        SDL_Surface* surface = TTF_RenderUTF8_Blended(font, LOC("splash.subtitle"), subColor);
         if (surface) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
@@ -161,7 +161,7 @@ void SplashState::render(SDL_Renderer* renderer) {
         SDL_Color hintColor = { 160, 140, 200, ha };
 
         TTF_Font* font = game->getFont();
-        SDL_Surface* surface = TTF_RenderText_Blended(font, LOC("splash.press_any"), hintColor);
+        SDL_Surface* surface = TTF_RenderUTF8_Blended(font, LOC("splash.press_any"), hintColor);
         if (surface) {
             SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
             if (texture) {
