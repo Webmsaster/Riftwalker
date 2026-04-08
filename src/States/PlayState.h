@@ -238,9 +238,9 @@ private:
 
     // Directional damage indicators (red edge flash showing damage source direction)
     struct DamageIndicator {
-        float angle;  // radians, 0=right, PI/2=down, PI=left, -PI/2=up
-        float timer;
-        float maxTimer;
+        float angle = 0;    // radians, 0=right, PI/2=down, PI=left, -PI/2=up
+        float timer = 0;
+        float maxTimer = 1.0f; // non-zero default prevents NaN if ever default-constructed
     };
     std::vector<DamageIndicator> m_damageIndicators;
     void updateDamageIndicators(float dt);

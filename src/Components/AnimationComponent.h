@@ -6,8 +6,8 @@
 #include <vector>
 
 struct AnimFrame {
-    SDL_Rect srcRect;
-    float duration; // seconds
+    SDL_Rect srcRect{0, 0, 32, 32};
+    float duration = 0.1f; // seconds
 };
 
 struct Animation {
