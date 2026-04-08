@@ -127,19 +127,19 @@ void WeaponSystem::resetUnlocks() {
 
 const char* WeaponSystem::getUnlockRequirement(WeaponID id) {
     switch (id) {
-        case WeaponID::RiftBlade:     return "Always available";
-        case WeaponID::ShardPistol:   return "Always available";
-        case WeaponID::PhaseDaggers:  return "Get a 10-hit combo";
-        case WeaponID::RiftShotgun:   return "Kill 3 enemies with one attack";
-        case WeaponID::VoidHammer:    return "Defeat any boss";
-        case WeaponID::VoidBeam:      return "Reach floor 5";
-        case WeaponID::GrapplingHook: return "Dash-kill 5 enemies in one run";
-        case WeaponID::EntropyScythe: return "Survive 3 minutes with entropy above 60%";
-        case WeaponID::ChainWhip:     return "Get a 15-hit combo";
-        case WeaponID::DimLauncher:   return "Repair 50 rifts total";
-        case WeaponID::GravityGauntlet: return "Kill 3 GravityWell enemies";
-        case WeaponID::RiftCrossbow:    return "Kill 5 enemies with one ranged shot";
-        default: return "Unknown";
+        case WeaponID::RiftBlade:       return LOC("weapon.unlock.riftblade");
+        case WeaponID::ShardPistol:     return LOC("weapon.unlock.shardpistol");
+        case WeaponID::PhaseDaggers:    return LOC("weapon.unlock.phasedaggers");
+        case WeaponID::RiftShotgun:     return LOC("weapon.unlock.riftshotgun");
+        case WeaponID::VoidHammer:      return LOC("weapon.unlock.voidhammer");
+        case WeaponID::VoidBeam:        return LOC("weapon.unlock.voidbeam");
+        case WeaponID::GrapplingHook:   return LOC("weapon.unlock.grapplinghook");
+        case WeaponID::EntropyScythe:   return LOC("weapon.unlock.entropyscythe");
+        case WeaponID::ChainWhip:       return LOC("weapon.unlock.chainwhip");
+        case WeaponID::DimLauncher:     return LOC("weapon.unlock.dimlauncher");
+        case WeaponID::GravityGauntlet: return LOC("weapon.unlock.gravitygauntlet");
+        case WeaponID::RiftCrossbow:    return LOC("weapon.unlock.riftcrossbow");
+        default: return LOC("weapon.unlock.unknown");
     }
 }
 

@@ -211,6 +211,21 @@ void Localization::loadStrings() {
     m_en["class.unlock.phantom"]       = "Complete floor 3 in any run";
     m_en["class.unlock.technomancer"]  = "Repair 30 rifts total across all runs";
 
+    // Weapon unlock requirements
+    m_en["weapon.unlock.riftblade"]    = "Always available";
+    m_en["weapon.unlock.shardpistol"]  = "Always available";
+    m_en["weapon.unlock.phasedaggers"] = "Get a 10-hit combo";
+    m_en["weapon.unlock.riftshotgun"]  = "Kill 3 enemies with one attack";
+    m_en["weapon.unlock.voidhammer"]   = "Defeat any boss";
+    m_en["weapon.unlock.voidbeam"]     = "Reach floor 5";
+    m_en["weapon.unlock.grapplinghook"] = "Dash-kill 5 enemies in one run";
+    m_en["weapon.unlock.entropyscythe"] = "Survive 3 minutes with entropy above 60%";
+    m_en["weapon.unlock.chainwhip"]    = "Get a 15-hit combo";
+    m_en["weapon.unlock.dimlauncher"]  = "Repair 50 rifts total";
+    m_en["weapon.unlock.gravitygauntlet"] = "Kill 3 GravityWell enemies";
+    m_en["weapon.unlock.riftcrossbow"] = "Kill 5 enemies with one ranged shot";
+    m_en["weapon.unlock.unknown"]      = "Unknown";
+
     // Upgrade names & descriptions (indexed by UpgradeID)
     // Shop buffs (RunBuffSystem)
     m_en["buff.0.name"]  = "HP Surge";           m_en["buff.0.desc"]  = "+30 Max HP";
@@ -1211,6 +1226,21 @@ void Localization::loadStrings() {
     m_de["class.unlock.berserker"]     = "Toete insgesamt 50 Gegner in allen Laeufen";
     m_de["class.unlock.phantom"]       = "Erreiche Etage 3 in einem Lauf";
     m_de["class.unlock.technomancer"]  = "Repariere insgesamt 30 Risse in allen Laeufen";
+
+    // Weapon unlock requirements
+    m_de["weapon.unlock.riftblade"]    = "Immer verfuegbar";
+    m_de["weapon.unlock.shardpistol"]  = "Immer verfuegbar";
+    m_de["weapon.unlock.phasedaggers"] = "Erreiche eine 10er-Combo";
+    m_de["weapon.unlock.riftshotgun"]  = "Toete 3 Gegner mit einem Angriff";
+    m_de["weapon.unlock.voidhammer"]   = "Besiege einen Boss";
+    m_de["weapon.unlock.voidbeam"]     = "Erreiche Etage 5";
+    m_de["weapon.unlock.grapplinghook"] = "Dash-Kills: 5 Gegner in einem Lauf";
+    m_de["weapon.unlock.entropyscythe"] = "Ueberlebe 3 Minuten mit Entropie ueber 60%";
+    m_de["weapon.unlock.chainwhip"]    = "Erreiche eine 15er-Combo";
+    m_de["weapon.unlock.dimlauncher"]  = "Repariere insgesamt 50 Risse";
+    m_de["weapon.unlock.gravitygauntlet"] = "Toete 3 Gravitationsbrunnen-Gegner";
+    m_de["weapon.unlock.riftcrossbow"] = "Toete 5 Gegner mit einem Fernkampfschuss";
+    m_de["weapon.unlock.unknown"]      = "Unbekannt";
 
     // Upgrade names & descriptions
     // Shop buffs
