@@ -49,14 +49,15 @@ void PhysicsSystem::update(EntityManager& entities, float dt, Level* level, int 
                         float wellCY = (gy + 0.5f) * level->getTileSize();
                         float pullDX = wellCX - t.getCenter().x;
                         float pullDY = wellCY - t.getCenter().y;
-                        float dist = std::sqrt(pullDX * pullDX + pullDY * pullDY);
-                        if (dist > 4.0f && dist < 96.0f) {
-                            float force = 200.0f / (dist + 10.0f);
-                            // Dimension 1: attract, Dimension 2: repel
-                            float sign = (dim == 1) ? 1.0f : -1.0f;
-                            phys.velocity.x += (pullDX / dist) * force * sign * dt;
-                            phys.velocity.y += (pullDY / dist) * force * sign * dt;
-                        }
+                        float distSq = pullDX * pullDX + pullDY * pullDY;
+                        // Skip if out of range (no sqrt needed)
+                        if (distSq <= 16.0f || distSq >= 9216.0f) continue; // 4^2, 96^2
+                        float dist = std::sqrt(distSq);
+                        float force = 200.0f / (dist + 10.0f);
+                        // Dimension 1: attract, Dimension 2: repel
+                        float sign = (dim == 1) ? 1.0f : -1.0f;
+                        phys.velocity.x += (pullDX / dist) * force * sign * dt;
+                        phys.velocity.y += (pullDY / dist) * force * sign * dt;
                     }
                 }
             }

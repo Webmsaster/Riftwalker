@@ -987,8 +987,9 @@ void RenderSystem::renderProjectile(SDL_Renderer* renderer, SDL_Rect rect, Entit
     // Trail behind projectile (longer, fading, with glow)
     if (entity.hasComponent<PhysicsBody>()) {
         auto& phys = entity.getComponent<PhysicsBody>();
-        float speed = std::sqrt(phys.velocity.x * phys.velocity.x + phys.velocity.y * phys.velocity.y);
-        if (speed > 10.0f) {
+        float speedSq = phys.velocity.x * phys.velocity.x + phys.velocity.y * phys.velocity.y;
+        if (speedSq > 100.0f) { // > 10.0 speed
+            float speed = std::sqrt(speedSq);
             float nx = -phys.velocity.x / speed;
             float ny = -phys.velocity.y / speed;
             // Extended trail (6 segments instead of 4, with size falloff)
