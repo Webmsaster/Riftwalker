@@ -32,7 +32,7 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         invincible = hp.isInvincible() && !hp.invulnerable;
     }
 
-    if (invincible && (SDL_GetTicks() / 80) % 2 == 0) {
+    if (invincible && (m_frameTicks / 80) % 2 == 0) {
         a = static_cast<Uint8>(a * 0.4f);
     }
 
@@ -270,8 +270,7 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 
     // Jump thrusters (when airborne going up)
     if (!onGround && velY < 0) {
-        Uint32 t = SDL_GetTicks();
-        int flameH = 4 + static_cast<int>(t % 4);
+        int flameH = 4 + static_cast<int>(m_frameTicks % 4);
         fillRect(renderer, x + w / 4 - 2, y + h, 4, flameH, 255, 180, 50, static_cast<Uint8>(a * 0.8f));
         fillRect(renderer, x + 3 * w / 4 - 2, y + h, 4, flameH, 255, 180, 50, static_cast<Uint8>(a * 0.8f));
         fillRect(renderer, x + w / 4 - 1, y + h, 2, flameH - 1, 255, 255, 150, static_cast<Uint8>(a * 0.6f));
@@ -284,7 +283,7 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         if (cb.isCharging) {
             float cp = cb.getChargePercent();
             // Pulse effect: subtle breathing that speeds up near full charge
-            float pulse = 0.85f + 0.15f * std::sin(SDL_GetTicks() * (0.006f + cp * 0.012f));
+            float pulse = 0.85f + 0.15f * std::sin(m_frameTicks * (0.006f + cp * 0.012f));
             Uint8 glowA = static_cast<Uint8>((20 + 140 * cp) * pulse);
             int glowR = static_cast<int>(2 + 10 * cp);
             SDL_Rect glow = {x - glowR, y - glowR, w + glowR * 2, h + glowR * 2};
@@ -301,7 +300,7 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 
         // Parry success aura: golden rim when next hit is guaranteed crit
         if (cb.parrySuccessTimer > 0 && !cb.counterReady && !cb.isCounterAttacking) {
-            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.008f);
+            float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.008f);
             Uint8 rimA = static_cast<Uint8>((80 + 80 * pulse) * alpha);
             SDL_Rect rim = {x - 3, y - 3, w + 6, h + 6};
             SDL_SetRenderDrawColor(renderer, 255, 215, 0, rimA);
@@ -313,7 +312,7 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 
         // Counter-ready aura: bright golden pulsing border (stronger than parry success)
         if (cb.counterReady) {
-            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.015f); // faster pulse
+            float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.015f); // faster pulse
             Uint8 rimA = static_cast<Uint8>((140 + 115 * pulse) * alpha);
             // Triple border for emphasis
             SDL_Rect rim1 = {x - 5, y - 5, w + 10, h + 10};
@@ -342,7 +341,7 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
                 case WeaponID::VoidHammer:   glowR = 160; glowG = 80;  glowB = 255; break;
                 default: break;
             }
-            float pulse = 0.6f + 0.4f * std::sin(SDL_GetTicks() * 0.02f);
+            float pulse = 0.6f + 0.4f * std::sin(m_frameTicks * 0.02f);
             Uint8 glowA = static_cast<Uint8>(120 * pulse * alpha);
             SDL_Rect counterGlow = {x - 3, y - 3, w + 6, h + 6};
             SDL_SetRenderDrawColor(renderer, glowR, glowG, glowB, glowA);
@@ -359,7 +358,7 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     if (entity.hasComponent<AbilityComponent>()) {
         auto& abil = entity.getComponent<AbilityComponent>();
         if (abil.abilities[1].active) {
-            float shieldPulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.008f);
+            float shieldPulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.008f);
             float shieldAlpha = (0.4f + 0.3f * shieldPulse) * alpha;
             Uint8 sa = static_cast<Uint8>(255 * shieldAlpha);
 
@@ -369,7 +368,7 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 
             // Draw hexagon shield
             int hexPoints = 6;
-            float rotSpeed = SDL_GetTicks() * 0.002f;
+            float rotSpeed = m_frameTicks * 0.002f;
             for (int i = 0; i < hexPoints; i++) {
                 float a1 = rotSpeed + i * 6.283185f / hexPoints;
                 float a2 = rotSpeed + (i + 1) * 6.283185f / hexPoints;
@@ -399,7 +398,7 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
 
         // Ground Slam charge glow (while falling)
         if (abil.slamFalling) {
-            float pulse = 0.5f + 0.5f * std::sin(SDL_GetTicks() * 0.015f);
+            float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.015f);
             Uint8 glowA = static_cast<Uint8>((120 + 80 * pulse) * alpha);
 
             // Glow ring around player
