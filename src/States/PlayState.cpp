@@ -746,6 +746,7 @@ void PlayState::update(float dt) {
     }
     if (magnetRange > 14.0f) { // Only if upgrade purchased or relic active
         Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        float magnetRangeSq = magnetRange * magnetRange;
         m_entities.forEach([&](Entity& e) {
             if (!e.isPickup) return;
             if (!e.hasComponent<TransformComponent>() || !e.hasComponent<PhysicsBody>()) return;
@@ -754,14 +755,15 @@ void PlayState::update(float dt) {
             Vec2 pickupPos = t.getCenter();
             float dx = pPos.x - pickupPos.x;
             float dy = pPos.y - pickupPos.y;
-            float dist = std::sqrt(dx * dx + dy * dy);
+            float distSq = dx * dx + dy * dy;
 
-            if (dist < magnetRange && dist > 5.0f) {
-                float strength = 300.0f * (1.0f - dist / magnetRange);
-                auto& phys = e.getComponent<PhysicsBody>();
-                phys.velocity.x += (dx / dist) * strength * dt;
-                phys.velocity.y += (dy / dist) * strength * dt;
-            }
+            // Out of range: skip (no sqrt needed)
+            if (distSq >= magnetRangeSq || distSq <= 25.0f) return;
+            float dist = std::sqrt(distSq);
+            float strength = 300.0f * (1.0f - dist / magnetRange);
+            auto& phys = e.getComponent<PhysicsBody>();
+            phys.velocity.x += (dx / dist) * strength * dt;
+            phys.velocity.y += (dy / dist) * strength * dt;
         });
     }
 
@@ -936,7 +938,7 @@ void PlayState::update(float dt) {
             auto& et = enemy.getComponent<TransformComponent>();
             float dx = et.getCenter().x - zCenter.x;
             float dy = et.getCenter().y - zCenter.y;
-            if (std::sqrt(dx * dx + dy * dy) < 48.0f) {
+            if (dx * dx + dy * dy < 48.0f * 48.0f) {
                 enemy.getComponent<HealthComponent>().takeDamage(residueDps * dt);
             }
         });

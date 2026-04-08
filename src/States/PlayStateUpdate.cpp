@@ -395,9 +395,9 @@ void PlayState::updateTechnomancerEntities(float dt) {
         auto& tt = turret.getComponent<TransformComponent>();
         Vec2 turretPos = tt.getCenter();
 
-        // Find nearest enemy in range
+        // Find nearest enemy in range (squared comparison)
         Entity* nearestEnemy = nullptr;
-        float nearestDist = ai.detectRange;
+        float nearestDistSq = ai.detectRange * ai.detectRange;
         m_entities.forEach([&](Entity& e) {
             if (!e.isEnemy) return;
             if (!e.isAlive() || !e.hasComponent<TransformComponent>()) return;
@@ -408,9 +408,9 @@ void PlayState::updateTechnomancerEntities(float dt) {
             auto& et = e.getComponent<TransformComponent>();
             float dx = et.getCenter().x - turretPos.x;
             float dy = et.getCenter().y - turretPos.y;
-            float dist = std::sqrt(dx * dx + dy * dy);
-            if (dist < nearestDist) {
-                nearestDist = dist;
+            float distSq = dx * dx + dy * dy;
+            if (distSq < nearestDistSq) {
+                nearestDistSq = distSq;
                 nearestEnemy = &e;
             }
         });
@@ -491,9 +491,9 @@ void PlayState::updateBossEffects(float dt) {
                 auto& playerT = m_player->getEntity()->getComponent<TransformComponent>();
                 Vec2 bossPos = e.getComponent<TransformComponent>().getCenter();
                 Vec2 pPos = playerT.getCenter();
-                float d = std::sqrt((pPos.x - bossPos.x) * (pPos.x - bossPos.x) +
-                                     (pPos.y - bossPos.y) * (pPos.y - bossPos.y));
-                if (d < 200.0f) {
+                float ddx = pPos.x - bossPos.x;
+                float ddy = pPos.y - bossPos.y;
+                if (ddx * ddx + ddy * ddy < 200.0f * 200.0f) {
                     m_entropy.addEntropy(entropyAdd);
                 }
             }
@@ -504,9 +504,9 @@ void PlayState::updateBossEffects(float dt) {
             auto& playerT = m_player->getEntity()->getComponent<TransformComponent>();
             Vec2 bossPos = e.getComponent<TransformComponent>().getCenter();
             Vec2 pPos = playerT.getCenter();
-            float d = std::sqrt((pPos.x - bossPos.x) * (pPos.x - bossPos.x) +
-                                 (pPos.y - bossPos.y) * (pPos.y - bossPos.y));
-            if (d < 150.0f) {
+            float ddx = pPos.x - bossPos.x;
+            float ddy = pPos.y - bossPos.y;
+            if (ddx * ddx + ddy * ddy < 150.0f * 150.0f) {
                 m_entropy.addEntropy(3.0f * dt); // 3 entropy/s while in range
             }
         }
