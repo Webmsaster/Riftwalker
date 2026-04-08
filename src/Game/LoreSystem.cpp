@@ -1,6 +1,9 @@
 #include "Game/LoreSystem.h"
 #include "Core/SaveUtils.h"
+#include "Core/Localization.h"
 #include <fstream>
+#include <cstdio>
+#include <cstring>
 
 void LoreSystem::init() {
     m_fragments.clear();
@@ -120,7 +123,13 @@ void LoreSystem::discover(LoreID id) {
     if (idx >= 0 && idx < static_cast<int>(m_fragments.size())) {
         if (!m_fragments[idx].discovered) {
             m_fragments[idx].discovered = true;
-            m_notification.title = m_fragments[idx].title;
+            // Pick localized title (falls back to hardcoded EN if key missing)
+            char titleKey[32];
+            std::snprintf(titleKey, sizeof(titleKey), "lore.%d.title", idx);
+            const char* locTitle = LOC(titleKey);
+            m_notification.title = (std::strcmp(locTitle, titleKey) == 0)
+                ? m_fragments[idx].title
+                : std::string(locTitle);
             m_notification.timer = m_notification.duration;
         }
     }
