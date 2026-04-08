@@ -269,15 +269,16 @@ void CreditsState::render(SDL_Renderer* renderer) {
     }
 
     // Solid backdrop strip at the bottom so scrolling credit lines don't
-    // visually collide with the ESC hint.
+    // visually collide with the ESC hint. Fully opaque so no ghosting.
     {
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
         SDL_Rect backdrop = {0, SCREEN_HEIGHT - 90, SCREEN_WIDTH, 90};
-        SDL_SetRenderDrawColor(renderer, 8, 4, 16, 230);
+        SDL_SetRenderDrawColor(renderer, 8, 4, 16, 255);
         SDL_RenderFillRect(renderer, &backdrop);
         // Soft top edge fade into the backdrop
-        for (int i = 0; i < 20; i++) {
-            Uint8 a = static_cast<Uint8>(230 - i * 11);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        for (int i = 0; i < 28; i++) {
+            Uint8 a = static_cast<Uint8>(255 - i * 9);
             SDL_SetRenderDrawColor(renderer, 8, 4, 16, a);
             SDL_RenderDrawLine(renderer, 0, SCREEN_HEIGHT - 90 - i,
                                SCREEN_WIDTH, SCREEN_HEIGHT - 90 - i);
