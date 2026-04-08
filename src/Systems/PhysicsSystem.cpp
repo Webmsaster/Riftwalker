@@ -119,11 +119,18 @@ bool PhysicsSystem::applyVelocity(Entity& entity, float dt, Level* level, int cu
     // Stepped collision for fast-moving entities to prevent tunneling
     bool hasCollider = level && entity.hasComponent<ColliderComponent>();
     if (hasCollider) {
-        float speed = std::sqrt(phys.velocity.x * phys.velocity.x + phys.velocity.y * phys.velocity.y);
+        // Fast early-reject with squared speed (avoids sqrt for slow entities,
+        // which is the common case). Only compute real speed if we actually
+        // need to subdivide.
+        float speedSq = phys.velocity.x * phys.velocity.x + phys.velocity.y * phys.velocity.y;
         float maxStep = level->getTileSize() * 0.5f;
-        float totalDist = speed * dt;
+        // Threshold: totalDist > maxStep  <=>  speed > maxStep/dt  <=>  speedSq > (maxStep/dt)^2
+        float maxStepPerSec = (dt > 0.0f) ? (maxStep / dt) : maxStep;
+        float thresholdSq = maxStepPerSec * maxStepPerSec;
 
-        if (totalDist > maxStep && speed > 0.0f) {
+        if (speedSq > thresholdSq) {
+            float speed = std::sqrt(speedSq);
+            float totalDist = speed * dt;
             int steps = static_cast<int>(std::ceil(totalDist / maxStep));
             // Cap to a sane maximum to avoid extreme subdivision
             if (steps > 16) steps = 16;
