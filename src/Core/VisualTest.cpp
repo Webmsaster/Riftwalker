@@ -57,7 +57,7 @@ void VisualTest::capture(Game* game, const char* name) {
     std::snprintf(filename, sizeof(filename), "screenshots/visual_test/%02d_%s.png",
                   m_captureCount, name);
 
-    SDL_Log("VisualTest: capture '%s' while in state '%s'",
+    SDL_Log("VisualTest: capture '%s' (state: %s)",
             name, stateIdName(game->getCurrentStateID()));
 
     SDL_Renderer* r = game->getRenderer();

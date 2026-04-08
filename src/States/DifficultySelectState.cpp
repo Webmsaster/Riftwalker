@@ -47,10 +47,10 @@ void DifficultySelectState::handleEvent(const SDL_Event& event) {
     }
 
     // Card layout — mirrors render() calculations exactly
-    int cardH = 200;
+    int cardH = 220;
     int cardW = 1000;
     int cardX = SCREEN_WIDTH / 2 - cardW / 2;
-    int startY = 480;
+    int startY = 380;
 
     if (event.type == SDL_MOUSEMOTION) {
         int mx = event.motion.x, my = event.motion.y;
@@ -177,8 +177,8 @@ void DifficultySelectState::render(SDL_Renderer* renderer) {
         {LOC("difficulty.hard"), LOC("difficulty.hard_desc"), {220, 60, 60, 255}}
     };
 
-    int startY = 480;
-    int cardH = 200;
+    int startY = 380;
+    int cardH = 220;
     int cardW = 1000;
     int cardX = SCREEN_WIDTH / 2 - cardW / 2;
 
