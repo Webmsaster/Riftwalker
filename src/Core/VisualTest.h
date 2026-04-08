@@ -70,6 +70,10 @@ private:
         NavToOptions,
         WaitOptions,
         CaptureOptions,
+        NavToKeybindings,
+        WaitKeybindings,
+        CaptureKeybindings,
+        BackFromKeybindings,
         BackFromOptions,
         // --- Lore screen ---
         NavToLore,

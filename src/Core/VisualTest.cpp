@@ -317,11 +317,46 @@ bool VisualTest::update(int frameCount, Game* game) {
 
     case Phase::CaptureOptions:
         capture(game, "options");
-        nextPhase(Phase::BackFromOptions);
+        nextPhase(Phase::NavToKeybindings);
+        break;
+
+    case Phase::NavToKeybindings:
+        // Options item 13 (Controls) — press S 13 times then Enter
+        if (m_phaseFrame == 10) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 15) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 20) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 25) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 30) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 35) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 40) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 45) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 50) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 55) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 60) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 65) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 70) injectKey(SDL_SCANCODE_S);
+        if (m_phaseFrame == 80) injectKey(SDL_SCANCODE_RETURN);
+        if (m_phaseFrame >= 85) nextPhase(Phase::WaitKeybindings);
+        break;
+
+    case Phase::WaitKeybindings:
+        if (m_phaseFrame >= 90) nextPhase(Phase::CaptureKeybindings);
+        break;
+
+    case Phase::CaptureKeybindings:
+        capture(game, "keybindings");
+        nextPhase(Phase::BackFromKeybindings);
+        break;
+
+    case Phase::BackFromKeybindings:
+        if (m_phaseFrame >= 30) {
+            injectKey(SDL_SCANCODE_ESCAPE);
+            nextPhase(Phase::BackFromOptions);
+        }
         break;
 
     case Phase::BackFromOptions:
-        if (m_phaseFrame >= 30) {
+        if (m_phaseFrame >= 60) { // extra time for Options to settle
             injectKey(SDL_SCANCODE_ESCAPE);
             nextPhase(Phase::NavToLore);
         }
