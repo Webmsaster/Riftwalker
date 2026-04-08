@@ -92,7 +92,9 @@ public:
     // Damage events for floating numbers
     std::vector<DamageEvent> consumeDamageEvents() {
         auto events = std::move(m_damageEvents);
-        m_damageEvents.clear();
+        // After move, m_damageEvents is in valid-but-unspecified state (usually empty with cap=0).
+        // Re-reserve so next frame's push_backs don't trigger a fresh allocation.
+        m_damageEvents.reserve(64);
         return events;
     }
 
