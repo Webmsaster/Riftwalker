@@ -475,8 +475,8 @@ void Game::loadSaveData() {
         file.close();
     }
 
-    // Load audio/visual settings
-    std::ifstream cfg("riftwalker_settings.cfg");
+    // Load audio/visual settings (with .bak fallback — saveSettings uses atomicSave)
+    std::ifstream cfg = openWithBackupFallback("riftwalker_settings.cfg");
     if (cfg.is_open()) {
         std::string key;
         float value;

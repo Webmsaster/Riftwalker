@@ -143,7 +143,8 @@ void DailyRun::save(const std::string& path) const {
 }
 
 void DailyRun::load(const std::string& path) {
-    std::ifstream f(path);
+    // Use backup fallback — save() uses atomicSave which maintains .bak
+    std::ifstream f = openWithBackupFallback(path);
     if (!f) return;
     m_entries.clear();
 
