@@ -281,7 +281,8 @@ bool InputManager::saveBindings(const std::string& filepath) const {
 }
 
 bool InputManager::loadBindings(const std::string& filepath) {
-    std::ifstream file(filepath);
+    // Use backup fallback for consistency with save (which writes .bak via atomicSave)
+    std::ifstream file = openWithBackupFallback(filepath);
     if (!file.is_open()) return false;
 
     std::string line;
@@ -296,6 +297,5 @@ bool InputManager::loadBindings(const std::string& filepath) {
             m_keyBindings[action] = scancode;
         }
     }
-    file.close();
     return true;
 }
