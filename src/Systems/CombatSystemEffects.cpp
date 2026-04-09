@@ -8,6 +8,7 @@
 #include "Components/SpriteComponent.h"
 #include "Components/AnimationComponent.h"
 #include "Components/AIComponent.h"
+#include "Components/AbilityComponent.h"
 #include "Components/RelicComponent.h"
 #include "Core/AudioManager.h"
 #include "Game/ItemDrop.h"
@@ -554,6 +555,29 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
             if (!hp.isInvincible()) {
                 float finalDmg = damage;
                 bool isPlayerDamage = (other->isPlayer);
+                // Bug fix: Rift Shield (player ability 1) absorb logic was
+                // implemented in the melee forEach loop, so enemy ranged attacks
+                // passed through the shield untouched. Handle shield absorb here.
+                if (isPlayerDamage && other->hasComponent<AbilityComponent>()) {
+                    auto& abil = other->getComponent<AbilityComponent>();
+                    if (abil.abilities[1].active && abil.shieldHitsRemaining > 0) {
+                        abil.shieldHitsRemaining = std::max(0, abil.shieldHitsRemaining - 1);
+                        abil.shieldAbsorbedDamage += damage;
+                        hp.heal(abil.shieldHealPerAbsorb);
+                        AudioManager::instance().play(SFX::RiftShieldAbsorb);
+                        // Phantom class: speed boost on shield absorb
+                        if (cs->m_player && cs->m_player->playerClass == PlayerClass::Phantom) {
+                            cs->m_player->speedBoostTimer = 1.5f;
+                            cs->m_player->speedBoostMultiplier = 1.3f;
+                        }
+                        if (cs->m_particles && other->hasComponent<TransformComponent>()) {
+                            Vec2 shieldPos = other->getComponent<TransformComponent>().getCenter();
+                            cs->m_particles->burst(shieldPos, 12, {80, 220, 255, 255}, 120.0f, 2.0f);
+                        }
+                        self->destroy(); // Projectile consumed by shield
+                        return;
+                    }
+                }
                 // Defensive relic multiplier when projectile hits the player
                 if (isPlayerDamage && other->hasComponent<RelicComponent>()) {
                     finalDmg *= RelicSystem::getDamageTakenMult(
