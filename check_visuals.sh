@@ -24,6 +24,12 @@ if [[ "${1:-}" == "--accept" ]]; then
     ACCEPT=true
 fi
 
+# ------- Pre-check: self-assignment guard -------
+# Catches replace_all regressions (like the 2026-04-09 HUD m_frameTicks bug)
+if [[ -f check_self_assigns.sh ]]; then
+    ./check_self_assigns.sh --ci || { echo "BLOCKED: Self-assignment detected. Fix before visual test."; exit 1; }
+fi
+
 # ------- Step 1: build -------
 echo "[1/3] Building Release..."
 if ! cmake --build build --config Release 2>&1 | tail -5 | grep -qE "error|Error|FEHLER"; then
