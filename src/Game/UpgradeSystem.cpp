@@ -108,9 +108,9 @@ UpgradeSystem::MilestoneBonus UpgradeSystem::checkMilestones() {
     int newCount = 0;
 
     // Milestone 1: 10 runs = +10 max HP
-    if (totalRuns >= 10) newCount = 1;
+    if (totalRuns >= 10) newCount = std::max(newCount, 1);
     // Milestone 2: 50 runs = +5% damage
-    if (totalRuns >= 50) newCount = 2;
+    if (totalRuns >= 50) newCount = std::max(newCount, 2);
     // Milestone 3: 100 kills = +50 shards
     if (totalEnemiesKilled >= 100) newCount = std::max(newCount, 3);
     // Milestone 4: 500 kills = +5% speed
@@ -141,6 +141,28 @@ UpgradeSystem::MilestoneBonus UpgradeSystem::checkMilestones() {
         milestonesUnlocked = newCount;
     }
 
+    return bonus;
+}
+
+UpgradeSystem::MilestoneBonus UpgradeSystem::getAccumulatedMilestoneBonus() const {
+    // Mirrors the switch in checkMilestones() but accumulates across ALL
+    // currently unlocked milestones instead of only newly granted ones.
+    // Bug fix: previously the HP/damage/speed bonuses were returned from
+    // checkMilestones() but the call site only consumed bonusShards, so 5 of
+    // 8 milestones (HP, damage, speed) had no effect.
+    MilestoneBonus bonus;
+    for (int i = 1; i <= milestonesUnlocked; i++) {
+        switch (i) {
+            case 1: bonus.bonusHP += 10; break;
+            case 2: bonus.bonusDamageMult *= 1.05f; break;
+            case 3: /* shards: one-time, skipped here */ break;
+            case 4: bonus.bonusSpeed += 0.05f; break;
+            case 5: bonus.bonusDamageMult *= 1.10f; break;
+            case 6: bonus.bonusHP += 15; break;
+            case 7: /* shards: one-time, skipped here */ break;
+            case 8: bonus.bonusDamageMult *= 1.10f; break;
+        }
+    }
     return bonus;
 }
 

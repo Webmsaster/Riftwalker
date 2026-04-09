@@ -101,6 +101,10 @@ public:
         int bonusShards = 0; // one-time shard grant per milestone
     };
     MilestoneBonus checkMilestones(); // returns newly unlocked bonuses
+    // Returns accumulated bonuses from all currently-unlocked milestones
+    // (shards are excluded; those are granted one-time via checkMilestones).
+    // Used by PlayState::applyUpgrades() so HP/damage/speed milestones persist across runs.
+    MilestoneBonus getAccumulatedMilestoneBonus() const;
     int milestonesUnlocked = 0; // persisted milestone count
 
     // NG+ tracking (persisted)

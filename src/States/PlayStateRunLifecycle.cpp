@@ -215,10 +215,9 @@ void PlayState::startNewRun() {
     m_musicSystem.setTheme(static_cast<int>(m_themeA.id), m_dimManager.getCurrentDimension());
 
     m_entropy = SuitEntropy();
-    // NG+1: entropy decays 20% slower (passive decay reduced)
-    if (m_ngPlusTier >= 1) {
-        m_entropy.passiveDecay *= 0.8f;
-    }
+    // NG+1: entropy decays 20% slower — applied inside applyUpgrades() now so it
+    // composes correctly on top of the upgrade bonus (previous inline apply was
+    // wiped by applyUpgrades() overwriting passiveDecay).
     m_combatSystem.resetRunState();
     m_combatSystem.setParticleSystem(&m_particles);
     m_combatSystem.setCamera(&m_camera);
@@ -624,9 +623,14 @@ void PlayState::applyUpgrades() {
     if (!m_player) return;
     auto& upgrades = game->getUpgradeSystem();
     auto achBonus = game->getAchievements().getUnlockedBonuses();
+    // Bug fix: milestones returned bonusHP/bonusDamageMult/bonusSpeed from
+    // checkMilestones() but the call site only consumed bonusShards, so 5 of
+    // 8 persistent milestones had no effect on the player. Now accumulated
+    // from all unlocked milestones and composed with other stat multipliers.
+    auto milestoneBonus = upgrades.getAccumulatedMilestoneBonus();
 
     float classSpeed = ClassSystem::getData(g_selectedClass).baseSpeed;
-    m_player->moveSpeed = classSpeed * upgrades.getMoveSpeedMultiplier() * achBonus.moveSpeedMult;
+    m_player->moveSpeed = (classSpeed + milestoneBonus.bonusSpeed * classSpeed) * upgrades.getMoveSpeedMultiplier() * achBonus.moveSpeedMult;
     m_player->jumpForce = -420.0f * upgrades.getJumpMultiplier();
     m_player->dashCooldown = 0.5f * upgrades.getDashCooldownMultiplier() * achBonus.dashCooldownMult;
     m_player->maxJumps = 2 + upgrades.getExtraJumps();
@@ -635,7 +639,7 @@ void PlayState::applyUpgrades() {
 
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     // BALANCE R2: Base HP 120 -> 150 (playtest: 100% death rate at F5-6, need more survivability)
-    hp.maxHP = 150.0f + upgrades.getMaxHPBonus() + achBonus.maxHPBonus;
+    hp.maxHP = 150.0f + upgrades.getMaxHPBonus() + achBonus.maxHPBonus + milestoneBonus.bonusHP;
     hp.currentHP = hp.maxHP;
 
     // Cache base stats (class + upgrades + achievements) so RelicSystem::applyStatEffects
@@ -646,11 +650,17 @@ void PlayState::applyUpgrades() {
 
     auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
     // BALANCE: Base melee 20 -> 25, ranged 12 -> 15 (matches Player.cpp change)
-    combat.meleeAttack.damage = 25.0f * upgrades.getMeleeDamageMultiplier() * achBonus.meleeDamageMult * achBonus.allDamageMult;
-    combat.rangedAttack.damage = 15.0f * upgrades.getRangedDamageMultiplier() * achBonus.rangedDamageMult * achBonus.allDamageMult;
+    combat.meleeAttack.damage = 25.0f * upgrades.getMeleeDamageMultiplier() * achBonus.meleeDamageMult * achBonus.allDamageMult * milestoneBonus.bonusDamageMult;
+    combat.rangedAttack.damage = 15.0f * upgrades.getRangedDamageMultiplier() * achBonus.rangedDamageMult * achBonus.allDamageMult * milestoneBonus.bonusDamageMult;
 
     m_dimManager.switchCooldown = 0.5f * upgrades.getSwitchCooldownMultiplier() * achBonus.switchCooldownMult;
-    m_entropy.passiveDecay = upgrades.getEntropyDecay() * achBonus.entropyDecayMult;
+    // Bug fix: base passive decay (0.15f default from SuitEntropy ctor) was being overwritten
+    // to 0 at upgrade level 0, wiping the NG+ 0.8x slow-decay modifier applied in startNewRun().
+    // Add upgrade bonus on top of base, then re-apply NG+ modifier here to keep both effects.
+    m_entropy.passiveDecay = 0.15f + upgrades.getEntropyDecay() * achBonus.entropyDecayMult;
+    if (m_ngPlusTier >= 1) {
+        m_entropy.passiveDecay *= 0.8f;
+    }
     // FIX: EntropyResistance upgrade was purchased but never applied (same pattern as WallSlide)
     // Cap at 0.8 so entropy never becomes completely trivial
     m_entropy.upgradeResistance = 1.0f - std::min(upgrades.getEntropyResistance(), 0.8f);
