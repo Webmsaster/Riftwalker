@@ -61,6 +61,18 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
                 projDamage *= mb.damageMult;
             }
             if (m_dimMgr) projDamage *= m_dimMgr->getResonanceDamageMult();
+        } else if (attacker.hasComponent<AIComponent>()) {
+            // Bug fix: enemy ranged attacks also skipped dimDamageMod and the
+            // Summoner synergy buff that the melee path applies at
+            // CombatSystem.cpp:264-270. Without this, Summoner-buffed minions
+            // that use ranged weapons never received their +15% damage bonus,
+            // and dim-B enemies with elevated dimDamageMod didn't scale their
+            // ranged damage either.
+            auto& attackAI = attacker.getComponent<AIComponent>();
+            projDamage *= attackAI.dimDamageMod;
+            if (attackAI.synergySummonerBuff) {
+                projDamage *= attackAI.summonerBuffDamageMult;
+            }
         }
 
         // Technomancer: +10% ranged damage (Construct Mastery passive)
