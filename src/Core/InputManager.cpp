@@ -121,8 +121,17 @@ void InputManager::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_CONTROLLERDEVICEADDED && !m_gamepad) {
         m_gamepad = SDL_GameControllerOpen(event.cdevice.which);
     } else if (event.type == SDL_CONTROLLERDEVICEREMOVED && m_gamepad) {
-        SDL_GameControllerClose(m_gamepad);
-        m_gamepad = nullptr;
+        // SDL2 contract: for DEVICEADDED, cdevice.which is the joystick
+        // device index (position in the connected list). For DEVICEREMOVED,
+        // it is the joystick INSTANCE ID — a different number space.
+        // Only close our tracked controller if the removed device matches it;
+        // otherwise an unrelated second controller being unplugged would
+        // silently kill input on the still-connected primary.
+        SDL_Joystick* joy = SDL_GameControllerGetJoystick(m_gamepad);
+        if (joy && SDL_JoystickInstanceID(joy) == event.cdevice.which) {
+            SDL_GameControllerClose(m_gamepad);
+            m_gamepad = nullptr;
+        }
     }
 }
 
