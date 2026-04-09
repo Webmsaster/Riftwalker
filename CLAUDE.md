@@ -5,19 +5,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-09 mega autonomous session — 45+ commits):**
-- **sqrt elimination pass**: hot-path distance checks across combat (PlayerCombat, CombatSystemEffects, PlayerAbilities, Player grapple), physics (gravity well, tunneling), render (projectile trail), interaction (rift/exit/NPC/event/secret-room), update loops (turret scan, boss effects, pickup magnet, residue zones). ~40 sqrt calls per frame eliminated in slow-entity paths
-- **SDL_GetTicks caching**: RenderSystemPlayer (8 calls), RenderSystemEnemies (20 calls), RenderSystemBosses (5 calls), HUD (23 calls), CombatSystemUpdate freeze decay hoist — ~60 syscalls per frame eliminated
-- **Heap allocation fix**: consumeDamageEvents/DeathEffects re-reserve after std::move (prevents fresh allocation each frame in combat hot path)
-- **Localization gap fixes (9 echte UI bugs for DE players)**: Weapon names (12), kill feed template+prefix+method+enemy names, unlock notifications (weapon/class), achievement unlock popup, lore discovery notification, shrine effects (6) + event chain stages (12), weapon unlock requirements (13), NPC quest-complete messages (3). ~100 new loc keys
-- **Critical memset bug**: UnlockNotification memset zero'd struct's non-zero maxTimer default → unlock banners never appeared + NaN in render alpha math. Replaced with default-construct assignment
-- **Struct hardening pass**: 40+ POD members in 15 structs now have explicit default initializers (AnimFrame, DamageIndicator, FloatingDamageNumber, FogParticle, RandomEvent, DamageEvent, DeathEffect, SpawnPoint, CrateSpawn, EmitterPos, RoomTemplate, LGRoom, DaySummary, ClassData, ZoneScaling, TrailPoint, SynergyData, RunBuff) — prevents NaN-through-zero-divide if ever default-constructed
-- **SDL_QueryTexture guards**: renderNineSlice + SpriteComponent constructor now check return code + positive dimensions (previously read garbage tw/th on API failure)
-- **Save backup fallback symmetry**: 7 load paths (InputManager bindings, Game settings, DailyRun) now use openWithBackupFallback matching their atomicSave counterparts — user can recover from corruption
-- **PauseState UX fix**: Confirm state bleeding between Restart/Abandon buttons (clearConfirmsExcept helper)
-- **CLI validation hardening**: parseIntArg long→int overflow check, parseSeedList out-of-range skip, atoi→parseIntArg for --seed/--playtest-runs
+**Recent Updates (2026-04-09 mega autonomous session — 55 commits, 2 phases):**
+
+*Phase 2 — Agent-Review Bug Hunt (11 real gameplay bugs found):*
+- **Lore reachability**: 3 lore fragments (SwarmNature/GravityAnomaly/MimicDeception) were unreachable. Check used `forEach + currentHP<=0` but every kill path calls destroy() synchronously — forEach's isAlive() gate filtered them out. Fixed to use Bestiary::getEntry(type).killCount
+- **Summoner synergy never applied**: Pre-pass set synergySummonerBuff+multipliers, main loop reset them BEFORE reading. Summoner's signature ability to buff minions was completely broken. Fixed by moving reset to pre-pass collection loop
+- **TimeTax relic dead code**: getAbilityCDMultCursed() + getAbilityHPCost() defined but never called. Relic had neither the -50% CD upside nor the 5 HP per ability downside. Wired up pickup handler + payTimeTaxCost() helper at ability activate sites
+- **Relic stat compounding**: applyStatEffects() mutated moveSpeed/maxHP in place without reset. Multi-relic runs saw exponential runaway (base * 1.10 * 1.10 * 1.10 ...). Added Player::baseMoveSpeed/baseMaxHP cached by applyUpgrades, recalc uses these as fixed reference
+- **Entropy Incarnate burst heal exploit**: Boss incremented eiOverloadHealAccum every frame at phase>=3 regardless of entropy. Consumer only fired above 70 entropy but never reset. Long fights accumulated hidden burst reserve. Added else-branch that zeros accumulator below threshold
+- **Playtest bot function-static leaks**: ptRecoveryGraceTimer + ptLastDim persisted across runs. Caused occasional instant-death on run 2+ floor 1, and spurious disorient penalty skewing telemetry. Reset on first frame of each run
+- **GlassCannon challenge regression**: My own compound fix introduced this — applyChallengeModifiers set hp.maxHP but not baseMaxHP, so next relic pickup wiped the 1-HP restriction. Fixed by also setting baseMaxHP to challenge value
+- **Scholar entropy reward halved**: addEntropy(-15) multiplied by upgradeResistance, so EntropyResistance-upgrade player only got -7.5. Switched to reduceEntropy(15) (no multipliers)
+- **Orphan DimSwitch tiles**: placeDimPuzzles committed switch tile then failed gate placement — left an activatable switch with no matching gate. Added rollback to Empty on !gatePlaced
+- **Ice weapon freeze stun dead code**: Classic check-after-write bug. `freezeTimer = max(old, 1.5f)` then `if (freezeTimer <= 0.01f)` — structurally impossible. Fixed by capturing alreadyFrozen bool before overwrite
+- **Laser beam dimension trace bug**: isInLaserBeam used caller's dimension (can be 0 = both-dims) for beam tile lookup instead of emitter's ep.dim. Dim-B lasers traced through dim-A walls for dim-0 entities. Fixed to use ep.dim in beam traversal
+
+*Phase 1 — Performance + Localization + Hardening (44 commits):*
+- **sqrt elimination pass**: hot-path distance checks across combat (PlayerCombat, CombatSystemEffects, PlayerAbilities, Player grapple), physics (gravity well, tunneling), render (projectile trail), interaction checks, update loops
+- **SDL_GetTicks caching**: RenderSystemPlayer (8), RenderSystemEnemies (20), RenderSystemBosses (5), HUD (23), CombatSystemUpdate freeze decay hoist — ~60 syscalls/frame eliminated
+- **Heap allocation fix**: consumeDamageEvents/DeathEffects re-reserve after std::move
+- **Localization gap fixes (9 DE bugs)**: Weapon names (12), kill feed + unlock + achievement + lore notifications, shrine effects + event chain stages, weapon unlock requirements, NPC quest-complete messages. ~100 new loc keys
+- **Critical UnlockNotification memset bug**: Struct had non-zero default maxTimer (4.0f) that memset wiped — unlock banners never appeared + NaN in alpha math. Replaced with default-construct assignment
+- **Struct hardening pass**: 40+ POD members in 15 structs got explicit default initializers
+- **SDL_QueryTexture guards**: renderNineSlice + SpriteComponent constructor check return code + positive dimensions
+- **Save backup fallback symmetry**: 7 load paths now use openWithBackupFallback matching atomicSave counterparts
+- **PauseState UX fix**: Confirm state bleeding between Restart/Abandon buttons
+- **CLI validation**: parseIntArg overflow check, parseSeedList out-of-range, atoi→parseIntArg
 - **5 new gameplay tips**: 120 → 125 (EN + DE)
-- 45+ commits, ~50 files changed
+
+Phase 2 used a focused code-review agent approach after Phase 1 looked "done" —
+agent found real latent bugs I would never have found by manual inspection.
+Saturation reached when agent explicitly reported "0 findings" on remaining files.
+55 commits total, ~60 files changed.
 
 **Previous Updates (2026-04-08 continued autonomous performance + content session):**
 - **DailyRun Optimization**: Replaced O(n²) string allocations with strcmp + unordered_set (prune/rank/best)
