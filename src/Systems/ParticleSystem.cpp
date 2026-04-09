@@ -122,7 +122,13 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
             Uint8 cb = static_cast<Uint8>(std::min(255, static_cast<int>(b) + 70));
             SDL_SetRenderDrawColor(renderer, cr, cg, cb, coreA);
             int coreSize = std::max(1, static_cast<int>(p.size * 0.35f));
-            SDL_Rect core = {rect.x + rect.w / 2, rect.y + rect.h / 2, coreSize, coreSize};
+            // Center the core rect on the particle — was previously
+            // offset to the lower-right quadrant by coreSize pixels
+            SDL_Rect core = {
+                rect.x + rect.w / 2 - coreSize / 2,
+                rect.y + rect.h / 2 - coreSize / 2,
+                coreSize, coreSize
+            };
             SDL_RenderFillRect(renderer, &core);
         }
     }
