@@ -327,8 +327,17 @@ bool LevelGenerator::validateGeneratedLevel(const Level& level, LevelTopology& t
         queue.push_back({roomIndex, dimension, switchMask});
     };
 
+    // Bug fix: seed BFS from BOTH dimensions if spawn is valid there.
+    // The spawn clear loop in LevelGenerator writes empty tiles in both dims,
+    // so spawnValid[2] should typically also be true. Previously, only dim-1
+    // was seeded — BFS could only reach dim-2 via a dimensionSwitchAnchor room,
+    // which forced false exit-reachability failures when the spawn room lacked
+    // the shared-anchor heuristic. Validator then wasted retries on valid levels.
     if (topology.spawnValid[1]) {
         tryVisit(topology.spawnRoomIndex, 1, 0);
+    }
+    if (topology.spawnValid[2]) {
+        tryVisit(topology.spawnRoomIndex, 2, 0);
     }
 
     while (!queue.empty()) {

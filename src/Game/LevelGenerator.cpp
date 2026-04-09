@@ -115,15 +115,19 @@ Level LevelGenerator::generateCandidate(int difficulty, int seed, LevelTopology&
 
         if (useTemplate && templateIdx >= 0) {
             applyTemplate(level, curX, curY, templates[templateIdx], 1, m_themeA);
+            // Bug fix: previous loop broke on > 2 size difference, accepting larger
+            // templates for dim-B and overpainting tiles past rw/rh (outside the room
+            // rect registered in `rooms`). It also had an inverted break condition.
+            // Now: pick a different template that fits within rw/rh bounds, or fall
+            // back to the same template if none fits.
             int tmplB = templateIdx;
             for (int t = 0; t < 5; t++) {
                 int candidate = m_rng() % templates.size();
-                if (candidate != templateIdx) {
+                if (candidate != templateIdx &&
+                    templates[candidate].width <= rw &&
+                    templates[candidate].height <= rh) {
                     tmplB = candidate;
-                    if (std::abs(templates[templateIdx].width - templates[candidate].width) > 2 ||
-                        std::abs(templates[templateIdx].height - templates[candidate].height) > 2) {
-                        break;
-                    }
+                    break;
                 }
             }
             applyTemplate(level, curX, curY, templates[tmplB], 2, m_themeB);
