@@ -542,6 +542,14 @@ void LevelGenerator::placeDimPuzzles(Level& level, const std::vector<LGRoom>& ro
                 outSwitches->push_back(graphSwitch);
             }
             pairId++;
+        } else {
+            // Gate placement failed after 10 attempts — roll back the orphan
+            // switch tile so we don't leave an activatable switch in the level
+            // with no paired gate to unlock. Otherwise the player could trigger
+            // a DimSwitch that silently does nothing.
+            Tile emptyTile;
+            emptyTile.type = TileType::Empty;
+            level.setTile(sx, sy, switchDim, emptyTile);
         }
     }
 }

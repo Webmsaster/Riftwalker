@@ -548,10 +548,14 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
             } else if (stage >= 1) {
                 if (choice == 0) {
                     // Listen: better shards + entropy reduction
+                    // Use reduceEntropy (flat) instead of addEntropy(-15) which
+                    // multiplied by entropyGainMultiplier * upgradeResistance —
+                    // an EntropyResistance-upgrade player would have halved the
+                    // intended reward.
                     AudioManager::instance().play(SFX::Pickup);
                     game->getUpgradeSystem().addRiftShards(25);
                     shardsCollected += 25;
-                    m_entropy.addEntropy(-15.0f);
+                    m_entropy.reduceEntropy(15.0f);
                     m_particles.burst(npc.position, 18, {120, 200, 255, 255}, 150.0f, 3.0f);
                 } else if (choice == 1) {
                     // Ask about Sovereign: lore + speed
