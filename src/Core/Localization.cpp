@@ -823,6 +823,11 @@ void Localization::loadStrings() {
     m_en["tip.122"] = "TIP: The rift shield relic absorbs hits but breaks for 10 seconds afterward — time your switches carefully!";
     m_en["tip.123"] = "TIP: Spikes deal 20% of max HP per hit — not a raw number, so high-HP builds take BIGGER spike damage!";
     m_en["tip.124"] = "TIP: Destroying all crates in a room grants a small luck bonus for the next pickup roll!";
+    m_en["tip.125"] = "TIP: Summoner enemies buff nearby minions with +20% speed and +15% damage — kill the summoner first!";
+    m_en["tip.126"] = "TIP: Ice weapons briefly stun enemies on the first freeze — chain freezes keep pressure up!";
+    m_en["tip.127"] = "TIP: TimeTax relic cuts ability cooldowns in half but costs 5 HP per use — high risk, high reward!";
+    m_en["tip.128"] = "TIP: Laser beams in both dimensions can hit entities that exist in both — plan your path accordingly!";
+    m_en["tip.129"] = "TIP: The GlassCannon challenge starts at 1 HP — relics can scale it but the restriction persists!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1954,6 +1959,11 @@ void Localization::loadStrings() {
     m_de["tip.122"] = "TIPP: Das Rissschild-Relikt absorbiert Treffer bricht aber danach fuer 10 Sekunden — plane deine Wechsel sorgfaeltig!";
     m_de["tip.123"] = "TIPP: Stacheln verursachen 20% des Max-HP pro Treffer — kein Fixwert, High-HP-Builds nehmen MEHR Stachelschaden!";
     m_de["tip.124"] = "TIPP: Das Zerstoeren aller Kisten in einem Raum gibt einen kleinen Glueck-Bonus fuer den naechsten Pickup!";
+    m_de["tip.125"] = "TIPP: Beschwoerer verstaerken nahe Minions mit +20% Tempo und +15% Schaden — toete den Beschwoerer zuerst!";
+    m_de["tip.126"] = "TIPP: Eiswaffen betaeuben Gegner beim ersten Einfrieren kurz — Kettenfrost haelt den Druck aufrecht!";
+    m_de["tip.127"] = "TIPP: Das Zeitzoll-Relikt halbiert Faehigkeits-Abklingzeit kostet aber 5 HP pro Nutzung — hohes Risiko, hohe Belohnung!";
+    m_de["tip.128"] = "TIPP: Laserstrahlen in beiden Dimensionen koennen Wesen treffen die in beiden existieren — plane deinen Weg!";
+    m_de["tip.129"] = "TIPP: Die Glaskanone-Herausforderung startet mit 1 HP — Relikte koennen skalieren, aber die Restriktion bleibt!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
