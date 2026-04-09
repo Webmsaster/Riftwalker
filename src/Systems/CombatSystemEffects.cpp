@@ -31,10 +31,35 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
     if (combat.attackTimer >= atkData.duration - 0.02f) {
         Vec2 pos = transform.getCenter();
 
-        // CursedBlade: ranged damage modifier
+        // Bug fix: processAttack() returns early for Ranged attacks and skips
+        // every damage modifier pass (relic damage, class bonus, weapon mastery,
+        // blacksmith upgrades, damage boost pickups, resonance). Ranged builds
+        // saw only the raw weapon base damage × cursed ranged mult × technomancer
+        // class bonus. Apply the same modifiers here so ranged benefits from
+        // BloodOrb / VoidCrown / BerserkersCurse / BloodPact / GlassCannon /
+        // ChaosCore / PhaseHunter synergies / ChaosRift buff / WrathOfDimensions
+        // / BalanceKeeper on the same terms as melee (without the melee-only
+        // combo + charged multipliers).
         float projDamage = atkData.damage;
-        if (isPlayer && attacker.hasComponent<RelicComponent>()) {
-            projDamage *= RelicSystem::getCursedRangedMult(attacker.getComponent<RelicComponent>());
+        int currentDim = attacker.dimension;
+        if (isPlayer) {
+            if (attacker.hasComponent<RelicComponent>() && attacker.hasComponent<HealthComponent>()) {
+                auto& relics = attacker.getComponent<RelicComponent>();
+                float hpPct = attacker.getComponent<HealthComponent>().getPercent();
+                projDamage *= RelicSystem::getDamageMultiplier(relics, hpPct, currentDim);
+                projDamage *= RelicSystem::getCursedRangedMult(relics);
+            }
+            if (m_player) {
+                projDamage *= m_player->getClassDamageMultiplier();
+                if (m_player->damageBoostTimer > 0) projDamage *= m_player->damageBoostMultiplier;
+                projDamage *= m_player->smithRangedDmgMult;
+            }
+            int wIdx = static_cast<int>(combat.currentRanged);
+            if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT)) {
+                MasteryBonus mb = WeaponSystem::getMasteryBonus(weaponKills[wIdx]);
+                projDamage *= mb.damageMult;
+            }
+            if (m_dimMgr) projDamage *= m_dimMgr->getResonanceDamageMult();
         }
 
         // Technomancer: +10% ranged damage (Construct Mastery passive)
