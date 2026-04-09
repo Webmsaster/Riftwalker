@@ -522,18 +522,28 @@ void PlayState::updateBossEffects(float dt) {
             m_screenEffects.triggerDimensionRipple();
         }
 
-        // Entropy Overload: if player entropy > 70, boss heals 5% max HP/s
-        if (bossAi.bossPhase >= 3 && m_entropy.getEntropy() > 70.0f) {
-            if (bossAi.eiOverloadHealAccum >= 0.1f) {
-                float healPerTick = e.getComponent<HealthComponent>().maxHP * 0.005f; // 0.5% per 0.1s = 5%/s
-                auto& bossHP = e.getComponent<HealthComponent>();
-                bossHP.heal(healPerTick);
-                bossAi.eiOverloadHealAccum -= 0.1f;
-                // Visual feedback: green heal particles
-                if (bossAi.eiOverloadHealAccum < 0.2f) {
-                    Vec2 bPos = e.getComponent<TransformComponent>().getCenter();
-                    m_particles.burst(bPos, 3, {50, 200, 80, 200}, 40.0f, 1.5f);
+        // Entropy Overload: if player entropy > 70, boss heals 5% max HP/s.
+        // BossEntropyIncarnate increments eiOverloadHealAccum unconditionally
+        // every frame at phase>=3 (it doesn't know the player's entropy).
+        // Without the else-branch reset below, a long phase-3 fight below
+        // threshold would accumulate pending heal ticks that all burst out
+        // the moment entropy briefly crosses 70 — could fully reset the kill.
+        if (bossAi.bossPhase >= 3) {
+            if (m_entropy.getEntropy() > 70.0f) {
+                if (bossAi.eiOverloadHealAccum >= 0.1f) {
+                    float healPerTick = e.getComponent<HealthComponent>().maxHP * 0.005f; // 0.5% per 0.1s = 5%/s
+                    auto& bossHP = e.getComponent<HealthComponent>();
+                    bossHP.heal(healPerTick);
+                    bossAi.eiOverloadHealAccum -= 0.1f;
+                    // Visual feedback: green heal particles
+                    if (bossAi.eiOverloadHealAccum < 0.2f) {
+                        Vec2 bPos = e.getComponent<TransformComponent>().getCenter();
+                        m_particles.burst(bPos, 3, {50, 200, 80, 200}, 40.0f, 1.5f);
+                    }
                 }
+            } else {
+                // Below threshold: discard any pending heal ticks.
+                bossAi.eiOverloadHealAccum = 0;
             }
         }
 

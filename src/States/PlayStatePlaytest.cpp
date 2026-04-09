@@ -828,7 +828,11 @@ void PlayState::updatePlaytest(float dt) {
     int pty = (int)(playerPos.y) / 32;
     int dim = m_dimManager.getCurrentDimension();
     int otherDim = (dim == 1) ? 2 : 1;
+    // Function-static; reset it at the start of each run so a lingering
+    // grace from run N-1 doesn't block the fall-rescue teleport on run N's
+    // first second (would cause bot to die on floor 1 of run 2+).
     static float ptRecoveryGraceTimer = 0;
+    if (m_playtestRunTimer < 0.1f) ptRecoveryGraceTimer = 0;
     if (ptRecoveryGraceTimer > 0) ptRecoveryGraceTimer -= dt;
 
     // ========================================================================
@@ -918,8 +922,12 @@ void PlayState::updatePlaytest(float dt) {
         }
     }
 
-    // Detect actual dimension switch (for disorientation)
+    // Detect actual dimension switch (for disorientation).
+    // Function-static; reset at run start so a stale dim from run N-1
+    // doesn't fire a spurious disorient on the first frame of run N
+    // (would skew balance telemetry for floor 1 of runs 2+).
     static int ptLastDim = 0;
+    if (m_playtestRunTimer < 0.1f) ptLastDim = 0;
     if (dim != ptLastDim && ptLastDim != 0) {
         m_ptHumanDimDisorient = 0.1f + static_cast<float>(std::rand() % 10) * 0.01f; // 0.1-0.2s
     }
