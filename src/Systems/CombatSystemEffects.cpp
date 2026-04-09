@@ -555,6 +555,27 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
             if (!hp.isInvincible()) {
                 float finalDmg = damage;
                 bool isPlayerDamage = (other->isPlayer);
+                // Bug fix: Elite Shielded modifier (elite enemy has shieldHP that
+                // absorbs damage before HP) was only applied in the melee forEach
+                // loop, so ranged player projectiles bypassed the shield entirely.
+                // Absorb up to shieldHP here, pass remainder to HP.
+                if (isPlayerOwned && other->hasComponent<AIComponent>()) {
+                    auto& tAI = other->getComponent<AIComponent>();
+                    if (tAI.isElite && tAI.eliteMod == EliteModifier::Shielded && tAI.eliteShieldHP > 0) {
+                        float absorbed = std::min(finalDmg, tAI.eliteShieldHP);
+                        tAI.eliteShieldHP -= absorbed;
+                        finalDmg -= absorbed;
+                        if (cs->m_particles && other->hasComponent<TransformComponent>()) {
+                            Vec2 pos = other->getComponent<TransformComponent>().getCenter();
+                            cs->m_particles->burst(pos, 6, {80, 150, 255, 255}, 80.0f, 1.5f);
+                        }
+                        if (finalDmg <= 0) {
+                            // Fully absorbed — projectile still consumed (non-piercing)
+                            if (!piercing) self->destroy();
+                            return;
+                        }
+                    }
+                }
                 // Bug fix: Rift Shield (player ability 1) absorb logic was
                 // implemented in the melee forEach loop, so enemy ranged attacks
                 // passed through the shield untouched. Handle shield absorb here.
