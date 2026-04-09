@@ -346,7 +346,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                  const DimensionManager* dimMgr,
                  int screenW, int screenH, int fps, int riftShards) {
     // Cache once per frame — eliminates ~23 per-frame SDL_GetTicks syscalls in HUD render
-    m_frameTicks = m_frameTicks;
+    m_frameTicks = SDL_GetTicks();
 
     // Recreate offscreen texture if screen size changed
     if (!m_hudTarget || m_hudTargetW != screenW || m_hudTargetH != screenH) {
