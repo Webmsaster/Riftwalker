@@ -174,6 +174,34 @@ would have missed by eye.
 - **Fix**: Use `m_entropy.reduceEntropy(15.0f)` instead (no multipliers)
 - **Rule**: Never pass negative to `addEntropy` — always use `reduceEntropy` for deliberate reductions
 
+### 30b. Base Value Overwritten Instead of Added (passiveDecay wipe)
+- **Pattern**: `applyUpgrades()` did `m_entropy.passiveDecay = upgrades.getEntropyDecay() * bonus;` — a full overwrite. At upgrade level 0, `getEntropyDecay()` returns 0, so the 0.15f default from `SuitEntropy::SuitEntropy()` AND the NG+1+ `passiveDecay *= 0.8f` from `startNewRun()` both got silently wiped.
+- **Impact**: Players without the EntropyDecay upgrade (all new players, most early-game runs) had ZERO passive entropy decay. Entropy only dropped via rift repairs. This single misplaced `=` instead of `+=` made the "entropy grinds you down" core mechanic harsher than intended for the majority of playtime.
+- **Fix**: `passiveDecay = 0.15f + upgrades.getEntropyDecay() * bonus;` + re-apply NG+ modifier at the same call site so both effects compose correctly.
+- **Lesson**: Any place that sets a stat to `upgrade * mult` without adding a base should be suspect. Grep for `stat = upgrade.getX()` patterns — they're almost always wrong unless the base is 0.
+- **File**: PlayStateRunLifecycle.cpp:652-658
+
+### 30c. Dead Return Fields (MilestoneBonus HP/damage/speed)
+- **Pattern**: `UpgradeSystem::checkMilestones()` returned a `MilestoneBonus` struct with 4 fields: `bonusHP`, `bonusDamageMult`, `bonusSpeed`, `bonusShards`. The caller extracted only `bonusShards`. The other 3 fields were silently discarded.
+- **Impact**: 5 of 8 milestones granted HP/damage/speed bonuses that NEVER reached the player. Milestones 1 (+10 HP), 2 (x1.05 dmg), 4 (+5% speed), 5 (x1.10 dmg), 6 (+15 HP), 8 (x1.10 dmg) were essentially cosmetic — only the two shard milestones (3, 7) had any effect.
+- **Fix**: Added `getAccumulatedMilestoneBonus() const` that walks `1..milestonesUnlocked` and sums non-shard fields. `applyUpgrades()` now composes it into `hp.maxHP`, `moveSpeed`, and melee/ranged damage multipliers.
+- **Lesson**: When a function returns a multi-field struct, always grep the caller to verify every field is consumed. Unused return fields are dead code in disguise.
+- **File**: UpgradeSystem.cpp + PlayStateRunLifecycle.cpp:925-929
+
+### 30d. Inverted Break Condition in Template Selection Loop
+- **Pattern**: `LevelGenerator.cpp` template dim-B loop: break when size difference `> 2`. Intent was to find a DIFFERENT-but-similar template for dim-B. Break-on-large-diff accepted large mismatches eagerly and continued iterating on small ones — the opposite of the intent.
+- **Impact**: The loop could assign a dim-B template LARGER than the dim-A template that defined the room's registered `rw`/`rh` bounds. `applyTemplate()` then wrote tiles PAST the registered room rect in dim-2, overpainting adjacent room walls or the gap strip. Corridor connector code then used the dim-A `rw` to pick junctions, causing dim-2 corridors to open into walls.
+- **Fix**: Filter candidates to templates with `width <= rw && height <= rh`, take the first valid one.
+- **Lesson**: Every break-condition in a size-matching loop should be double-checked for polarity. "Break on good match" vs "break on bad match" are subtle but inverted.
+- **File**: LevelGenerator.cpp:116-131
+
+### 30e. BFS Seed Missing One Dimension
+- **Pattern**: `LevelGeneratorValidation.cpp` BFS traversal seeded `tryVisit(spawnRoom, 1, 0)` but not `tryVisit(spawnRoom, 2, 0)` even when `spawnValid[2]` was true. Dim-2 was only reachable via a `hasDimensionSwitchAnchor` heuristic hit inside the BFS loop.
+- **Impact**: When the spawn room failed the `roomHasSharedSwitchAnchor()` heuristic (possible when the spawn clear tiles don't share an empty tile across both dims), the BFS never visited dim-2 paths at all. `roomReachableInVisitedMask(exitRoomIndex, exitValid)` then reported dim-2-only exits as unreachable, firing `LevelValidationFailure_ExitReachability` on genuinely valid levels. Generator wasted up to 512 retries.
+- **Fix**: Seed both dimensions when spawn is valid there.
+- **Lesson**: Any graph-traversal BFS/DFS seed code should cover every valid start state, not just the "primary" one.
+- **File**: LevelGeneratorValidation.cpp:330-334
+
 ### 30. replace_all Collision with Init Line (HUD m_frameTicks self-assignment)
 - **Pattern**: Did `replace_all SDL_GetTicks() -> m_frameTicks` across HUD.cpp to convert 23 call sites. The init line was `m_frameTicks = SDL_GetTicks();` — the replace_all also caught the `SDL_GetTicks()` in the init, turning it into `m_frameTicks = m_frameTicks;` (a no-op self-assignment).
 - **Impact**: HUD member `m_frameTicks` stayed at 0 for 25+ commits. Every `sin(m_frameTicks * k)` evaluated to `sin(0) = 0`, freezing EVERY HUD pulse animation: HP low-health pulse, XP gold pulse, entropy critical pulse, resonance glow, ability borders, combo counter, finisher prompt, boss minimap dot, rift minimap pulse, player minimap blink, NG+ tier pulse, ~5+ other effects.
