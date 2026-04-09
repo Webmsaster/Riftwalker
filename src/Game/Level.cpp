@@ -893,7 +893,12 @@ bool Level::isInLaserBeam(float worldX, float worldY, int dimension) const {
 
         int bx = x + dx, by = y + dy;
         while (inBounds(bx, by)) {
-            const Tile& bt = getTile(bx, by, dimension);
+            // Trace through the EMITTER's dimension, not the caller's.
+            // Caller dimension can be 0 (both-dims entity), which would
+            // otherwise resolve to dim A (m_tilesA) regardless of where
+            // the emitter actually lives — meaning a dim-B laser would
+            // be traced through dim-A walls, producing wrong hit results.
+            const Tile& bt = getTile(bx, by, ep.dim);
             if (bt.isSolid()) break;
             if (bx == playerTX && by == playerTY) return true;
             bx += dx;
