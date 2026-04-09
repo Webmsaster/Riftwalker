@@ -120,9 +120,22 @@ void MusicSystem::startTrack(Mix_Chunk* newTrack) {
 
     m_activeTrack = newTrack;
     m_activeChannel = Mix_PlayChannel(channel, newTrack, -1); // Loop forever
-    if (m_activeChannel >= 0) {
-        Mix_Volume(m_activeChannel, 0); // Start silent, crossfade will bring it in
+    if (m_activeChannel < 0) {
+        // Channel play failed (OOM, device error, etc). Instead of leaving
+        // the system in a half-state where m_crossfading fades out the old
+        // track but no new track plays (silent music until the next
+        // successful track change), discard the new chunk and revert every
+        // state change we just made so the old track keeps playing.
+        SDL_Log("MusicSystem: Mix_PlayChannel failed: %s", Mix_GetError());
+        Mix_FreeChunk(newTrack);
+        m_activeTrack = m_fadingTrack;
+        m_activeChannel = m_fadingChannel;
+        m_fadingTrack = nullptr;
+        m_fadingChannel = -1;
+        m_useChannelA = !m_useChannelA; // un-toggle from line 118
+        return;
     }
+    Mix_Volume(m_activeChannel, 0); // Start silent, crossfade will bring it in
 
     // Start crossfade
     m_crossfading = true;
