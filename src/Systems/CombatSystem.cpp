@@ -918,9 +918,12 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 } else if (m_elementWeapon == 2 && target.hasComponent<AIComponent>()) {
                     // Ice: apply freeze slow (50% speed reduction for 1.5s)
                     auto& targetAI = target.getComponent<AIComponent>();
+                    // Brief stun on first application (before the freeze timer is refreshed,
+                    // otherwise the <=0.01f check below could never trigger because line 922
+                    // always clamps it to at least 1.5f).
+                    bool alreadyFrozen = (targetAI.freezeTimer > 0.01f);
                     targetAI.freezeTimer = std::max(targetAI.freezeTimer, 1.5f);
-                    // Brief stun on first application (when not already frozen)
-                    if (targetAI.freezeTimer <= 0.01f) {
+                    if (!alreadyFrozen) {
                         targetAI.stun(0.15f);
                     }
                     if (m_particles) {
