@@ -90,6 +90,12 @@ public:
     float wallJumpForceY = -380.0f;
     int maxJumps = 2; // double jump
 
+    // Base stats cached after class + upgrades + achievements applied
+    // (set by PlayState::applyUpgrades, read by RelicSystem::applyStatEffects
+    // so relic bonuses don't compound on repeated pickups)
+    float baseMoveSpeed = 250.0f;
+    float baseMaxHP = 100.0f;
+
     // State
     bool isChargingAttack = false;
     bool isDashing = false;

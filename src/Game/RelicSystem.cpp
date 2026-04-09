@@ -163,7 +163,14 @@ std::vector<RelicID> RelicSystem::generateCursedChoice(int difficulty, const std
 void RelicSystem::applyStatEffects(RelicComponent& relics, Player& player,
                                     HealthComponent& hp, CombatComponent& combat) {
     (void)combat;
-    // Recalculate stats from scratch based on active relics
+    // Recalculate stats from scratch based on active relics.
+    // Previously this compounded with each pickup because it mutated the
+    // CURRENT hp.maxHP / player.moveSpeed instead of resetting to the
+    // post-upgrade base. Now we reset to Player::baseMaxHP/baseMoveSpeed
+    // (cached by PlayState::applyUpgrades at run start) before applying
+    // relic bonuses. Percentage-based modifiers (BerserkerCore, GlassHeart,
+    // GlassCannon) also now use baseMaxHP so they don't compound either.
+    const float baseHP = player.baseMaxHP;
     float hpBonus = 0;
     float speedMult = 1.0f;
 
@@ -176,14 +183,14 @@ void RelicSystem::applyStatEffects(RelicComponent& relics, Player& player,
                 speedMult += 0.10f;
                 break;
             case RelicID::BerserkerCore:
-                hpBonus -= hp.maxHP * 0.30f;
+                hpBonus -= baseHP * 0.30f;
                 break;
             case RelicID::GlassHeart:
-                hpBonus += hp.maxHP * 0.50f;
+                hpBonus += baseHP * 0.50f;
                 break;
             // GlassCannon: max HP halved (permanent for the run)
             case RelicID::GlassCannon:
-                hpBonus -= hp.maxHP * 0.50f;
+                hpBonus -= baseHP * 0.50f;
                 break;
             // ChaosCore: +25% move speed
             case RelicID::ChaosCore:
@@ -197,10 +204,15 @@ void RelicSystem::applyStatEffects(RelicComponent& relics, Player& player,
         }
     }
 
-    hp.maxHP += hpBonus;
-    hp.currentHP = std::min(hp.currentHP, hp.maxHP);
-    if (hp.currentHP <= 0 && hpBonus < 0) hp.currentHP = 1.0f;
-    player.moveSpeed *= speedMult;
+    // Preserve current HP ratio across the recalculation so a fresh pickup
+    // doesn't feel like a free heal (or sudden near-death).
+    float hpPct = hp.maxHP > 0.0f ? hp.currentHP / hp.maxHP : 1.0f;
+    hp.maxHP = baseHP + hpBonus;
+    if (hp.maxHP < 1.0f) hp.maxHP = 1.0f;
+    hp.currentHP = hp.maxHP * hpPct;
+    if (hp.currentHP < 1.0f) hp.currentHP = 1.0f;
+
+    player.moveSpeed = player.baseMoveSpeed * speedMult;
 }
 
 float RelicSystem::getDamageMultiplier(const RelicComponent& relics, float currentHPPercent, int currentDimension) {

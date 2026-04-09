@@ -637,6 +637,11 @@ void PlayState::applyUpgrades() {
     // BALANCE R2: Base HP 120 -> 150 (playtest: 100% death rate at F5-6, need more survivability)
     hp.maxHP = 150.0f + upgrades.getMaxHPBonus() + achBonus.maxHPBonus;
     hp.currentHP = hp.maxHP;
+
+    // Cache base stats (class + upgrades + achievements) so RelicSystem::applyStatEffects
+    // can recompute relic bonuses from scratch without compounding on repeated pickups.
+    m_player->baseMoveSpeed = m_player->moveSpeed;
+    m_player->baseMaxHP = hp.maxHP;
     hp.armor = upgrades.getArmorBonus() + achBonus.armorBonus;
 
     auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
