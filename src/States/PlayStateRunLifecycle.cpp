@@ -1038,6 +1038,11 @@ void PlayState::applyChallengeModifiers() {
         auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
         hp.maxHP = cd.playerMaxHP;
         hp.currentHP = cd.playerMaxHP;
+        // IMPORTANT: Also update Player::baseMaxHP, otherwise the next relic
+        // pickup will call RelicSystem::applyStatEffects() which resets
+        // hp.maxHP to baseMaxHP + hpBonus (using the pre-challenge base),
+        // silently nullifying the GlassCannon 1-HP restriction.
+        m_player->baseMaxHP = cd.playerMaxHP;
     }
     if (cd.timeLimit > 0) {
         m_challengeTimer = cd.timeLimit;
