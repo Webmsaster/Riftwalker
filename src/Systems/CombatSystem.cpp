@@ -30,6 +30,7 @@ float CombatSystem::consumeHitFreeze() {
 
 void CombatSystem::update(EntityManager& entities, float dt, int currentDimension) {
     ZoneScopedN("CombatUpdate");
+    m_currentEntities = &entities;
     auto combatEnts = entities.getEntitiesWithComponent<CombatComponent>();
 
     for (auto* e : combatEnts) {

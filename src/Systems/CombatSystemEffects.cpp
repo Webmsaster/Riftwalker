@@ -516,6 +516,40 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
     col.onTrigger = [damage, dimension, piercing, isPlayerOwned, cs](Entity* self, Entity* other) {
         if (other->hasComponent<HealthComponent>()) {
             auto& hp = other->getComponent<HealthComponent>();
+            // Bug fix: Reflector mirror-shield block/reflect on ranged attacks was
+            // implemented inside processAttack's melee forEach loop, but processAttack()
+            // returns early for ranged attacks — so player projectiles passed through
+            // the Reflector shield untouched. Handle frontal blocks + reflects here.
+            if (isPlayerOwned && other->hasComponent<AIComponent>()) {
+                auto& oAI = other->getComponent<AIComponent>();
+                if (oAI.enemyType == EnemyType::Reflector && oAI.reflectorShieldUp
+                    && self->hasComponent<PhysicsBody>()) {
+                    auto& selfPhys = self->getComponent<PhysicsBody>();
+                    // Projectile moving left (velocity.x < 0) hits reflector facing right
+                    // from the front; moving right hits reflector facing left from front.
+                    bool fromFront = (selfPhys.velocity.x < 0) == oAI.facingRight;
+                    if (fromFront) {
+                        AudioManager::instance().play(SFX::RiftShieldReflect);
+                        // Spawn a reflected enemy-owned projectile if we can reach the entity manager
+                        if (cs->m_currentEntities && other->hasComponent<TransformComponent>()) {
+                            Vec2 otherPos = other->getComponent<TransformComponent>().getCenter();
+                            float vx = selfPhys.velocity.x;
+                            float vy = selfPhys.velocity.y;
+                            float vmag = std::sqrt(vx * vx + vy * vy);
+                            if (vmag > 0.01f) {
+                                Vec2 reflectDir{-vx / vmag, -vy / vmag};
+                                cs->createProjectile(*cs->m_currentEntities, otherPos, reflectDir,
+                                                     damage * 0.75f, 400.0f, other->dimension, false, false);
+                            }
+                            if (cs->m_particles) {
+                                cs->m_particles->burst(otherPos, 10, {200, 220, 255, 255}, 150.0f, 2.5f);
+                            }
+                        }
+                        self->destroy();
+                        return;
+                    }
+                }
+            }
             // Only apply damage and track event if target has no active i-frames
             if (!hp.isInvincible()) {
                 float finalDmg = damage;

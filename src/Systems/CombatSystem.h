@@ -149,6 +149,9 @@ private:
 
     ParticleSystem* m_particles = nullptr;
     Camera* m_camera = nullptr;
+    // Cached during update() so createProjectile()'s onTrigger lambda can
+    // spawn reflected projectiles without having EntityManager captured.
+    EntityManager* m_currentEntities = nullptr;
     float m_pendingHitFreeze = 0;
     float m_critChance = 0;
     float m_comboBonus = 0;
