@@ -104,11 +104,23 @@ void SoundGenerator::addTriangle(Sample& s, float freq, float startVol, float en
 }
 
 Mix_Chunk* SoundGenerator::toChunk(const Sample& s) {
-    // Convert to SDL audio format (signed 16-bit, mono)
-    size_t bufSize = s.data.size() * sizeof(Sint16);
+    // SDL_mixer is opened as stereo (channels=2, AUDIO_S16SYS). Mix_QuickLoad_RAW
+    // does NOT convert formats — the raw buffer is treated as being already in
+    // the mixer's output format. We generate mono samples, so we must interleave
+    // each mono sample into an L/R stereo pair before handing the buffer off.
+    //
+    // Before fix: mono buffer treated as stereo pairs caused ambient loops and
+    // procedural music layers to play at double pitch and half duration.
+    const size_t monoSamples = s.data.size();
+    const size_t bufSize = monoSamples * 2 * sizeof(Sint16); // stereo interleave
     Uint8* buf = static_cast<Uint8*>(SDL_malloc(bufSize));
     if (!buf) return nullptr;
-    std::memcpy(buf, s.data.data(), bufSize);
+    Sint16* out = reinterpret_cast<Sint16*>(buf);
+    for (size_t i = 0; i < monoSamples; i++) {
+        const Sint16 sample = s.data[i];
+        out[i * 2]     = sample; // L
+        out[i * 2 + 1] = sample; // R
+    }
 
     Mix_Chunk* chunk = Mix_QuickLoad_RAW(buf, static_cast<Uint32>(bufSize));
     if (chunk) {
