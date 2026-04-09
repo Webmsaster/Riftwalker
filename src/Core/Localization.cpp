@@ -828,6 +828,11 @@ void Localization::loadStrings() {
     m_en["tip.127"] = "TIP: TimeTax relic cuts ability cooldowns in half but costs 5 HP per use — high risk, high reward!";
     m_en["tip.128"] = "TIP: Laser beams in both dimensions can hit entities that exist in both — plan your path accordingly!";
     m_en["tip.129"] = "TIP: The GlassCannon challenge starts at 1 HP — relics can scale it but the restriction persists!";
+    m_en["tip.130"] = "TIP: Entropy slowly decays over time — the EntropyDecay upgrade increases the passive drain rate further.";
+    m_en["tip.131"] = "TIP: Run milestones (10 runs, 100 kills, floor 5, etc.) grant permanent HP, damage, and speed bonuses.";
+    m_en["tip.132"] = "TIP: Level rooms may have different layouts in Dimension A vs Dimension B — explore both sides!";
+    m_en["tip.133"] = "TIP: Some exits are only reachable through a specific dimension — if one side is blocked, switch!";
+    m_en["tip.134"] = "TIP: NG+ tiers slow entropy decay by 20% — plan for longer runs and use rifts more aggressively.";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1964,6 +1969,11 @@ void Localization::loadStrings() {
     m_de["tip.127"] = "TIPP: Das Zeitzoll-Relikt halbiert Faehigkeits-Abklingzeit kostet aber 5 HP pro Nutzung — hohes Risiko, hohe Belohnung!";
     m_de["tip.128"] = "TIPP: Laserstrahlen in beiden Dimensionen koennen Wesen treffen die in beiden existieren — plane deinen Weg!";
     m_de["tip.129"] = "TIPP: Die Glaskanone-Herausforderung startet mit 1 HP — Relikte koennen skalieren, aber die Restriktion bleibt!";
+    m_de["tip.130"] = "TIPP: Entropie baut sich langsam ab — das Entropie-Abbau-Upgrade erhoeht die passive Abbaurate weiter.";
+    m_de["tip.131"] = "TIPP: Run-Meilensteine (10 Runs, 100 Kills, Stock 5 etc.) geben permanente HP, Schaden und Tempo.";
+    m_de["tip.132"] = "TIPP: Levelraeume haben oft unterschiedliche Layouts in Dimension A vs B — erkunde beide Seiten!";
+    m_de["tip.133"] = "TIPP: Manche Ausgaenge sind nur ueber eine Dimension erreichbar — wenn eine Seite blockiert ist, wechsle!";
+    m_de["tip.134"] = "TIPP: NG+ Stufen verlangsamen den Entropie-Abbau um 20% — plane fuer laengere Runs und nutze Risse aggressiv.";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
