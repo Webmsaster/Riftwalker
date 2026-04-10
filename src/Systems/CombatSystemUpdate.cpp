@@ -307,6 +307,9 @@ void CombatSystem::processZombieSweep(EntityManager& entities, int currentDim) {
                 auto& pc = m_player->getEntity()->getComponent<CombatComponent>();
                 ke.wasRanged = (pc.currentAttack == AttackType::Ranged ||
                                 pc.currentAttack == AttackType::None);
+                // Also track wasAerial for aerial-kill challenges and kill feed
+                if (m_player->getEntity()->hasComponent<PhysicsBody>())
+                    ke.wasAerial = !m_player->getEntity()->getComponent<PhysicsBody>().onGround;
             }
             killEvents.push_back(ke);
         }
