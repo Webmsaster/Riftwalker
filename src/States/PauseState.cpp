@@ -417,9 +417,10 @@ void PauseState::renderRunStats(SDL_Renderer* renderer, TTF_Font* font) {
     renderStatText(renderer, font, buf, lx, ly, valCol);
     ly += 36;
 
-    // NG+ level
-    if (g_newGamePlusLevel > 0) {
-        std::snprintf(buf, sizeof(buf), LOC("pause.ngplus"), g_newGamePlusLevel);
+    // NG+ level (run tier, not unlocked tier — matches enemy scaling)
+    int runTier = playState->getNGPlusTier();
+    if (runTier > 0) {
+        std::snprintf(buf, sizeof(buf), LOC("pause.ngplus"), runTier);
         renderStatText(renderer, font, buf, lx, ly, {200, 120, 255, 255});
         ly += 36;
     }

@@ -850,9 +850,13 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             }
 
             // Kill count + NG+ on same line (right side)
+            // Bug fix: use m_ngPlusTier (current run tier) instead of
+            // g_newGamePlusLevel (highest ever unlocked). The HUD now shows
+            // the tier the player selected for this run, matching what the
+            // enemy scaling actually uses.
             char extraText[32];
-            if (g_newGamePlusLevel > 0)
-                std::snprintf(extraText, sizeof(extraText), "K:%d NG+%d", m_killCount, g_newGamePlusLevel);
+            if (m_ngPlusTier > 0)
+                std::snprintf(extraText, sizeof(extraText), "K:%d NG+%d", m_killCount, m_ngPlusTier);
             else
                 std::snprintf(extraText, sizeof(extraText), "K:%d", m_killCount);
             renderText(renderer, font, extraText, infoX + 200, infoY, {200, 160, 160, 150});

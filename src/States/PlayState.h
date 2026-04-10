@@ -79,6 +79,7 @@ public:
     float getRunTime() const { return m_runTime; }
     int getBestCombo() const { return m_bestCombo; }
     int getCurrentDifficulty() const { return m_currentDifficulty; }
+    int getNGPlusTier() const { return m_ngPlusTier; }
     Player* getPlayer() const { return m_player.get(); }
     CombatSystem& getCombatSystem() { return m_combatSystem; }
     bool isBossLevel() const { return m_isBossLevel; }
