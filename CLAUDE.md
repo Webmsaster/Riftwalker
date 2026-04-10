@@ -5,7 +5,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-10 early-return dead-code chain — 13 commits, 11 bugs):**
+**Recent Updates (2026-04-10 mega autonomous session — 21 commits, 16 bugs):**
+
+Expanded continuously through the day from initial 13-commit early-return chain fix into a broader balance + correctness audit.
+
+*Late session additions (8 more commits, 5 more bugs):*
+- **Finisher damage scaling**: Voidwalker Rift Pulse (hardcoded 40) and Phantom Phase Burst per-hit (hardcoded 25) ignored all player stat scaling. Switched to `combat.meleeAttack.damage * multiplier` like Berserker Blood Cleave already did. Late-game finishers stay relevant as upgrades stack.
+- **Smoke test bot static leak**: Same pattern as 2026-04-09 playtest bot fix. `smokeRecoveryGraceTimer` + `smokeRecoverySuppressedLogged` persisted across runs, leaking navigation state. Fixed with first-frame reset.
+- **NG+ scaling capped at tier 5**: Phase 1 of 2026-04-09 unlocked NG+ tiers 6-10 (save/load/UI), but `applyNGPlusModifiers` only scaled enemies at tiers 1/3/5. Late tiers were a cosmetic achievement. Added brackets at 7 (+150% HP, +30% DMG total) and 10 (+200% HP, +50% DMG total).
+- **Double NG+ scaling + wrong reference**: Two scaling paths existed — old linear (based on `g_newGamePlusLevel` = highest unlocked) + new bracket (based on `m_ngPlusTier` = selected run tier). Combined effect: ~4x HP at NG+5 despite "reaches ~100% total" comment. Also meant a player with NG+5 unlocked couldn't replay easier NG+0 runs — enemies always showed NG+5 scaling. Removed old linear path, moved speed scaling into brackets.
+- **HUD + Pause NG+ display**: Showed `g_newGamePlusLevel` instead of run-specific `m_ngPlusTier`. After scaling fix, player would see "NG+5" but fight NG+0 enemies. Added `PlayState::getNGPlusTier()` getter.
+- **All 5 bosses + 3 regular enemies bypassing defensive relics**: `hp.takeDamage(X)` calls bypassed `RelicSystem::getDamageTakenMult`. GlassHeart, DualityGem armor, FortifiedSoul, VoidCrown defensive relics had zero protection against boss phase attacks and regular enemy specials (Exploder blast, Phaser projectile, Leech drain). Defensive builds were effectively non-existent. Added `applyBossDamageToPlayer()` helper in BossAI.h. Migrated 10+ call sites across 7 files.
+
+**Recent Updates (2026-04-10 initial 13 commits — the early-return dead-code chain):**
 
 Started with 3 parallel agent-review sessions (RelicSystem, WeaponSystem/Class, Boss AI).
 Agents ran 8+ hours without producing output (apparently stuck). Found 11 real bugs
