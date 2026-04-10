@@ -53,8 +53,7 @@ public:
     // Get chain lightning damage on kill
     static float getChainLightningDamage(const RelicComponent& relics);
 
-    // Check for dimensional echo (attacks hit other dimension)
-    static bool hasDimensionalEcho(const RelicComponent& relics);
+    // NOTE: hasDimensionalEcho() removed — callers use relics.hasRelic(RelicID::DimensionalEcho) directly.
 
     // Check/consume phoenix feather
     static bool hasPhoenixFeather(const RelicComponent& relics);
@@ -104,7 +103,7 @@ public:
     static float getEntropySiphonGainMult(const RelicComponent& relics);   // EntropySiphon: 1.5x entropy gain mult
     static bool hasVampiricEdge(const RelicComponent& relics);             // VampiricEdge: blocks natural healing
     static float getVampiricEdgeKillHeal(const RelicComponent& relics);    // VampiricEdge: HP healed per kill
-    static float getBerserkersCurseDamageMult(const RelicComponent& relics, float hpPercent); // stacks per missing 10% HP
+    // NOTE: getBerserkersCurseDamageMult() removed — damage computed inline in getDamageMultiplier().
     static bool hasBerserkersCurse(const RelicComponent& relics);          // BerserkersCurse: no shields
     static float getTimeDistortionSpeedMult(const RelicComponent& relics); // +30% move+attack speed
     static float getTimeDistortionEntropyDecayMult(const RelicComponent& relics); // 50% slower entropy decay

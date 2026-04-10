@@ -323,9 +323,7 @@ float RelicSystem::getChainLightningDamage(const RelicComponent& relics) {
     return 0;
 }
 
-bool RelicSystem::hasDimensionalEcho(const RelicComponent& relics) {
-    return relics.hasRelic(RelicID::DimensionalEcho);
-}
+// hasDimensionalEcho() removed — callers use relics.hasRelic(RelicID::DimensionalEcho) directly.
 
 bool RelicSystem::hasPhoenixFeather(const RelicComponent& relics) {
     for (auto& r : relics.relics) {
@@ -543,11 +541,9 @@ float RelicSystem::getVampiricEdgeKillHeal(const RelicComponent& relics) {
     return relics.hasRelic(RelicID::VampiricEdge) ? 3.0f : 0.0f;
 }
 
-float RelicSystem::getBerserkersCurseDamageMult(const RelicComponent& relics, float hpPercent) {
-    if (!relics.hasRelic(RelicID::BerserkersCurse)) return 1.0f;
-    int missingTens = static_cast<int>((1.0f - hpPercent) * 10.0f);
-    return 1.0f + missingTens * 0.15f;
-}
+// getBerserkersCurseDamageMult() removed — damage computed inline in getDamageMultiplier() at line 253.
+// The standalone function was never called; the relic's +15% per missing 10% HP effect
+// was always calculated inline inside the damage switch.
 
 bool RelicSystem::hasBerserkersCurse(const RelicComponent& relics) {
     return relics.hasRelic(RelicID::BerserkersCurse);
