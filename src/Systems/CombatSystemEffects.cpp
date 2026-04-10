@@ -106,7 +106,11 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
                     AudioManager::instance().play(SFX::CriticalHit);
                 }
                 if (m_particles) {
-                    m_particles->burst(pos, 12, {255, 255, 200, 255}, 100.0f, 2.5f);
+                    // Directional burst along attack direction for visual "punch"
+                    float aimAngle = std::atan2(combat.attackDirection.y, combat.attackDirection.x) * 57.2958f;
+                    m_particles->directionalBurst(pos, 8, {255, 255, 200, 255},
+                                                   aimAngle, 30.0f, 150.0f, 3.0f);
+                    m_particles->burst(pos, 6, {255, 240, 100, 255}, 80.0f, 2.0f);
                 }
             }
         }
