@@ -308,6 +308,19 @@ void CombatSystem::processZombieSweep(EntityManager& entities, int currentDim) {
             if (ai.element != EnemyElement::None) killedElemental = true;
             Bestiary::onEnemyKill(ai.enemyType);
         }
+        // Bug fix: zombieSweep didn't track weapon mastery kills. Ranged
+        // kills always land here (projectile onTrigger does takeDamage but
+        // not kill handling), so ranged weapon mastery never leveled up.
+        // Attribute the kill to whichever weapon was last active.
+        if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+            auto& pc = m_player->getEntity()->getComponent<CombatComponent>();
+            WeaponID killWeapon = (pc.currentAttack == AttackType::Ranged ||
+                                   pc.currentAttack == AttackType::None)
+                ? pc.currentRanged : pc.currentMelee;
+            int wIdx = static_cast<int>(killWeapon);
+            if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT))
+                weaponKills[wIdx]++;
+        }
         if (m_player) m_player->addMomentumStack();
 
         // Run buff: DashRefresh on kill
