@@ -81,6 +81,8 @@ public:
         m_deathEffects.reserve(16);
         parryEvents.clear();
         parryEvents.reserve(16);
+        reflectEvents.clear();
+        reflectEvents.reserve(8);
         killEvents.reserve(32);
     }
 
@@ -116,6 +118,10 @@ public:
     // Parry flash events (consumed by PlayState for "PARRY!" text)
     struct ParryEvent { Vec2 position; };
     std::vector<ParryEvent> parryEvents;
+
+    // Reflect events (consumed by PlayState for "REFLECT!" text)
+    struct ReflectEvent { Vec2 position; };
+    std::vector<ReflectEvent> reflectEvents;
 
     // Death effects (consumed by PlayState for ghost rendering)
     std::vector<DeathEffect> consumeDeathEffects() {

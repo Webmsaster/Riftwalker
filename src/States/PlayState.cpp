@@ -633,6 +633,20 @@ void PlayState::update(float dt) {
     }
     m_combatSystem.parryEvents.clear();
 
+    // Consume reflect events for "REFLECT!" floating text
+    for (auto& re : m_combatSystem.reflectEvents) {
+        FloatingDamageNumber num;
+        num.position = {re.position.x, re.position.y - 30.0f};
+        num.value = 0;
+        num.isBuff = true;
+        num.buffText = LOC("hud.reflect");
+        num.lifetime = 1.2f;
+        num.maxLifetime = 1.2f;
+        num.isPlayerDamage = false;
+        m_damageNumbers.push_back(num);
+    }
+    m_combatSystem.reflectEvents.clear();
+
     // Wave/area clear celebration: all waves spawned + all enemies dead
     if (m_combatSystem.killCount > 0 && !m_isBossLevel && !m_waveClearTriggered) {
         int aliveAfterCombat = 0;

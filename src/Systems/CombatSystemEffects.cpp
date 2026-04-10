@@ -626,6 +626,8 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                             if (cs->m_particles) {
                                 cs->m_particles->burst(shieldPos, 15, {100, 240, 255, 255}, 160.0f, 3.0f);
                             }
+                            // Queue "REFLECT!" floating text (consumed by PlayState)
+                            cs->reflectEvents.push_back({shieldPos});
                         } else {
                             AudioManager::instance().play(SFX::RiftShieldAbsorb);
                             if (cs->m_particles && other->hasComponent<TransformComponent>()) {

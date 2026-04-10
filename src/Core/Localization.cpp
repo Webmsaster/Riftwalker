@@ -1075,6 +1075,7 @@ void Localization::loadStrings() {
 
     // Combat floating text
     m_en["hud.parry"]              = "PARRY!";
+    m_en["hud.reflect"]            = "REFLECT!";
     m_en["hud.crit"]               = "CRIT! %.0f";
     m_en["hud.level_display"]      = "Lv.%d";
     m_en["hud.challenge_complete"] = "CHALLENGE COMPLETE! +%d Shards";
@@ -2387,6 +2388,7 @@ void Localization::loadStrings() {
 
     // Combat floating text
     m_de["hud.parry"]              = "PARIERT!";
+    m_de["hud.reflect"]            = "REFLEKTIERT!";
     m_de["hud.crit"]               = "KRIT! %.0f";
     m_de["hud.level_display"]      = "Lv.%d";
     m_de["hud.challenge_complete"] = "HERAUSFORDERUNG GESCHAFFT! +%d Splitter";
