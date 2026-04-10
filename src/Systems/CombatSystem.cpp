@@ -295,23 +295,19 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 damage *= m_player->getClassDamageMultiplier();
             }
 
-            // Weapon mastery damage bonus (player only)
+            // Weapon mastery damage bonus (melee only — ranged mastery applied
+            // in processRangedAttack at projectile spawn time)
             if (isPlayer) {
-                WeaponID masteryWeapon = (combat.currentAttack == AttackType::Ranged)
-                    ? combat.currentRanged : combat.currentMelee;
-                int wIdx = static_cast<int>(masteryWeapon);
+                int wIdx = static_cast<int>(combat.currentMelee);
                 if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT)) {
                     MasteryBonus mb = WeaponSystem::getMasteryBonus(weaponKills[wIdx]);
                     damage *= mb.damageMult;
                 }
             }
 
-            // Blacksmith weapon upgrade bonus (player only, per-run)
+            // Blacksmith melee damage upgrade (ranged applied in processRangedAttack)
             if (isPlayer && m_player) {
-                if (combat.currentAttack == AttackType::Ranged)
-                    damage *= m_player->smithRangedDmgMult;
-                else
-                    damage *= m_player->smithMeleeDmgMult;
+                damage *= m_player->smithMeleeDmgMult;
             }
 
             // Resonance damage bonus from rapid dimension switching
@@ -422,23 +418,13 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 if (targetAI.enemyType == EnemyType::Reflector && targetAI.reflectorShieldUp) {
                     bool attackFromFront = (attackCenter.x > targetCenter.x) == targetAI.facingRight;
                     if (attackFromFront) {
-                        if (combat.currentAttack == AttackType::Ranged) {
-                            Vec2 reflectDir = combat.attackDirection * -1.0f;
-                            float reflectDmg = damage * 0.75f;
-                            createProjectile(entities, targetCenter, reflectDir,
-                                           reflectDmg, 400.0f, target.dimension, false, false);
-                            AudioManager::instance().play(SFX::RiftShieldReflect);
-                            if (m_particles) {
-                                m_particles->burst(targetCenter, 10, {200, 220, 255, 255}, 150.0f, 2.5f);
-                            }
-                            if (m_camera) m_camera->shake(4.0f, 0.12f);
-                        } else {
-                            AudioManager::instance().play(SFX::RiftFail);
-                            if (m_particles) {
-                                m_particles->burst(targetCenter, 8, {180, 200, 255, 255}, 100.0f, 2.0f);
-                            }
-                            if (m_camera) m_camera->shake(3.0f, 0.1f);
+                        // Melee block (ranged reflect is handled in projectile
+                        // onTrigger lambda at CombatSystemEffects.cpp)
+                        AudioManager::instance().play(SFX::RiftFail);
+                        if (m_particles) {
+                            m_particles->burst(targetCenter, 8, {180, 200, 255, 255}, 100.0f, 2.0f);
                         }
+                        if (m_camera) m_camera->shake(3.0f, 0.1f);
                         shieldBlocked = true;
                     }
                 }
