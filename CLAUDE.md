@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-10 mega autonomous session — 39 commits, 24 bugs, 30 files):**
+**Recent Updates (2026-04-10 mega autonomous session — 42 commits, 24 bugs, 30 files, 17/17 visual tests PASS):**
 
-Expanded continuously through the day from initial 13-commit early-return chain fix into a complete ranged/melee parity overhaul + defensive relic audit + NG+ consolidation.
+Expanded continuously through the day from initial 13-commit early-return chain fix into a complete ranged/melee parity overhaul + defensive relic audit + NG+ consolidation. All 4 classes playtested (3min each) without crash. Visual regression baselines refreshed — 17/17 PASS.
 
 *Late session additions (18 more commits):*
 - **Finisher damage scaling**: Voidwalker Rift Pulse (hardcoded 40) and Phantom Phase Burst per-hit (hardcoded 25) ignored all player stat scaling. Switched to `combat.meleeAttack.damage * multiplier` like Berserker Blood Cleave already did. Late-game finishers stay relevant as upgrades stack.
