@@ -5,6 +5,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
+**Recent Updates (2026-04-10 early-return dead-code chain — 13 commits, 11 bugs):**
+
+Started with 3 parallel agent-review sessions (RelicSystem, WeaponSystem/Class, Boss AI).
+Agents ran 8+ hours without producing output (apparently stuck). Found 11 real bugs
+anyway — 4 from agent reviews that DID complete (Physics, LevelGen, SuitEntropy), 7
+manually while waiting on the stuck agents. The 7 manual finds all trace to a single
+root cause: `CombatSystem::processAttack()` line 73 does an early return on
+`AttackType::Ranged`, and every feature in the melee forEach loop below guarded by
+`currentAttack == AttackType::Ranged` was dead code.
+
+*Agent-found (4 bugs):*
+- **passiveDecay wiped to 0**: `applyUpgrades()` did `m_entropy.passiveDecay = getEntropyDecay() * bonus` — at upgrade level 0 this is 0, wiping the 0.15f base AND the NG+ 0.8x slow-decay modifier. Fixed with `0.15f + upgrade*bonus` + NG+ re-apply.
+- **MilestoneBonus HP/damage/speed dropped**: `checkMilestones()` returned 4 fields, caller consumed only bonusShards. 5 of 8 milestones had no effect. Added `getAccumulatedMilestoneBonus()` applied in `applyUpgrades`.
+- **LevelGenerator tmplB overpaint**: Template dim-B selection loop had inverted break polarity (`> 2` instead of `<= 2`), accepting larger templates than the room's registered `rw`/`rh`. applyTemplate overpainted adjacent room walls in dim-2. Fixed with explicit size-fit filter.
+- **BFS dim-2 seed missing**: Level validator seeded `tryVisit(spawn, 1, 0)` only; dim-2 was only reachable via SharedSwitchAnchor heuristic. When spawn failed the heuristic, validator rejected valid levels as "exit unreachable". Seed both dims now.
+
+*Manual finds — the "early-return dead-code chain" (7 bugs, all from processAttack line 73):*
+- **Ranged damage modifiers never applied** (commit c3fbc31, the big one): processRangedAttack only applied CursedRangedMult + Technomancer class bonus. Every other modifier (relic damage mults, class mult, damage boost pickup, smith ranged dmg, weapon mastery, resonance) was dead for ranged builds. A Technomancer with BerserkersCurse at 10% HP (expected +135%) saw base weapon damage. Fixed by applying all 6 modifier categories at projectile spawn time.
+- **Reflector mirror-shield ignored ranged**: Shield cycle was visual-only — player ranged weapons passed through. Moved block+reflect into projectile onTrigger lambda; CombatSystem now caches `m_currentEntities` so the lambda can spawn reflected enemy projectiles.
+- **Rift Shield ability absorbed no enemy ranged attacks**: Player's Rift Shield absorb was inside the melee loop; enemies shooting the player bypassed the shield entirely. Moved absorb into projectile onTrigger.
+- **Elite Shielded modifier bypassed by ranged**: eliteShieldHP absorb was melee-only. Ranged builds ignored elite shields. Moved absorb into projectile onTrigger.
+- **Enemy ranged attacks missing dimDamageMod + Summoner buff**: Enemy projectiles didn't scale with dim-B modifier, Summoner-buffed ranged minions didn't get their +15% damage buff. Applied in processRangedAttack's enemy branch.
+- **DimensionalEcho relic cross-dim broken for ranged**: Relic described as "Attacks hit other dimension too" but melee-only in practice. Ranged projectiles carried attacker's dimension and the collision system filtered out other-dim entities. Fix: promote projDim to 0 when player owns DimensionalEcho.
+- **Element weapon effects (burn/freeze) not applied by ranged**: Fire burn DoT + Ice freeze slow + stun were only applied in the melee loop. Player with Fire RunBuff using VoidBeam saw damage but no burn. Applied in projectile onTrigger. Electric chain (element 3) deferred — needs expensive inner forEach per hit.
+
+*Content:*
+- **5 new gameplay tips (130 → 135)**: Reference the passive entropy decay, milestone HP/dmg bonuses, dim-A/dim-B room layouts, dim-only exits, NG+ slow decay. EN+DE localized.
+
+**Detection heuristic** (added to bug-patterns.md entry 30f): Grep for `if (X) { ...; return; }` at the top of a function, then grep the rest of the same file for `if (X)` — any match is a candidate dead-code branch that should have been in the delegate path instead.
+
+This single heuristic would have caught all 7 manual finds at their original implementation time. Meta-lesson: early returns are architectural cliffs. Features added over time silently become dead code for the early-return case.
+
 **Recent Updates (2026-04-09 mega autonomous session — 55 commits, 2 phases):**
 
 *Phase 2 — Agent-Review Bug Hunt (11 real gameplay bugs found):*
