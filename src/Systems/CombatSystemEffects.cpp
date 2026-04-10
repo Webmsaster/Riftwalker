@@ -605,15 +605,33 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                         abil.shieldHitsRemaining = std::max(0, abil.shieldHitsRemaining - 1);
                         abil.shieldAbsorbedDamage += damage;
                         hp.heal(abil.shieldHealPerAbsorb);
-                        AudioManager::instance().play(SFX::RiftShieldAbsorb);
                         // Phantom class: speed boost on shield absorb
                         if (cs->m_player && cs->m_player->playerClass == PlayerClass::Phantom) {
                             cs->m_player->speedBoostTimer = 1.5f;
                             cs->m_player->speedBoostMultiplier = 1.3f;
                         }
-                        if (cs->m_particles && other->hasComponent<TransformComponent>()) {
+                        // Reflect enemy projectile back at 150% damage (rift energy amplifies)
+                        if (!isPlayerOwned && self->hasComponent<PhysicsBody>() &&
+                            cs->m_currentEntities && other->hasComponent<TransformComponent>()) {
+                            auto& selfPhys = self->getComponent<PhysicsBody>();
                             Vec2 shieldPos = other->getComponent<TransformComponent>().getCenter();
-                            cs->m_particles->burst(shieldPos, 12, {80, 220, 255, 255}, 120.0f, 2.0f);
+                            float vx = selfPhys.velocity.x, vy = selfPhys.velocity.y;
+                            float vmag = std::sqrt(vx * vx + vy * vy);
+                            if (vmag > 0.01f) {
+                                Vec2 reflectDir{-vx / vmag, -vy / vmag};
+                                cs->createProjectile(*cs->m_currentEntities, shieldPos, reflectDir,
+                                                     damage * 1.5f, 500.0f, other->dimension, false, true);
+                            }
+                            AudioManager::instance().play(SFX::RiftShieldReflect);
+                            if (cs->m_particles) {
+                                cs->m_particles->burst(shieldPos, 15, {100, 240, 255, 255}, 160.0f, 3.0f);
+                            }
+                        } else {
+                            AudioManager::instance().play(SFX::RiftShieldAbsorb);
+                            if (cs->m_particles && other->hasComponent<TransformComponent>()) {
+                                Vec2 shieldPos = other->getComponent<TransformComponent>().getCenter();
+                                cs->m_particles->burst(shieldPos, 12, {80, 220, 255, 255}, 120.0f, 2.0f);
+                            }
                         }
                         self->destroy(); // Projectile consumed by shield
                         return;
