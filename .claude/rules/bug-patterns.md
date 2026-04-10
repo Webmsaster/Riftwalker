@@ -210,6 +210,26 @@ would have missed by eye.
 - **Lesson**: **When using replace_all to propagate a cached value, explicitly exclude the init line.** Use targeted individual edits for the init line, or check the file after replace_all for any `X = X` patterns. Always grep for `(\w+)\s*=\s*\1\s*;` after a large replace_all.
 - **Detection shortcut**: `grep -rn '(\w+)\s*=\s*\1\s*;' src/` — this single grep would have caught the bug immediately.
 
+### 30g. Boss/Enemy Damage Bypassing Defensive Relics (Direct takeDamage Calls)
+- **Pattern**: Boss attacks and enemy specials called `hp.takeDamage(X)` directly on player targets, bypassing `RelicSystem::getDamageTakenMult` which scales damage by GlassHeart / DualityGem armor / FortifiedSoul / VoidCrown defensive relics.
+- **Impact**: Defensive builds were effectively non-existent for late-game. A player stacking every defensive relic took full damage from every boss phase attack, Exploder blast, Phaser projectile, and Leech drain. Meanwhile, melee/projectile attacks from normal enemies DID apply defensive relics because they went through `createProjectile`'s onTrigger lambda (which had the check) or through `processAttack`'s melee forEach (which had the check).
+- **Fix**: added `applyBossDamageToPlayer()` helper in BossAI.h that applies the multiplier + respects i-frames. Migrated every direct takeDamage call in BossVoidSovereign / BossEntropyIncarnate / BossRiftGuardian / BossVoidWyrm to use the helper. BossDimensionalArchitect's projectile lambdas inlined the check directly (lambdas capture `damage` not entities, so helper couldn't be used). Also fixed AISystem::updateExploder and 2 calls in AIEnemyAdvanced (Phaser projectile, Leech drain) with inline checks.
+- **Lesson**: Any `hp.takeDamage(X)` call on a player target needs `getDamageTakenMult` applied first. Grep for `hp\.takeDamage\(` across the codebase and check each call site for whether the target can be the player.
+- **Detection heuristic**: `grep -rn "hp.takeDamage" src/ | grep -v "\.isEnemy"` — any match is a candidate that might be player-targeted damage missing the defensive scaling.
+
+### 30h. NG+ Scaling Cap Not Updated After Tier Unlock (Dead Bracket System)
+- **Pattern**: Phase 1 of 2026-04-09 session unlocked NG+ tiers 6-10 in save/load/UI. But `applyNGPlusModifiers` had scaling brackets only at tiers 1/3/5 — the scaling curve flattened out at NG+5 regardless of selected tier. Tier 10 enemies had the same stats as tier 5 enemies.
+- **Impact**: Late NG+ tiers became a cosmetic achievement rather than a difficulty increase. Players who ground to NG+10 found it no harder than NG+5.
+- **Fix**: added brackets at tier 7 (+150% HP, +30% DMG total) and tier 10 (+200% HP, +50% DMG total).
+- **Lesson**: When extending a tier system's maximum, grep the codebase for every check against the old maximum and either extend the bracket or clamp appropriately. Unlocking a tier in save/load isn't enough — the gameplay systems need to respect the new maximum.
+
+### 30i. Double-Scaling + Wrong Reference Variable (NG+ Linear + Bracket Systems)
+- **Pattern**: Two separate NG+ scaling paths existed simultaneously: (1) an old linear scaling in `setupEnemyForWave` based on `g_newGamePlusLevel` (highest-ever-unlocked tier), (2) a new bracket scaling in `applyNGPlusModifiers` based on `m_ngPlusTier` (selected-for-this-run tier). Both applied to every enemy.
+- **Impact**: Two compound bugs: (1) At NG+5, enemies were scaled ~4x HP (old ~2x × new ~2x), despite a comment claiming "reaches ~100% total". (2) Old path used `g_newGamePlusLevel` not `m_ngPlusTier`, so a player who beat NG+5 could NEVER replay an NG+0 run — enemies would always carry the unlocked-tier scaling regardless of selection.
+- **Fix**: removed the old linear scaling. Moved speed scaling into the new tier-based brackets so a single code path handles all NG+ modifiers and it respects the run's actual selected tier.
+- **Lesson**: When refactoring a scaling system, remove the old code rather than add new code alongside it. Two scaling paths is almost always a bug. Also, always verify that a scaling multiplier uses the "current run" state rather than the "historical unlocked" state.
+- **Files**: PlayStateRunLifecycle.cpp:572-583 (removed), applyNGPlusModifiers (extended with speed bracket)
+
 ### 30f. Early-Return Kills Every Feature In The Loop Body (Ranged Attacks Skip Everything)
 - **Pattern**: `CombatSystem::processAttack()` did `if (combat.currentAttack == AttackType::Ranged) { processRangedAttack(...); return; }` at the top. Everything below the return was a rich melee forEach loop that did: relic damage multiplier, class mult, damage boost pickup, smith dmg mult, weapon mastery, resonance dmg, critical hits, Rift Shield absorb (for enemies attacking player), Reflector mirror-shield (for player attacking reflector), Elite Shielded absorb, ShieldAura -30%, knockback, stun, combo effects, enrage counter.
 - **Impact**: FIVE separate gameplay features were silently broken for ranged attacks:
