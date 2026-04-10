@@ -5,17 +5,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-10 mega autonomous session — 21 commits, 16 bugs):**
+**Recent Updates (2026-04-10 mega autonomous session — 39 commits, 24 bugs, 30 files):**
 
-Expanded continuously through the day from initial 13-commit early-return chain fix into a broader balance + correctness audit.
+Expanded continuously through the day from initial 13-commit early-return chain fix into a complete ranged/melee parity overhaul + defensive relic audit + NG+ consolidation.
 
-*Late session additions (8 more commits, 5 more bugs):*
+*Late session additions (18 more commits):*
 - **Finisher damage scaling**: Voidwalker Rift Pulse (hardcoded 40) and Phantom Phase Burst per-hit (hardcoded 25) ignored all player stat scaling. Switched to `combat.meleeAttack.damage * multiplier` like Berserker Blood Cleave already did. Late-game finishers stay relevant as upgrades stack.
 - **Smoke test bot static leak**: Same pattern as 2026-04-09 playtest bot fix. `smokeRecoveryGraceTimer` + `smokeRecoverySuppressedLogged` persisted across runs, leaking navigation state. Fixed with first-frame reset.
 - **NG+ scaling capped at tier 5**: Phase 1 of 2026-04-09 unlocked NG+ tiers 6-10 (save/load/UI), but `applyNGPlusModifiers` only scaled enemies at tiers 1/3/5. Late tiers were a cosmetic achievement. Added brackets at 7 (+150% HP, +30% DMG total) and 10 (+200% HP, +50% DMG total).
 - **Double NG+ scaling + wrong reference**: Two scaling paths existed — old linear (based on `g_newGamePlusLevel` = highest unlocked) + new bracket (based on `m_ngPlusTier` = selected run tier). Combined effect: ~4x HP at NG+5 despite "reaches ~100% total" comment. Also meant a player with NG+5 unlocked couldn't replay easier NG+0 runs — enemies always showed NG+5 scaling. Removed old linear path, moved speed scaling into brackets.
 - **HUD + Pause NG+ display**: Showed `g_newGamePlusLevel` instead of run-specific `m_ngPlusTier`. After scaling fix, player would see "NG+5" but fight NG+0 enemies. Added `PlayState::getNGPlusTier()` getter.
 - **All 5 bosses + 3 regular enemies bypassing defensive relics**: `hp.takeDamage(X)` calls bypassed `RelicSystem::getDamageTakenMult`. GlassHeart, DualityGem armor, FortifiedSoul, VoidCrown defensive relics had zero protection against boss phase attacks and regular enemy specials (Exploder blast, Phaser projectile, Leech drain). Defensive builds were effectively non-existent. Added `applyBossDamageToPlayer()` helper in BossAI.h. Migrated 10+ call sites across 7 files.
+- **ShieldAura -30% damage reduction for ranged**: Last defensive modifier gap. Used cached per-frame `hasNearbyShieldAura` flag populated by AISystem pre-pass to avoid expensive inner forEach in projectile onTrigger. Manhattan distance check, O(n*s) same as Summoner buff pass.
+- **Ranged critical hits**: CritChance upgrade + parrySuccessTimer guaranteed crit now work for ranged. CRIT! gold label shows on projectile hit via `isCrit` flag threaded through createProjectile. All 6 ranged weapons + double-shot pass the flag.
+- **Rift Shield projectile reflect**: Enemy ranged projectiles absorbed by Rift Shield are now reflected back at 150% damage + 500 speed, with REFLECT! floating text + distinct cyan particle burst.
+- **ZombieSweep kill tracking**: weaponKills, wasRanged, wasAerial now tracked for projectile kills that route through processZombieSweep. Ranged weapon mastery can now level up.
+- **Dead code cleanup**: Removed 3 dead RelicSystem wrapper functions (getBerserkersCurseDamageMult, hasDimensionalEcho, getChaosCoreStatMult). Cleaned up dead `AttackType::Ranged` branches in melee forEach loop (Reflector, Rift Shield, mastery, smith mult).
+- **15 new gameplay tips (130 → 145)**: Cover entropy decay, milestones, dim layouts, NG+ scaling, Rift Shield reflect, Reflector mechanics, defensive relics, ranged scaling, element effects, ShieldAura, weapon mastery, Blacksmith, resonance, BerserkersCurse.
 
 **Recent Updates (2026-04-10 initial 13 commits — the early-return dead-code chain):**
 
