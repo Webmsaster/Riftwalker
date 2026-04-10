@@ -569,18 +569,17 @@ void PlayState::applyThemeVariant(Entity& e, int dimension) {
     sprite.color.g = static_cast<Uint8>(sprite.color.g * 0.8f + accent.g * 0.2f);
     sprite.color.b = static_cast<Uint8>(sprite.color.b * 0.8f + accent.b * 0.2f);
 
-    // New Game+ scaling: enemies get stronger per NG+ tier
-    if (g_newGamePlusLevel > 0) {
-        float ngMult = 1.0f + g_newGamePlusLevel * 0.2f; // +20% per NG+ level
-        hp.maxHP *= ngMult;
-        hp.currentHP = hp.maxHP;
-        combat.meleeAttack.damage *= (1.0f + g_newGamePlusLevel * 0.15f);
-        combat.rangedAttack.damage *= (1.0f + g_newGamePlusLevel * 0.15f);
-        ai.chaseSpeed *= (1.0f + g_newGamePlusLevel * 0.05f);
-        // NG+ visual: slightly purple tint
-        sprite.color.r = static_cast<Uint8>(std::min(255, sprite.color.r + g_newGamePlusLevel * 15));
-        sprite.color.b = static_cast<Uint8>(std::min(255, sprite.color.b + g_newGamePlusLevel * 20));
-    }
+    // Bug fix: removed "New Game+ scaling based on g_newGamePlusLevel" block.
+    // That old path used `g_newGamePlusLevel` (the highest-unlocked NG+ tier),
+    // not `m_ngPlusTier` (the tier the player selected for THIS run). This
+    // meant a player with NG+5 unlocked who started a fresh NG+0 run still saw
+    // enemies with +100% HP / +75% damage / +25% speed scaling forever —
+    // there was no way to replay an easy run after beating one tier.
+    //
+    // The new tier-based bracket scaling is applied separately by
+    // applyNGPlusModifiers() and uses m_ngPlusTier (run-specific), so it
+    // correctly ramps only when the player chooses a higher NG+ tier for
+    // the current run.
 
     sprite.baseColor = sprite.color; // update base for wind-up restore
 }
@@ -615,6 +614,19 @@ void PlayState::applyNGPlusModifiers(Entity& e) {
     auto& combat = e.getComponent<CombatComponent>();
     combat.meleeAttack.damage *= dmgMult;
     combat.rangedAttack.damage *= dmgMult;
+
+    // Also scale enemy movement speed at higher NG+ tiers. This used to live
+    // in the removed g_newGamePlusLevel block; moved here so speed scaling
+    // respects the player's actual run tier selection.
+    if (e.hasComponent<AIComponent>()) {
+        auto& ai = e.getComponent<AIComponent>();
+        float speedMult = 1.0f;
+        if (m_ngPlusTier >= 1) speedMult *= 1.05f;
+        if (m_ngPlusTier >= 5) speedMult *= 1.10f;
+        if (m_ngPlusTier >= 10) speedMult *= 1.10f;
+        ai.chaseSpeed *= speedMult;
+        ai.patrolSpeed *= speedMult;
+    }
 
     // NG+3+: tint enemy HP bar gold to signal the tier
     if (e.hasComponent<SpriteComponent>()) {
