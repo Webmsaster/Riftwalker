@@ -154,17 +154,9 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         hp.heal(targetAbil.shieldHealPerAbsorb);
                     }
 
-                    // Reflect projectiles
-                    if (combat.currentAttack == AttackType::Ranged) {
-                        AudioManager::instance().play(SFX::RiftShieldReflect);
-                        // Create reflected projectile back at attacker
-                        Vec2 reflectDir = combat.attackDirection * -1.0f;
-                        auto& targetT = target.getComponent<TransformComponent>();
-                        createProjectile(entities, targetT.getCenter(), reflectDir,
-                                        atkData.damage * 1.5f, 500.0f, target.dimension, false, true);
-                    } else {
-                        AudioManager::instance().play(SFX::RiftShieldAbsorb);
-                    }
+                    // Melee absorb SFX (ranged reflect handled in projectile
+                    // onTrigger at CombatSystemEffects.cpp)
+                    AudioManager::instance().play(SFX::RiftShieldAbsorb);
 
                     // Phantom class: speed boost on shield absorb
                     if (m_player && m_player->playerClass == PlayerClass::Phantom) {
