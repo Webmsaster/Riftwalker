@@ -119,13 +119,13 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
             for (int i = 0; i < 5; i++) {
                 float angle = baseAngle + (i - 2) * (spread / 4.0f);
                 Vec2 dir = {std::cos(angle), std::sin(angle)};
-                createProjectile(entities, pos, dir, projDamage, 350.0f, projDim, false, isPlayer);
+                createProjectile(entities, pos, dir, projDamage, 350.0f, projDim, false, isPlayer, rangedCrit);
             }
             AudioManager::instance().play(SFX::RangedShot);
         } else if (isPlayer && combat.currentRanged == WeaponID::VoidBeam) {
             // Continuous beam: piercing projectile passes through enemies
             createProjectile(entities, pos, combat.attackDirection,
-                            projDamage, 500.0f, projDim, true, isPlayer);
+                            projDamage, 500.0f, projDim, true, isPlayer, rangedCrit);
             // No extra SFX each tick (too fast)
         } else if (isPlayer && combat.currentRanged == WeaponID::DimLauncher) {
             // Dimensional Launcher: projectile exists in both dimensions (dimension 0)
@@ -146,7 +146,7 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
         } else if (isPlayer && combat.currentRanged == WeaponID::RiftCrossbow) {
             // Rift Crossbow: piercing bolt that passes through enemies
             createProjectile(entities, pos, combat.attackDirection,
-                            projDamage, 450.0f, projDim, true, isPlayer);
+                            projDamage, 450.0f, projDim, true, isPlayer, rangedCrit);
             AudioManager::instance().play(SFX::RangedShot);
             // Cyan piercing trail particles
             if (m_particles) {
@@ -163,12 +163,12 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
                 doubleShot = RelicSynergy::rollRapidShardsDoubleShot(rel, combat.currentRanged);
             }
             createProjectile(entities, pos, combat.attackDirection,
-                            projDamage, projSpeed, projDim, false, isPlayer);
+                            projDamage, projSpeed, projDim, false, isPlayer, rangedCrit);
             if (doubleShot) {
                 // Slight offset for second projectile
                 Vec2 offset = {combat.attackDirection.y * 6.0f, -combat.attackDirection.x * 6.0f};
                 createProjectile(entities, {pos.x + offset.x, pos.y + offset.y},
-                                combat.attackDirection, projDamage, projSpeed, projDim, false, isPlayer);
+                                combat.attackDirection, projDamage, projSpeed, projDim, false, isPlayer, rangedCrit);
             }
             AudioManager::instance().play(SFX::RangedShot);
         }
@@ -531,7 +531,7 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
 
 void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, const Vec2& dir,
                                       float damage, float speed, int dimension,
-                                      bool piercing, bool isPlayerOwned) {
+                                      bool piercing, bool isPlayerOwned, bool isCrit) {
     auto& proj = entities.addEntity("projectile");
     proj.dimension = dimension;
 
@@ -557,7 +557,7 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
     col.mask = LAYER_TILE | (isPlayerOwned ? LAYER_ENEMY : LAYER_PLAYER);
     col.type = ColliderType::Trigger;
     auto* cs = this;
-    col.onTrigger = [damage, dimension, piercing, isPlayerOwned, cs](Entity* self, Entity* other) {
+    col.onTrigger = [damage, dimension, piercing, isPlayerOwned, isCrit, cs](Entity* self, Entity* other) {
         if (other->hasComponent<HealthComponent>()) {
             auto& hp = other->getComponent<HealthComponent>();
             // Bug fix: Reflector mirror-shield block/reflect on ranged attacks was
@@ -725,7 +725,7 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                         ? self->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
                     cs->m_damageEvents.push_back({
                         other->getComponent<TransformComponent>().getCenter(),
-                        finalDmg, isPlayerDamage, false, false, srcPos
+                        finalDmg, isPlayerDamage, isCrit, false, srcPos
                     });
                 }
                 // Impact particles at hit location

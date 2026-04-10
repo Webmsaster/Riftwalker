@@ -104,7 +104,8 @@ public:
 
     void createProjectile(EntityManager& entities, const Vec2& pos, const Vec2& dir,
                           float damage, float speed, int dimension,
-                          bool piercing = false, bool isPlayerOwned = false);
+                          bool piercing = false, bool isPlayerOwned = false,
+                          bool isCrit = false);
 
     // Kill tracking flags (consumed each frame by PlayState for achievements)
     bool killedMiniBoss = false;
