@@ -559,9 +559,9 @@ float RelicSystem::getTimeDistortionEntropyDecayMult(const RelicComponent& relic
     return relics.hasRelic(RelicID::TimeDistortion) ? 0.5f : 1.0f;
 }
 
-float RelicSystem::getChaosCoreStatMult(const RelicComponent& relics) {
-    return relics.hasRelic(RelicID::ChaosCore) ? 1.25f : 1.0f;
-}
+// getChaosCoreStatMult() removed — ChaosCore +25% stats are applied inline via
+// getDamageMultiplier (line 250), getAttackSpeedMultiplier (line 276), and
+// applyStatEffects (line 196). This standalone getter was never called.
 
 float RelicSystem::getSoulLeechShardMult(const RelicComponent& relics) {
     return relics.hasRelic(RelicID::SoulLeech) ? 2.0f : 1.0f;

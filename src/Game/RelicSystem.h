@@ -107,7 +107,7 @@ public:
     static bool hasBerserkersCurse(const RelicComponent& relics);          // BerserkersCurse: no shields
     static float getTimeDistortionSpeedMult(const RelicComponent& relics); // +30% move+attack speed
     static float getTimeDistortionEntropyDecayMult(const RelicComponent& relics); // 50% slower entropy decay
-    static float getChaosCoreStatMult(const RelicComponent& relics);       // ChaosCore: +25% all stats
+    // NOTE: getChaosCoreStatMult() removed — +25% stats applied inline in getDamageMultiplier/applyStatEffects.
     static float getSoulLeechShardMult(const RelicComponent& relics);      // SoulLeech: 2x shard drops
     static float getSoulLeechLevelHPCost(const RelicComponent& relics);    // SoulLeech: -5 HP per transition
 };
