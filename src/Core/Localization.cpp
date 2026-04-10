@@ -838,6 +838,11 @@ void Localization::loadStrings() {
     m_en["tip.137"] = "TIP: Defensive relics (GlassHeart, DualityGem, FortifiedSoul) protect against ALL damage — even boss attacks!";
     m_en["tip.138"] = "TIP: Ranged weapons now scale with all your relics and upgrades — ranged builds are viable late-game!";
     m_en["tip.139"] = "TIP: Fire and Ice element buffs work with ranged attacks too — shoot to ignite or freeze from a distance!";
+    m_en["tip.140"] = "TIP: Elite ShieldAura enemies project a cyan aura that reduces damage to nearby foes by 30% — prioritize them!";
+    m_en["tip.141"] = "TIP: Weapon mastery increases through kills — the more you use a weapon, the stronger it gets (up to +30% at Mastered).";
+    m_en["tip.142"] = "TIP: Blacksmith events upgrade your melee or ranged damage permanently for the rest of the run!";
+    m_en["tip.143"] = "TIP: Dimensional Resonance stacks when you rapidly switch dimensions — at tier 3 you deal +50% damage!";
+    m_en["tip.144"] = "TIP: The BerserkersCurse relic gains +15% damage per 10% missing HP — at 10% HP that's +135% total damage!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1985,6 +1990,11 @@ void Localization::loadStrings() {
     m_de["tip.137"] = "TIPP: Defensive Relikte (Glasherz, Dualitaetsstein, Festungsseele) schuetzen gegen ALLEN Schaden — auch Bossangriffe!";
     m_de["tip.138"] = "TIPP: Fernkampfwaffen skalieren jetzt mit allen Relikten und Upgrades — Fernkampf-Builds sind im Spaetspiel stark!";
     m_de["tip.139"] = "TIPP: Feuer- und Eis-Elementar-Buffs wirken auch auf Fernkampf — schiesse um aus der Ferne zu entzuenden oder einzufrieren!";
+    m_de["tip.140"] = "TIPP: Elite Schildaura-Gegner projizieren eine cyan Aura die Schaden an nahen Feinden um 30% reduziert — priorisiere sie!";
+    m_de["tip.141"] = "TIPP: Waffenmeisterung steigt durch Kills — je mehr du eine Waffe nutzt, desto staerker wird sie (bis +30% bei Gemeistert).";
+    m_de["tip.142"] = "TIPP: Schmiede-Events verstaerken deinen Nah- oder Fernkampfschaden permanent fuer den Rest des Runs!";
+    m_de["tip.143"] = "TIPP: Dimensionale Resonanz stapelt sich beim schnellen Wechseln — bei Stufe 3 machst du +50% Schaden!";
+    m_de["tip.144"] = "TIPP: Das Berserkerfluch-Relikt gewinnt +15% Schaden pro 10% fehlendes HP — bei 10% HP sind das +135% Gesamtschaden!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
