@@ -532,8 +532,12 @@ void Player::executeComboFinisher() {
     switch (playerClass) {
     case PlayerClass::Voidwalker: {
         // Rift Pulse: AoE dimension wave
+        // Bug fix: damage was hardcoded 40.0f, ignoring all player stat scaling
+        // (permanent upgrades, class mult, relics). Scale with base melee
+        // damage (1.6x) so the finisher stays relevant late-game.
         float radius = 160.0f;
-        float damage = 40.0f;
+        auto& combat_vw = m_entity->getComponent<CombatComponent>();
+        float damage = combat_vw.meleeAttack.damage * 1.6f;
         float knockback = 500.0f;
         float stunDuration = 0.5f;
 
@@ -737,7 +741,7 @@ void Player::executeComboFinisher() {
         // Phase Burst: teleport to up to 4 nearest enemies, multi-frame sequence
         float searchRadius = 200.0f;
         float damage = 25.0f;
-        (void)damage; // used in updateComboFinisher
+        (void)damage; // used in updateComboFinisher (value computed there per-hit)
 
         // Cache nearest enemies
         struct EnemyDist {
@@ -844,7 +848,12 @@ void Player::updateComboFinisher(float dt) {
                 m_entity->getComponent<SpriteComponent>().flipX = !facingRight;
 
                 // Deal damage
-                float damage = 25.0f;
+                // Bug fix: damage was hardcoded 25.0f, ignoring permanent
+                // player stat scaling. Scale with base melee damage (1.0x per
+                // hit — 4 hits total = ~full melee damage equivalent) so
+                // the finisher stays relevant as upgrades stack.
+                auto& combat_ph = m_entity->getComponent<CombatComponent>();
+                float damage = combat_ph.meleeAttack.damage * 1.0f;
                 eHP.takeDamage(damage);
 
                 // Cyan teleport particles
