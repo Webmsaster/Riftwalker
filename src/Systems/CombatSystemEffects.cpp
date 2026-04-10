@@ -43,12 +43,20 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
         // combo + charged multipliers).
         float projDamage = atkData.damage;
         int currentDim = attacker.dimension;
+        // Bug fix: DimensionalEcho relic ("Attacks hit other dimension too") was
+        // a melee-only effect because the cross-dim hit check lived in the melee
+        // forEach loop. Promote ranged projectiles to dim=0 (both dims) when the
+        // attacker owns the relic so they can hit other-dimension enemies too.
+        int projDim = attacker.dimension;
         if (isPlayer) {
             if (attacker.hasComponent<RelicComponent>() && attacker.hasComponent<HealthComponent>()) {
                 auto& relics = attacker.getComponent<RelicComponent>();
                 float hpPct = attacker.getComponent<HealthComponent>().getPercent();
                 projDamage *= RelicSystem::getDamageMultiplier(relics, hpPct, currentDim);
                 projDamage *= RelicSystem::getCursedRangedMult(relics);
+                if (relics.hasRelic(RelicID::DimensionalEcho)) {
+                    projDim = 0;
+                }
             }
             if (m_player) {
                 projDamage *= m_player->getClassDamageMultiplier();
@@ -88,13 +96,13 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
             for (int i = 0; i < 5; i++) {
                 float angle = baseAngle + (i - 2) * (spread / 4.0f);
                 Vec2 dir = {std::cos(angle), std::sin(angle)};
-                createProjectile(entities, pos, dir, projDamage, 350.0f, attacker.dimension, false, isPlayer);
+                createProjectile(entities, pos, dir, projDamage, 350.0f, projDim, false, isPlayer);
             }
             AudioManager::instance().play(SFX::RangedShot);
         } else if (isPlayer && combat.currentRanged == WeaponID::VoidBeam) {
             // Continuous beam: piercing projectile passes through enemies
             createProjectile(entities, pos, combat.attackDirection,
-                            projDamage, 500.0f, attacker.dimension, true, isPlayer);
+                            projDamage, 500.0f, projDim, true, isPlayer);
             // No extra SFX each tick (too fast)
         } else if (isPlayer && combat.currentRanged == WeaponID::DimLauncher) {
             // Dimensional Launcher: projectile exists in both dimensions (dimension 0)
@@ -115,7 +123,7 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
         } else if (isPlayer && combat.currentRanged == WeaponID::RiftCrossbow) {
             // Rift Crossbow: piercing bolt that passes through enemies
             createProjectile(entities, pos, combat.attackDirection,
-                            projDamage, 450.0f, attacker.dimension, true, isPlayer);
+                            projDamage, 450.0f, projDim, true, isPlayer);
             AudioManager::instance().play(SFX::RangedShot);
             // Cyan piercing trail particles
             if (m_particles) {
@@ -132,12 +140,12 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
                 doubleShot = RelicSynergy::rollRapidShardsDoubleShot(rel, combat.currentRanged);
             }
             createProjectile(entities, pos, combat.attackDirection,
-                            projDamage, projSpeed, attacker.dimension, false, isPlayer);
+                            projDamage, projSpeed, projDim, false, isPlayer);
             if (doubleShot) {
                 // Slight offset for second projectile
                 Vec2 offset = {combat.attackDirection.y * 6.0f, -combat.attackDirection.x * 6.0f};
                 createProjectile(entities, {pos.x + offset.x, pos.y + offset.y},
-                                combat.attackDirection, projDamage, projSpeed, attacker.dimension, false, isPlayer);
+                                combat.attackDirection, projDamage, projSpeed, projDim, false, isPlayer);
             }
             AudioManager::instance().play(SFX::RangedShot);
         }
