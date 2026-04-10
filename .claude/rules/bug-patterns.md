@@ -210,6 +210,19 @@ would have missed by eye.
 - **Lesson**: **When using replace_all to propagate a cached value, explicitly exclude the init line.** Use targeted individual edits for the init line, or check the file after replace_all for any `X = X` patterns. Always grep for `(\w+)\s*=\s*\1\s*;` after a large replace_all.
 - **Detection shortcut**: `grep -rn '(\w+)\s*=\s*\1\s*;' src/` — this single grep would have caught the bug immediately.
 
+### 30f. Early-Return Kills Every Feature In The Loop Body (Ranged Attacks Skip Everything)
+- **Pattern**: `CombatSystem::processAttack()` did `if (combat.currentAttack == AttackType::Ranged) { processRangedAttack(...); return; }` at the top. Everything below the return was a rich melee forEach loop that did: relic damage multiplier, class mult, damage boost pickup, smith dmg mult, weapon mastery, resonance dmg, critical hits, Rift Shield absorb (for enemies attacking player), Reflector mirror-shield (for player attacking reflector), Elite Shielded absorb, ShieldAura -30%, knockback, stun, combo effects, enrage counter.
+- **Impact**: FIVE separate gameplay features were silently broken for ranged attacks:
+  1. **Ranged damage modifiers**: BloodOrb, VoidCrown, PhaseHunter, WrathOfDimensions, BalanceKeeper, BerserkersCurse, GlassCannon, ChaosCore, BloodPact, ChaosRift buff, class mult, damage boost, blacksmith ranged mult, weapon mastery, resonance — NONE of them scaled ranged damage. A Technomancer with BerserkersCurse at 10% HP (expected +135%) did base weapon damage.
+  2. **Rift Shield ability (player)**: shield absorb logic was inside the melee loop — enemy ranged attacks hit the player's HP directly, shield was cosmetic.
+  3. **Reflector enemy's mirror-shield**: shield-up cycle was pure visual — player ranged weapons passed through untouched; the "time your shots" tip was meaningless.
+  4. **Elite Shielded modifier**: eliteShieldHP absorb was melee-only; ranged builds ignored elite shields entirely.
+  5. **Enemy ranged dimDamageMod + Summoner buff**: enemy projectiles didn't scale with dim-B modifier, and Summoner-buffed minions that used ranged weapons ignored their +15% damage buff.
+- **Fix** (5 commits): Migrated each feature from the melee forEach loop into the appropriate ranged path. Ranged player damage mults now apply in `processRangedAttack()` at projectile spawn time. Shield/reflect/absorb logic moved into the `createProjectile()` onTrigger lambda (requires caching EntityManager* on CombatSystem so the lambda can spawn reflected projectiles). Enemy ranged modifiers applied at projectile spawn for non-player attackers.
+- **Lesson**: **An early return skips every feature after it.** When you see `if (condition) { delegateTo(X); return; }`, grep the rest of the function for every `if (condition)` sub-check and every feature that the sibling path doesn't duplicate. In this case, 5+ checks for `currentAttack == AttackType::Ranged` INSIDE the melee forEach loop were all dead code — and none of the reviews caught it because they looked at *combat* not *early returns*.
+- **Detection signal**: Grep for `if ([cond]) { ... return; }` at the top of a function, then grep the rest of the same file for `if ([cond])` — any match is a candidate for dead code that should be in the delegate branch instead.
+- **Files**: CombatSystem.cpp:73 (the early return), fixes spread across CombatSystem.cpp / CombatSystem.h / CombatSystemEffects.cpp in commits c3fbc31, 1d07f34, 61e96e0, e1edbff, bc0a341
+
 ## Meta-Lessons from the 13-bug Phase 2
 
 1. **Saturation is real but late** — After 46 "clean" commits in Phase 1, focused agent reviews found 13 more real bugs. The "looks done" feeling is misleading for complex gameplay code.
