@@ -88,6 +88,22 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
             projDamage *= ClassSystem::getData(PlayerClass::Technomancer).rangedDmgBonus;
         }
 
+        // Critical hit roll for ranged (same chance as melee, applied at spawn).
+        // Previously crits were melee-only because the roll lived inside the
+        // processAttack forEach loop which ranged attacks never reached.
+        bool rangedCrit = false;
+        if (isPlayer && m_critChance > 0) {
+            float roll = static_cast<float>(std::rand()) / RAND_MAX;
+            if (roll < m_critChance) {
+                projDamage *= 2.0f;
+                rangedCrit = true;
+                AudioManager::instance().play(SFX::CriticalHit);
+                if (m_particles) {
+                    m_particles->burst(pos, 12, {255, 255, 200, 255}, 100.0f, 2.5f);
+                }
+            }
+        }
+
         // Weapon-specific ranged behavior (player only)
         if (isPlayer && combat.currentRanged == WeaponID::RiftShotgun) {
             // 5 pellets in a fan pattern
