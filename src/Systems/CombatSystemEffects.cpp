@@ -136,7 +136,7 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
                     attacker.getComponent<RelicComponent>(), combat.currentRanged);
             }
             createProjectile(entities, pos, combat.attackDirection,
-                            launcherDmg, 300.0f, 0, false, isPlayer);
+                            launcherDmg, 300.0f, 0, false, isPlayer, rangedCrit);
             AudioManager::instance().play(SFX::RangedShot);
             // Dimensional rift particles at launch point
             if (m_particles) {
