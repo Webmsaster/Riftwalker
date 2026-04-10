@@ -299,6 +299,15 @@ void CombatSystem::processZombieSweep(EntityManager& entities, int currentDim) {
                 ke.wasMiniBoss = ai2.isMiniBoss;
                 ke.wasBoss = (ai2.enemyType == EnemyType::Boss);
             }
+            // Bug fix: wasRanged was never set for zombieSweep kills.
+            // Ranged projectile kills always land here, so the kill feed
+            // never showed "ranged" method and rangedKillsThisFrame was
+            // always 0. Infer from the player's last active attack type.
+            if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+                auto& pc = m_player->getEntity()->getComponent<CombatComponent>();
+                ke.wasRanged = (pc.currentAttack == AttackType::Ranged ||
+                                pc.currentAttack == AttackType::None);
+            }
             killEvents.push_back(ke);
         }
 
