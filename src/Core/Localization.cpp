@@ -833,6 +833,11 @@ void Localization::loadStrings() {
     m_en["tip.132"] = "TIP: Level rooms may have different layouts in Dimension A vs Dimension B — explore both sides!";
     m_en["tip.133"] = "TIP: Some exits are only reachable through a specific dimension — if one side is blocked, switch!";
     m_en["tip.134"] = "TIP: NG+ tiers slow entropy decay by 20% — plan for longer runs and use rifts more aggressively.";
+    m_en["tip.135"] = "TIP: Your Rift Shield reflects enemy projectiles back at 150% damage — time your shield for devastating counters!";
+    m_en["tip.136"] = "TIP: Reflector enemies cycle their shield every 4 seconds. Ranged attacks are reflected back at you when it's up!";
+    m_en["tip.137"] = "TIP: Defensive relics (GlassHeart, DualityGem, FortifiedSoul) protect against ALL damage — even boss attacks!";
+    m_en["tip.138"] = "TIP: Ranged weapons now scale with all your relics and upgrades — ranged builds are viable late-game!";
+    m_en["tip.139"] = "TIP: Fire and Ice element buffs work with ranged attacks too — shoot to ignite or freeze from a distance!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1974,6 +1979,11 @@ void Localization::loadStrings() {
     m_de["tip.132"] = "TIPP: Levelraeume haben oft unterschiedliche Layouts in Dimension A vs B — erkunde beide Seiten!";
     m_de["tip.133"] = "TIPP: Manche Ausgaenge sind nur ueber eine Dimension erreichbar — wenn eine Seite blockiert ist, wechsle!";
     m_de["tip.134"] = "TIPP: NG+ Stufen verlangsamen den Entropie-Abbau um 20% — plane fuer laengere Runs und nutze Risse aggressiv.";
+    m_de["tip.135"] = "TIPP: Dein Rissschild reflektiert feindliche Projektile mit 150% Schaden zurueck — time dein Schild fuer verheerende Konter!";
+    m_de["tip.136"] = "TIPP: Reflektoren wechseln ihr Schild alle 4 Sekunden. Fernkampfangriffe werden reflektiert wenn es aktiv ist!";
+    m_de["tip.137"] = "TIPP: Defensive Relikte (Glasherz, Dualitaetsstein, Festungsseele) schuetzen gegen ALLEN Schaden — auch Bossangriffe!";
+    m_de["tip.138"] = "TIPP: Fernkampfwaffen skalieren jetzt mit allen Relikten und Upgrades — Fernkampf-Builds sind im Spaetspiel stark!";
+    m_de["tip.139"] = "TIPP: Feuer- und Eis-Elementar-Buffs wirken auch auf Fernkampf — schiesse um aus der Ferne zu entzuenden oder einzufrieren!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
