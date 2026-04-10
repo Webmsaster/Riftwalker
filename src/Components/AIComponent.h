@@ -71,6 +71,7 @@ struct AIComponent : public Component {
     float eliteShieldRegenTimer = 0; // Shielded: regen cooldown
     float eliteTeleportTimer = 0;  // Teleporter: teleport cooldown
     float eliteVampHealAccum = 0;  // Vampiric: accumulated heal
+    bool hasNearbyShieldAura = false; // Cached per frame: within 100px of a ShieldAura elite
     float healAuraTimer = 0;       // HealAura: cooldown to avoid per-frame O(n) scan
     float elitePhasingTimer = 0;   // Phasing: cycle timer (0-5.5s, intangible at 4-5.5s)
     bool elitePhasing = false;     // Phasing: currently intangible

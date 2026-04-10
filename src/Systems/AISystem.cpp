@@ -142,6 +142,7 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
         ai.summonerBuffSpeedMult = 1.0f;
         ai.summonerBuffDamageMult = 1.0f;
         ai.synergyProtectTarget = nullptr;
+        ai.hasNearbyShieldAura = false;
 
         if (ai.enemyType == EnemyType::Summoner && ai.state == AIState::Chase && nSummoners < 8)
             summoners[nSummoners++] = {t.getCenter(), e};
@@ -167,6 +168,27 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
                     oai.summonerBuffDamageMult = 1.15f;
                     break; // One buff is enough
                 }
+            }
+        }
+    }
+
+    // ShieldAura proximity: mark all enemies within 100px of a ShieldAura elite.
+    // This cached flag is consumed by the projectile onTrigger lambda to apply
+    // the -30% damage reduction without an expensive inner forEach at hit time.
+    for (auto* e : ents) {
+        if (!e->isAlive() || !e->hasComponent<AIComponent>()) continue;
+        auto& ai = e->getComponent<AIComponent>();
+        if (!ai.isElite || ai.eliteMod != EliteModifier::ShieldAura) continue;
+        if (!e->hasComponent<TransformComponent>()) continue;
+        Vec2 auraPos = e->getComponent<TransformComponent>().getCenter();
+        for (auto* other : ents) {
+            if (other == e || !other->isAlive()) continue;
+            if (!other->isEnemy || !other->hasComponent<AIComponent>()) continue;
+            if (!other->hasComponent<TransformComponent>()) continue;
+            Vec2 oPos = other->getComponent<TransformComponent>().getCenter();
+            float dist = std::abs(oPos.x - auraPos.x) + std::abs(oPos.y - auraPos.y);
+            if (dist < 100.0f) {
+                other->getComponent<AIComponent>().hasNearbyShieldAura = true;
             }
         }
     }

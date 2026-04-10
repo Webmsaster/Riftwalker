@@ -639,6 +639,17 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                         return;
                     }
                 }
+                // ShieldAura: -30% damage for enemies near a ShieldAura elite.
+                // Cached per frame by AISystem pre-pass (avoids inner forEach here).
+                if (isPlayerOwned && !isPlayerDamage && other->hasComponent<AIComponent>()) {
+                    if (other->getComponent<AIComponent>().hasNearbyShieldAura) {
+                        finalDmg *= 0.7f;
+                        if (cs->m_particles && other->hasComponent<TransformComponent>()) {
+                            Vec2 pos = other->getComponent<TransformComponent>().getCenter();
+                            cs->m_particles->burst(pos, 4, {60, 200, 255, 180}, 50.0f, 1.0f);
+                        }
+                    }
+                }
                 // Defensive relic multiplier when projectile hits the player
                 if (isPlayerDamage && other->hasComponent<RelicComponent>()) {
                     finalDmg *= RelicSystem::getDamageTakenMult(

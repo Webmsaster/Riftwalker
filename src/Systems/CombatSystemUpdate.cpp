@@ -305,8 +305,7 @@ void CombatSystem::processZombieSweep(EntityManager& entities, int currentDim) {
             // always 0. Infer from the player's last active attack type.
             if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
                 auto& pc = m_player->getEntity()->getComponent<CombatComponent>();
-                ke.wasRanged = (pc.currentAttack == AttackType::Ranged ||
-                                pc.currentAttack == AttackType::None);
+                ke.wasRanged = (pc.currentAttack == AttackType::Ranged);
                 // Also track wasAerial for aerial-kill challenges and kill feed
                 if (m_player->getEntity()->hasComponent<PhysicsBody>())
                     ke.wasAerial = !m_player->getEntity()->getComponent<PhysicsBody>().onGround;
@@ -326,8 +325,7 @@ void CombatSystem::processZombieSweep(EntityManager& entities, int currentDim) {
         // Attribute the kill to whichever weapon was last active.
         if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
             auto& pc = m_player->getEntity()->getComponent<CombatComponent>();
-            WeaponID killWeapon = (pc.currentAttack == AttackType::Ranged ||
-                                   pc.currentAttack == AttackType::None)
+            WeaponID killWeapon = (pc.currentAttack == AttackType::Ranged)
                 ? pc.currentRanged : pc.currentMelee;
             int wIdx = static_cast<int>(killWeapon);
             if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT))
