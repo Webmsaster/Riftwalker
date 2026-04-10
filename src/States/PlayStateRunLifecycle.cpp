@@ -590,14 +590,23 @@ void PlayState::applyNGPlusModifiers(Entity& e) {
     if (m_ngPlusTier <= 0) return;
     if (!e.hasComponent<HealthComponent>() || !e.hasComponent<CombatComponent>()) return;
 
+    // Bug fix: NG+ scaling only handled tiers 1/3/5 but the system supports
+    // tier 10 (Phase 1 fix 2026-04-09). Tiers 6-10 had no additional enemy
+    // scaling — the NG+ ladder flattened out after tier 5, making late-game
+    // tiers a cosmetic achievement rather than a difficulty increase.
+    // Extended progression:
     // NG+1: +25% HP, +15% DMG
-    // NG+3: cumulative to +50% HP total (applied on top of NG+1/2 chain)
+    // NG+3: cumulative to +50% HP total
     // NG+5: cumulative to +100% HP total
+    // NG+7: cumulative to +150% HP total, +30% DMG
+    // NG+10: cumulative to +200% HP total, +50% DMG
     float hpMult = 1.0f;
     float dmgMult = 1.0f;
     if (m_ngPlusTier >= 1) { hpMult *= 1.25f; dmgMult *= 1.15f; }
     if (m_ngPlusTier >= 3) { hpMult *= 1.20f; }   // reaches ~50% total vs base
     if (m_ngPlusTier >= 5) { hpMult *= 1.33f; }   // reaches ~100% total vs base
+    if (m_ngPlusTier >= 7) { hpMult *= 1.25f; dmgMult *= 1.13f; }  // ~150% HP, ~30% DMG
+    if (m_ngPlusTier >= 10) { hpMult *= 1.20f; dmgMult *= 1.15f; } // ~200% HP, ~50% DMG
 
     auto& hp = e.getComponent<HealthComponent>();
     hp.maxHP *= hpMult;
