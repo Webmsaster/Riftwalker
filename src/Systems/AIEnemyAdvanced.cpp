@@ -8,11 +8,13 @@
 #include "Components/SpriteComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/ColliderComponent.h"
+#include "Components/RelicComponent.h"
 #include "Systems/ParticleSystem.h"
 #include "Systems/CombatSystem.h"
 #include "Core/AudioManager.h"
 #include "Game/Level.h"
 #include "Game/Player.h"
+#include "Game/RelicSystem.h"
 #include <cmath>
 #include <cstdlib>
 
@@ -380,12 +382,18 @@ void AISystem::updateSniper(Entity& entity, float dt, const Vec2& playerPos, Ent
                         if (other->hasComponent<HealthComponent>()) {
                             auto& hp = other->getComponent<HealthComponent>();
                             if (!hp.isInvincible()) {
-                                hp.takeDamage(damage);
+                                // Bug fix: apply defensive relic multiplier on player hit
+                                float finalDmg = damage;
+                                if (other->isPlayer && other->hasComponent<RelicComponent>()) {
+                                    finalDmg *= RelicSystem::getDamageTakenMult(
+                                        other->getComponent<RelicComponent>(), other->dimension);
+                                }
+                                hp.takeDamage(finalDmg);
                                 if (cs && other->hasComponent<TransformComponent>()) {
                                     bool isPlayer = other->isPlayer;
                                     Vec2 srcPos = self->hasComponent<TransformComponent>()
                                         ? self->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
-                                    cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), damage, isPlayer, false, false, srcPos);
+                                    cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), finalDmg, isPlayer, false, false, srcPos);
                                 }
                             }
                         }
@@ -670,10 +678,16 @@ void AISystem::updateLeech(Entity& entity, float dt, const Vec2& playerPos) {
                     auto& playerHP = playerEntity->getComponent<HealthComponent>();
                     if (!playerHP.isInvincible()) {
                         float drainAmount = ai.leechDrainRate;
+                        // Bug fix: apply defensive relic multiplier to leech drain
+                        if (playerEntity->hasComponent<RelicComponent>()) {
+                            drainAmount *= RelicSystem::getDamageTakenMult(
+                                playerEntity->getComponent<RelicComponent>(), playerEntity->dimension);
+                        }
                         playerHP.takeDamage(drainAmount);
-                        // Heal self equal amount
+                        // Heal self equal amount (note: use ORIGINAL drain rate for healing,
+                        // otherwise defensive relics would nerf the leech's sustain)
                         if (entity.hasComponent<HealthComponent>()) {
-                            entity.getComponent<HealthComponent>().heal(drainAmount);
+                            entity.getComponent<HealthComponent>().heal(ai.leechDrainRate);
                         }
                         ai.leechDrainTimer = 0.5f;
 

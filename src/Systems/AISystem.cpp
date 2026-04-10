@@ -8,12 +8,14 @@
 #include "Components/AnimationComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/ColliderComponent.h"
+#include "Components/RelicComponent.h"
 #include "Systems/ParticleSystem.h"
 #include "Systems/CombatSystem.h"
 #include "Core/AudioManager.h"
 #include "Game/Level.h"
 #include "Game/SpriteConfig.h"
 #include "Game/Player.h"
+#include "Game/RelicSystem.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -973,6 +975,11 @@ void AISystem::explode(Entity& entity, EntityManager& entities) {
             auto& hp = target.getComponent<HealthComponent>();
             if (!hp.isInvincible()) {
                 float dmg = ai.explodeDamage * falloff;
+                // Bug fix: apply defensive relic multiplier when exploder hits player
+                if (target.isPlayer && target.hasComponent<RelicComponent>()) {
+                    dmg *= RelicSystem::getDamageTakenMult(
+                        target.getComponent<RelicComponent>(), target.dimension);
+                }
                 hp.takeDamage(dmg);
                 if (m_combatSystem) {
                     bool isPlayer = (target.isPlayer);
