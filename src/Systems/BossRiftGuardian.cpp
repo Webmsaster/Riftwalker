@@ -67,14 +67,9 @@ void AISystem::updateBoss(Entity& entity, float dt, const Vec2& playerPos, Entit
                     Vec2 knockDir = (tPos - pos).normalized();
                     target.getComponent<PhysicsBody>().velocity += knockDir * 400.0f;
                     target.getComponent<PhysicsBody>().velocity.y = -250.0f;
-                    if (target.hasComponent<HealthComponent>()) {
-                        auto& hp = target.getComponent<HealthComponent>();
-                        if (!hp.isInvincible()) {
-                            hp.takeDamage(15.0f);
-                            if (m_combatSystem)
-                                m_combatSystem->addDamageEvent(tPos, 15.0f, true, false, false, pos);
-                        }
-                    }
+                    applyBossDamageToPlayer(target, 15.0f, target.dimension);
+                    if (m_combatSystem)
+                        m_combatSystem->addDamageEvent(tPos, 15.0f, true, false, false, pos);
                 }
             });
         }
@@ -342,13 +337,10 @@ void AISystem::updateBoss(Entity& entity, float dt, const Vec2& playerPos, Entit
                 float d = distanceTo(pos, tPos);
                 if (d < 120.0f) {
                     float falloff = 1.0f - (d / 120.0f);
-                    auto& hp = target.getComponent<HealthComponent>();
-                    if (!hp.isInvincible()) {
-                        float dmg = 20.0f * falloff;
-                        hp.takeDamage(dmg);
-                        if (m_combatSystem)
-                            m_combatSystem->addDamageEvent(tPos, dmg, true, false, false, pos);
-                    }
+                    float dmg = 20.0f * falloff;
+                    applyBossDamageToPlayer(target, dmg, target.dimension);
+                    if (m_combatSystem)
+                        m_combatSystem->addDamageEvent(tPos, dmg, true, false, false, pos);
                     if (target.hasComponent<PhysicsBody>()) {
                         target.getComponent<PhysicsBody>().velocity.y = -300.0f * falloff;
                     }

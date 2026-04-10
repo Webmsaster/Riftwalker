@@ -96,15 +96,10 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
                         Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                         float d = distanceTo(pos, tPos);
                         if (d < 200.0f) {
-                            if (target.hasComponent<HealthComponent>()) {
-                                auto& thp = target.getComponent<HealthComponent>();
-                                if (!thp.isInvincible()) {
-                                    float dmg = 10.0f + ai.bossPhase * 3.0f;
-                                    thp.takeDamage(dmg);
-                                    if (m_combatSystem)
-                                        m_combatSystem->addDamageEvent(tPos, dmg, true, false, false, pos);
-                                }
-                            }
+                            float dmg = 10.0f + ai.bossPhase * 3.0f;
+                            applyBossDamageToPlayer(target, dmg, target.dimension);
+                            if (m_combatSystem)
+                                m_combatSystem->addDamageEvent(tPos, dmg, true, false, false, pos);
                             // Knockback
                             if (target.hasComponent<PhysicsBody>()) {
                                 Vec2 knockDir = (tPos - pos).normalized();
@@ -280,12 +275,9 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
                 if (!target.hasComponent<TransformComponent>()) return;
                 Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                 float d = distanceTo(pos, tPos);
-                if (d < 150.0f && target.hasComponent<HealthComponent>()) {
-                    auto& thp = target.getComponent<HealthComponent>();
-                    if (!thp.isInvincible()) {
-                        // Light tick damage while in entropy storm zone
-                        thp.takeDamage(5.0f * dt);
-                    }
+                if (d < 150.0f) {
+                    // Light tick damage while in entropy storm zone
+                    applyBossDamageToPlayer(target, 5.0f * dt, target.dimension);
                 }
             });
         }
@@ -414,13 +406,10 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
                 if (!target.hasComponent<TransformComponent>()) return;
                 Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                 float d = distanceTo(pos, tPos);
-                if (d < 300.0f && target.hasComponent<HealthComponent>()) {
-                    auto& thp = target.getComponent<HealthComponent>();
-                    if (!thp.isInvincible()) {
-                        thp.takeDamage(20.0f);
-                        if (m_combatSystem)
-                            m_combatSystem->addDamageEvent(tPos, 20.0f, true, false, false, pos);
-                    }
+                if (d < 300.0f) {
+                    applyBossDamageToPlayer(target, 20.0f, target.dimension);
+                    if (m_combatSystem)
+                        m_combatSystem->addDamageEvent(tPos, 20.0f, true, false, false, pos);
                 }
                 if (target.hasComponent<PhysicsBody>()) {
                     Vec2 knockDir = (tPos - pos).normalized();

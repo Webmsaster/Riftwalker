@@ -84,14 +84,9 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, const Vec2& playerP
                         Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                         float d = distanceTo(pos, tPos);
                         if (d < 150.0f) {
-                            if (target.hasComponent<HealthComponent>()) {
-                                auto& hp = target.getComponent<HealthComponent>();
-                                if (!hp.isInvincible()) {
-                                    hp.takeDamage(35.0f);
-                                    if (m_combatSystem)
-                                        m_combatSystem->addDamageEvent(tPos, 35.0f, true, false, false, pos);
-                                }
-                            }
+                            applyBossDamageToPlayer(target, 35.0f, target.dimension);
+                            if (m_combatSystem)
+                                m_combatSystem->addDamageEvent(tPos, 35.0f, true, false, false, pos);
                             if (target.hasComponent<PhysicsBody>()) {
                                 Vec2 knockDir = (tPos - pos).normalized();
                                 target.getComponent<PhysicsBody>().velocity += knockDir * 400.0f;
@@ -328,13 +323,9 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, const Vec2& playerP
                 proj = std::max(0.0f, std::min(1.0f, proj));
                 float cx = pos.x + proj * lx, cy = pos.y + proj * ly;
                 float ddx = tPos.x - cx, ddy = tPos.y - cy;
-                if (ddx * ddx + ddy * ddy < 30.0f * 30.0f && target.hasComponent<HealthComponent>()) {
-                    auto& hp = target.getComponent<HealthComponent>();
-                    if (!hp.isInvincible()) {
-                        float dmg = 40.0f * dt;
-                        hp.takeDamage(dmg);
-                        // No DamageEvent for continuous laser (would spam floating numbers)
-                    }
+                if (ddx * ddx + ddy * ddy < 30.0f * 30.0f) {
+                    applyBossDamageToPlayer(target, 40.0f * dt, target.dimension);
+                    // No DamageEvent for continuous laser (would spam floating numbers)
                 }
             });
             if (m_particles) {
@@ -385,12 +376,7 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, const Vec2& playerP
                 float d2 = distanceTo(tPos, ai.vsStormSafe2);
                 float safeRadius = 80.0f;
                 if (d1 > safeRadius && d2 > safeRadius) {
-                    if (target.hasComponent<HealthComponent>()) {
-                        auto& hp = target.getComponent<HealthComponent>();
-                        if (!hp.isInvincible()) {
-                            hp.takeDamage(25.0f * dt);
-                        }
-                    }
+                    applyBossDamageToPlayer(target, 25.0f * dt, target.dimension);
                 }
             });
         }

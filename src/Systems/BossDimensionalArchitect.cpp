@@ -107,12 +107,18 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, const Vec2& 
                         if (other->hasComponent<HealthComponent>()) {
                             auto& hp = other->getComponent<HealthComponent>();
                             if (!hp.isInvincible()) {
-                                hp.takeDamage(damage);
+                                // Bug fix: apply defensive relic multiplier on player hit
+                                float finalDmg = damage;
+                                if (other->isPlayer && other->hasComponent<RelicComponent>()) {
+                                    finalDmg *= RelicSystem::getDamageTakenMult(
+                                        other->getComponent<RelicComponent>(), other->dimension);
+                                }
+                                hp.takeDamage(finalDmg);
                                 if (cs && other->hasComponent<TransformComponent>()) {
                                     bool isPlayer = (other->isPlayer);
                                     Vec2 srcPos = self->hasComponent<TransformComponent>()
                                         ? self->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
-                                    cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), damage, isPlayer, false, false, srcPos);
+                                    cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), finalDmg, isPlayer, false, false, srcPos);
                                 }
                             }
                         }
@@ -145,12 +151,18 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, const Vec2& 
                                 if (other->hasComponent<HealthComponent>()) {
                                     auto& hp = other->getComponent<HealthComponent>();
                                     if (!hp.isInvincible()) {
-                                        hp.takeDamage(stormDmg);
+                                        // Bug fix: apply defensive relic multiplier on player hit
+                                        float finalDmg = stormDmg;
+                                        if (other->isPlayer && other->hasComponent<RelicComponent>()) {
+                                            finalDmg *= RelicSystem::getDamageTakenMult(
+                                                other->getComponent<RelicComponent>(), other->dimension);
+                                        }
+                                        hp.takeDamage(finalDmg);
                                         if (cs && other->hasComponent<TransformComponent>()) {
                                             bool isPlayer = (other->isPlayer);
                                             Vec2 srcPos = self->hasComponent<TransformComponent>()
                                                 ? self->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
-                                            cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), stormDmg, isPlayer, false, false, srcPos);
+                                            cs->addDamageEvent(other->getComponent<TransformComponent>().getCenter(), finalDmg, isPlayer, false, false, srcPos);
                                         }
                                     }
                                 }

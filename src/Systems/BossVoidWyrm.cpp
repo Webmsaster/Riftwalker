@@ -105,12 +105,9 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, const Vec2& playerPos, E
                         if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
                         Vec2 tPos = target.getComponent<TransformComponent>().getCenter();
                         if (distanceTo(targetPos, tPos) < 100.0f) {
-                            auto& hp = target.getComponent<HealthComponent>();
-                            if (!hp.isInvincible()) {
-                                hp.takeDamage(8.0f);
-                                if (m_combatSystem)
-                                    m_combatSystem->addDamageEvent(tPos, 8.0f, true, false, false, pos);
-                            }
+                            applyBossDamageToPlayer(target, 8.0f, target.dimension);
+                            if (m_combatSystem)
+                                m_combatSystem->addDamageEvent(tPos, 8.0f, true, false, false, pos);
                         }
                     });
                     // Phase 2+: spawn 3 smaller venom pool projectiles at random offsets
@@ -182,13 +179,10 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, const Vec2& playerPos, E
                     float d = distanceTo(pos, tPos);
                     if (d < 80.0f) {
                         float falloff = 1.0f - (d / 80.0f);
-                        auto& hp = target.getComponent<HealthComponent>();
-                        if (!hp.isInvincible()) {
-                            float dmg = 18.0f * falloff;
-                            hp.takeDamage(dmg);
-                            if (m_combatSystem)
-                                m_combatSystem->addDamageEvent(tPos, dmg, true, false, false, pos);
-                        }
+                        float dmg = 18.0f * falloff;
+                        applyBossDamageToPlayer(target, dmg, target.dimension);
+                        if (m_combatSystem)
+                            m_combatSystem->addDamageEvent(tPos, dmg, true, false, false, pos);
                         if (target.hasComponent<PhysicsBody>()) {
                             Vec2 knockDir = (tPos - pos).normalized();
                             knockDir.y = -0.5f;
