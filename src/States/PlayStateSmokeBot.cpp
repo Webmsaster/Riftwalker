@@ -613,6 +613,16 @@ void PlayState::updateSmokeTest(float dt) {
     m_smokeActionTimer -= dt;
     m_smokeDimTimer -= dt;
 
+    // Bug fix: cross-run state leak. Function-static navigation vars
+    // persist across smoke-test runs (same pattern as the Phase 2 playtest
+    // bot fix 2026-04-09). On first frame of a new run, reset the grace
+    // timer + log flag so a previous run's end state doesn't bleed into
+    // this run's navigation decisions.
+    if (m_smokeRunTime < dt + 0.001f) {
+        smokeRecoveryGraceTimer = 0;
+        smokeRecoverySuppressedLogged = false;
+    }
+
     // God mode: keep HP full + prevent entropy death
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     hp.currentHP = hp.maxHP;
