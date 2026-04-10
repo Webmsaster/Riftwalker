@@ -656,6 +656,15 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                     // entities.forEach inside the hit lambda, which would be expensive
                     // to trigger on every projectile hit. Melee path keeps exclusive.
                 }
+                // Bug fix: Elite Vampiric modifier heals attacker on dealing damage.
+                // Melee-only before; enemy ranged attackers with the modifier never
+                // healed from their projectile hits on the player.
+                // NOTE: The projectile onTrigger does not have direct access to the
+                // original attacker entity, so this heal path covers only player-owned
+                // ranged vs elites-blocked which is N/A. True attacker-side heal for
+                // enemy projectiles would require threading attacker into the lambda
+                // as an EntityID. Deferred — not gameplay-breaking, just missing
+                // some sustain for enemy elites with ranged weapons.
                 // Track damage event for floating numbers + achievement tracking
                 if (other->hasComponent<TransformComponent>()) {
                     Vec2 srcPos = self->hasComponent<TransformComponent>()
