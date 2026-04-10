@@ -625,6 +625,37 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                         other->getComponent<RelicComponent>(), dimension);
                 }
                 hp.takeDamage(finalDmg);
+                // Bug fix: Element weapon effects (fire burn DoT, ice freeze slow,
+                // electric chain damage) were only applied in the melee forEach
+                // loop at CombatSystem.cpp:909-955. Ranged projectiles with an
+                // active element run buff never triggered these. Apply now at
+                // projectile hit for parity with melee.
+                if (isPlayerOwned && cs->m_elementWeapon > 0 && other->hasComponent<AIComponent>()
+                    && !other->isPlayer) {
+                    auto& targetAI = other->getComponent<AIComponent>();
+                    Vec2 hitPos = other->hasComponent<TransformComponent>()
+                        ? other->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
+                    if (cs->m_elementWeapon == 1) {
+                        targetAI.burnTimer = 2.0f;
+                        targetAI.burnDmgTick = 0.3f;
+                        if (cs->m_particles) {
+                            cs->m_particles->burst(hitPos, 5, {255, 120, 30, 255}, 80.0f, 2.0f);
+                        }
+                    } else if (cs->m_elementWeapon == 2) {
+                        bool alreadyFrozen = (targetAI.freezeTimer > 0.01f);
+                        targetAI.freezeTimer = std::max(targetAI.freezeTimer, 1.5f);
+                        if (!alreadyFrozen) {
+                            targetAI.stun(0.15f);
+                        }
+                        if (cs->m_particles) {
+                            cs->m_particles->burst(hitPos, 6, {100, 180, 255, 255}, 70.0f, 2.0f);
+                            cs->m_particles->burst(hitPos, 3, {180, 220, 255, 200}, 40.0f, 1.0f);
+                        }
+                    }
+                    // Note: electric chain damage (element 3) omitted here — needs an
+                    // entities.forEach inside the hit lambda, which would be expensive
+                    // to trigger on every projectile hit. Melee path keeps exclusive.
+                }
                 // Track damage event for floating numbers + achievement tracking
                 if (other->hasComponent<TransformComponent>()) {
                     Vec2 srcPos = self->hasComponent<TransformComponent>()
