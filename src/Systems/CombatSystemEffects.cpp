@@ -746,20 +746,19 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                 // as an EntityID. Deferred — not gameplay-breaking, just missing
                 // some sustain for enemy elites with ranged weapons.
                 // EchoStrike relic: chance for bonus hit (was melee-only, now parity)
-                if (isPlayerOwned && other->hasComponent<RelicComponent>() == false &&
+                // Guard: skip if target already dead from primary hit (phantom damage)
+                if (isPlayerOwned && other->hasComponent<HealthComponent>() &&
+                    other->getComponent<HealthComponent>().currentHP > 0 &&
                     other->hasComponent<AIComponent>() && !other->isPlayer) {
-                    // Check player's relics via the combat system's cached player
                     if (cs->m_player && cs->m_player->getEntity() &&
                         cs->m_player->getEntity()->hasComponent<RelicComponent>()) {
                         auto& pRel = cs->m_player->getEntity()->getComponent<RelicComponent>();
                         // PiercingEcho synergy overrides echo chance for RiftCrossbow
                         float echoOverride = RelicSynergy::getPiercingEchoChance(
-                            pRel, cs->m_player->getEntity()->hasComponent<CombatComponent>()
-                                ? cs->m_player->getEntity()->getComponent<CombatComponent>().currentRanged
-                                : WeaponID::ShardPistol);
+                            pRel, cs->m_player->getEntity()->getComponent<CombatComponent>().currentRanged);
                         bool doEcho = false;
                         if (echoOverride > 0) {
-                            doEcho = (static_cast<float>(std::rand()) / RAND_MAX) < echoOverride;
+                            doEcho = RelicSystem::rollChance(echoOverride);
                         } else {
                             doEcho = RelicSystem::rollEchoStrike(pRel);
                         }

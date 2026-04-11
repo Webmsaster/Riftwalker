@@ -300,6 +300,10 @@ bool RelicSystem::rollEchoStrike(const RelicComponent& relics) {
     return false;
 }
 
+bool RelicSystem::rollChance(float chance) {
+    return std::uniform_real_distribution<float>(0.0f, 1.0f)(s_rng) < chance;
+}
+
 float RelicSystem::getThornDamage(const RelicComponent& relics) {
     float dmg = 0;
     for (auto& r : relics.relics) {

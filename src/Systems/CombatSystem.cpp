@@ -886,7 +886,8 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 float thornImpact = attacker.hasComponent<RelicComponent>()
                     ? RelicSynergy::getGravityThornsImpactDmg(attacker.getComponent<RelicComponent>(), combat.currentMelee)
                     : 0;
-                if (thornImpact > 0 && target.hasComponent<HealthComponent>()) {
+                if (thornImpact > 0 && target.hasComponent<HealthComponent>() &&
+                    target.getComponent<HealthComponent>().currentHP > 0) {
                     target.getComponent<HealthComponent>().takeDamage(thornImpact);
                     m_damageEvents.push_back({targetCenter, thornImpact, false, false});
                     if (m_particles) {

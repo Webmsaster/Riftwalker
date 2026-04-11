@@ -43,6 +43,8 @@ public:
 
     // Check for echo strike (double hit chance)
     static bool rollEchoStrike(const RelicComponent& relics);
+    // Generic chance roll using project RNG (consistent with all other relic rolls)
+    static bool rollChance(float chance);
 
     // Get thorn damage (reflected on hit)
     static float getThornDamage(const RelicComponent& relics);
