@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-11 autonomous improvement pass — 22 commits):**
+**Recent Updates (2026-04-11 autonomous improvement pass — 24 commits):**
 - **Electric chain ranged parity**: Element 3 (Electric) 30% chain damage was deferred for ranged — now fires via `m_currentEntities->forEach` in projectile onTrigger lambda. Cost bounded (1x per hit, not per frame).
 - **EchoStrike ranged fix**: `rollEchoStrike()` was melee-only (another early-return survivor). Added to projectile onTrigger with PiercingEcho synergy override (35% for RiftCrossbow).
 - **3 new weapon-relic synergies** (all 12 weapons now have synergies): GravityThorns (GravityGauntlet + ThornMail, +5 impact DMG), PhantomGrapple (GrapplingHook + PhaseCloak, 2s invis on kill), PiercingEcho (RiftCrossbow + EchoStrike, 35% echo chance). 25 synergies total.
@@ -29,7 +29,8 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **ShieldAura melee O(n²) → O(1)**: Replaced nested forEach with per-frame cached `hasNearbyShieldAura` flag (already used by ranged path).
 - **Temporal Weaver boss phase flicker fix**: Phase assigned every frame without guard — caused flutter at HP boundaries, all timers firing simultaneously on spawn, no transition FX. Added newPhase guard matching all 5 other bosses.
 - **Playtest bot synergy-aware scoring**: Simulates adding relic to check if it completes any of 13 relic-only synergies.
-- **Balance + Boss AI audits clean**: 9 parallel agent scans, all damage formulas and boss phase logic verified correct.
+- **Boss enrage field dead code**: All 6 bosses wrote `bossEnraged` (never read) instead of `isEnraged` (used by animation + combat speed). Bosses never showed enrage animation or got attack speed boost in late phases. Fixed all 6 + removed dead field.
+- **Balance + Boss AI audits**: 9 parallel agent scans, damage formulas verified correct, Temporal Weaver phase bug + enrage field bug found and fixed.
 
 **Recent Updates (2026-04-10 mega autonomous session — 42 commits, 24 bugs, 30 files, 17/17 visual tests PASS):**
 
