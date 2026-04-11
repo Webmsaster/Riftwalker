@@ -273,6 +273,33 @@ void Localization::loadStrings() {
     m_en["buff.10.name"] = "Soul Anchor";        m_en["buff.10.desc"] = "Revive Once at 50% HP";
     m_en["buff.11.name"] = "Phantom Step";       m_en["buff.11.desc"] = "Invincible After Dim-Switch";
 
+    // Synergy names + descriptions (used in HUD weapon panel)
+    m_en["syn.0.name"]  = "Vampiric Frenzy";     m_en["syn.0.desc"]  = "Kill under 30% HP heals 8 instead of 3";
+    m_en["syn.1.name"]  = "Chain Thorns";         m_en["syn.1.desc"]  = "Thorn reflection chains to 2 enemies (10 DMG)";
+    m_en["syn.2.name"]  = "Temporal Echo";        m_en["syn.2.desc"]  = "Echo Strike chance 35% instead of 20%";
+    m_en["syn.3.name"]  = "Phase Hunter";         m_en["syn.3.desc"]  = "After dim-switch: next attack deals 2x DMG";
+    m_en["syn.4.name"]  = "Void Catalyst";        m_en["syn.4.desc"]  = "Void Hunger +1.5%/kill instead of +1%";
+    m_en["syn.5.name"]  = "Lucky Phoenix";        m_en["syn.5.desc"]  = "Revive retains 50% of shards";
+    m_en["syn.6.name"]  = "Fortified Soul";       m_en["syn.6.desc"]  = "Glass Heart penalty reduced: 1.3x DMG taken";
+    m_en["syn.7.name"]  = "Entropy Vortex";       m_en["syn.7.desc"]  = "Kills reduce entropy by 5%";
+    m_en["syn.8.name"]  = "Quicksilver";          m_en["syn.8.desc"]  = "+20% Dash speed";
+    m_en["syn.9.name"]  = "Cursed Fortune";       m_en["syn.9.desc"]  = "+30% Shard Drop instead of 10%";
+    m_en["syn.10.name"] = "Rift Master";          m_en["syn.10.desc"] = "Stability +4%/s, stacks persist on switch";
+    m_en["syn.11.name"] = "Dual Nature";          m_en["syn.11.desc"] = "No HP cost on switch, both dim bonuses active";
+    m_en["syn.12.name"] = "Void Echo";            m_en["syn.12.desc"] = "Residue zone 4s, 20 DMG/s";
+    m_en["syn.13.name"] = "Blood Rift";           m_en["syn.13.desc"] = "RiftBlade kills under 50% HP heal 5";
+    m_en["syn.14.name"] = "Berserker Smash";      m_en["syn.14.desc"] = "VoidHammer charged AoE +50%, stun +0.5s";
+    m_en["syn.15.name"] = "Phantom Rush";         m_en["syn.15.desc"] = "PhaseDaggers crit every 4th hit, +10% speed";
+    m_en["syn.16.name"] = "Rapid Shards";         m_en["syn.16.desc"] = "ShardPistol +30% proj speed, 25% double-shot";
+    m_en["syn.17.name"] = "Storm Scatter";        m_en["syn.17.desc"] = "RiftShotgun kills chain lightning to 2 enemies";
+    m_en["syn.18.name"] = "Entropy Beam";         m_en["syn.18.desc"] = "VoidBeam reduces entropy instead of gaining";
+    m_en["syn.19.name"] = "Entropy Drain";        m_en["syn.19.desc"] = "EntropyScythe entropy -5 per hit instead of -2";
+    m_en["syn.20.name"] = "Chain Reaction";       m_en["syn.20.desc"] = "ChainWhip hits spawn chain lightning bolts";
+    m_en["syn.21.name"] = "Dimensional Barrage";  m_en["syn.21.desc"] = "DimLauncher projectiles deal 50% more damage";
+    m_en["syn.22.name"] = "Gravity Thorns";       m_en["syn.22.desc"] = "GravityGauntlet pull deals 5 extra impact damage";
+    m_en["syn.23.name"] = "Phantom Grapple";      m_en["syn.23.desc"] = "GrapplingHook kills grant 2s invisibility";
+    m_en["syn.24.name"] = "Piercing Echo";        m_en["syn.24.desc"] = "RiftCrossbow piercing hits 35% echo chance";
+
     // Persistent upgrades
     m_en["upgrade.0.name"]  = "Reinforced Suit";     m_en["upgrade.0.desc"]  = "+20 Max HP";
     m_en["upgrade.1.name"]  = "Quantum Boots";       m_en["upgrade.1.desc"]  = "+10% Move Speed";
@@ -1349,6 +1376,33 @@ void Localization::loadStrings() {
     m_de["buff.9.name"]  = "Vampirklinge";       m_de["buff.9.desc"]  = "5% Lebensraub pro Treffer";
     m_de["buff.10.name"] = "Seelenanker";        m_de["buff.10.desc"] = "Einmal bei 50% HP wiederbeleben";
     m_de["buff.11.name"] = "Phantomschritt";     m_de["buff.11.desc"] = "Unverwundbar nach Dim.-Wechsel";
+
+    // Synergy names + descriptions
+    m_de["syn.0.name"]  = "Vampirischer Rausch"; m_de["syn.0.desc"]  = "Kill unter 30% HP heilt 8 statt 3";
+    m_de["syn.1.name"]  = "Kettendornen";        m_de["syn.1.desc"]  = "Dornenreflexion kettet zu 2 Feinden (10 SCH)";
+    m_de["syn.2.name"]  = "Zeitliches Echo";     m_de["syn.2.desc"]  = "Echoschlag-Chance 35% statt 20%";
+    m_de["syn.3.name"]  = "Phasenjaeger";        m_de["syn.3.desc"]  = "Nach Dim.-Wechsel: naechster Angriff 2x SCH";
+    m_de["syn.4.name"]  = "Leerekatalysator";    m_de["syn.4.desc"]  = "Leerehunger +1,5%/Kill statt +1%";
+    m_de["syn.5.name"]  = "Gluecksphoenix";      m_de["syn.5.desc"]  = "Wiederbelebung behaelt 50% der Splitter";
+    m_de["syn.6.name"]  = "Gestaerkte Seele";    m_de["syn.6.desc"]  = "Glasherz-Malus reduziert: 1,3x SCH erhalten";
+    m_de["syn.7.name"]  = "Entropiewirbel";      m_de["syn.7.desc"]  = "Kills reduzieren Entropie um 5%";
+    m_de["syn.8.name"]  = "Quecksilber";         m_de["syn.8.desc"]  = "+20% Dash-Geschwindigkeit";
+    m_de["syn.9.name"]  = "Verfluchtes Glueck";  m_de["syn.9.desc"]  = "+30% Splitter-Drop statt 10%";
+    m_de["syn.10.name"] = "Rissmeister";         m_de["syn.10.desc"] = "Stabilitaet +4%/s, Stacks bleiben bei Wechsel";
+    m_de["syn.11.name"] = "Duale Natur";         m_de["syn.11.desc"] = "Kein HP-Verlust beim Wechsel, beide Dim.-Boni aktiv";
+    m_de["syn.12.name"] = "Leere-Echo";          m_de["syn.12.desc"] = "Rueckstandszone 4s, 20 SCH/s";
+    m_de["syn.13.name"] = "Blutriss";            m_de["syn.13.desc"] = "Rissklinge: Kills unter 50% HP heilen 5";
+    m_de["syn.14.name"] = "Berserkerschlag";     m_de["syn.14.desc"] = "Leerehammer: AoE +50%, Betaeubung +0,5s";
+    m_de["syn.15.name"] = "Phantomrausch";       m_de["syn.15.desc"] = "Phasendolche: Krit alle 4 Treffer, +10% Tempo";
+    m_de["syn.16.name"] = "Schnelle Splitter";   m_de["syn.16.desc"] = "Splitterpistole: +30% Geschoss, 25% Doppelschuss";
+    m_de["syn.17.name"] = "Sturmstreuung";       m_de["syn.17.desc"] = "Rissschrotflinte: Kills ketten Blitz zu 2 Feinden";
+    m_de["syn.18.name"] = "Entropiestrahl";      m_de["syn.18.desc"] = "Leerestrahl reduziert Entropie statt zu erhoehen";
+    m_de["syn.19.name"] = "Entropieentzug";      m_de["syn.19.desc"] = "Entropiesense: -5 Entropie pro Treffer statt -2";
+    m_de["syn.20.name"] = "Kettenreaktion";      m_de["syn.20.desc"] = "Kettenpeitschen-Treffer erzeugen Kettenblitze";
+    m_de["syn.21.name"] = "Dimensionssalve";     m_de["syn.21.desc"] = "Dim.-Werfer: Geschosse machen 50% mehr Schaden";
+    m_de["syn.22.name"] = "Gravitationsdornen";  m_de["syn.22.desc"] = "Gravitationshandschuh: +5 Aufprallschaden beim Ziehen";
+    m_de["syn.23.name"] = "Phantomgreifer";      m_de["syn.23.desc"] = "Enterhaken: Kills gewaehren 2s Unsichtbarkeit";
+    m_de["syn.24.name"] = "Durchbohrendes Echo"; m_de["syn.24.desc"] = "Rissarmbrust: 35% Echo-Chance bei durchbohrenden Bolzen";
 
     // Persistent upgrades
     m_de["upgrade.0.name"]  = "Verstaerkter Anzug";   m_de["upgrade.0.desc"]  = "+20 Max HP";

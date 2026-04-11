@@ -1173,9 +1173,12 @@ void HUD::renderWeaponPanel(SDL_Renderer* renderer, TTF_Font* font,
             for(int i=0;i<static_cast<int>(SynergyID::COUNT);i++){
                 auto sid=static_cast<SynergyID>(i);
                 if(RelicSynergy::isWeaponSynergyActive(relics,sid,combat.currentMelee,combat.currentRanged)){
-                    const auto&sData=RelicSynergy::getData(sid);
-                    renderText(renderer,font,sData.name,wpnX+20,synergyY,{255,200,80,220});
-                    renderText(renderer,font,sData.description,wpnX+20,synergyY+28,{200,180,120,160});
+                    // Use localized synergy name/desc (falls back to EN key value)
+                    char nameKey[24], descKey[24];
+                    std::snprintf(nameKey, sizeof(nameKey), "syn.%d.name", i);
+                    std::snprintf(descKey, sizeof(descKey), "syn.%d.desc", i);
+                    renderText(renderer,font,LOC(nameKey),wpnX+20,synergyY,{255,200,80,220});
+                    renderText(renderer,font,LOC(descKey),wpnX+20,synergyY+28,{200,180,120,160});
                     synergyY+=56;
                 }
             }
