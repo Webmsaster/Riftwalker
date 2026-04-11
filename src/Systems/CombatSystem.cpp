@@ -452,21 +452,9 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             }
 
             // Shield Aura: nearby ShieldAura elite reduces damage by 30%
-            if (isPlayer && target.hasComponent<AIComponent>() && target.hasComponent<TransformComponent>()) {
-                bool hasShieldAuraNearby = false;
-                entities.forEach([&](Entity& other) {
-                    if (hasShieldAuraNearby || &other == &target || !other.isAlive()) return;
-                    if (!other.hasComponent<AIComponent>() || !other.hasComponent<TransformComponent>()) return;
-                    auto& oAI = other.getComponent<AIComponent>();
-                    if (oAI.isElite && oAI.eliteMod == EliteModifier::ShieldAura) {
-                        auto& oT = other.getComponent<TransformComponent>();
-                        auto& tT = target.getComponent<TransformComponent>();
-                        float dist = std::abs(oT.getCenter().x - tT.getCenter().x)
-                                   + std::abs(oT.getCenter().y - tT.getCenter().y);
-                        if (dist < 100.0f) hasShieldAuraNearby = true;
-                    }
-                });
-                if (hasShieldAuraNearby) {
+            // Uses per-frame cached flag from AISystem pre-pass (was nested forEach O(n²))
+            if (isPlayer && target.hasComponent<AIComponent>()) {
+                if (target.getComponent<AIComponent>().hasNearbyShieldAura) {
                     damage *= 0.7f; // 30% damage reduction
                     if (m_particles) {
                         m_particles->burst(targetCenter, 4, {60, 200, 255, 180}, 50.0f, 1.0f);
