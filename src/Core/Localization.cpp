@@ -1020,6 +1020,8 @@ void Localization::loadStrings() {
     m_en["npc.merch.s0.opt"]       = "[Buy relic (50 shards)]";
 
     // NPC quest offers & progress
+    m_en["npc.quest.scholar.hud"]  = "Defeat 10 rift creatures";
+    m_en["npc.quest.engineer.hud"] = "Repair 3 rifts";
     m_en["npc.quest.scholar"]      = "I need data on the rift creatures. Defeat 10 enemies\nand I'll reward you with rift shards.";
     m_en["npc.quest.engineer"]     = "Help me calibrate the rift sensors. Repair 3 rifts\non this floor and I'll pay you — plus stabilize your suit.";
     m_en["npc.quest.fortune"]      = "The void hides many secrets. Find 2 secret rooms\non this floor, and I'll share a powerful vision.";
@@ -2385,6 +2387,8 @@ void Localization::loadStrings() {
     m_de["npc.merch.s0.opt"]       = "[Relikt kaufen (50 Splitter)]";
 
     // NPC quest offers & progress
+    m_de["npc.quest.scholar.hud"]  = "Besiege 10 Risskreaturen";
+    m_de["npc.quest.engineer.hud"] = "Repariere 3 Risse";
     m_de["npc.quest.scholar"]      = "Ich brauche Daten ueber die Risskreaturen. Besiege 10 Gegner\nund ich belohne dich mit Risssplittern.";
     m_de["npc.quest.engineer"]     = "Hilf mir die Risssensoren zu kalibrieren. Repariere 3 Risse\nauf dieser Etage und ich bezahle dich — plus Anzugstabilisierung.";
     m_de["npc.quest.fortune"]      = "Die Leere verbirgt viele Geheimnisse. Finde 2 Geheimraeume\nauf dieser Etage, und ich teile eine maechtige Vision.";

@@ -584,7 +584,7 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
                 } else if (choice == 2 && !m_activeQuest.active && !m_activeQuest.completed) {
                     // Accept kill quest from Rift Scholar
                     m_activeQuest = NPCQuest{};
-                    m_activeQuest.description = "Defeat 10 rift creatures";
+                    m_activeQuest.description = LOC("npc.quest.scholar.hud");
                     m_activeQuest.targetKills = 10;
                     m_activeQuest.shardReward = 50;
                     m_activeQuest.questGiver = NPCType::RiftScholar;
@@ -698,7 +698,7 @@ void PlayState::handleNPCDialogChoice(int npcIndex, int choice) {
                 } else if (choice == 1 && !m_activeQuest.active && !m_activeQuest.completed) {
                     // Accept rift repair quest from Lost Engineer
                     m_activeQuest = NPCQuest{};
-                    m_activeQuest.description = "Repair 3 rifts";
+                    m_activeQuest.description = LOC("npc.quest.engineer.hud");
                     m_activeQuest.targetRifts = 3;
                     m_activeQuest.shardReward = 30;
                     m_activeQuest.entropyReduction = 20.0f;
