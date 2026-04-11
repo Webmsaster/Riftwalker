@@ -878,6 +878,14 @@ void Localization::loadStrings() {
     m_en["tip.150"] = "TIP: Every weapon has a unique parry counter-attack — land a parry then attack for a devastating riposte!";
     m_en["tip.151"] = "TIP: GrapplingHook counter 'Hookshot' deals 3x damage and pulls the nearest enemy toward you!";
     m_en["tip.152"] = "TIP: DimLauncher counter 'Dimensional Shatter' fires a cross-dimension explosive plus an AoE shockwave!";
+    m_en["tip.153"] = "TIP: The Rift Guardian (Floor 6 boss) uses ground-slam shockwaves — jump to avoid them!";
+    m_en["tip.154"] = "TIP: The Void Wyrm burrows underground between attacks — watch for the dust trail to predict emergence!";
+    m_en["tip.155"] = "TIP: The Dimensional Architect spawns dimension-locked projectiles — switch dimensions to dodge!";
+    m_en["tip.156"] = "TIP: The Temporal Weaver slows time in zones — dash through slowfields to reach safety!";
+    m_en["tip.157"] = "TIP: The Void Sovereign summons shadow clones — kill the clones fast or they overwhelm you!";
+    m_en["tip.158"] = "TIP: Entropy Incarnate accelerates your suit entropy — keep it below 70% or the boss heals from overloads!";
+    m_en["tip.159"] = "TIP: Boss enrage phases deal more damage but also take more — aggressive play is rewarded in late phases!";
+    m_en["tip.160"] = "TIP: Shop buffs persist for the entire run — invest early for maximum value across all 30 floors!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -2065,6 +2073,14 @@ void Localization::loadStrings() {
     m_de["tip.150"] = "TIPP: Jede Waffe hat einen einzigartigen Parierkonter — pariere und greife an fuer einen verheerenden Gegenschlag!";
     m_de["tip.151"] = "TIPP: Enterhaken-Konter 'Hakenschuss' macht 3x Schaden und zieht den naechsten Feind zu dir!";
     m_de["tip.152"] = "TIPP: Dim-Werfer-Konter 'Dimensionaler Bruch' feuert ein dimensionsuebergreifendes Explosivgeschoss plus Flaechen-Schockwelle!";
+    m_de["tip.153"] = "TIPP: Der Risswaechter (Etage 6) nutzt Bodenschlag-Schockwellen — spring drueber!";
+    m_de["tip.154"] = "TIPP: Der Leerewurm grabt sich zwischen Angriffen ein — achte auf die Staubspur!";
+    m_de["tip.155"] = "TIPP: Der Dimensionsarchitekt spawnt dimensionsgebundene Geschosse — wechsle die Dimension zum Ausweichen!";
+    m_de["tip.156"] = "TIPP: Der Zeitenweber verlangsamt die Zeit in Zonen — dash durch Verlangsamungsfelder zur Sicherheit!";
+    m_de["tip.157"] = "TIPP: Der Leeresouveraen beschwört Schattenklone — toete sie schnell oder sie ueberwaeltigen dich!";
+    m_de["tip.158"] = "TIPP: Entropie-Inkarnation beschleunigt deine Anzug-Entropie — halte sie unter 70% oder der Boss heilt sich!";
+    m_de["tip.159"] = "TIPP: Boss-Raserei-Phasen machen mehr Schaden aber stecken auch mehr ein — aggressives Spiel wird belohnt!";
+    m_de["tip.160"] = "TIPP: Shop-Buffs halten den ganzen Lauf — investiere frueh fuer maximalen Wert ueber alle 30 Etagen!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";
