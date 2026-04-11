@@ -848,6 +848,9 @@ void Localization::loadStrings() {
     m_en["tip.147"] = "TIP: Phantom Grapple synergy (GrapplingHook + PhaseCloak) grants 2s invisibility on grapple kills!";
     m_en["tip.148"] = "TIP: Piercing Echo synergy (RiftCrossbow + EchoStrike) boosts echo chance from 20% to 35% on piercing bolts!";
     m_en["tip.149"] = "TIP: EchoStrike relic now triggers on ranged attacks too — each projectile hit has a chance for bonus damage!";
+    m_en["tip.150"] = "TIP: Every weapon has a unique parry counter-attack — land a parry then attack for a devastating riposte!";
+    m_en["tip.151"] = "TIP: GrapplingHook counter 'Hookshot' deals 3x damage and pulls the nearest enemy toward you!";
+    m_en["tip.152"] = "TIP: DimLauncher counter 'Dimensional Shatter' fires a cross-dimension explosive plus an AoE shockwave!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -2005,6 +2008,9 @@ void Localization::loadStrings() {
     m_de["tip.147"] = "TIPP: Phantomgreifer-Synergie (Enterhaken + Phasenmantel) gewaehrt 2s Unsichtbarkeit bei Greifhaken-Kills!";
     m_de["tip.148"] = "TIPP: Durchbohrendes Echo-Synergie (Rissarmbrust + Echoschlag) erhoeht Echo-Chance von 20% auf 35% bei durchbohrenden Bolzen!";
     m_de["tip.149"] = "TIPP: Echoschlag-Relikt wirkt jetzt auch auf Fernkampf — jeder Projektiltreffer hat eine Chance auf Bonusschaden!";
+    m_de["tip.150"] = "TIPP: Jede Waffe hat einen einzigartigen Parierkonter — pariere und greife an fuer einen verheerenden Gegenschlag!";
+    m_de["tip.151"] = "TIPP: Enterhaken-Konter 'Hakenschuss' macht 3x Schaden und zieht den naechsten Feind zu dir!";
+    m_de["tip.152"] = "TIPP: Dim-Werfer-Konter 'Dimensionaler Bruch' feuert ein dimensionsuebergreifendes Explosivgeschoss plus Flaechen-Schockwelle!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";

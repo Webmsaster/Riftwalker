@@ -1345,8 +1345,78 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
             break;
         }
 
+        case WeaponID::GrapplingHook: {
+            // "Hookshot": Heavy hook projectile that deals 3x damage + pulls nearest enemy
+            Entity* target = findNearest(200.0f);
+            if (target && target->hasComponent<TransformComponent>()) {
+                float counterDmg = rangedBaseDmg * 3.0f * dmgMult;
+                Vec2 tc = target->getComponent<TransformComponent>().getCenter();
+                Vec2 kd = {playerCenter.x - tc.x, playerCenter.y - tc.y};
+                hitTarget(*target, counterDmg, 600.0f, 0.5f, kd, true);
+                // Pull enemy toward player
+                if (target->hasComponent<PhysicsBody>()) {
+                    auto& phys = target->getComponent<PhysicsBody>();
+                    float dx = playerCenter.x - tc.x;
+                    float dy = playerCenter.y - tc.y;
+                    float dist = std::sqrt(std::max(0.01f, dx * dx + dy * dy));
+                    phys.velocity.x = (dx / dist) * 500.0f;
+                    phys.velocity.y = (dy / dist) * 500.0f;
+                }
+            }
+
+            if (m_camera) m_camera->shake(12.0f, 0.3f);
+            m_pendingHitFreeze += 0.12f;
+            if (m_particles) {
+                float dirDeg = std::atan2(dir.y, dir.x) * 180.0f / 3.14159f;
+                m_particles->directionalBurst(playerCenter, 14, {180, 200, 255, 255},
+                    dirDeg, 25.0f, 300.0f, 3.5f);
+                m_particles->burst(playerCenter, 8, {140, 180, 220, 200}, 120.0f, 3.0f);
+            }
+            AudioManager::instance().play(SFX::RangedShot);
+            break;
+        }
+
+        case WeaponID::DimLauncher: {
+            // "Dimensional Shatter": Dim-0 explosive projectile, 3x damage in 100px AoE
+            float counterDmg = rangedBaseDmg * 3.0f * dmgMult;
+            float blastRange = 100.0f;
+
+            // Fire a slow dim-0 projectile that explodes on first hit
+            createProjectile(entities, playerCenter, dir, counterDmg, 250.0f,
+                0, false, true);
+
+            // Also deal immediate AoE around player (dimensional shockwave)
+            float blastRangeSq = blastRange * blastRange;
+            entities.forEach([&](Entity& target) {
+                if (!target.isEnemy || !target.isAlive()) return;
+                if (!target.hasComponent<TransformComponent>() || !target.hasComponent<HealthComponent>()) return;
+                // Dim-0 hits all dimensions
+                auto& tt = target.getComponent<TransformComponent>();
+                Vec2 tc = tt.getCenter();
+                float dx = tc.x - playerCenter.x;
+                float dy = tc.y - playerCenter.y;
+                if (dx * dx + dy * dy < blastRangeSq) {
+                    Vec2 kd = {dx, dy - 80.0f};
+                    hitTarget(target, counterDmg * 0.5f, 400.0f, 0.3f, kd, true);
+                }
+            });
+
+            if (m_camera) m_camera->shake(16.0f, 0.35f);
+            m_pendingHitFreeze += 0.15f;
+            if (m_particles) {
+                // Purple dimensional shockwave
+                for (int i = 0; i < 8; i++) {
+                    float angle = i * 45.0f;
+                    m_particles->directionalBurst(playerCenter, 4,
+                        {180, 120, 255, 255}, angle, 30.0f, 200.0f, 3.5f);
+                }
+                m_particles->burst(playerCenter, 16, {200, 140, 255, 220}, 180.0f, 4.0f);
+            }
+            AudioManager::instance().play(SFX::GroundSlam);
+            break;
+        }
+
         default:
-            // GrapplingHook or unknown — no ranged counter
             break;
     }
 }
