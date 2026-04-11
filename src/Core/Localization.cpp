@@ -1819,7 +1819,7 @@ void Localization::loadStrings() {
     m_de["credits.section.gameplay"]= "--- Spielsysteme ---";
     m_de["credits.gameplay.classes"]= "4 spielbare Klassen";
     m_de["credits.gameplay.weapons"]= "12 Waffen mit Meisterschaftsstufen";
-    m_de["credits.gameplay.relics"] = "38 Relikte mit 22 Synergie-Kombos";
+    m_de["credits.gameplay.relics"] = "38 Relikte mit 25 Synergie-Kombos";
     m_de["credits.gameplay.bosses"] = "6 Bosse mit Mehrphasen-KI";
     m_de["credits.gameplay.enemies"]= "17 Gegnertypen + 12 Elite-Modifikatoren";
     m_de["credits.gameplay.entropy"]= "Anzug-Entropie-Mechanik";
