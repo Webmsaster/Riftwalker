@@ -15,7 +15,7 @@ void AISystem::updateTemporalWeaver(Entity& entity, float dt, const Vec2& player
                    (hpPct > 0.66f) ? 1 : (hpPct > 0.33f) ? 2 : 3;
     if (newPhase != ai.bossPhase) {
         ai.bossPhase = newPhase;
-        ai.bossEnraged = (newPhase >= 3);
+        ai.isEnraged = (newPhase >= 3);
         // Seed timers so attacks don't all fire on frame 0 of a new phase
         ai.twSweepTimer = 2.0f;
         ai.twRewindTimer = (newPhase >= 2) ? 10.0f : 999.0f;

@@ -147,7 +147,7 @@ struct AIComponent : public Component {
     float bossAttackTimer = 0; // timer for boss attack patterns
     int bossAttackPattern = 0; // current attack pattern index
     float bossLeapTimer = 0;   // ground slam cooldown
-    bool bossEnraged = false;
+    // Boss enrage uses ai.isEnraged (shared with regular enemies) for animation
     float bossShieldTimer = 0;      // shield burst cooldown
     float bossShieldActiveTimer = 0; // remaining shield duration
     float bossTeleportTimer = 0;    // teleport cooldown

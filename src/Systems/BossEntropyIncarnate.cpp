@@ -20,11 +20,13 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
         AscensionSystem::getLevel(AscensionSystem::currentLevel).bossExtraPhase);
     if (extraPhase && hpPct <= 0.15f && ai.bossPhase < 4) {
         ai.bossPhase = 4;
+        ai.isEnraged = true;
         if (m_camera) m_camera->shake(20.0f, 1.0f);
         if (m_particles) m_particles->burst(pos, 80, {180, 0, 255, 255}, 400.0f, 7.0f);
         AudioManager::instance().play(SFX::SuitEntropyCritical);
     } else if (hpPct <= 0.33f && ai.bossPhase < 3) {
         ai.bossPhase = 3;
+        ai.isEnraged = true;
         if (m_camera) m_camera->shake(15.0f, 0.8f);
         if (m_particles) m_particles->burst(pos, 60, {140, 0, 200, 255}, 350.0f, 6.0f);
         AudioManager::instance().play(SFX::SuitEntropyCritical);

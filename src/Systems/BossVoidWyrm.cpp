@@ -16,13 +16,13 @@ void AISystem::updateVoidWyrm(Entity& entity, float dt, const Vec2& playerPos, E
             AscensionSystem::getLevel(AscensionSystem::currentLevel).bossExtraPhase);
         if (extraPhase && hpPct < 0.15f && ai.bossPhase < 4) {
             ai.bossPhase = 4;
-            ai.bossEnraged = true;
+            ai.isEnraged = true;
             if (m_camera) m_camera->shake(20.0f, 0.8f);
             if (m_particles) m_particles->burst(pos, 70, {50, 255, 80, 255}, 400.0f, 6.0f);
             AudioManager::instance().play(SFX::SuitEntropyCritical);
         } else if (hpPct < 0.33f && ai.bossPhase < 3) {
             ai.bossPhase = 3;
-            ai.bossEnraged = true;
+            ai.isEnraged = true;
             if (m_camera) m_camera->shake(15.0f, 0.5f);
             if (m_particles) m_particles->burst(pos, 50, {80, 255, 150, 255}, 300.0f, 5.0f);
             AudioManager::instance().play(SFX::SuitEntropyCritical);

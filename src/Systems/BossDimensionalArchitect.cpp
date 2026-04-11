@@ -17,6 +17,7 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, const Vec2& 
                    (hpPct > 0.66f) ? 1 : (hpPct > 0.33f) ? 2 : 3;
     if (newPhase != ai.bossPhase) {
         ai.bossPhase = newPhase;
+        ai.isEnraged = (newPhase >= 3);
         ai.archSwapSize = (newPhase == 1) ? 3 : (newPhase == 2) ? 5 : (newPhase == 3) ? 7 : 9;
         // Reset timers so next attacks use new phase parameters
         ai.archSwapTimer = 1.5f;
