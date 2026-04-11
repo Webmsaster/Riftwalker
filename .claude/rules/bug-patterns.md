@@ -278,6 +278,19 @@ would have missed by eye.
 - **Fix**: Replaced melee nested forEach with the cached flag (same as ranged).
 - **Lesson**: When adding a per-entity feature, always check if AISystem's pre-pass already caches the result. Avoid nested forEach when a cached flag exists.
 
+### 36. Boss Enrage Dead Field (bossEnraged vs isEnraged)
+- **Pattern**: AIComponent had TWO boolean enrage fields: `isEnraged` (used by animation system at AISystem.cpp:98 for Enrage animation, and by combat at :647/:656 for -25% windup/-30% cooldown) and `bossEnraged` (set by 3 of 6 bosses, NEVER read anywhere). Regular enemies used `isEnraged` after 5 hits; bosses used `bossEnraged` at phase 3+.
+- **Impact**: ALL 6 bosses never showed the Enrage animation and never got the attack speed boost in late phases. Phase 3+ was supposed to be visually and mechanically more intense but was indistinguishable from phase 2.
+- **Fix**: Changed all boss phase transitions to set `ai.isEnraged` instead. Added isEnraged to the 3 bosses that had no enrage at all. Removed dead `bossEnraged` field.
+- **Lesson**: When a component has two fields with similar names (isEnraged vs bossEnraged), one is almost certainly dead code. Grep for all READ sites of both fields — the one with 0 reads is dead.
+- **Detection heuristic**: `grep -rn 'bossEnraged' src/ | grep -v '= '` (find reads, not writes). If 0 results, the field is dead.
+
+### 37. Boss Phase Transition Without Guard (Temporal Weaver)
+- **Pattern**: Phase assigned unconditionally every frame based on HP thresholds. All 5 other bosses use `bossPhase < N` or `newPhase != bossPhase` guard. TemporalWeaver had raw `ai.bossPhase = N`.
+- **Impact**: (1) Phase "fluttered" at HP boundaries (65%-67% oscillated between phase 1 and 2). (2) Attack timers started at 0 on first frame (all 3 attacks fired simultaneously). (3) No camera shake, particle burst, or SFX on transitions.
+- **Fix**: Added `newPhase != bossPhase` guard with timer seeding and transition FX.
+- **Lesson**: Every boss should have a guard around phase assignment. Grep for `bossPhase =` without a preceding `<` or `!=` check — that's an unguarded assignment.
+
 ## Meta-Lessons from the 13-bug Phase 2
 
 1. **Saturation is real but late** — After 46 "clean" commits in Phase 1, focused agent reviews found 13 more real bugs. The "looks done" feeling is misleading for complex gameplay code.
