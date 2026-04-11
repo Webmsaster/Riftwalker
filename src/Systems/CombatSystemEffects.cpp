@@ -744,6 +744,38 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                 // enemy projectiles would require threading attacker into the lambda
                 // as an EntityID. Deferred — not gameplay-breaking, just missing
                 // some sustain for enemy elites with ranged weapons.
+                // EchoStrike relic: chance for bonus hit (was melee-only, now parity)
+                if (isPlayerOwned && other->hasComponent<RelicComponent>() == false &&
+                    other->hasComponent<AIComponent>() && !other->isPlayer) {
+                    // Check player's relics via the combat system's cached player
+                    if (cs->m_player && cs->m_player->getEntity() &&
+                        cs->m_player->getEntity()->hasComponent<RelicComponent>()) {
+                        auto& pRel = cs->m_player->getEntity()->getComponent<RelicComponent>();
+                        // PiercingEcho synergy overrides echo chance for RiftCrossbow
+                        float echoOverride = RelicSynergy::getPiercingEchoChance(
+                            pRel, cs->m_player->getEntity()->hasComponent<CombatComponent>()
+                                ? cs->m_player->getEntity()->getComponent<CombatComponent>().currentRanged
+                                : WeaponID::ShardPistol);
+                        bool doEcho = false;
+                        if (echoOverride > 0) {
+                            doEcho = (static_cast<float>(std::rand()) / RAND_MAX) < echoOverride;
+                        } else {
+                            doEcho = RelicSystem::rollEchoStrike(pRel);
+                        }
+                        if (doEcho) {
+                            float echoDmg = finalDmg * 0.5f;
+                            if (other->hasComponent<HealthComponent>()) {
+                                other->getComponent<HealthComponent>().takeDamage(echoDmg);
+                                Vec2 ePos = other->hasComponent<TransformComponent>()
+                                    ? other->getComponent<TransformComponent>().getCenter() : Vec2{0,0};
+                                cs->m_damageEvents.push_back({ePos, echoDmg, false, false});
+                                if (cs->m_particles) {
+                                    cs->m_particles->burst(ePos, 8, {120, 200, 255, 255}, 120.0f, 2.0f);
+                                }
+                            }
+                        }
+                    }
+                }
                 // Track damage event for floating numbers + achievement tracking
                 if (other->hasComponent<TransformComponent>()) {
                     Vec2 srcPos = self->hasComponent<TransformComponent>()

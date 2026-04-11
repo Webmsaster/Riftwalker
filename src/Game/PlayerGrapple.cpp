@@ -8,8 +8,10 @@
 #include "Components/HealthComponent.h"
 #include "Components/CombatComponent.h"
 #include "Components/AIComponent.h"
+#include "Components/RelicComponent.h"
 #include "Core/AudioManager.h"
 #include "Systems/CombatSystem.h"
+#include "Game/RelicSynergy.h"
 #include <cmath>
 
 void Player::fireGrapplingHook(const Vec2& dir) {
@@ -70,6 +72,17 @@ void Player::fireGrapplingHook(const Vec2& dir) {
                     cs->addDamageEvent(
                         other->getComponent<TransformComponent>().getCenter(),
                         finalDmg, false, isCrit);
+                }
+
+                // PhantomGrapple synergy: grapple kills grant invisibility
+                if (hp.currentHP <= 0 && playerPtr->m_entity &&
+                    playerPtr->m_entity->hasComponent<RelicComponent>()) {
+                    auto& rel = playerPtr->m_entity->getComponent<RelicComponent>();
+                    float invisDur = RelicSynergy::getPhantomGrappleInvisDuration(
+                        rel, WeaponID::GrapplingHook);
+                    if (invisDur > 0) {
+                        rel.phaseCloakTimer = std::max(rel.phaseCloakTimer, invisDur);
+                    }
                 }
 
                 // Start pulling enemy toward player

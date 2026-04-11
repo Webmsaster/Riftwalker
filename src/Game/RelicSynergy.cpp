@@ -88,7 +88,19 @@ static const SynergyData s_synergyData[] = {
 
     {SynergyID::DimensionalBarrage, "Dimensional Barrage",
      "DimLauncher projectiles deal 50% more damage",
-     RelicID::DimensionalEcho, RelicID::None, WeaponID::DimLauncher}
+     RelicID::DimensionalEcho, RelicID::None, WeaponID::DimLauncher},
+
+    {SynergyID::GravityThorns, "Gravity Thorns",
+     "GravityGauntlet pull deals 5 extra impact damage",
+     RelicID::ThornMail, RelicID::None, WeaponID::GravityGauntlet},
+
+    {SynergyID::PhantomGrapple, "Phantom Grapple",
+     "GrapplingHook kills grant 2s invisibility",
+     RelicID::PhaseCloak, RelicID::None, WeaponID::GrapplingHook},
+
+    {SynergyID::PiercingEcho, "Piercing Echo",
+     "RiftCrossbow piercing hits 35% echo chance",
+     RelicID::EchoStrike, RelicID::None, WeaponID::RiftCrossbow}
 };
 
 const SynergyData& RelicSynergy::getData(SynergyID id) {
@@ -308,4 +320,25 @@ float RelicSynergy::getDimensionalBarrageDamageMult(const RelicComponent& relics
         return 1.5f;
     }
     return 1.0f;
+}
+
+float RelicSynergy::getGravityThornsImpactDmg(const RelicComponent& relics, WeaponID melee) {
+    if (melee == WeaponID::GravityGauntlet && isActive(relics, SynergyID::GravityThorns)) {
+        return 5.0f;
+    }
+    return 0;
+}
+
+float RelicSynergy::getPhantomGrappleInvisDuration(const RelicComponent& relics, WeaponID ranged) {
+    if (ranged == WeaponID::GrapplingHook && isActive(relics, SynergyID::PhantomGrapple)) {
+        return 2.0f;
+    }
+    return 0;
+}
+
+float RelicSynergy::getPiercingEchoChance(const RelicComponent& relics, WeaponID ranged) {
+    if (ranged == WeaponID::RiftCrossbow && isActive(relics, SynergyID::PiercingEcho)) {
+        return 0.35f;
+    }
+    return 0; // 0 = use default echo chance
 }

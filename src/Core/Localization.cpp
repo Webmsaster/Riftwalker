@@ -659,7 +659,7 @@ void Localization::loadStrings() {
     m_en["credits.section.gameplay"]= "--- Gameplay Systems ---";
     m_en["credits.gameplay.classes"]= "4 Playable Classes";
     m_en["credits.gameplay.weapons"]= "12 Weapons with Mastery Tiers";
-    m_en["credits.gameplay.relics"] = "38 Relics with 22 Synergy Combos";
+    m_en["credits.gameplay.relics"] = "38 Relics with 25 Synergy Combos";
     m_en["credits.gameplay.bosses"] = "6 Bosses with Multi-Phase AI";
     m_en["credits.gameplay.enemies"]= "17 Enemy Types + 12 Elite Modifiers";
     m_en["credits.gameplay.entropy"]= "Suit Entropy Mechanic";
@@ -843,6 +843,11 @@ void Localization::loadStrings() {
     m_en["tip.142"] = "TIP: Blacksmith events upgrade your melee or ranged damage permanently for the rest of the run!";
     m_en["tip.143"] = "TIP: Dimensional Resonance stacks when you rapidly switch dimensions — at tier 3 you deal +50% damage!";
     m_en["tip.144"] = "TIP: The BerserkersCurse relic gains +15% damage per 10% missing HP — at 10% HP that's +135% total damage!";
+    m_en["tip.145"] = "TIP: Electric weapon buff chains 30% damage to nearby enemies — works with both melee AND ranged attacks!";
+    m_en["tip.146"] = "TIP: Gravity Thorns synergy (GravityGauntlet + ThornMail) deals 5 extra impact damage when pulling enemies!";
+    m_en["tip.147"] = "TIP: Phantom Grapple synergy (GrapplingHook + PhaseCloak) grants 2s invisibility on grapple kills!";
+    m_en["tip.148"] = "TIP: Piercing Echo synergy (RiftCrossbow + EchoStrike) boosts echo chance from 20% to 35% on piercing bolts!";
+    m_en["tip.149"] = "TIP: EchoStrike relic now triggers on ranged attacks too — each projectile hit has a chance for bonus damage!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -1995,6 +2000,11 @@ void Localization::loadStrings() {
     m_de["tip.142"] = "TIPP: Schmiede-Events verstaerken deinen Nah- oder Fernkampfschaden permanent fuer den Rest des Runs!";
     m_de["tip.143"] = "TIPP: Dimensionale Resonanz stapelt sich beim schnellen Wechseln — bei Stufe 3 machst du +50% Schaden!";
     m_de["tip.144"] = "TIPP: Das Berserkerfluch-Relikt gewinnt +15% Schaden pro 10% fehlendes HP — bei 10% HP sind das +135% Gesamtschaden!";
+    m_de["tip.145"] = "TIPP: Blitz-Waffen-Buff kettet 30% Schaden an nahe Feinde — funktioniert mit Nah- UND Fernkampf!";
+    m_de["tip.146"] = "TIPP: Gravitationsdornen-Synergie (Gravitationshandschuh + Dornenpanzer) verursacht 5 Extra-Aufprallschaden beim Ziehen!";
+    m_de["tip.147"] = "TIPP: Phantomgreifer-Synergie (Enterhaken + Phasenmantel) gewaehrt 2s Unsichtbarkeit bei Greifhaken-Kills!";
+    m_de["tip.148"] = "TIPP: Durchbohrendes Echo-Synergie (Rissarmbrust + Echoschlag) erhoeht Echo-Chance von 20% auf 35% bei durchbohrenden Bolzen!";
+    m_de["tip.149"] = "TIPP: Echoschlag-Relikt wirkt jetzt auch auf Fernkampf — jeder Projektiltreffer hat eine Chance auf Bonusschaden!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";

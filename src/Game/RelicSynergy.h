@@ -26,6 +26,9 @@ enum class SynergyID {
     EntropyDrain,        // EntropyScythe + EntropySponge
     ChainReaction,       // ChainWhip + ChainLightning
     DimensionalBarrage,  // DimLauncher + DimensionalEcho
+    GravityThorns,       // GravityGauntlet + ThornMail
+    PhantomGrapple,      // GrapplingHook + PhaseCloak
+    PiercingEcho,        // RiftCrossbow + EchoStrike
     COUNT
 };
 
@@ -90,4 +93,10 @@ public:
     static bool isChainReactionActive(const RelicComponent& relics, WeaponID melee);
     // DimensionalBarrage: DimLauncher + DimensionalEcho — +50% projectile damage
     static float getDimensionalBarrageDamageMult(const RelicComponent& relics, WeaponID ranged);
+    // GravityThorns: GravityGauntlet + ThornMail — pulled enemies take 5 extra impact DMG
+    static float getGravityThornsImpactDmg(const RelicComponent& relics, WeaponID melee);
+    // PhantomGrapple: GrapplingHook + PhaseCloak — grapple kills grant 2s invisibility
+    static float getPhantomGrappleInvisDuration(const RelicComponent& relics, WeaponID ranged);
+    // PiercingEcho: RiftCrossbow + EchoStrike — piercing bolts 35% echo chance (vs 20%)
+    static float getPiercingEchoChance(const RelicComponent& relics, WeaponID ranged);
 };

@@ -870,7 +870,7 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
-            // Gravity Gauntlet: pull effect particles + camera feel
+            // Gravity Gauntlet: pull effect particles + camera feel + synergy impact
             if (isPlayer && !shieldBlocked &&
                 combat.currentMelee == WeaponID::GravityGauntlet &&
                 (combat.currentAttack == AttackType::Melee ||
@@ -882,6 +882,17 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                     m_particles->burst(playerPos, 4, {180, 120, 255, 180}, 40.0f, 1.0f);
                 }
                 if (m_camera) m_camera->shake(5.0f, 0.12f);
+                // GravityThorns synergy: pulled enemies take extra impact damage
+                float thornImpact = attacker.hasComponent<RelicComponent>()
+                    ? RelicSynergy::getGravityThornsImpactDmg(attacker.getComponent<RelicComponent>(), combat.currentMelee)
+                    : 0;
+                if (thornImpact > 0 && target.hasComponent<HealthComponent>()) {
+                    target.getComponent<HealthComponent>().takeDamage(thornImpact);
+                    m_damageEvents.push_back({targetCenter, thornImpact, false, false});
+                    if (m_particles) {
+                        m_particles->burst(targetCenter, 6, {200, 100, 255, 255}, 60.0f, 1.0f);
+                    }
+                }
             }
 
             // Run buff: Element weapon effects (player hitting enemy)
