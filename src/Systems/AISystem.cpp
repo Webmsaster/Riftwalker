@@ -306,7 +306,7 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
                 if (dist < 100.0f && m_player && m_player->getEntity()->hasComponent<HealthComponent>()) {
                     auto& php = m_player->getEntity()->getComponent<HealthComponent>();
                     if (!php.isInvincible()) {
-                        m_player->burnTimer = std::max(m_player->burnTimer, 1.0f);
+                        m_player->applyBurn(1.0f);
                     }
                 }
                 // Visual: fire particles around elite
