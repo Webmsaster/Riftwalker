@@ -101,11 +101,16 @@ int scoreRelic(RelicID id, PlayerClass cls, const std::vector<ActiveRelic>& owne
         score -= (g_playtestProfile == 1) ? 1 : 5; // aggressive tolerates cursed
     }
 
-    // Check weapon synergies
-    for (auto& r : owned) {
-        // BloodFrenzy + RiftBlade synergy
-        if (r.id == RelicID::BloodFrenzy && id == RelicID::SoulSiphon) score += 3;
-        if (r.id == RelicID::ChainLightning && id == RelicID::EchoStrike) score += 2;
+    // Synergy bonus: check if picking this relic would complete any relic-relic synergy
+    // by simulating a RelicComponent with the candidate added
+    {
+        RelicComponent simRelics;
+        simRelics.relics = owned;
+        simRelics.relics.push_back({id});
+        int synBefore = RelicSynergy::getActiveSynergyCount(
+            [&]() { RelicComponent r; r.relics = owned; return r; }());
+        int synAfter = RelicSynergy::getActiveSynergyCount(simRelics);
+        score += (synAfter - synBefore) * 4; // +4 per newly activated synergy
     }
 
     return score;
