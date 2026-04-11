@@ -613,11 +613,10 @@ void PlayState::updateSmokeTest(float dt) {
     m_smokeActionTimer -= dt;
     m_smokeDimTimer -= dt;
 
-    // Bug fix: cross-run state leak. Function-static navigation vars
-    // persist across smoke-test runs (same pattern as the Phase 2 playtest
-    // bot fix 2026-04-09). On first frame of a new run, reset the grace
-    // timer + log flag so a previous run's end state doesn't bleed into
-    // this run's navigation decisions.
+    // Bug fix: cross-run state leak. ALL function-static vars persist
+    // across smoke-test runs (same pattern as playtest bot fix 2026-04-09).
+    // On first frame of a new run, reset everything so previous run state
+    // doesn't bleed into navigation decisions.
     if (m_smokeRunTime < dt + 0.001f) {
         smokeRecoveryGraceTimer = 0;
         smokeRecoverySuppressedLogged = false;
@@ -644,6 +643,22 @@ void PlayState::updateSmokeTest(float dt) {
     static int smokeLastTargetIndex = -2;
     static int smokeLastTargetRoom = -2;
     static bool smokeLastTargetWasExit = false;
+    // Reset ALL navigation statics on first frame of each run
+    if (m_smokeRunTime < dt + 0.001f) {
+        levelTimer = 0;
+        smokeLastLevel = 0;
+        noProgressTimer = 0;
+        bestDistToTarget = 99999.0f;
+        noProgressSkips = 0;
+        lastStuckCheckPos = {0, 0};
+        stuckTimer = 0;
+        stuckLogged = false;
+        smokeSkipRiftMask = 0;
+        smokeCurrentTarget = -1;
+        smokeLastTargetIndex = -2;
+        smokeLastTargetRoom = -2;
+        smokeLastTargetWasExit = false;
+    }
     if (smokeRecoveryGraceTimer > 0) smokeRecoveryGraceTimer -= dt;
 
     const auto& topology = m_level->getTopology();
@@ -737,6 +752,7 @@ void PlayState::updateSmokeTest(float dt) {
 
     // Heartbeat frame counter — proves game loop is alive
     static int smokeFrameCount = 0;
+    if (m_smokeRunTime < dt + 0.001f) smokeFrameCount = 0;
     smokeFrameCount++;
 
     // Log level start once + reset per-level timer
@@ -835,6 +851,7 @@ void PlayState::updateSmokeTest(float dt) {
 
     // Periodic status log every 5 seconds
     static float lastStatusLog = 0;
+    if (m_smokeRunTime < dt + 0.001f) lastStatusLog = 0;
     if (m_smokeRunTime - lastStatusLog >= 5.0f) {
         lastStatusLog = m_smokeRunTime;
         int playerRoom = smokeFindTopologyRoomIndex(topology, playerPos);
@@ -933,6 +950,7 @@ void PlayState::updateSmokeTest(float dt) {
     int smokeTargetLevel = g_smokeRegression ? std::max(1, g_smokeTargetFloor) : 5;
     if (m_currentDifficulty > smokeTargetLevel) {
         static bool successLogged = false;
+        if (m_smokeRunTime < dt + 0.001f) successLogged = false;
         if (!successLogged) {
             successLogged = true;
             if (g_smokeRegression) {
@@ -1208,6 +1226,7 @@ void PlayState::updateSmokeTest(float dt) {
 
     // Proactive dimension switch: wall ahead or no floor, check other dim
     static float dimSwitchCooldown = 0;
+    if (m_smokeRunTime < dt + 0.001f) dimSwitchCooldown = 0;
     dimSwitchCooldown -= dt;
     if ((wallAhead || (!hasFloorAhead && phys.onGround)) && dimSwitchCooldown <= 0) {
         bool otherBetter = false;
