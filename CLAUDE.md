@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-11 autonomous improvement pass — 27 commits):**
+**Recent Updates (2026-04-11 autonomous improvement pass — 31 commits):**
 - **Electric chain ranged parity**: Element 3 (Electric) 30% chain damage was deferred for ranged — now fires via `m_currentEntities->forEach` in projectile onTrigger lambda. Cost bounded (1x per hit, not per frame).
 - **EchoStrike ranged fix**: `rollEchoStrike()` was melee-only (another early-return survivor). Added to projectile onTrigger with PiercingEcho synergy override (35% for RiftCrossbow).
 - **3 new weapon-relic synergies** (all 12 weapons now have synergies): GravityThorns (GravityGauntlet + ThornMail, +5 impact DMG), PhantomGrapple (GrapplingHook + PhaseCloak, 2s invis on kill), PiercingEcho (RiftCrossbow + EchoStrike, 35% echo chance). 25 synergies total.
@@ -31,7 +31,9 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Playtest bot synergy-aware scoring**: Simulates adding relic to check if it completes any of 13 relic-only synergies.
 - **Boss enrage field dead code**: All 6 bosses wrote `bossEnraged` (never read) instead of `isEnraged` (used by animation + combat speed). Bosses never showed enrage animation or got attack speed boost in late phases. Fixed all 6 + removed dead field.
 - **FireAura elite burn bypassing dotDurationMult**: Direct `burnTimer =` assignment skipped `applyBurn()` which applies Elemental Slayer achievement bonus.
-- **37 bug patterns** documented in .claude/rules/bug-patterns.md.
+- **Technomancer combo finisher** "Overcharge Surge": 140px AoE, 1.5x ranged DMG, 1s stun. Was placeholder-only (particles, no damage). All 4 classes now have unique finishers.
+- **Playtest bot** now evaluates all 25 synergies (13 relic-relic + 12 weapon-relic) for optimal relic selection.
+- **37 bug patterns** documented in .claude/rules/bug-patterns.md. 162 gameplay tips.
 - **Balance + Boss AI audits**: 9 parallel agent scans, damage formulas verified correct, Temporal Weaver phase bug + enrage field bug + FireAura bypass found and fixed.
 
 **Recent Updates (2026-04-10 mega autonomous session — 42 commits, 24 bugs, 30 files, 17/17 visual tests PASS):**
