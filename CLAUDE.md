@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-11 autonomous improvement pass — 18 commits):**
+**Recent Updates (2026-04-11 autonomous improvement pass — 22 commits):**
 - **Electric chain ranged parity**: Element 3 (Electric) 30% chain damage was deferred for ranged — now fires via `m_currentEntities->forEach` in projectile onTrigger lambda. Cost bounded (1x per hit, not per frame).
 - **EchoStrike ranged fix**: `rollEchoStrike()` was melee-only (another early-return survivor). Added to projectile onTrigger with PiercingEcho synergy override (35% for RiftCrossbow).
 - **3 new weapon-relic synergies** (all 12 weapons now have synergies): GravityThorns (GravityGauntlet + ThornMail, +5 impact DMG), PhantomGrapple (GrapplingHook + PhaseCloak, 2s invis on kill), PiercingEcho (RiftCrossbow + EchoStrike, 35% echo chance). 25 synergies total.
@@ -27,7 +27,9 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **963 EN + 1192 DE** localization keys total (was 930/1159).
 - **161 gameplay tips** (was 145), 8 boss strategy tips added.
 - **ShieldAura melee O(n²) → O(1)**: Replaced nested forEach with per-frame cached `hasNearbyShieldAura` flag (already used by ranged path).
-- **Balance audit clean**: 8 parallel agent scans, all damage formulas verified correct.
+- **Temporal Weaver boss phase flicker fix**: Phase assigned every frame without guard — caused flutter at HP boundaries, all timers firing simultaneously on spawn, no transition FX. Added newPhase guard matching all 5 other bosses.
+- **Playtest bot synergy-aware scoring**: Simulates adding relic to check if it completes any of 13 relic-only synergies.
+- **Balance + Boss AI audits clean**: 9 parallel agent scans, all damage formulas and boss phase logic verified correct.
 
 **Recent Updates (2026-04-10 mega autonomous session — 42 commits, 24 bugs, 30 files, 17/17 visual tests PASS):**
 
