@@ -87,6 +87,11 @@ int scoreRelic(RelicID id, PlayerClass cls, const std::vector<ActiveRelic>& owne
         if (id == RelicID::SwiftBoots) score += 5;
         if (id == RelicID::QuickHands) score += 5;
         if (id == RelicID::DimResidue) score += 3;
+    } else if (cls == PlayerClass::Technomancer) {
+        if (id == RelicID::ChainLightning) score += 6;
+        if (id == RelicID::TimeDilator) score += 5;
+        if (id == RelicID::QuickHands) score += 4;
+        if (id == RelicID::EchoStrike) score += 4;
     }
 
     // Avoid cursed relics unless aggressive profile
@@ -276,6 +281,7 @@ void PlayState::playtestWriteReport() {
     if (g_playtestClassLock == 0) classLabel = "Voidwalker";
     else if (g_playtestClassLock == 1) classLabel = "Berserker";
     else if (g_playtestClassLock == 2) classLabel = "Phantom";
+    else if (g_playtestClassLock == 3) classLabel = "Technomancer";
     playtestLog("  RIFTWALKER BALANCE REPORT");
     playtestLog("  Class: %s | Profile: %s | Runs: %d", classLabel, kProfileNames[g_playtestProfile], m_playtestRun);
     playtestLog("================================================================");
