@@ -5,6 +5,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
+**Recent Updates (2026-04-11 autonomous improvement pass — 6 commits):**
+- **Electric chain ranged parity**: Element 3 (Electric) 30% chain damage was deferred for ranged — now fires via `m_currentEntities->forEach` in projectile onTrigger lambda. Cost bounded (1x per hit, not per frame).
+- **EchoStrike ranged fix**: `rollEchoStrike()` was melee-only (another early-return survivor). Added to projectile onTrigger with PiercingEcho synergy override (35% for RiftCrossbow).
+- **3 new weapon-relic synergies** (all 12 weapons now have synergies): GravityThorns (GravityGauntlet + ThornMail, +5 impact DMG), PhantomGrapple (GrapplingHook + PhaseCloak, 2s invis on kill), PiercingEcho (RiftCrossbow + EchoStrike, 35% echo chance). 25 synergies total.
+- **Smoke bot static leak (extended)**: Previous fix only reset 2 of 17 statics. Navigation vars (levelTimer, smokeCurrentTarget, stuckTimer, etc.) leaked between runs.
+- **DimensionalEcho chain dim fix**: Self-caught regression — new electric chain used `nearby.dim != dimension` where `dimension=0` for DimensionalEcho, filtering out all dim-1/2 enemies.
+- **Technomancer playtest bot**: Missing class label + relic scoring for class index 3.
+- **5 gameplay tips (145 → 150)**, EN+DE localized. Credits: 22 → 25 synergies.
+- **Bug scans all clean**: 4 parallel agents (early-return dead code, check-after-write, takeDamage bypass, SDL resource leaks) — 0 findings each.
+
 **Recent Updates (2026-04-10 mega autonomous session — 42 commits, 24 bugs, 30 files, 17/17 visual tests PASS):**
 
 Expanded continuously through the day from initial 13-commit early-return chain fix into a complete ranged/melee parity overhaul + defensive relic audit + NG+ consolidation. All 4 classes playtested (3min each) without crash. Visual regression baselines refreshed — 17/17 PASS.
