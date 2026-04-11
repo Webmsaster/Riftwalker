@@ -265,6 +265,19 @@ would have missed by eye.
 - **Lesson**: When writing a dimension filter in a lambda that receives dimension from an outer scope, always check if the source can be dim=0 (both dims). The standard pattern `X != 0 && X != dim` is only correct when `dim` is always 1 or 2.
 - **Detection heuristic**: Grep for `nearby.dimension != 0 && nearby.dimension != ` and check if the second operand can ever be 0.
 
+### 34. RunBuff Overwrite by applyStatEffects/applyUpgrades (Two Variants)
+- **Pattern A (MaxHPBoost)**: applyRunBuffs() added +30 to hp.maxHP. Then applyStatEffects() reset maxHP from baseMaxHP (which didn't include the buff). On every level transition, the +30 HP buff silently vanished.
+- **Pattern B (CritSurge)**: applyRunBuffs() called setCritChance(upgrades + buffBonus), overwriting the setCritChance(upgrades + achBonus) from applyUpgrades(). Players with S-Rank achievement (+3% crit) lost it when buying CritSurge.
+- **Fix A**: Moved MaxHPBoost into applyUpgrades() so it's part of baseMaxHP and survives recalculation.
+- **Fix B**: Added achBonus.critChanceBonus to the CritSurge setCritChance call.
+- **Lesson**: When two functions both set the same stat (applyUpgrades + applyRunBuffs), the LATER one must include all modifiers from the EARLIER one. Grep for any stat that's set in multiple places and verify additive composition.
+- **Detection**: Grep for `setCritChance\|maxHP =\|maxHP +=` across all apply* functions. Any stat set in more than one function is a candidate for overwrite.
+
+### 35. Melee ShieldAura O(n²) with Available O(1) Cache
+- **Pattern**: Melee path did nested `entities.forEach` to find nearby ShieldAura elites for each hit. The ranged path used per-frame cached `hasNearbyShieldAura` flag populated by AISystem pre-pass.
+- **Fix**: Replaced melee nested forEach with the cached flag (same as ranged).
+- **Lesson**: When adding a per-entity feature, always check if AISystem's pre-pass already caches the result. Avoid nested forEach when a cached flag exists.
+
 ## Meta-Lessons from the 13-bug Phase 2
 
 1. **Saturation is real but late** — After 46 "clean" commits in Phase 1, focused agent reviews found 13 more real bugs. The "looks done" feeling is misleading for complex gameplay code.
