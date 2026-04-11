@@ -243,6 +243,28 @@ would have missed by eye.
 - **Detection signal**: Grep for `if ([cond]) { ... return; }` at the top of a function, then grep the rest of the same file for `if ([cond])` — any match is a candidate for dead code that should be in the delegate branch instead.
 - **Files**: CombatSystem.cpp:73 (the early return), fixes spread across CombatSystem.cpp / CombatSystem.h / CombatSystemEffects.cpp in commits c3fbc31, 1d07f34, 61e96e0, e1edbff, bc0a341
 
+## Session 2026-04-11 (Autonomous improvement pass)
+
+### 31. EchoStrike Relic Melee-Only (Another Early-Return Survivor)
+- **Pattern**: `rollEchoStrike()` (20% chance double hit) was only called in the melee forEach loop (CombatSystem.cpp:728). Ranged projectile hits never checked for echo bonus damage.
+- **Impact**: EchoStrike relic was useless for ranged builds. TemporalEcho synergy (35% chance) similarly dead for ranged.
+- **Fix**: Added EchoStrike check to projectile onTrigger lambda with PiercingEcho synergy override.
+- **File**: CombatSystemEffects.cpp:747-778
+
+### 32. Smoke Bot Function-Static Leak (Pattern #24 Extended)
+- **Pattern**: Same class as playtest bot static leak (#24). First fix only reset 2 of 17 function-statics on run start. Navigation statics (levelTimer, smokeLastLevel, noProgressTimer, bestDistToTarget, stuckTimer, smokeSkipRiftMask, smokeCurrentTarget, smokeFrameCount, lastStatusLog, successLogged, dimSwitchCooldown) persisted across runs.
+- **Impact**: Stale navigation targets, false stuck detection, missed success logging on subsequent smoke test runs.
+- **Fix**: Reset all 17 statics on first frame of each run.
+- **Lesson**: When fixing a "static leak" bug, audit ALL statics in the same function, not just the ones that caused the immediate symptom.
+- **File**: PlayStateSmokeBot.cpp
+
+### 33. Electric Chain Dimension Filter vs DimensionalEcho (Self-Inflicted)
+- **Pattern**: New electric chain ranged code used `nearby.dimension != 0 && nearby.dimension != dimension` where `dimension` was the projectile's dimension. With DimensionalEcho relic, projectile has `dimension=0`. The check `nearby.dim != 0 && nearby.dim != 0` filtered OUT all dim-1 and dim-2 enemies.
+- **Impact**: Electric chain with DimensionalEcho only hit dim-0 entities (very few in practice). Effectively dead for DimensionalEcho users.
+- **Fix**: Added `dimension != 0` guard — skip the filter entirely when the source is cross-dimensional.
+- **Lesson**: When writing a dimension filter in a lambda that receives dimension from an outer scope, always check if the source can be dim=0 (both dims). The standard pattern `X != 0 && X != dim` is only correct when `dim` is always 1 or 2.
+- **Detection heuristic**: Grep for `nearby.dimension != 0 && nearby.dimension != ` and check if the second operand can ever be 0.
+
 ## Meta-Lessons from the 13-bug Phase 2
 
 1. **Saturation is real but late** — After 46 "clean" commits in Phase 1, focused agent reviews found 13 more real bugs. The "looks done" feeling is misleading for complex gameplay code.
