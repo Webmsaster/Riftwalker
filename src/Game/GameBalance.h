@@ -8,7 +8,7 @@ namespace Balance {
 
 // === Player ===
 namespace Player {
-    constexpr float BaseHP           = 120.0f;
+    constexpr float BaseHP           = 150.0f; // BALANCE R2: raised from 120
     constexpr float InvincibilityTime = 1.2f;
     constexpr float MoveSpeed        = 250.0f;
     constexpr float JumpForce        = -420.0f;
