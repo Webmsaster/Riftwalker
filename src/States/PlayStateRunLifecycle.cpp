@@ -992,8 +992,8 @@ void PlayState::finalizeRun(bool abandoned) {
         }
         if (auto* lore = game->getLoreSystem()) {
             lore->discover(LoreID::FinalRevelation);
-            // Class Legacy: unlocked when completing the game (all classes aspire to this)
-            if (lore->discoveredCount() >= 15) {
+            // Class Legacy: unlocked when player has won with all 4 classes
+            if (game->getAchievements().isUnlocked("all_classes")) {
                 lore->discover(LoreID::ClassLegacy);
             }
             lore->save("riftwalker_lore.dat");

@@ -349,8 +349,6 @@ private:
     bool m_endlessMode = false;       // EndlessRift challenge: infinite floors
     int m_endlessScore = 0;           // Endless mode score
     float m_mutatorFluxTimer = 0;     // DimensionFlux auto-switch timer
-    bool m_challengeNoHealing = false;   // Cached from ChallengeData::noHealing
-    bool m_challengeNoDimSwitch = false; // Cached from ChallengeData::noDimSwitch
     void applyChallengeModifiers();   // Apply at run start
     void renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font);
 
