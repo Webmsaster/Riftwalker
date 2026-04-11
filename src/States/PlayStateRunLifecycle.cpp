@@ -661,9 +661,13 @@ void PlayState::applyUpgrades() {
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
     // BALANCE R2: Base HP 120 -> 150 (playtest: 100% death rate at F5-6, need more survivability)
     hp.maxHP = 150.0f + upgrades.getMaxHPBonus() + achBonus.maxHPBonus + milestoneBonus.bonusHP;
+    // Include MaxHPBoost run buff in base HP so applyStatEffects (which recalculates
+    // from baseMaxHP) doesn't overwrite it. Previously the buff was applied in
+    // applyRunBuffs() BEFORE applyStatEffects, so it was lost on every level transition.
+    hp.maxHP += game->getRunBuffSystem().getMaxHPBoost();
     hp.currentHP = hp.maxHP;
 
-    // Cache base stats (class + upgrades + achievements) so RelicSystem::applyStatEffects
+    // Cache base stats (class + upgrades + achievements + buffs) so RelicSystem::applyStatEffects
     // can recompute relic bonuses from scratch without compounding on repeated pickups.
     m_player->baseMoveSpeed = m_player->moveSpeed;
     m_player->baseMaxHP = hp.maxHP;
@@ -788,17 +792,14 @@ void PlayState::applyRunBuffs() {
     if (!m_player) return;
     auto& buffs = game->getRunBuffSystem();
 
-    // HP boost
-    if (buffs.hasBuff(RunBuffID::MaxHPBoost)) {
-        auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
-        hp.maxHP += buffs.getMaxHPBoost();
-        hp.currentHP = hp.maxHP;
-    }
+    // HP boost: now applied in applyUpgrades() so it's part of baseMaxHP
+    // and survives applyStatEffects() recalculation on level transitions.
 
-    // Crit bonus
+    // Crit bonus: add buff on top of upgrade + achievement bonus (not replace)
     float extraCrit = buffs.getCritBonus();
     if (extraCrit > 0) {
-        m_combatSystem.setCritChance(game->getUpgradeSystem().getCritChance() + extraCrit);
+        auto achBonus = game->getAchievements().getUnlockedBonuses();
+        m_combatSystem.setCritChance(game->getUpgradeSystem().getCritChance() + achBonus.critChanceBonus + extraCrit);
     }
 
     // Ability cooldown reduction
