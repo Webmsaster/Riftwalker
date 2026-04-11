@@ -7,14 +7,27 @@ void AISystem::updateTemporalWeaver(Entity& entity, float dt, const Vec2& player
     auto& hp = entity.getComponent<HealthComponent>();
     Vec2 center = t.getCenter();
 
-    // Phase determination based on HP
+    // Phase determination based on HP (guarded to fire only on transitions)
     float hpPct = hp.getPercent();
     bool extraPhase = (AscensionSystem::currentLevel > 0 &&
         AscensionSystem::getLevel(AscensionSystem::currentLevel).bossExtraPhase);
-    if (extraPhase && hpPct <= 0.15f) ai.bossPhase = 4;
-    else if (hpPct > 0.66f) ai.bossPhase = 1;
-    else if (hpPct > 0.33f) ai.bossPhase = 2;
-    else ai.bossPhase = 3;
+    int newPhase = (extraPhase && hpPct <= 0.15f) ? 4 :
+                   (hpPct > 0.66f) ? 1 : (hpPct > 0.33f) ? 2 : 3;
+    if (newPhase != ai.bossPhase) {
+        ai.bossPhase = newPhase;
+        ai.bossEnraged = (newPhase >= 3);
+        // Seed timers so attacks don't all fire on frame 0 of a new phase
+        ai.twSweepTimer = 2.0f;
+        ai.twRewindTimer = (newPhase >= 2) ? 10.0f : 999.0f;
+        ai.twStopTimer = (newPhase >= 3) ? 6.0f : 999.0f;
+        ai.twSlowZoneTimer = 3.0f;
+        // Phase transition effects
+        if (m_camera) m_camera->shake(8.0f + newPhase * 2.0f, 0.3f);
+        if (m_particles) {
+            m_particles->burst(center, 20 + newPhase * 5, {200, 160, 255, 255}, 200.0f, 4.0f);
+        }
+        AudioManager::instance().play(SFX::BossShieldBurst);
+    }
 
     // Hover motion (sine wave)
     ai.twHoverY += dt;
