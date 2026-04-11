@@ -717,7 +717,8 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                             if (&nearby == other || !nearby.isAlive()) return;
                             if (!nearby.isEnemy) return;
                             if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
-                            if (nearby.dimension != 0 && nearby.dimension != dimension) return;
+                            // dimension=0 means both dims (DimensionalEcho) — skip filter
+                            if (dimension != 0 && nearby.dimension != 0 && nearby.dimension != dimension) return;
                             auto& nt = nearby.getComponent<TransformComponent>();
                             float edx = nt.getCenter().x - hitPos.x;
                             float edy = nt.getCenter().y - hitPos.y;
