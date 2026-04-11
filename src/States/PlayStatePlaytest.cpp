@@ -61,7 +61,8 @@ constexpr PlaytestProfile kProfiles[] = {
 };
 
 // Relic scoring: positive = good for this class, negative = avoid
-int scoreRelic(RelicID id, PlayerClass cls, const std::vector<ActiveRelic>& owned) {
+int scoreRelic(RelicID id, PlayerClass cls, const std::vector<ActiveRelic>& owned,
+               WeaponID melee = WeaponID::RiftBlade, WeaponID ranged = WeaponID::ShardPistol) {
     int score = 0;
     // Universal good picks
     if (id == RelicID::SoulSiphon) score += 5;
@@ -101,16 +102,21 @@ int scoreRelic(RelicID id, PlayerClass cls, const std::vector<ActiveRelic>& owne
         score -= (g_playtestProfile == 1) ? 1 : 5; // aggressive tolerates cursed
     }
 
-    // Synergy bonus: check if picking this relic would complete any relic-relic synergy
-    // by simulating a RelicComponent with the candidate added
+    // Synergy bonus: check if picking this relic would complete any synergy
     {
         RelicComponent simRelics;
         simRelics.relics = owned;
         simRelics.relics.push_back({id});
-        int synBefore = RelicSynergy::getActiveSynergyCount(
-            [&]() { RelicComponent r; r.relics = owned; return r; }());
+        RelicComponent curRelics;
+        curRelics.relics = owned;
+        // Relic-relic synergies
+        int synBefore = RelicSynergy::getActiveSynergyCount(curRelics);
         int synAfter = RelicSynergy::getActiveSynergyCount(simRelics);
-        score += (synAfter - synBefore) * 4; // +4 per newly activated synergy
+        score += (synAfter - synBefore) * 4;
+        // Weapon-relic synergies
+        int wsBefore = RelicSynergy::getActiveWeaponSynergyCount(curRelics, melee, ranged);
+        int wsAfter = RelicSynergy::getActiveWeaponSynergyCount(simRelics, melee, ranged);
+        score += (wsAfter - wsBefore) * 5; // +5 per weapon synergy (higher value)
     }
 
     return score;
@@ -763,7 +769,13 @@ void PlayState::updatePlaytest(float dt) {
                 owned = m_player->getEntity()->getComponent<RelicComponent>().relics;
             int bestIdx = 0, bestScore = -999;
             for (int i = 0; i < static_cast<int>(m_relicChoices.size()); i++) {
-                int s = scoreRelic(m_relicChoices[i], g_selectedClass, owned);
+                WeaponID curMelee = WeaponID::RiftBlade, curRanged = WeaponID::ShardPistol;
+                if (m_player->getEntity()->hasComponent<CombatComponent>()) {
+                    auto& cc = m_player->getEntity()->getComponent<CombatComponent>();
+                    curMelee = cc.currentMelee;
+                    curRanged = cc.currentRanged;
+                }
+                int s = scoreRelic(m_relicChoices[i], g_selectedClass, owned, curMelee, curRanged);
                 if (s > bestScore) { bestScore = s; bestIdx = i; }
             }
             playtestLog("  [%.0fs] Relic: %s (score:%d)",
