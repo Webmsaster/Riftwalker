@@ -710,9 +710,30 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                             cs->m_particles->burst(hitPos, 3, {180, 220, 255, 200}, 40.0f, 1.0f);
                         }
                     }
-                    // Note: electric chain damage (element 3) omitted here — needs an
-                    // entities.forEach inside the hit lambda, which would be expensive
-                    // to trigger on every projectile hit. Melee path keeps exclusive.
+                    else if (cs->m_elementWeapon == 3 && cs->m_currentEntities) {
+                        // Electric: chain 30% damage to nearby enemies (same as melee path)
+                        float chainDmg = finalDmg * 0.3f;
+                        cs->m_currentEntities->forEach([&](Entity& nearby) {
+                            if (&nearby == other || !nearby.isAlive()) return;
+                            if (!nearby.isEnemy) return;
+                            if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
+                            if (nearby.dimension != 0 && nearby.dimension != dimension) return;
+                            auto& nt = nearby.getComponent<TransformComponent>();
+                            float edx = nt.getCenter().x - hitPos.x;
+                            float edy = nt.getCenter().y - hitPos.y;
+                            if (edx * edx + edy * edy < 80.0f * 80.0f) {
+                                nearby.getComponent<HealthComponent>().takeDamage(chainDmg);
+                                cs->m_damageEvents.push_back({nt.getCenter(), chainDmg, false, false});
+                                if (cs->m_particles) {
+                                    cs->m_particles->burst(nt.getCenter(), 4, {255, 255, 80, 255}, 100.0f, 1.5f);
+                                }
+                            }
+                        });
+                        AudioManager::instance().play(SFX::ElectricChain);
+                        if (cs->m_particles) {
+                            cs->m_particles->burst(hitPos, 5, {255, 255, 80, 255}, 120.0f, 2.0f);
+                        }
+                    }
                 }
                 // Bug fix: Elite Vampiric modifier heals attacker on dealing damage.
                 // Melee-only before; enemy ranged attackers with the modifier never
