@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-**Recent Updates (2026-04-11 autonomous improvement pass — 12 commits):**
+**Recent Updates (2026-04-11 autonomous improvement pass — 15 commits):**
 - **Electric chain ranged parity**: Element 3 (Electric) 30% chain damage was deferred for ranged — now fires via `m_currentEntities->forEach` in projectile onTrigger lambda. Cost bounded (1x per hit, not per frame).
 - **EchoStrike ranged fix**: `rollEchoStrike()` was melee-only (another early-return survivor). Added to projectile onTrigger with PiercingEcho synergy override (35% for RiftCrossbow).
 - **3 new weapon-relic synergies** (all 12 weapons now have synergies): GravityThorns (GravityGauntlet + ThornMail, +5 impact DMG), PhantomGrapple (GrapplingHook + PhaseCloak, 2s invis on kill), PiercingEcho (RiftCrossbow + EchoStrike, 35% echo chance). 25 synergies total.
@@ -21,7 +21,10 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **MaxHPBoost buff overwrite**: +30 HP applied in applyRunBuffs, then overwritten by applyStatEffects resetting from baseMaxHP. Moved to applyUpgrades.
 - **CritSurge buff overwrite**: +20% crit replaced achievement crit bonus instead of adding to it.
 - **Bug scans all clean**: 5 parallel agents (early-return dead code, check-after-write, takeDamage bypass, SDL resource leaks, systems audit) — 0 false negatives on confirmed fixes.
-- **153 gameplay tips** (EN+DE), 25 synergies, 12/12 counter-attacks.
+- **153 gameplay tips** (EN+DE), 25 synergies (fully localized), 12/12 counter-attacks.
+- **Synergy localization**: All 25 synergy names + descriptions now use LOC() keys (50 EN + 50 DE). HUD weapon panel renders localized.
+- **DE credits fix**: Showed "22 Synergie-Kombos" instead of 25.
+- **955 EN + 1184 DE** localization keys total (was 930/1159).
 
 **Recent Updates (2026-04-10 mega autonomous session — 42 commits, 24 bugs, 30 files, 17/17 visual tests PASS):**
 
