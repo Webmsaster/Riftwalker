@@ -886,6 +886,7 @@ void Localization::loadStrings() {
     m_en["tip.158"] = "TIP: Entropy Incarnate accelerates your suit entropy — keep it below 70% or the boss heals from overloads!";
     m_en["tip.159"] = "TIP: Boss enrage phases deal more damage but also take more — aggressive play is rewarded in late phases!";
     m_en["tip.160"] = "TIP: Shop buffs persist for the entire run — invest early for maximum value across all 30 floors!";
+    m_en["tip.161"] = "TIP: Technomancer's combo finisher 'Overcharge Surge' stuns all nearby enemies for 1s and deals 1.5x ranged damage!";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -2081,6 +2082,7 @@ void Localization::loadStrings() {
     m_de["tip.158"] = "TIPP: Entropie-Inkarnation beschleunigt deine Anzug-Entropie — halte sie unter 70% oder der Boss heilt sich!";
     m_de["tip.159"] = "TIPP: Boss-Raserei-Phasen machen mehr Schaden aber stecken auch mehr ein — aggressives Spiel wird belohnt!";
     m_de["tip.160"] = "TIPP: Shop-Buffs halten den ganzen Lauf — investiere frueh fuer maximalen Wert ueber alle 30 Etagen!";
+    m_de["tip.161"] = "TIPP: Technomancers Kombo-Finisher 'Ueberladungsstoss' betaeubt alle nahen Feinde fuer 1s und macht 1,5x Fernkampfschaden!";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";

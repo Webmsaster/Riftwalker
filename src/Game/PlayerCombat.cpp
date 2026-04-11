@@ -796,11 +796,94 @@ void Player::executeComboFinisher() {
         break;
     }
 
-    default:
-        // Technomancer or future classes: basic AoE burst fallback
+    case PlayerClass::Technomancer: {
+        // Overcharge Surge: EMP burst stuns enemies, 1.5x ranged damage AoE
+        float radius = 140.0f;
+        auto& combat_tc = m_entity->getComponent<CombatComponent>();
+        float damage = combat_tc.rangedAttack.damage * 1.5f;
+        float stunDuration = 1.0f;
+
+        AudioManager::instance().play(SFX::ElectricChain);
+        combatSystemRef->addHitFreeze(0.12f);
+
+        // Yellow-orange EMP ring particles
         if (particles) {
-            particles->burst(playerPos, 15, {230, 180, 50, 255}, 150.0f, 4.0f);
+            for (int i = 0; i < 12; i++) {
+                float angle = i * 6.283185f / 12.0f;
+                Vec2 ringPos = {playerPos.x + std::cos(angle) * radius * 0.5f,
+                                playerPos.y + std::sin(angle) * radius * 0.5f};
+                particles->directionalBurst(ringPos, 3, {255, 200, 50, 255},
+                    angle * 57.2958f, 25.0f, 180.0f, 3.5f);
+            }
+            particles->burst(playerPos, 20, {230, 180, 50, 220}, 150.0f, 4.0f);
         }
+
+        // Damage + stun all enemies in radius
+        entityManager->forEach([&](Entity& e) {
+            if (!e.isEnemy || !e.isAlive()) return;
+            if (!e.hasComponent<TransformComponent>() || !e.hasComponent<HealthComponent>()) return;
+            auto& eHP = e.getComponent<HealthComponent>();
+            if (eHP.currentHP <= 0) return;
+
+            auto& et = e.getComponent<TransformComponent>();
+            Vec2 ePos = et.getCenter();
+            float dx = ePos.x - playerPos.x;
+            float dy = ePos.y - playerPos.y;
+            if (dx * dx + dy * dy > radius * radius) return;
+
+            eHP.takeDamage(damage);
+            combatSystemRef->addDamageEvent(ePos, damage, false, false);
+
+            if (e.hasComponent<AIComponent>()) {
+                e.getComponent<AIComponent>().stun(stunDuration);
+            }
+
+            // Electric spark particles on hit targets
+            if (particles) {
+                particles->burst(ePos, 8, {255, 255, 80, 255}, 120.0f, 2.5f);
+            }
+
+            if (eHP.currentHP <= 0) {
+                combatSystemRef->killCount++;
+                KillEvent ke;
+                ke.wasComboFinisher = true;
+                if (e.hasComponent<AIComponent>()) {
+                    auto& ai = e.getComponent<AIComponent>();
+                    ke.enemyType = static_cast<int>(ai.enemyType);
+                    ke.wasElite = ai.isElite;
+                    ke.wasMiniBoss = ai.isMiniBoss;
+                    ke.wasBoss = (ai.enemyType == EnemyType::Boss);
+                    if (ai.isMiniBoss) combatSystemRef->killedMiniBoss = true;
+                    if (ai.element != EnemyElement::None) combatSystemRef->killedElemental = true;
+                    Bestiary::onEnemyKill(ai.enemyType);
+                }
+                combatSystemRef->killEvents.push_back(ke);
+
+                int wIdx = static_cast<int>(combat.currentRanged);
+                if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT))
+                    combatSystemRef->weaponKills[wIdx]++;
+
+                addMomentumStack();
+                if (combatSystemRef->getDashRefreshOnKill()) dashCooldownTimer = 0;
+
+                int dropCount = 1;
+                if (e.hasComponent<AIComponent>()) {
+                    auto& ai = e.getComponent<AIComponent>();
+                    if (ai.isMiniBoss) dropCount = 3;
+                    else if (ai.isElite) dropCount = 2;
+                }
+                ItemDrop::spawnRandomDrop(*entityManager, ePos, e.dimension, dropCount, this);
+                AudioManager::instance().play(SFX::EnemyDeath);
+                if (particles) {
+                    particles->burst(ePos, 25, {255, 220, 50, 255}, 200.0f, 5.0f);
+                }
+                e.destroy();
+            }
+        });
+        break;
+    }
+
+    default:
         break;
     }
 }
