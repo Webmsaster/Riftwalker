@@ -67,8 +67,21 @@ private:
     void spawnParticle(const ParticleEmitter& emitter);
     int findFreeSlot();
 
+    // Pre-computed per-particle draw data — built in render() first pass,
+    // consumed in subsequent glow/core/hot passes to eliminate per-particle
+    // SDL_SetRenderDrawBlendMode ping-pong (2000-4000 pipeline flushes/frame).
+    struct DrawParticle {
+        SDL_Rect rect;
+        Uint8 r, g, b, alpha;
+        Uint8 coreR, coreG, coreB, coreA;
+        int coreSize;
+        bool hasGlow;
+        bool hasCore;
+    };
+
     std::vector<Particle> m_particles;
     std::vector<ParticleEmitter> m_emitters;
+    std::vector<DrawParticle> m_drawBuf;  // Reused across frames; reserved to pool size
     int m_activeCount = 0;       // Cached count of alive particles
     int m_firstFree = 0;         // Hint for next free slot search
     static constexpr int MAX_PARTICLES = 2000;

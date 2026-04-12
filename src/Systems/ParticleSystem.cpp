@@ -17,6 +17,7 @@ ParticleSystem::ParticleSystem() {
     m_particles.resize(MAX_PARTICLES);
     for (auto& p : m_particles) p.alive = false;
     m_emitters.reserve(64);
+    m_drawBuf.reserve(MAX_PARTICLES);
 }
 
 void ParticleSystem::update(float dt) {
@@ -67,11 +68,13 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
     SDL_GetRendererOutputSize(renderer, &screenW, &screenH);
     constexpr int CULL_MARGIN = 50;
 
+    // Pass 1: Pre-compute all draw data into m_drawBuf (avoids state ping-pong
+    // and double-computation across the three render passes below).
+    m_drawBuf.clear();
     for (auto& p : m_particles) {
         if (!p.alive || p.size <= 0) continue;
 
         Vec2 screen = camera.worldToScreen(p.position);
-        // Viewport culling: skip off-screen particles
         if (screen.x < -CULL_MARGIN || screen.x > screenW + CULL_MARGIN ||
             screen.y < -CULL_MARGIN || screen.y > screenH + CULL_MARGIN) continue;
 
@@ -85,49 +88,53 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
         }
         Uint8 alpha = static_cast<Uint8>(p.color.a * (1.0f - lifeRatio * lifeRatio));
 
-        // Apply color-blind filter to particle colors
         SDL_Color filtered = applyColorBlind({r, g, b, alpha});
-        r = filtered.r; g = filtered.g; b = filtered.b;
 
-        SDL_Rect rect = {
+        DrawParticle d;
+        d.rect = {
             static_cast<int>(screen.x - p.size / 2),
             static_cast<int>(screen.y - p.size / 2),
             static_cast<int>(p.size),
             static_cast<int>(p.size)
         };
-
-        // Outer glow halo (soft, additive-blended for bright hot look)
-        if (p.size >= 3.0f && alpha > 30) {
-            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
-            Uint8 glowA = static_cast<Uint8>(alpha * 0.18f);
-            SDL_SetRenderDrawColor(renderer, r, g, b, glowA);
-            SDL_Rect glow2 = {rect.x - 4, rect.y - 4, rect.w + 8, rect.h + 8};
-            SDL_RenderFillRect(renderer, &glow2);
-            Uint8 glowA2 = static_cast<Uint8>(alpha * 0.3f);
-            SDL_SetRenderDrawColor(renderer, r, g, b, glowA2);
-            SDL_Rect glow1 = {rect.x - 2, rect.y - 2, rect.w + 4, rect.h + 4};
-            SDL_RenderFillRect(renderer, &glow1);
-            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        d.r = filtered.r; d.g = filtered.g; d.b = filtered.b; d.alpha = alpha;
+        d.hasGlow = (p.size >= 3.0f && alpha > 30);
+        d.hasCore = (p.size >= 2.5f && alpha > 50);
+        if (d.hasCore) {
+            d.coreA = static_cast<Uint8>(std::min(255, static_cast<int>(alpha) + 50));
+            d.coreR = static_cast<Uint8>(std::min(255, static_cast<int>(d.r) + 100));
+            d.coreG = static_cast<Uint8>(std::min(255, static_cast<int>(d.g) + 90));
+            d.coreB = static_cast<Uint8>(std::min(255, static_cast<int>(d.b) + 70));
+            d.coreSize = std::max(1, static_cast<int>(p.size * 0.35f));
         }
+        m_drawBuf.push_back(d);
+    }
 
-        // Core particle
-        SDL_SetRenderDrawColor(renderer, r, g, b, alpha);
-        SDL_RenderFillRect(renderer, &rect);
+    // Pass 2: All additive glow halos in a single ADD block
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+    for (const auto& d : m_drawBuf) {
+        if (!d.hasGlow) continue;
+        Uint8 glowA = static_cast<Uint8>(d.alpha * 0.18f);
+        SDL_SetRenderDrawColor(renderer, d.r, d.g, d.b, glowA);
+        SDL_Rect glow2 = {d.rect.x - 4, d.rect.y - 4, d.rect.w + 8, d.rect.h + 8};
+        SDL_RenderFillRect(renderer, &glow2);
+        Uint8 glowA2 = static_cast<Uint8>(d.alpha * 0.3f);
+        SDL_SetRenderDrawColor(renderer, d.r, d.g, d.b, glowA2);
+        SDL_Rect glow1 = {d.rect.x - 2, d.rect.y - 2, d.rect.w + 4, d.rect.h + 4};
+        SDL_RenderFillRect(renderer, &glow1);
+    }
 
-        // Bright center pixel for medium+ particles (hot core)
-        if (p.size >= 2.5f && alpha > 50) {
-            Uint8 coreA = static_cast<Uint8>(std::min(255, static_cast<int>(alpha) + 50));
-            Uint8 cr = static_cast<Uint8>(std::min(255, static_cast<int>(r) + 100));
-            Uint8 cg = static_cast<Uint8>(std::min(255, static_cast<int>(g) + 90));
-            Uint8 cb = static_cast<Uint8>(std::min(255, static_cast<int>(b) + 70));
-            SDL_SetRenderDrawColor(renderer, cr, cg, cb, coreA);
-            int coreSize = std::max(1, static_cast<int>(p.size * 0.35f));
-            // Center the core rect on the particle — was previously
-            // offset to the lower-right quadrant by coreSize pixels
+    // Pass 3: All core rects + hot centers in a single BLEND block
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    for (const auto& d : m_drawBuf) {
+        SDL_SetRenderDrawColor(renderer, d.r, d.g, d.b, d.alpha);
+        SDL_RenderFillRect(renderer, &d.rect);
+        if (d.hasCore) {
+            SDL_SetRenderDrawColor(renderer, d.coreR, d.coreG, d.coreB, d.coreA);
             SDL_Rect core = {
-                rect.x + rect.w / 2 - coreSize / 2,
-                rect.y + rect.h / 2 - coreSize / 2,
-                coreSize, coreSize
+                d.rect.x + d.rect.w / 2 - d.coreSize / 2,
+                d.rect.y + d.rect.h / 2 - d.coreSize / 2,
+                d.coreSize, d.coreSize
             };
             SDL_RenderFillRect(renderer, &core);
         }

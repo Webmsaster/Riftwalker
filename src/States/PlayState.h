@@ -204,6 +204,12 @@ private:
     std::string m_killStreakText;         // e.g. "TRIPLE KILL!"
     SDL_Color m_killStreakColor{255, 255, 255, 255}; // color per tier
     void renderKillStreak(SDL_Renderer* renderer, TTF_Font* font);
+    // Cached kill-streak texture — rebuilt only when text or color changes.
+    // Eliminates TTF_Render + CreateTexture on every frame of a 3s display.
+    SDL_Texture* m_killStreakCachedTex = nullptr;
+    std::string m_killStreakCachedKey;
+    int m_killStreakCachedW = 0;
+    int m_killStreakCachedH = 0;
 
     // Wave/area clear celebration
     float m_waveClearTimer = 0;       // text overlay duration (2s)
@@ -231,6 +237,15 @@ private:
     int m_levelUpDisplayLevel = 0;          // Level reached (for display)
     void updateLevelUp(float dt);
     void renderLevelUp(SDL_Renderer* renderer, TTF_Font* font);
+    // Cached level-up textures — rebuilt only when text changes.
+    SDL_Texture* m_levelUpLabelCachedTex = nullptr;
+    std::string m_levelUpLabelCachedKey;
+    int m_levelUpLabelCachedW = 0;
+    int m_levelUpLabelCachedH = 0;
+    SDL_Texture* m_levelUpNumCachedTex = nullptr;
+    std::string m_levelUpNumCachedKey;
+    int m_levelUpNumCachedW = 0;
+    int m_levelUpNumCachedH = 0;
 
     // Floating damage numbers
     std::vector<FloatingDamageNumber> m_damageNumbers;

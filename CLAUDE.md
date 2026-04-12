@@ -8,7 +8,7 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 ## Current State (2026-04-12)
 - **Content**: 12 weapons (12/12 counter-attacks), 4 classes (4/4 combo finishers), 38 relics, 25 synergies (13 relic-relic + 12 weapon-relic, fully localized), 6 bosses, 17 enemy types, NG+ tiers 0–10
 - **Localization**: 963 EN + 1192 DE keys, ~162 gameplay tips (EN+DE)
-- **Quality**: 0 compiler warnings, visual regression 17/17 PASS, 37 bug patterns documented in `.claude/rules/bug-patterns.md`
+- **Quality**: 0 compiler warnings, visual regression 17/17 PASS, 38 bug patterns documented in `.claude/rules/bug-patterns.md`
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
 
 **History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-04-11).
@@ -41,7 +41,7 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **FireAura elite burn bypassing dotDurationMult**: Direct `burnTimer =` assignment skipped `applyBurn()` which applies Elemental Slayer achievement bonus.
 - **Technomancer combo finisher** "Overcharge Surge": 140px AoE, 1.5x ranged DMG, 1s stun. Was placeholder-only (particles, no damage). All 4 classes now have unique finishers.
 - **Playtest bot** now evaluates all 25 synergies (13 relic-relic + 12 weapon-relic) for optimal relic selection.
-- **37 bug patterns** documented in .claude/rules/bug-patterns.md. 162 gameplay tips.
+- **38 bug patterns** documented in .claude/rules/bug-patterns.md. 162 gameplay tips.
 - **Balance + Boss AI audits**: 9 parallel agent scans, damage formulas verified correct, Temporal Weaver phase bug + enrage field bug + FireAura bypass found and fixed.
 
 ## Build Commands (Riftwalker)

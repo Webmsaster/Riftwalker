@@ -1083,17 +1083,17 @@ void RenderSystem::renderShockTrap(SDL_Renderer* renderer, SDL_Rect rect, Entity
     Uint8 trapG = static_cast<Uint8>(180 + 50 * pulse);
     Uint8 trapB = static_cast<Uint8>(30 + 70 * pulse);
 
-    // Diamond shape using 4 triangles approximated by rotated rects
+    // Diamond shape using 4 triangles approximated by rotated rects.
+    // Color is constant across all rows — set once before each loop.
+    SDL_SetRenderDrawColor(renderer, trapR, trapG, trapB, a);
     // Top half diamond
     for (int dy = -h / 2; dy <= 0; dy++) {
         int halfW = static_cast<int>((w / 2) * (1.0f - static_cast<float>(-dy) / (h / 2)));
-        SDL_SetRenderDrawColor(renderer, trapR, trapG, trapB, a);
         SDL_RenderDrawLine(renderer, cx - halfW, cy + dy, cx + halfW, cy + dy);
     }
     // Bottom half diamond
     for (int dy = 0; dy <= h / 2; dy++) {
         int halfW = static_cast<int>((w / 2) * (1.0f - static_cast<float>(dy) / (h / 2)));
-        SDL_SetRenderDrawColor(renderer, trapR, trapG, trapB, a);
         SDL_RenderDrawLine(renderer, cx - halfW, cy + dy, cx + halfW, cy + dy);
     }
 

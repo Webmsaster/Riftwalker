@@ -684,11 +684,14 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
             int comboY = 120;
 
-            // Render combo text with glow outline and background
-            SDL_Surface* comboSurf = TTF_RenderUTF8_Blended(font, comboText, comboColor);
-            if (comboSurf) {
-                int tw = static_cast<int>(comboSurf->w * comboScale);
-                int th = static_cast<int>(comboSurf->h * comboScale);
+            // Render combo text with glow outline and background — uses the
+            // HUD text cache (getOrBuildText) so the TTF surface + texture are
+            // only built once per unique (text,color) pair and reused while the
+            // combo is visible.
+            CachedText* comboEntry = getOrBuildText(renderer, font, comboText, comboColor);
+            if (comboEntry && comboEntry->texture) {
+                int tw = static_cast<int>(comboEntry->w * comboScale);
+                int th = static_cast<int>(comboEntry->h * comboScale);
                 int cx = screenW / 2 - tw / 2;
 
                 // Background panel (semi-transparent dark with colored accent)
@@ -698,46 +701,41 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 SDL_SetRenderDrawColor(renderer, comboColor.r, comboColor.g, comboColor.b, 40);
                 SDL_RenderDrawRect(renderer, &comboBg);
 
-                SDL_Texture* comboTex = SDL_CreateTextureFromSurface(renderer, comboSurf);
-                if (comboTex) {
-                    // Glow pass (additive, larger, dimmer)
-                    SDL_SetTextureBlendMode(comboTex, SDL_BLENDMODE_ADD);
-                    SDL_SetTextureAlphaMod(comboTex, 35);
-                    SDL_Rect glowDst = {cx - 3, comboY - 2, tw + 6, th + 4};
-                    SDL_RenderCopy(renderer, comboTex, nullptr, &glowDst);
+                SDL_Texture* comboTex = comboEntry->texture;
+                // Glow pass (additive, larger, dimmer)
+                SDL_SetTextureBlendMode(comboTex, SDL_BLENDMODE_ADD);
+                SDL_SetTextureAlphaMod(comboTex, 35);
+                SDL_Rect glowDst = {cx - 3, comboY - 2, tw + 6, th + 4};
+                SDL_RenderCopy(renderer, comboTex, nullptr, &glowDst);
 
-                    // Shadow pass
-                    SDL_SetTextureBlendMode(comboTex, SDL_BLENDMODE_BLEND);
-                    SDL_SetTextureColorMod(comboTex, 0, 0, 0);
-                    SDL_SetTextureAlphaMod(comboTex, 160);
-                    SDL_Rect shadowDst = {cx + 1, comboY + 1, tw, th};
-                    SDL_RenderCopy(renderer, comboTex, nullptr, &shadowDst);
+                // Shadow pass
+                SDL_SetTextureBlendMode(comboTex, SDL_BLENDMODE_BLEND);
+                SDL_SetTextureColorMod(comboTex, 0, 0, 0);
+                SDL_SetTextureAlphaMod(comboTex, 160);
+                SDL_Rect shadowDst = {cx + 1, comboY + 1, tw, th};
+                SDL_RenderCopy(renderer, comboTex, nullptr, &shadowDst);
 
-                    // Main text
-                    SDL_SetTextureColorMod(comboTex, 255, 255, 255);
-                    SDL_SetTextureAlphaMod(comboTex, 255);
-                    SDL_Rect dst = {cx, comboY, tw, th};
-                    SDL_RenderCopy(renderer, comboTex, nullptr, &dst);
-                    SDL_DestroyTexture(comboTex);
-                }
-                SDL_FreeSurface(comboSurf);
+                // Main text — reset mods before RenderCopy (they persist on cached tex)
+                SDL_SetTextureColorMod(comboTex, 255, 255, 255);
+                SDL_SetTextureAlphaMod(comboTex, 255);
+                SDL_Rect dst = {cx, comboY, tw, th};
+                SDL_RenderCopy(renderer, comboTex, nullptr, &dst);
             }
 
             // Bonus text (slightly scaled at high combos)
             float bonusScale = comboScale > 1.2f ? 1.1f : 1.0f;
             SDL_Color bonusColor = {comboColor.r, comboColor.g, comboColor.b, 180};
-            SDL_Surface* bonusSurf = TTF_RenderUTF8_Blended(font, bonusText, bonusColor);
-            if (bonusSurf) {
-                SDL_Texture* bonusTex = SDL_CreateTextureFromSurface(renderer, bonusSurf);
-                if (bonusTex) {
-                    int bw = static_cast<int>(bonusSurf->w * bonusScale);
-                    int bh = static_cast<int>(bonusSurf->h * bonusScale);
-                    int bonusY = comboY + static_cast<int>(20 * comboScale) + 2;
-                    SDL_Rect dst = {screenW / 2 - bw / 2, bonusY, bw, bh};
-                    SDL_RenderCopy(renderer, bonusTex, nullptr, &dst);
-                    SDL_DestroyTexture(bonusTex);
-                }
-                SDL_FreeSurface(bonusSurf);
+            CachedText* bonusEntry = getOrBuildText(renderer, font, bonusText, bonusColor);
+            if (bonusEntry && bonusEntry->texture) {
+                int bw = static_cast<int>(bonusEntry->w * bonusScale);
+                int bh = static_cast<int>(bonusEntry->h * bonusScale);
+                int bonusY = comboY + static_cast<int>(20 * comboScale) + 2;
+                // Reset mods — cached tex may carry color/alpha from combo glow pass
+                SDL_SetTextureColorMod(bonusEntry->texture, 255, 255, 255);
+                SDL_SetTextureAlphaMod(bonusEntry->texture, 255);
+                SDL_SetTextureBlendMode(bonusEntry->texture, SDL_BLENDMODE_BLEND);
+                SDL_Rect dst = {screenW / 2 - bw / 2, bonusY, bw, bh};
+                SDL_RenderCopy(renderer, bonusEntry->texture, nullptr, &dst);
             }
 
             // Combo timer bar (shrinking, width scales with combo)
@@ -1263,9 +1261,9 @@ void HUD::renderBar(SDL_Renderer* renderer, int x, int y, int w, int h,
     }
 }
 
-void HUD::renderText(SDL_Renderer* renderer, TTF_Font* font,
-                      const char* text, int x, int y, SDL_Color color) {
-    if (!font || !text || !*text) return;
+HUD::CachedText* HUD::getOrBuildText(SDL_Renderer* renderer, TTF_Font* font,
+                                      const char* text, SDL_Color color) {
+    if (!font || !text || !*text) return nullptr;
 
     // Build cache key: text + RGBA bytes
     std::string key(text);
@@ -1276,11 +1274,7 @@ void HUD::renderText(SDL_Renderer* renderer, TTF_Font* font,
 
     auto it = m_textCache.find(key);
     if (it != m_textCache.end()) {
-        int sw = static_cast<int>(it->second.w * g_hudScale);
-        int sh = static_cast<int>(it->second.h * g_hudScale);
-        SDL_Rect rect = {x, y, sw, sh};
-        SDL_RenderCopy(renderer, it->second.texture, nullptr, &rect);
-        return;
+        return &it->second;
     }
 
     // Evict cache if too large
@@ -1289,16 +1283,27 @@ void HUD::renderText(SDL_Renderer* renderer, TTF_Font* font,
     }
 
     SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text, color);
-    if (!surface) return;
+    if (!surface) return nullptr;
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    CachedText* result = nullptr;
     if (texture) {
-        int sw = surface->w;
-        int sh = surface->h;
-        m_textCache[key] = {texture, sw, sh};
-        SDL_Rect rect = {x, y, static_cast<int>(sw * g_hudScale), static_cast<int>(sh * g_hudScale)};
-        SDL_RenderCopy(renderer, texture, nullptr, &rect);
+        m_textCache[key] = {texture, surface->w, surface->h};
+        result = &m_textCache[key];
     }
     SDL_FreeSurface(surface);
+    return result;
+}
+
+void HUD::renderText(SDL_Renderer* renderer, TTF_Font* font,
+                      const char* text, int x, int y, SDL_Color color) {
+    CachedText* entry = getOrBuildText(renderer, font, text, color);
+    if (!entry || !entry->texture) return;
+    int sw = static_cast<int>(entry->w * g_hudScale);
+    int sh = static_cast<int>(entry->h * g_hudScale);
+    SDL_Rect rect = {x, y, sw, sh};
+    SDL_SetTextureColorMod(entry->texture, 255, 255, 255);
+    SDL_SetTextureAlphaMod(entry->texture, 255);
+    SDL_RenderCopy(renderer, entry->texture, nullptr, &rect);
 }
 
 void HUD::clearTextCache() {

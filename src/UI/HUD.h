@@ -49,6 +49,12 @@ public:
     void renderFlash(SDL_Renderer* renderer, int screenW, int screenH);
 
 private:
+    // Text texture cache entry — shared by renderText() and getOrBuildText()
+    struct CachedText {
+        SDL_Texture* texture = nullptr;
+        int w = 0, h = 0;
+    };
+
     // Sub-renderers extracted from render() for readability
     void renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
                           const Player* player, const DimensionManager* dimMgr,
@@ -62,6 +68,10 @@ private:
                    float percent, SDL_Color fillColor, SDL_Color bgColor);
     void renderText(SDL_Renderer* renderer, TTF_Font* font,
                     const char* text, int x, int y, SDL_Color color);
+    // Cached text lookup/build — returns pointer to cached entry or nullptr.
+    // Use when you need per-frame blend/color/alpha mod control (combo, bonus).
+    CachedText* getOrBuildText(SDL_Renderer* renderer, TTF_Font* font,
+                                const char* text, SDL_Color color);
 
     float m_damageFlash = 0;
     const CombatSystem* m_combatSystem = nullptr;
@@ -93,10 +103,6 @@ private:
     Uint32 m_frameTicks = 0;
 
     // Text texture cache: avoids per-frame TTF_RenderText + SDL_CreateTextureFromSurface
-    struct CachedText {
-        SDL_Texture* texture = nullptr;
-        int w = 0, h = 0;
-    };
     std::unordered_map<std::string, CachedText> m_textCache;
     static constexpr size_t MAX_TEXT_CACHE = 128;
     void clearTextCache();

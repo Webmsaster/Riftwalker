@@ -212,20 +212,34 @@ void PlayState::renderKillStreak(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_RenderFillRect(renderer, &glow);
     }
 
-    SDL_Color col = {m_killStreakColor.r, m_killStreakColor.g, m_killStreakColor.b, a};
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(font, m_killStreakText.c_str(), col);
-    if (surf) {
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-        if (tex) {
-            float scale = 2.2f * pulse;
-            int w = static_cast<int>(surf->w * scale);
-            int h = static_cast<int>(surf->h * scale);
-            SDL_Rect dst = {SCREEN_WIDTH / 2 - w / 2, SCREEN_HEIGHT / 4 - h / 2, w, h};
-            SDL_SetTextureAlphaMod(tex, a);
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
+    // Cached kill-streak text — rebuilt only when the streak string or color
+    // changes. Previously built a fresh TTF surface + SDL_Texture every frame
+    // for the entire 3-second display window (~180 heap alloc/s).
+    {
+        std::string key = m_killStreakText;
+        key += static_cast<char>(m_killStreakColor.r);
+        key += static_cast<char>(m_killStreakColor.g);
+        key += static_cast<char>(m_killStreakColor.b);
+        if (key != m_killStreakCachedKey) {
+            if (m_killStreakCachedTex) { SDL_DestroyTexture(m_killStreakCachedTex); m_killStreakCachedTex = nullptr; }
+            SDL_Color cacheCol = {m_killStreakColor.r, m_killStreakColor.g, m_killStreakColor.b, 255};
+            SDL_Surface* surf = TTF_RenderUTF8_Blended(font, m_killStreakText.c_str(), cacheCol);
+            if (surf) {
+                m_killStreakCachedTex = SDL_CreateTextureFromSurface(renderer, surf);
+                m_killStreakCachedW = surf->w;
+                m_killStreakCachedH = surf->h;
+                SDL_FreeSurface(surf);
+            }
+            m_killStreakCachedKey = key;
         }
-        SDL_FreeSurface(surf);
+        if (m_killStreakCachedTex) {
+            float scale = 2.2f * pulse;
+            int w = static_cast<int>(m_killStreakCachedW * scale);
+            int h = static_cast<int>(m_killStreakCachedH * scale);
+            SDL_Rect dst = {SCREEN_WIDTH / 2 - w / 2, SCREEN_HEIGHT / 4 - h / 2, w, h};
+            SDL_SetTextureAlphaMod(m_killStreakCachedTex, a);
+            SDL_RenderCopy(renderer, m_killStreakCachedTex, nullptr, &dst);
+        }
     }
 
     if (a > 30) {
@@ -295,40 +309,61 @@ void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     float pulse = 1.0f + 0.05f * std::sin(m_levelUpTimer * 12.0f);
-    SDL_Color gold = {255, 215, 0, a};
-    SDL_Surface* surf = TTF_RenderUTF8_Blended(font, LOC("hud.level_up"), gold);
-    if (surf) {
-        SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-        if (tex) {
+    // Cached "LEVEL UP!" label — localized string, rarely changes language
+    // mid-run. Previously built TTF surface + texture every frame.
+    {
+        std::string key = LOC("hud.level_up");
+        if (key != m_levelUpLabelCachedKey) {
+            if (m_levelUpLabelCachedTex) { SDL_DestroyTexture(m_levelUpLabelCachedTex); m_levelUpLabelCachedTex = nullptr; }
+            SDL_Color gold = {255, 215, 0, 255};
+            SDL_Surface* surf = TTF_RenderUTF8_Blended(font, key.c_str(), gold);
+            if (surf) {
+                m_levelUpLabelCachedTex = SDL_CreateTextureFromSurface(renderer, surf);
+                m_levelUpLabelCachedW = surf->w;
+                m_levelUpLabelCachedH = surf->h;
+                SDL_FreeSurface(surf);
+            }
+            m_levelUpLabelCachedKey = key;
+        }
+        if (m_levelUpLabelCachedTex) {
             float scale = 2.5f * pulse;
-            int w = static_cast<int>(surf->w * scale);
-            int h = static_cast<int>(surf->h * scale);
+            int w = static_cast<int>(m_levelUpLabelCachedW * scale);
+            int h = static_cast<int>(m_levelUpLabelCachedH * scale);
             SDL_Rect dst = {SCREEN_WIDTH / 2 - w / 2,
                             SCREEN_HEIGHT / 3 - h / 2 + static_cast<int>(slideUp), w, h};
-            SDL_SetTextureAlphaMod(tex, a);
-            SDL_RenderCopy(renderer, tex, nullptr, &dst);
-            SDL_DestroyTexture(tex);
+            SDL_SetTextureAlphaMod(m_levelUpLabelCachedTex, a);
+            SDL_SetTextureColorMod(m_levelUpLabelCachedTex, 255, 255, 255);
+            SDL_RenderCopy(renderer, m_levelUpLabelCachedTex, nullptr, &dst);
         }
-        SDL_FreeSurface(surf);
     }
 
+    // Cached level number — rebuilds only on level change (once per level up).
     char lvlText[32];
     std::snprintf(lvlText, sizeof(lvlText), LOC("hud.level_display"), m_levelUpDisplayLevel);
-    SDL_Color lvlColor = {255, 240, 180, static_cast<Uint8>(a * 0.8f)};
-    SDL_Surface* lvlSurf = TTF_RenderUTF8_Blended(font, lvlText, lvlColor);
-    if (lvlSurf) {
-        SDL_Texture* lvlTex = SDL_CreateTextureFromSurface(renderer, lvlSurf);
-        if (lvlTex) {
+    {
+        std::string key(lvlText);
+        if (key != m_levelUpNumCachedKey) {
+            if (m_levelUpNumCachedTex) { SDL_DestroyTexture(m_levelUpNumCachedTex); m_levelUpNumCachedTex = nullptr; }
+            SDL_Color lvlColor = {255, 240, 180, 255};
+            SDL_Surface* lvlSurf = TTF_RenderUTF8_Blended(font, lvlText, lvlColor);
+            if (lvlSurf) {
+                m_levelUpNumCachedTex = SDL_CreateTextureFromSurface(renderer, lvlSurf);
+                m_levelUpNumCachedW = lvlSurf->w;
+                m_levelUpNumCachedH = lvlSurf->h;
+                SDL_FreeSurface(lvlSurf);
+            }
+            m_levelUpNumCachedKey = key;
+        }
+        if (m_levelUpNumCachedTex) {
             float lvlScale = 1.6f;
-            int lw = static_cast<int>(lvlSurf->w * lvlScale);
-            int lh = static_cast<int>(lvlSurf->h * lvlScale);
+            int lw = static_cast<int>(m_levelUpNumCachedW * lvlScale);
+            int lh = static_cast<int>(m_levelUpNumCachedH * lvlScale);
             SDL_Rect dst = {SCREEN_WIDTH / 2 - lw / 2,
                             SCREEN_HEIGHT / 3 + 48 + static_cast<int>(slideUp), lw, lh};
-            SDL_SetTextureAlphaMod(lvlTex, static_cast<Uint8>(a * 0.8f));
-            SDL_RenderCopy(renderer, lvlTex, nullptr, &dst);
-            SDL_DestroyTexture(lvlTex);
+            SDL_SetTextureAlphaMod(m_levelUpNumCachedTex, static_cast<Uint8>(a * 0.8f));
+            SDL_SetTextureColorMod(m_levelUpNumCachedTex, 255, 255, 255);
+            SDL_RenderCopy(renderer, m_levelUpNumCachedTex, nullptr, &dst);
         }
-        SDL_FreeSurface(lvlSurf);
     }
 
     if (a > 30) {

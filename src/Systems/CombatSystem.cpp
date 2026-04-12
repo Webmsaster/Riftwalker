@@ -92,6 +92,12 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
         berserkerSmashStunBonus = RelicSynergy::getBerserkerSmashStunBonus(rel, combat.currentMelee);
     }
 
+    // Electric chain: collected per hit, flushed in a single post-pass below
+    // to avoid O(hits × n) nested forEach (wide weapons hit many targets).
+    struct ChainSource { Vec2 center; float damage; Entity* primary; };
+    std::vector<ChainSource> electricChain;
+    if (m_elementWeapon == 3) electricChain.reserve(8);
+
     entities.forEach([&](Entity& target) {
         if (&target == &attacker) return;
         if (!target.hasComponent<HealthComponent>() || !target.hasComponent<TransformComponent>()) return;
@@ -911,24 +917,8 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         m_particles->burst(targetCenter, 3, {180, 220, 255, 200}, 40.0f, 1.0f);
                     }
                 } else if (m_elementWeapon == 3) {
-                    // Electric: chain 30% damage to nearby enemies
-                    float chainDmg = damage * 0.3f;
-                    entities.forEach([&](Entity& nearby) {
-                        if (&nearby == &target || !nearby.isAlive()) return;
-                        if (!nearby.isEnemy) return;
-                        if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
-                        if (nearby.dimension != 0 && nearby.dimension != currentDim) return;
-                        auto& nt = nearby.getComponent<TransformComponent>();
-                        float edx = nt.getCenter().x - targetCenter.x;
-                        float edy = nt.getCenter().y - targetCenter.y;
-                        if (edx * edx + edy * edy < 80.0f * 80.0f) {
-                            nearby.getComponent<HealthComponent>().takeDamage(chainDmg);
-                            m_damageEvents.push_back({nt.getCenter(), chainDmg, false, false});
-                            if (m_particles) {
-                                m_particles->burst(nt.getCenter(), 4, {255, 255, 80, 255}, 100.0f, 1.5f);
-                            }
-                        }
-                    });
+                    // Electric: queue for post-pass chain (see O(hits × n) fix above)
+                    electricChain.push_back({targetCenter, damage * 0.3f, &target});
                 }
             }
 
@@ -955,4 +945,33 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
             }
         }
     });
+
+    // Electric chain post-pass: single forEach instead of nested per-hit.
+    // For a wide melee swing hitting M targets, this collapses M × N
+    // iterations into 1 × N (+ small inner loop over collected sources).
+    if (!electricChain.empty()) {
+        constexpr float kChainRadiusSq = 80.0f * 80.0f;
+        entities.forEach([&](Entity& nearby) {
+            if (!nearby.isEnemy || !nearby.isAlive()) return;
+            if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
+            if (nearby.dimension != 0 && nearby.dimension != currentDim) return;
+            // Skip entities that were primary melee targets this swing
+            for (const auto& src : electricChain) {
+                if (src.primary == &nearby) return;
+            }
+            auto& nt = nearby.getComponent<TransformComponent>();
+            Vec2 nc = nt.getCenter();
+            for (const auto& src : electricChain) {
+                float edx = nc.x - src.center.x;
+                float edy = nc.y - src.center.y;
+                if (edx * edx + edy * edy < kChainRadiusSq) {
+                    nearby.getComponent<HealthComponent>().takeDamage(src.damage);
+                    m_damageEvents.push_back({nc, src.damage, false, false});
+                    if (m_particles) {
+                        m_particles->burst(nc, 4, {255, 255, 80, 255}, 100.0f, 1.5f);
+                    }
+                }
+            }
+        });
+    }
 }

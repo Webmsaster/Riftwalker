@@ -291,6 +291,15 @@ would have missed by eye.
 - **Fix**: Added `newPhase != bossPhase` guard with timer seeding and transition FX.
 - **Lesson**: Every boss should have a guard around phase assignment. Grep for `bossPhase =` without a preceding `<` or `!=` check — that's an unguarded assignment.
 
+## Session 2026-04-12
+
+### 38. wyrm_hunter Achievement Regression — Fix Applied to Wrong Formula
+- **Pattern**: bug-pattern 12 said the wyrm_hunter achievement was firing on multiple boss types because `bossIdx % 2 == 1` matched too many indices. Fix bumped the modulo to `bossIdx % 4 == 1`. But `bossIdx = floor/3` is NOT the actual spawn rotation — the real spawn code in PlayStateRunLifecycle.cpp uses `midBossType = zone % 2` where `zone = (floor-1)/6`. The two formulas are completely decoupled.
+- **Impact**: 4 out of 4 checks wrong. Fires on floors 3, 15, 27 (Rift Guardian, Rift Guardian, Entropy Incarnate — NONE are the Wyrm). Misses floors 9 and 21 (the only actual Void Wyrm spawns). Achievement was effectively unreachable.
+- **Fix**: Replaced `bossIdx % 4 == 1` with `isMidBossFloor(floor) && getZone(floor) % 2 == 1`, matching the exact spawn code.
+- **Lesson**: When fixing a "fires on wrong type" bug, don't just tweak the existing formula — verify it matches the actual spawn/spawn-like code. The two formulas must share a SINGLE source of truth. `bossIdx` here was a proxy variable nobody had ever grounded to actual spawn semantics.
+- **Meta**: This is the SECOND regression of bug-pattern 12. The first "fix" in 2026-04-02 used `% 4` without cross-checking the spawn code. Both fixes would have been caught at commit time by running a single playtest to any mid-boss floor and checking if wyrm_hunter was in the unlocked list.
+
 ## Meta-Lessons from the 13-bug Phase 2
 
 1. **Saturation is real but late** — After 46 "clean" commits in Phase 1, focused agent reviews found 13 more real bugs. The "looks done" feeling is misleading for complex gameplay code.

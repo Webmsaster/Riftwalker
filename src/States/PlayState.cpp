@@ -104,6 +104,13 @@ void PlayState::exit() {
         if (d.cachedShadow) SDL_DestroyTexture(d.cachedShadow);
     }
     m_damageNumbers.clear();
+    // Free cached UI textures so they don't leak when PlayState is re-entered
+    if (m_killStreakCachedTex) { SDL_DestroyTexture(m_killStreakCachedTex); m_killStreakCachedTex = nullptr; }
+    if (m_levelUpLabelCachedTex) { SDL_DestroyTexture(m_levelUpLabelCachedTex); m_levelUpLabelCachedTex = nullptr; }
+    if (m_levelUpNumCachedTex) { SDL_DestroyTexture(m_levelUpNumCachedTex); m_levelUpNumCachedTex = nullptr; }
+    m_killStreakCachedKey.clear();
+    m_levelUpLabelCachedKey.clear();
+    m_levelUpNumCachedKey.clear();
     m_entities.clear();
     m_particles.clear();
     m_player.reset();
