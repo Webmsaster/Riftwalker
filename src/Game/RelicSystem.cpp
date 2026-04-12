@@ -439,7 +439,8 @@ void RelicSystem::onDimensionSwitch(RelicComponent& relics, HealthComponent* hp)
     if (relics.hasRelic(RelicID::StabilityMatrix) && !RelicSynergy::isRiftMasterActive(relics)) {
         relics.stabilityTimer = 0;
     }
-    // RiftMantle: costs 5% max HP per switch (DualNature: no cost)
+    // RiftMantle: costs 5% max HP per switch (DualNature: no cost).
+    // Intentional bypass of getDamageTakenMult — this is a relic trade-off cost, not an attack.
     if (relics.hasRelic(RelicID::RiftMantle) && hp && !RelicSynergy::isDualNatureActive(relics)) {
         float cost = hp->maxHP * 0.05f;
         hp->takeDamage(cost);
