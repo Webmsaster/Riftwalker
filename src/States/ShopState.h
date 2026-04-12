@@ -19,5 +19,6 @@ private:
     std::vector<RunBuff> m_offerings;
     int m_selectedIndex = 0;
     float m_animTimer = 0;
+    float m_purchaseFlashTimer = 0;    // Golden flash on successful buy
     bool m_purchasedThisVisit = false;
 };

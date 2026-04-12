@@ -235,14 +235,24 @@ void RunSummaryState::render(SDL_Renderer* renderer) {
         gradeColor.a = alpha;
 
         if (m_statsTimer > 0.2f) {
+            // Pop-in animation: scale from 4x down to 1x over 0.4s, alpha 0->1 over 0.2s
+            float revealT = m_statsTimer - 0.2f;
+            float scaleT = std::min(1.0f, revealT / 0.4f);
+            float easeT = 1.0f - (1.0f - scaleT) * (1.0f - scaleT); // ease-out
+            float scale = 4.0f - 3.0f * easeT;
+            float revealAlphaF = std::min(1.0f, revealT / 0.2f);
+            Uint8 revealAlpha = static_cast<Uint8>(alpha * revealAlphaF);
+
             char gradeText[16];
             std::snprintf(gradeText, sizeof(gradeText), LOC("summary.grade"), grade);
             SDL_Surface* gs = TTF_RenderUTF8_Blended(font, gradeText, gradeColor);
             if (gs) {
                 SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
                 if (gt) {
-                    SDL_SetTextureAlphaMod(gt, alpha);
-                    SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w, headerY, gs->w * 2, gs->h * 2};
+                    SDL_SetTextureAlphaMod(gt, revealAlpha);
+                    int w = static_cast<int>(gs->w * 2 * scale);
+                    int h = static_cast<int>(gs->h * 2 * scale);
+                    SDL_Rect gr = {SCREEN_WIDTH / 2 - w / 2, headerY - (h - gs->h * 2) / 2, w, h};
                     SDL_RenderCopy(renderer, gt, nullptr, &gr);
                     SDL_DestroyTexture(gt);
                 }

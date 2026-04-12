@@ -482,7 +482,7 @@ void PlayState::updateKillEffects() {
     game->getUpgradeSystem().totalEnemiesKilled += m_combatSystem.killCount;
     m_screenEffects.triggerKillFlash();
 
-    // Kill slow-motion: trigger on boss/mini-boss kills or multi-kills
+    // Kill slow-motion: trigger on boss/mini-boss/elite kills or multi-kills
     for (auto& ke : m_combatSystem.killEvents) {
         if (ke.wasBoss) {
             m_killSlowMoTimer = 0.4f; // Longer slow-mo for boss
@@ -490,6 +490,10 @@ void PlayState::updateKillEffects() {
         } else if (ke.wasMiniBoss && m_killSlowMoTimer <= 0) {
             m_killSlowMoTimer = 0.3f;
             m_killSlowMoScale = 0.4f;
+        } else if (ke.wasElite && m_killSlowMoTimer <= 0) {
+            // Elite tier: brief slow-mo beat so elite kills feel distinct from regular
+            m_killSlowMoTimer = 0.18f;
+            m_killSlowMoScale = 0.55f;
         }
     }
     // Multi-kill slow-mo (3+ kills in one frame)

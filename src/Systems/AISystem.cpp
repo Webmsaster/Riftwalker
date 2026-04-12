@@ -38,15 +38,16 @@ void AISystem::attackWindupEffect(Entity& entity, float timer, float windupTime)
         sprite.color = {r, g, b, base.a};
     }
 
-    // Warning particles: red-orange sparks above enemy, intensifying
+    // Warning particles: red-orange sparks above enemy, intensifying.
+    // At 2K, a 1-particle/1.5px burst was invisible — bumped to 3-particle/5px.
     if (m_particles && progress > 0.3f) {
         auto& t = entity.getComponent<TransformComponent>();
-        Vec2 aboveHead = {t.getCenter().x, t.position.y - 4.0f};
-        float offsetX = (static_cast<float>(std::rand() % 20) - 10.0f);
+        Vec2 aboveHead = {t.getCenter().x, t.position.y - 6.0f};
+        float offsetX = (static_cast<float>(std::rand() % 24) - 12.0f);
         aboveHead.x += offsetX;
-        SDL_Color warnColor = {255, static_cast<Uint8>(80 + 100 * (1.0f - progress)), 40, 200};
-        float size = 1.5f + progress * 2.0f;
-        m_particles->burst(aboveHead, 1, warnColor, 20.0f + progress * 40.0f, size);
+        SDL_Color warnColor = {255, static_cast<Uint8>(80 + 100 * (1.0f - progress)), 40, 220};
+        float size = 4.0f + progress * 3.0f;
+        m_particles->burst(aboveHead, 3, warnColor, 30.0f + progress * 60.0f, size);
     }
 }
 

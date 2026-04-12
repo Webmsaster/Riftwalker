@@ -56,7 +56,9 @@ void ShopState::confirmSelection() {
             if (buffs.purchase(offering.id, shards)) {
                 game->getUpgradeSystem().setRiftShards(shards);
                 m_purchasedThisVisit = true;
+                m_purchaseFlashTimer = 0.4f; // Visual confirmation pulse
                 AudioManager::instance().play(SFX::Pickup);
+                AudioManager::instance().play(SFX::LevelComplete); // celebration layer
                 // Remove from offerings
                 m_offerings.erase(m_offerings.begin() + m_selectedIndex);
                 if (m_selectedIndex >= static_cast<int>(m_offerings.size())) {
@@ -174,6 +176,7 @@ void ShopState::handleEvent(const SDL_Event& event) {
 
 void ShopState::update(float dt) {
     m_animTimer += dt;
+    if (m_purchaseFlashTimer > 0) m_purchaseFlashTimer -= dt;
 
     // Gamepad navigation
     auto& input = game->getInput();
@@ -200,6 +203,17 @@ void ShopState::update(float dt) {
 void ShopState::render(SDL_Renderer* renderer) {
     TTF_Font* font = game->getFont();
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Purchase flash: additive golden overlay pulse on successful buy
+    if (m_purchaseFlashTimer > 0) {
+        float flashT = m_purchaseFlashTimer / 0.4f;
+        Uint8 flashA = static_cast<Uint8>(60 * flashT);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+        SDL_SetRenderDrawColor(renderer, 255, 200, 80, flashA);
+        SDL_Rect fullscreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &fullscreen);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    }
 
     // Dark background with rift pattern
     SDL_SetRenderDrawColor(renderer, 12, 8, 24, 255);

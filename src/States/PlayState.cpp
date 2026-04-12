@@ -603,6 +603,12 @@ void PlayState::update(float dt) {
         num.maxLifetime = num.lifetime;
         m_damageNumbers.push_back(num);
 
+        // Crit polish: gold particle burst at hit location for visceral impact
+        if (evt.isCritical && !evt.isPlayerDamage) {
+            m_particles.burst(evt.position, 8, {255, 220, 80, 255}, 160.0f, 2.5f);
+            m_particles.burst(evt.position, 4, {255, 255, 200, 255}, 120.0f, 2.0f);
+        }
+
         // Track enemy hits from player for achievements
         if (!evt.isPlayerDamage) {
             game->getAchievements().unlock("first_blood");

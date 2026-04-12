@@ -78,6 +78,19 @@ void PlayState::updateDimensionSwitch() {
             m_musicSystem.setDimension(m_dimManager.getCurrentDimension());
             game->getInputMutable().rumble(0.3f, 100);
             m_screenEffects.triggerDimensionRipple();
+            // Visceral feedback: subtle camera shake on the switch itself
+            m_camera.shake(4.0f, 0.15f);
+            // Expanding particle ring from player center at switch moment
+            if (m_player) {
+                Vec2 dpos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                SDL_Color dimColor = (m_dimManager.getCurrentDimension() == 1)
+                    ? SDL_Color{100, 180, 255, 255}
+                    : SDL_Color{220, 100, 180, 255};
+                for (int i = 0; i < 12; i++) {
+                    float angle = i * 30.0f;
+                    m_particles.directionalBurst(dpos, 3, dimColor, angle, 20.0f, 250.0f, 3.0f);
+                }
+            }
 
             // Relic dimension-switch effects
             if (m_player->getEntity()->hasComponent<RelicComponent>()) {

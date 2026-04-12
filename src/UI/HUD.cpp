@@ -30,6 +30,7 @@ void HUD::updateFlash(float dt) {
     if (m_damageFlash > 0) m_damageFlash -= dt;
     for (int i = 0; i < 4; i++) {
         if (m_abilityReadyFlash[i] > 0) m_abilityReadyFlash[i] -= dt;
+        if (m_abilityUsedFlash[i] > 0) m_abilityUsedFlash[i] -= dt;
     }
     // Weapon mastery tier-up flash decay
     for (int i = 0; i < 2; i++) {
@@ -993,6 +994,8 @@ void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
             int ix = margin + i * (iconSize + iconGap);
             bool ready = abilities[i].cooldownPct >= 1.0f;
             if (ready && m_abilityWasOnCooldown[i]) m_abilityReadyFlash[i] = 0.35f;
+            // Use flash: transition ready -> on-CD means ability was just activated
+            if (!ready && !m_abilityWasOnCooldown[i]) m_abilityUsedFlash[i] = 0.22f;
             m_abilityWasOnCooldown[i] = !ready;
             SDL_Color c = ready ? abilities[i].readyColor : SDL_Color{50, 50, 60, 200};
 
@@ -1023,6 +1026,20 @@ void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
             else SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,60);
             SDL_RenderDrawRect(renderer, &bg);
             if (m_abilityReadyFlash[i]>0) { float flashT=m_abilityReadyFlash[i]/0.35f; Uint8 flashA=static_cast<Uint8>(180*flashT); auto& rc=abilities[i].readyColor; SDL_SetRenderDrawColor(renderer,rc.r,rc.g,rc.b,flashA); SDL_Rect flashRect={ix-4,abY-4,iconSize+8,iconSize+8}; SDL_RenderFillRect(renderer,&flashRect); }
+            // Use-flash: expanding border burst on activation (different visual than ready flash)
+            if (m_abilityUsedFlash[i] > 0) {
+                float useT = m_abilityUsedFlash[i] / 0.22f;
+                int expand = static_cast<int>((1.0f - useT) * 14);
+                Uint8 useA = static_cast<Uint8>(200 * useT);
+                auto& rc = abilities[i].readyColor;
+                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+                SDL_SetRenderDrawColor(renderer, rc.r, rc.g, rc.b, useA);
+                SDL_Rect useRect = {ix - expand, abY - expand, iconSize + expand * 2, iconSize + expand * 2};
+                SDL_RenderDrawRect(renderer, &useRect);
+                SDL_Rect useRect2 = {ix - expand - 1, abY - expand - 1, iconSize + expand * 2 + 2, iconSize + expand * 2 + 2};
+                SDL_RenderDrawRect(renderer, &useRect2);
+                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            }
             if (font) renderText(renderer,font,abilities[i].label,ix+8,abY+iconSize+2,{c.r,c.g,c.b,static_cast<Uint8>(ready?200:80)});
         }
     }

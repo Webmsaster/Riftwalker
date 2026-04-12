@@ -83,6 +83,7 @@ private:
 
     // Ability ready flash: brief glow when cooldown finishes
     float m_abilityReadyFlash[4] = {};  // melee, ranged, dash, dim-switch
+    float m_abilityUsedFlash[4] = {};   // brief expanding border on activation
     bool m_abilityWasOnCooldown[4] = {};
 
     // Weapon mastery tier-up flash (gold pulse when tier increases)
