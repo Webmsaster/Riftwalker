@@ -182,9 +182,10 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
 void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityManager& entities,
                                       int currentDim, bool isPlayer, bool isDashAttack,
                                       bool isChargedAttack, CombatComponent& combat,
-                                      const Vec2& targetCenter, float damage) {
+                                      const Vec2& targetCenter, float damage, bool isSlamAttack) {
     auto& hp = target.getComponent<HealthComponent>();
-    AudioManager::instance().play(isPlayer ? SFX::PlayerDeath : SFX::EnemyDeath);
+    // handleEnemyDeath is always an enemy dying (isPlayer here = player is the attacker, not target)
+    AudioManager::instance().play(SFX::EnemyDeath);
 
     // Track kills for achievements + bestiary
     if (isPlayer && target.hasComponent<AIComponent>()) {
@@ -194,9 +195,10 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
             KillEvent ke;
             ke.wasDash = isDashAttack;
             ke.wasCharged = isChargedAttack;
+            ke.wasSlam = isSlamAttack;
             ke.wasRanged = (combat.currentAttack == AttackType::Ranged);
             int ks = (combat.comboCount > 0) ? ((combat.comboCount - 1) % 3) : 0;
-            ke.wasComboFinisher = (!isDashAttack && !isChargedAttack &&
+            ke.wasComboFinisher = (!isDashAttack && !isChargedAttack && !isSlamAttack &&
                 combat.currentAttack == AttackType::Melee && ks == 2);
             if (m_player && m_player->getEntity()->hasComponent<PhysicsBody>())
                 ke.wasAerial = !m_player->getEntity()->getComponent<PhysicsBody>().onGround;
@@ -1096,18 +1098,16 @@ void CombatSystem::processCounterAttack(Entity& player, EntityManager& entities,
                 if (distSq > vortexRangeSq) return;
                 float dist = std::sqrt(distSq);
 
-                target.getComponent<HealthComponent>().takeDamage(counterDmg);
-                m_damageEvents.push_back({tc, counterDmg, false, false});
+                // Route through hitTarget to match all other counters (i-frames, handleEnemyDeath, elite shield)
+                Vec2 kd = {0.0f, 0.0f}; // no knockback — vortex pulls (see below)
+                hitTarget(target, counterDmg, 0.0f, 0.4f, kd, true);
 
-                // Pull toward player
+                // Pull toward player (post-damage so dead enemies still get yanked visually)
                 if (target.hasComponent<PhysicsBody>()) {
                     auto& phys = target.getComponent<PhysicsBody>();
                     float pullStr = 400.0f * (1.0f - dist / vortexRange);
                     phys.velocity.x += (-dx / std::max(dist, 1.0f)) * pullStr;
                     phys.velocity.y += (-dy / std::max(dist, 1.0f)) * pullStr;
-                }
-                if (target.hasComponent<AIComponent>()) {
-                    target.getComponent<AIComponent>().stun(0.4f);
                 }
             });
 

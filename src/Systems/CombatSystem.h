@@ -107,6 +107,11 @@ public:
                           bool piercing = false, bool isPlayerOwned = false,
                           bool isCrit = false);
 
+    // Shared multiplier chain for player-initiated damage (used by attack path + abilities + finishers).
+    // Includes: relic, class, smith, resonance, damage boost. Excludes: crit, mastery, elite shield absorb.
+    static float computePlayerDamageMult(Entity& attacker, class Player* player,
+                                         class DimensionManager* dimMgr, int currentDim, bool isMelee);
+
     // Kill tracking flags (consumed each frame by PlayState for achievements)
     bool killedMiniBoss = false;
     bool killedElemental = false;
@@ -152,7 +157,7 @@ private:
     void handleEnemyDeath(Entity& attacker, Entity& target, EntityManager& entities,
                           int currentDim, bool isPlayer, bool isDashAttack,
                           bool isChargedAttack, CombatComponent& combat,
-                          const Vec2& targetCenter, float damage);
+                          const Vec2& targetCenter, float damage, bool isSlamAttack = false);
 
     ParticleSystem* m_particles = nullptr;
     Camera* m_camera = nullptr;

@@ -28,6 +28,34 @@ float CombatSystem::consumeHitFreeze() {
     return t;
 }
 
+float CombatSystem::computePlayerDamageMult(Entity& attacker, Player* player,
+                                            DimensionManager* dimMgr, int currentDim, bool isMelee) {
+    float mult = 1.0f;
+
+    // Relic damage multiplier (hpPct-based for BerserkersCurse / BloodOrb / etc.)
+    if (attacker.hasComponent<RelicComponent>()) {
+        auto& relics = attacker.getComponent<RelicComponent>();
+        float hpPct = attacker.hasComponent<HealthComponent>()
+            ? attacker.getComponent<HealthComponent>().getPercent() : 1.0f;
+        mult *= RelicSystem::getDamageMultiplier(relics, hpPct, currentDim);
+        if (isMelee) mult *= RelicSystem::getCursedMeleeMult(relics);
+    }
+
+    // Class damage multiplier (Berserker Blood Rage)
+    if (player) mult *= player->getClassDamageMultiplier();
+
+    // Blacksmith weapon upgrade
+    if (player) mult *= isMelee ? player->smithMeleeDmgMult : player->smithRangedDmgMult;
+
+    // Resonance bonus from rapid dimension switching
+    if (dimMgr) mult *= dimMgr->getResonanceDamageMult();
+
+    // Temporary damage boost pickup
+    if (player && player->damageBoostTimer > 0) mult *= player->damageBoostMultiplier;
+
+    return mult;
+}
+
 void CombatSystem::update(EntityManager& entities, float dt, int currentDimension) {
     ZoneScopedN("CombatUpdate");
     m_currentEntities = &entities;
@@ -188,7 +216,9 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         auto& targetT = target.getComponent<TransformComponent>();
                         Vec2 burstCenter = targetT.getCenter();
 
-                        // AoE burst damage
+                        // AoE burst damage (apply player multiplier chain at burst time)
+                        float burstBaseDmg = targetAbil.shieldBurstDamage *
+                            computePlayerDamageMult(target, m_player, m_dimMgr, currentDim, /*isMelee=*/false);
                         entities.forEach([&](Entity& nearby) {
                             if (!nearby.isEnemy) return;
                             if (!nearby.hasComponent<TransformComponent>() || !nearby.hasComponent<HealthComponent>()) return;
@@ -196,8 +226,20 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                             float dx = nt.getCenter().x - burstCenter.x;
                             float dy = nt.getCenter().y - burstCenter.y;
                             if (dx * dx + dy * dy < targetAbil.shieldBurstRadius * targetAbil.shieldBurstRadius) {
-                                nearby.getComponent<HealthComponent>().takeDamage(targetAbil.shieldBurstDamage);
-                                m_damageEvents.push_back({nt.getCenter(), targetAbil.shieldBurstDamage, false, false});
+                                float burstDmg = burstBaseDmg;
+                                // Elite Shielded absorb
+                                if (nearby.hasComponent<AIComponent>()) {
+                                    auto& nAI = nearby.getComponent<AIComponent>();
+                                    if (nAI.eliteShieldHP > 0) {
+                                        float absorbed = std::min(burstDmg, nAI.eliteShieldHP);
+                                        nAI.eliteShieldHP -= absorbed;
+                                        burstDmg -= absorbed;
+                                        m_damageEvents.push_back({nt.getCenter(), absorbed, false, false});
+                                        if (burstDmg <= 0) return;
+                                    }
+                                }
+                                nearby.getComponent<HealthComponent>().takeDamage(burstDmg);
+                                m_damageEvents.push_back({nt.getCenter(), burstDmg, false, false});
                                 if (nearby.hasComponent<AIComponent>()) {
                                     nearby.getComponent<AIComponent>().stun(0.5f);
                                 }

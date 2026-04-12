@@ -13,6 +13,7 @@
 #include "Core/ResourceManager.h"
 #include "Systems/ParticleSystem.h"
 #include <cstdlib>
+#include <algorithm>
 
 // Pickup spritesheet: assets/textures/pickups/pickups.png
 // 4 columns x 5 rows of 16x16 icons
@@ -226,7 +227,9 @@ Entity& ItemDrop::spawnDamageBoost(EntityManager& entities, Vec2 pos, int dimens
     col.type = ColliderType::Trigger;
     col.onTrigger = [player](Entity* self, Entity* other) {
         if (other->isPlayer && player) {
-            player->damageBoostTimer = 8.0f;
+            // max() preserves longer timers (e.g. GlassCannon challenge sets 99999s permanent boost)
+            player->damageBoostTimer = std::max(player->damageBoostTimer, 8.0f);
+            player->damageBoostMultiplier = std::max(player->damageBoostMultiplier, 1.5f);
             player->pickupDamagePending = true;
             AudioManager::instance().play(SFX::Pickup);
             if (player->particles && self->hasComponent<TransformComponent>()) {

@@ -328,6 +328,10 @@ private:
     float m_savedHP = 0;
     float m_savedMaxHP = 0;
     float m_savedVoidHungerBonus = 0;
+    // Blacksmith upgrades persist within a run but Player is recreated on level transition
+    float m_savedSmithMeleeDmgMult = 1.0f;
+    float m_savedSmithRangedDmgMult = 1.0f;
+    float m_savedSmithAtkSpdMult = 1.0f;
 
     // Secret rooms & events
     void checkBreakableWalls();

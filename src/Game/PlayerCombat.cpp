@@ -11,6 +11,7 @@
 #include "Components/AIComponent.h"
 #include "Core/AudioManager.h"
 #include "Systems/CombatSystem.h"
+#include "Game/DimensionManager.h"
 #include "Game/RelicSynergy.h"
 #include "Game/ItemDrop.h"
 #include "Game/Bestiary.h"
@@ -529,15 +530,16 @@ void Player::executeComboFinisher() {
     finisherAvailableTimer = 0;
     finisherCooldown = 3.0f;
 
+    // Cache current dimension for multiplier chain (used by all 4 finisher branches)
+    int finisherDim = dimensionManager ? dimensionManager->getCurrentDimension() : 0;
+
     switch (playerClass) {
     case PlayerClass::Voidwalker: {
         // Rift Pulse: AoE dimension wave
-        // Bug fix: damage was hardcoded 40.0f, ignoring all player stat scaling
-        // (permanent upgrades, class mult, relics). Scale with base melee
-        // damage (1.6x) so the finisher stays relevant late-game.
         float radius = 160.0f;
         auto& combat_vw = m_entity->getComponent<CombatComponent>();
         float damage = combat_vw.meleeAttack.damage * 1.6f;
+        damage *= CombatSystem::computePlayerDamageMult(*m_entity, this, dimensionManager, finisherDim, /*isMelee=*/true);
         float knockback = 500.0f;
         float stunDuration = 0.5f;
 
@@ -636,6 +638,7 @@ void Player::executeComboFinisher() {
         // Blood Cleave: wide melee arc, 2x damage, lifesteal
         float range = 96.0f;
         float damage = combat.meleeAttack.damage * 2.0f;
+        damage *= CombatSystem::computePlayerDamageMult(*m_entity, this, dimensionManager, finisherDim, /*isMelee=*/true);
         float knockback = 400.0f;
         float totalDamageDealt = 0;
 
@@ -801,6 +804,7 @@ void Player::executeComboFinisher() {
         float radius = 140.0f;
         auto& combat_tc = m_entity->getComponent<CombatComponent>();
         float damage = combat_tc.rangedAttack.damage * 1.5f;
+        damage *= CombatSystem::computePlayerDamageMult(*m_entity, this, dimensionManager, finisherDim, /*isMelee=*/false);
         float stunDuration = 1.0f;
 
         AudioManager::instance().play(SFX::ElectricChain);
@@ -930,13 +934,11 @@ void Player::updateComboFinisher(float dt) {
                 facingRight = (dx > 0);
                 m_entity->getComponent<SpriteComponent>().flipX = !facingRight;
 
-                // Deal damage
-                // Bug fix: damage was hardcoded 25.0f, ignoring permanent
-                // player stat scaling. Scale with base melee damage (1.0x per
-                // hit — 4 hits total = ~full melee damage equivalent) so
-                // the finisher stays relevant as upgrades stack.
+                // Deal damage (with full multiplier chain)
                 auto& combat_ph = m_entity->getComponent<CombatComponent>();
                 float damage = combat_ph.meleeAttack.damage * 1.0f;
+                int phaseDim = dimensionManager ? dimensionManager->getCurrentDimension() : 0;
+                damage *= CombatSystem::computePlayerDamageMult(*m_entity, this, dimensionManager, phaseDim, /*isMelee=*/true);
                 eHP.takeDamage(damage);
 
                 // Cyan teleport particles

@@ -12,6 +12,7 @@
 #include "Components/AIComponent.h"
 #include "Core/AudioManager.h"
 #include "Systems/CombatSystem.h"
+#include "Game/DimensionManager.h"
 #include "Game/SpriteConfig.h"
 #include "Game/ItemDrop.h"
 #include "Game/Bestiary.h"
@@ -242,6 +243,11 @@ void Player::handleAbilities(float dt, const InputManager& input) {
         if (input.isActionPressed(Action::Ability2) && trapCooldownTimer <= 0 && activeTraps < maxTraps && entityManager) {
             const auto& classData = ClassSystem::getData(PlayerClass::Technomancer);
             float trapDmg = 25.0f * classData.turretDamageMult;    // Construct Mastery: +20%
+            // Apply player multiplier chain (relic + class + smith + resonance + boost) at spawn time
+            {
+                int trapDim = dimensionManager ? dimensionManager->getCurrentDimension() : 0;
+                trapDmg *= CombatSystem::computePlayerDamageMult(*m_entity, this, dimensionManager, trapDim, /*isMelee=*/false);
+            }
             float trapLife = 15.0f * classData.turretDurationMult;  // Construct Mastery: +50% longer
 
             // Spawn trap at player's feet
@@ -427,9 +433,13 @@ void Player::handleAbilities(float dt, const InputManager& input) {
             float hDir = facingRight ? 1.0f : -1.0f;
             Vec2 strikeDir = {hDir, 0.0f};
 
-            // Apply damage directly
+            // Apply damage with full player multiplier chain
             auto& enemyHP = nearestEnemy->getComponent<HealthComponent>();
             float damage = combat.meleeAttack.damage * abil.phaseStrikeDamageMult;
+            {
+                int psDim = dimensionManager ? dimensionManager->getCurrentDimension() : 0;
+                damage *= CombatSystem::computePlayerDamageMult(*m_entity, this, dimensionManager, psDim, /*isMelee=*/true);
+            }
             enemyHP.takeDamage(damage);
             AudioManager::instance().play(SFX::PhaseStrikeHit);
 

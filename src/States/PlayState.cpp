@@ -293,11 +293,14 @@ void PlayState::update(float dt) {
     if (m_pendingLevelGen) {
         m_pendingLevelGen = false;
 
-        // Save player state before level regeneration (relics + HP carry over)
+        // Save player state before level regeneration (relics + HP + smith upgrades carry over)
         m_savedRelics.clear();
         m_savedHP = 0;
         m_savedMaxHP = 0;
         m_savedVoidHungerBonus = 0;
+        m_savedSmithMeleeDmgMult = 1.0f;
+        m_savedSmithRangedDmgMult = 1.0f;
+        m_savedSmithAtkSpdMult = 1.0f;
         if (m_player) {
             if (m_player->getEntity()->hasComponent<RelicComponent>()) {
                 auto& rc = m_player->getEntity()->getComponent<RelicComponent>();
@@ -309,6 +312,9 @@ void PlayState::update(float dt) {
                 m_savedHP = hp.currentHP;
                 m_savedMaxHP = hp.maxHP;
             }
+            m_savedSmithMeleeDmgMult = m_player->smithMeleeDmgMult;
+            m_savedSmithRangedDmgMult = m_player->smithRangedDmgMult;
+            m_savedSmithAtkSpdMult = m_player->smithAtkSpdMult;
         }
 
         generateLevel();
@@ -317,6 +323,13 @@ void PlayState::update(float dt) {
         m_aiSystem.setLevel(m_level.get());
         m_aiSystem.setPlayer(m_player.get());
         applyRunBuffs();
+
+        // Restore blacksmith weapon upgrades (per-run, persist across levels)
+        if (m_player) {
+            m_player->smithMeleeDmgMult = m_savedSmithMeleeDmgMult;
+            m_player->smithRangedDmgMult = m_savedSmithRangedDmgMult;
+            m_player->smithAtkSpdMult = m_savedSmithAtkSpdMult;
+        }
 
         // Restore relics and HP to new player entity
         if (m_player && !m_savedRelics.empty()) {

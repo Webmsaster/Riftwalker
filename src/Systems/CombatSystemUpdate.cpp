@@ -34,6 +34,8 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
             float fallDist = pt.position.y - abil.slamFallStart;
             float fallBonus = std::max(0.0f, std::min(fallDist / 200.0f, 1.5f));
             damage *= (1.0f + fallBonus);
+            // Apply player damage multiplier chain (relic + class + smith + resonance + boost)
+            damage *= computePlayerDamageMult(e, m_player, m_dimMgr, currentDim, /*isMelee=*/true);
 
             // Early-out: check if any enemy could possibly be in slam radius
             // using a fast AABB pre-check before the full entity scan
@@ -67,6 +69,25 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
                 if (dist < radius && radius > 0.0f) {
                     float dmgScale = 1.0f - (dist / radius) * 0.4f; // 60-100% based on distance
                     float finalDmg = damage * dmgScale;
+
+                    // ShieldAura elite: -30% damage to nearby allies
+                    if (target.hasComponent<AIComponent>() &&
+                        target.getComponent<AIComponent>().hasNearbyShieldAura) {
+                        finalDmg *= 0.7f;
+                    }
+
+                    // Elite Shielded: shield absorbs damage first
+                    if (target.hasComponent<AIComponent>()) {
+                        auto& tAI = target.getComponent<AIComponent>();
+                        if (tAI.eliteShieldHP > 0) {
+                            float absorbed = std::min(finalDmg, tAI.eliteShieldHP);
+                            tAI.eliteShieldHP -= absorbed;
+                            finalDmg -= absorbed;
+                            m_damageEvents.push_back({tt.getCenter(), absorbed, false, false});
+                            if (finalDmg <= 0) return; // fully absorbed
+                        }
+                    }
+
                     target.getComponent<HealthComponent>().takeDamage(finalDmg);
                     m_damageEvents.push_back({tt.getCenter(), finalDmg, false, true});
 
@@ -85,64 +106,21 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
                         m_particles->burst(tt.getCenter(), 4, {255, 200, 80, 255}, 150.0f, 3.0f); // reduced from 10
                     }
 
-                    // Kill tracking
-                    if (target.getComponent<HealthComponent>().currentHP <= 0) {
-                        killCount++;
-                        // Kill event for combat challenges
-                        {
-                            KillEvent ke;
-                            ke.wasSlam = true;
-                            if (m_player && m_player->getEntity()->hasComponent<PhysicsBody>())
-                                ke.wasAerial = !m_player->getEntity()->getComponent<PhysicsBody>().onGround;
-                            if (target.hasComponent<AIComponent>()) {
-                                auto& ai = target.getComponent<AIComponent>();
-                                ke.enemyType = static_cast<int>(ai.enemyType);
-                                ke.wasElite = ai.isElite;
-                                ke.wasMiniBoss = ai.isMiniBoss;
-                                ke.wasBoss = (ai.enemyType == EnemyType::Boss);
-                            }
-                            killEvents.push_back(ke);
-                        }
-                        // Weapon mastery: slam counts as melee weapon kill
-                        if (e.hasComponent<CombatComponent>()) {
-                            int wIdx = static_cast<int>(e.getComponent<CombatComponent>().currentMelee);
-                            if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT))
-                                weaponKills[wIdx]++;
-                        }
-                        if (target.hasComponent<AIComponent>()) {
-                            auto& tAI = target.getComponent<AIComponent>();
-                            if (tAI.isMiniBoss) killedMiniBoss = true;
-                            if (tAI.element != EnemyElement::None) killedElemental = true;
-                            Bestiary::onEnemyKill(tAI.enemyType);
-                        }
-                        // Berserker: Momentum stack on slam kill
-                        if (m_player) m_player->addMomentumStack();
-                        // Run buff: DashRefresh on kill
-                        if (m_dashRefreshOnKill && m_player) {
-                            m_player->dashCooldownTimer = 0;
-                        }
-                        // Drop items (mini-bosses 3x, elites 2x)
-                        int slamDropCount = 1;
-                        if (target.hasComponent<AIComponent>()) {
-                            auto& tAI2 = target.getComponent<AIComponent>();
-                            if (tAI2.isMiniBoss) slamDropCount = 3;
-                            else if (tAI2.isElite) slamDropCount = 2;
-                        }
-                        ItemDrop::spawnRandomDrop(entities, tt.getCenter(), target.dimension, slamDropCount, m_player);
-                        int slamElem = 0;
-                        if (target.hasComponent<AIComponent>())
-                            slamElem = static_cast<int>(target.getComponent<AIComponent>().element);
-                        AudioManager::instance().play(SFX::EnemyDeath);
-                        target.destroy();
+                    // Kill handling: delegate to shared handler so elite Splitter/Explosive/Summoner
+                    // chain, electric chain, leech poison, and death ghost all run for slam kills too.
+                    if (target.getComponent<HealthComponent>().currentHP <= 0 &&
+                        e.hasComponent<CombatComponent>()) {
+                        auto& slamCombat = e.getComponent<CombatComponent>();
+                        handleEnemyDeath(e, target, entities, currentDim, /*isPlayer=*/true,
+                                          /*isDashAttack=*/false, /*isChargedAttack=*/false,
+                                          slamCombat, tt.getCenter(), finalDmg, /*isSlamAttack=*/true);
                         if (m_particles) {
-                            m_particles->burst(tt.getCenter(), 12, {255, 180, 60, 255}, 200.0f, 4.0f); // reduced from 25
                             // Slam death launch: burst left+right from impact
                             m_particles->directionalBurst(tt.getCenter(), 4, {255, 200, 80, 255},  // reduced from 8
                                                            0.0f, 60.0f, 280.0f, 3.0f);
                             m_particles->directionalBurst(tt.getCenter(), 4, {255, 200, 80, 255},  // reduced from 8
                                                            180.0f, 60.0f, 280.0f, 3.0f);
                         }
-                        emitElementDeathFX(tt.getCenter(), slamElem);
                     }
                 }
             });
