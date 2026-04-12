@@ -470,11 +470,12 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
-            // Track hits for enrage system — isEnraged triggers AISystem's Enrage animation
-            // (sprite recoloring removed: setColor(red) was never reverted, leaving enemies
-            // permanently tinted in Idle/Patrol states. The AISystem animation dispatch is
-            // the authoritative enrage visual.)
-            if (isPlayer && target.hasComponent<AIComponent>()) {
+            // Track hits for enrage system — isEnraged triggers AISystem's Enrage animation.
+            // Bosses manage their own enrage at phase transitions (phase 3/4); if we let
+            // the regular-enemy path fire at 3 hits, bosses would always be enraged from
+            // the first 3 player hits in phase 1, making the phase-transition enrage meaningless.
+            if (isPlayer && target.hasComponent<AIComponent>() &&
+                target.getComponent<AIComponent>().enemyType != EnemyType::Boss) {
                 auto& targetAI = target.getComponent<AIComponent>();
                 targetAI.timesHit++;
                 if (targetAI.timesHit >= 3 && !targetAI.isEnraged) {

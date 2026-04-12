@@ -21,12 +21,18 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
     if (extraPhase && hpPct <= 0.15f && ai.bossPhase < 4) {
         ai.bossPhase = 4;
         ai.isEnraged = true;
+        // Seed timers so phase-4 entry doesn't fire all attacks immediately
+        ai.eiShatterTimer = 6.0f;
+        ai.eiOverloadHealAccum = 0;
         if (m_camera) m_camera->shake(20.0f, 1.0f);
         if (m_particles) m_particles->burst(pos, 80, {180, 0, 255, 255}, 400.0f, 7.0f);
         AudioManager::instance().play(SFX::SuitEntropyCritical);
     } else if (hpPct <= 0.33f && ai.bossPhase < 3) {
         ai.bossPhase = 3;
         ai.isEnraged = true;
+        // Seed phase-3 shatter timer to prevent instant fire on transition frame
+        ai.eiShatterTimer = 6.0f;
+        ai.eiOverloadHealAccum = 0;
         if (m_camera) m_camera->shake(15.0f, 0.8f);
         if (m_particles) m_particles->burst(pos, 60, {140, 0, 200, 255}, 350.0f, 6.0f);
         AudioManager::instance().play(SFX::SuitEntropyCritical);
@@ -34,7 +40,7 @@ void AISystem::updateEntropyIncarnate(Entity& entity, float dt, const Vec2& play
         ai.bossPhase = 2;
         if (m_camera) m_camera->shake(10.0f, 0.5f);
         if (m_particles) m_particles->burst(pos, 40, {120, 0, 180, 255}, 280.0f, 5.0f);
-        AudioManager::instance().play(SFX::CollapseWarning);
+        AudioManager::instance().play(SFX::BossShieldBurst); // was CollapseWarning (overloaded)
     }
 
     // Phase 3: 0.7x cooldown multiplier

@@ -21,15 +21,28 @@ void AISystem::updateVoidSovereign(Entity& entity, float dt, const Vec2& playerP
     if (extraPhase && hpPct <= 0.15f && ai.bossPhase < 4) {
         ai.bossPhase = 4;
         ai.isEnraged = true;
+        // Seed attack timers so phase-4 doesn't fire every attack on entry frame
+        ai.vsOrbTimer = 1.5f;
+        ai.vsSlamTimer = 3.0f;
+        ai.vsLaserTimer = 4.0f;
+        ai.vsStormTimer = 6.0f;
+        ai.vsDimLockTimer = 3.0f;
         if (m_camera) m_camera->shake(20.0f, 1.0f);
         if (m_particles) m_particles->burst(pos, 70, {200, 0, 255, 255}, 400.0f, 7.0f);
         AudioManager::instance().play(SFX::SuitEntropyCritical);
     } else if (hpPct <= 0.4f && ai.bossPhase < 3) {
         ai.bossPhase = 3;
         ai.isEnraged = true;
+        // Seed phase-3 timers so laser/storm/teleport don't all fire simultaneously
+        ai.vsLaserTimer = 5.0f;
+        ai.vsStormTimer = 8.0f;
+        ai.vsAutoSwitchTimer = 3.0f;
         if (m_camera) m_camera->shake(15.0f, 0.8f);
     } else if (hpPct <= 0.7f && ai.bossPhase < 2) {
         ai.bossPhase = 2;
+        // Seed phase-2 timers so DimLock / clones don't fire immediately
+        ai.vsDimLockTimer = 4.0f;
+        ai.vsCloneSpawnTimer = 3.0f;
         if (m_camera) m_camera->shake(10.0f, 0.5f);
     }
 

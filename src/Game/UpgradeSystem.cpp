@@ -213,6 +213,7 @@ void UpgradeSystem::deserialize(const std::string& data) {
         return;
     }
     if (m_riftShards < 0) m_riftShards = 0;
+    if (m_riftShards > MAX_SHARDS) m_riftShards = MAX_SHARDS;
     if (totalRuns < 0) totalRuns = 0;
     if (bestRoomReached < 0) bestRoomReached = 0;
     if (bestRoomReached > 99) bestRoomReached = 99;
