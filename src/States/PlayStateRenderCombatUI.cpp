@@ -348,6 +348,8 @@ void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_SetTextureAlphaMod(m_levelUpLabelCachedTex, a);
             SDL_SetTextureColorMod(m_levelUpLabelCachedTex, 255, 255, 255);
             SDL_RenderCopy(renderer, m_levelUpLabelCachedTex, nullptr, &dst);
+            // Reset alpha so next level-up doesn't flash with stale value from end of fade
+            SDL_SetTextureAlphaMod(m_levelUpLabelCachedTex, 255);
         }
     }
 
@@ -377,6 +379,8 @@ void PlayState::renderLevelUp(SDL_Renderer* renderer, TTF_Font* font) {
             SDL_SetTextureAlphaMod(m_levelUpNumCachedTex, static_cast<Uint8>(a * 0.8f));
             SDL_SetTextureColorMod(m_levelUpNumCachedTex, 255, 255, 255);
             SDL_RenderCopy(renderer, m_levelUpNumCachedTex, nullptr, &dst);
+            // Reset so next level-up's first frame doesn't inherit stale mod
+            SDL_SetTextureAlphaMod(m_levelUpNumCachedTex, 255);
         }
     }
 

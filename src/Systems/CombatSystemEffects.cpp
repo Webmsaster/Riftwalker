@@ -365,6 +365,7 @@ void CombatSystem::handleEnemyDeath(Entity& attacker, Entity& target, EntityMana
                 float cdy = nt.getCenter().y - targetCenter.y;
                 if (cdx * cdx + cdy * cdy < chainRadius * chainRadius) {
                     nearby.getComponent<HealthComponent>().takeDamage(chainDmg);
+                    m_damageEvents.push_back({nt.getCenter(), chainDmg, false, false});
                     if (m_particles) {
                         m_particles->burst(nt.getCenter(), 6, {255, 255, 80, 255}, 150.0f, 1.5f);
                     }
@@ -869,6 +870,44 @@ void CombatSystem::emitEnemyTypeDeathFX(const Vec2& pos, int enemyType, SDL_Colo
             // Fading red scope beam trail
             m_particles->directionalBurst(pos, 8, {255, 40, 40, 180}, 0.0f, 10.0f, 200.0f, 3.0f);
             m_particles->directionalBurst(pos, 8, {255, 40, 40, 180}, 180.0f, 10.0f, 200.0f, 3.0f);
+            break;
+        case EnemyType::Phaser: // Phase dissolve: cyan fragments fading in/out
+            m_particles->burst(pos, 12, {100, 200, 255, 220}, 200.0f, 3.0f);
+            m_particles->burst(pos, 8, {180, 240, 255, 180}, 150.0f, 2.5f);
+            break;
+        case EnemyType::Teleporter: // Portal collapse: purple ring imploding
+            for (int i = 0; i < 8; i++) {
+                float angle = i * 45.0f;
+                m_particles->directionalBurst(pos, 3, {180, 80, 255, 255}, angle, 20.0f, 180.0f, 3.0f);
+            }
+            m_particles->burst(pos, 10, {220, 140, 255, 220}, 120.0f, 2.5f);
+            break;
+        case EnemyType::Reflector: // Mirror shatter: white + silver shards
+            m_particles->burst(pos, 15, {240, 240, 255, 255}, 240.0f, 3.0f);
+            m_particles->burst(pos, 8, {200, 220, 255, 200}, 180.0f, 2.5f);
+            // Angled shards like broken glass
+            m_particles->directionalBurst(pos, 6, {255, 255, 255, 220}, 45.0f, 30.0f, 200.0f, 2.0f);
+            m_particles->directionalBurst(pos, 6, {255, 255, 255, 220}, 135.0f, 30.0f, 200.0f, 2.0f);
+            break;
+        case EnemyType::Leech: // Green ichor + poison puff
+            m_particles->burst(pos, 14, {80, 200, 60, 240}, 180.0f, 3.5f);
+            m_particles->burst(pos, 8, {120, 220, 100, 200}, 120.0f, 4.0f);
+            break;
+        case EnemyType::Swarmer: // Mini burst with yellow/orange flecks
+            m_particles->burst(pos, 10, {255, 180, 80, 240}, 150.0f, 2.5f);
+            m_particles->burst(pos, 5, {255, 120, 40, 200}, 100.0f, 2.0f);
+            break;
+        case EnemyType::GravityWell: // Dark purple implosion
+            for (int i = 0; i < 12; i++) {
+                float angle = i * 30.0f;
+                m_particles->directionalBurst(pos, 2, {100, 40, 180, 220}, angle, 25.0f, 120.0f, 3.5f);
+            }
+            m_particles->burst(pos, 8, {60, 20, 140, 200}, 80.0f, 4.0f);
+            break;
+        case EnemyType::Mimic: // Treasure reveal: gold + deception fade
+            m_particles->burst(pos, 18, {255, 200, 60, 255}, 220.0f, 3.5f);
+            m_particles->burst(pos, 8, {200, 140, 40, 200}, 160.0f, 4.0f);
+            m_particles->burst(pos, 4, {120, 80, 180, 180}, 100.0f, 3.0f); // illusion dissipation
             break;
         default: break;
     }

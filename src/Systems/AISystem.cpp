@@ -239,7 +239,16 @@ void AISystem::update(EntityManager& entities, float dt, const Vec2& playerPos, 
         // Update stun
         if (ai.state == AIState::Stunned) {
             ai.stunTimer -= dt;
-            if (ai.stunTimer <= 0) ai.state = AIState::Patrol;
+            if (ai.stunTimer <= 0) {
+                ai.state = AIState::Patrol;
+                // Restore base sprite color — Charger enter sets tint via setColor,
+                // this path ensures recovery from any state-entry recolor.
+                if (e->hasComponent<SpriteComponent>()) {
+                    e->getComponent<SpriteComponent>().restoreColor();
+                }
+            }
+            // Still update animation so sprite shows Hurt during stun instead of frozen Walk
+            updateEnemyAnimation(*e);
             continue;
         }
 

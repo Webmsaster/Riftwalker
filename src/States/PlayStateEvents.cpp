@@ -214,11 +214,23 @@ void PlayState::checkSecretRoomDiscovery() {
                         showCursedRelicChoice();
                         break;
                     }
-                    case SecretRoomType::AncientWeapon:
-                        // Temporary damage boost
+                    case SecretRoomType::AncientWeapon: {
+                        // Temporary damage boost — strongest secret reward, deserves presentation
                         m_player->damageBoostTimer = 30.0f; // 30 seconds
                         m_player->damageBoostMultiplier = 2.0f;
+                        Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                        // Red/orange power surge burst
+                        m_particles.burst(pPos, 30, {255, 120, 40, 255}, 220.0f, 4.5f);
+                        m_particles.burst(pPos, 15, {255, 220, 100, 255}, 180.0f, 3.5f);
+                        for (int i = 0; i < 8; i++) {
+                            float angle = i * 45.0f;
+                            m_particles.directionalBurst(pPos, 4, {255, 160, 60, 255}, angle, 25.0f, 260.0f, 4.0f);
+                        }
+                        m_camera.shake(8.0f, 0.3f);
+                        AudioManager::instance().play(SFX::LevelComplete);
+                        AudioManager::instance().play(SFX::Pickup);
                         break;
+                    }
                     case SecretRoomType::ChallengeRoom:
                         // Reward given after clearing enemies (checked by wave system)
                         break;
