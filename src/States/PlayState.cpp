@@ -822,7 +822,12 @@ void PlayState::update(float dt) {
                 game->getAchievements().unlock("no_damage_boss");
             }
             int bossIdx = m_currentDifficulty / 3;
-            if (bossIdx % 4 == 1) game->getAchievements().unlock("wyrm_hunter");
+            // wyrm_hunter: fires only on actual Void Wyrm kills.
+            // Void Wyrm spawns on mid-boss floors where zone % 2 == 1 (floors 9, 21),
+            // see mid-boss rotation in PlayStateRunLifecycle.cpp::spawnBossForFloor.
+            if (isMidBossFloor(m_currentDifficulty) && getZone(m_currentDifficulty) % 2 == 1) {
+                game->getAchievements().unlock("wyrm_hunter");
+            }
 
             // Lore triggers on boss kill
             {
