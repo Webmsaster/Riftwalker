@@ -83,6 +83,7 @@ void PauseState::enter() {
     m_selectedButton = 0;
     m_buttons[0].setSelected(true);
     m_confirmRestart = false;
+    m_slideInTimer = 0;
 }
 
 void PauseState::handleEvent(const SDL_Event& event) {
@@ -169,6 +170,7 @@ void PauseState::handleEvent(const SDL_Event& event) {
 
 void PauseState::update(float dt) {
     m_time += dt;
+    m_slideInTimer = std::min(1.0f, m_slideInTimer + dt / 0.18f);
     for (auto& btn : m_buttons) btn.update(dt);
 
     // Gamepad navigation — only active when a gamepad is connected to avoid
@@ -200,9 +202,14 @@ void PauseState::update(float dt) {
 }
 
 void PauseState::render(SDL_Renderer* renderer) {
+    // Entry animation: overlay darkens from 0 to 180 over ~180ms (ease-out)
+    float slideT = std::min(1.0f, m_slideInTimer);
+    float easeT = 1.0f - (1.0f - slideT) * (1.0f - slideT); // ease-out quadratic
+    Uint8 overlayAlpha = static_cast<Uint8>(180 * easeT);
+
     // Dark overlay with vignette
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, overlayAlpha);
     SDL_Rect overlay = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
     SDL_RenderFillRect(renderer, &overlay);
 

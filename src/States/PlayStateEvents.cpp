@@ -77,11 +77,23 @@ void PlayState::selectRelic(int index) {
     }
 
     // Visual/audio feedback
-    AudioManager::instance().play(SFX::RiftRepair);
+    AudioManager::instance().play(SFX::Pickup);                // was RiftRepair (environmental)
+    AudioManager::instance().play(SFX::LevelComplete);         // celebration layer
     Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
     auto& data = RelicSystem::getRelicData(choice);
     m_particles.burst(pPos, 30, data.glowColor, 200.0f, 4.0f);
     m_particles.burst(pPos, 15, {255, 255, 255, 255}, 150.0f, 3.0f);
+    // Expanding ring burst (8-point directional)
+    for (int i = 0; i < 8; i++) {
+        float angle = i * 45.0f;
+        m_particles.directionalBurst(pPos, 5, data.glowColor, angle, 15.0f, 300.0f, 4.0f);
+    }
+    m_camera.shake(6.0f, 0.25f);
+
+    // Trigger pickup celebration overlay (full-screen flash + name card)
+    m_relicPickupFlashTimer = m_relicPickupFlashDuration;
+    m_relicPickupID = static_cast<int>(choice);
+    m_relicPickupGlow = data.glowColor;
 
     m_showRelicChoice = false;
     m_relicChoices.clear();

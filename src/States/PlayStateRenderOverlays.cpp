@@ -279,6 +279,56 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
     }
 }
 
+void PlayState::renderRelicPickupFlash(SDL_Renderer* renderer, TTF_Font* font) {
+    if (m_relicPickupFlashTimer <= 0 || m_relicPickupID < 0) return;
+
+    float t = 1.0f - (m_relicPickupFlashTimer / m_relicPickupFlashDuration); // 0..1
+    // Fade-in quickly, then linear fade-out
+    float alpha01;
+    if (t < 0.15f) alpha01 = t / 0.15f;
+    else alpha01 = 1.0f - ((t - 0.15f) / 0.85f);
+    alpha01 = std::max(0.0f, std::min(1.0f, alpha01));
+
+    // Full-screen colored glow (additive)
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+    SDL_SetRenderDrawColor(renderer,
+                           m_relicPickupGlow.r,
+                           m_relicPickupGlow.g,
+                           m_relicPickupGlow.b,
+                           static_cast<Uint8>(80 * alpha01));
+    SDL_Rect fullscreen = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_RenderFillRect(renderer, &fullscreen);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // Centered name card
+    if (font && m_relicPickupID >= 0) {
+        auto& data = RelicSystem::getRelicData(static_cast<RelicID>(m_relicPickupID));
+        char rNameKey[48];
+        snprintf(rNameKey, sizeof(rNameKey), "relic.%d.name", m_relicPickupID);
+        const char* rLocName = LOC(rNameKey);
+        const char* rDisplayName = (strcmp(rLocName, rNameKey) == 0) ? data.name : rLocName;
+
+        // Scale the card from 0.4x to 1.0x during fade-in, stay at 1.0x, fade out
+        float scale = 0.4f + 0.6f * std::min(1.0f, t * 4.0f);
+
+        SDL_Color nameColor = {m_relicPickupGlow.r, m_relicPickupGlow.g, m_relicPickupGlow.b,
+                                static_cast<Uint8>(255 * alpha01)};
+        SDL_Surface* ns = TTF_RenderUTF8_Blended(font, rDisplayName, nameColor);
+        if (ns) {
+            SDL_Texture* nt = SDL_CreateTextureFromSurface(renderer, ns);
+            if (nt) {
+                SDL_SetTextureAlphaMod(nt, static_cast<Uint8>(255 * alpha01));
+                int w = static_cast<int>(ns->w * 2.5f * scale);
+                int h = static_cast<int>(ns->h * 2.5f * scale);
+                SDL_Rect nr = {SCREEN_WIDTH / 2 - w / 2, SCREEN_HEIGHT / 2 - h / 2, w, h};
+                SDL_RenderCopy(renderer, nt, nullptr, &nr);
+                SDL_DestroyTexture(nt);
+            }
+            SDL_FreeSurface(ns);
+        }
+    }
+}
+
 void PlayState::renderEventChain(SDL_Renderer* renderer, TTF_Font* font) {
     if (m_eventChain.stage <= 0 && m_chainRewardTimer <= 0) return;
     if (!font) return;

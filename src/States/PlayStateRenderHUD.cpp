@@ -534,13 +534,44 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
         bossPhase = boss->getComponent<AIComponent>().bossPhase;
     }
 
+    // Update bar polish state (shake + ghost + phase flash)
+    float rawPct = hp.getPercent();
+    float dt = 1.0f / 60.0f; // conservative estimate; render runs at display rate
+    if (rawPct < m_bossBarLastPct - 0.001f) {
+        float delta = m_bossBarLastPct - rawPct;
+        if (delta > 0.05f) {
+            // Big hit: kick shake + ghost
+            m_bossBarShakeTimer = 0.22f;
+            m_bossBarGhostPct = m_bossBarLastPct;
+            m_bossBarGhostTimer = 0.45f;
+        } else if (m_bossBarGhostTimer <= 0) {
+            // Small hits also leave a ghost, but only when one isn't already fading
+            m_bossBarGhostPct = m_bossBarLastPct;
+            m_bossBarGhostTimer = 0.35f;
+        }
+    }
+    m_bossBarLastPct = rawPct;
+    if (m_bossBarLastPhase != 0 && bossPhase != m_bossBarLastPhase) {
+        m_bossBarPhaseFlashTimer = 0.5f;
+    }
+    m_bossBarLastPhase = bossPhase;
+    if (m_bossBarShakeTimer > 0) m_bossBarShakeTimer -= dt;
+    if (m_bossBarGhostTimer > 0) m_bossBarGhostTimer -= dt;
+    if (m_bossBarPhaseFlashTimer > 0) m_bossBarPhaseFlashTimer -= dt;
+
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // Bar background
+    // Bar background (with damage shake offset)
     int barW = 800;
     int barH = 24;
-    int barX = SCREEN_WIDTH / 2 - barW / 2;
-    int barY = 40;
+    int shakeX = 0, shakeY = 0;
+    if (m_bossBarShakeTimer > 0) {
+        float s = m_bossBarShakeTimer / 0.22f;
+        shakeX = static_cast<int>((std::rand() % 9 - 4) * s);
+        shakeY = static_cast<int>((std::rand() % 5 - 2) * s);
+    }
+    int barX = SCREEN_WIDTH / 2 - barW / 2 + shakeX;
+    int barY = 40 + shakeY;
 
     // Dark frame
     SDL_SetRenderDrawColor(renderer, 20, 10, 30, 220);
@@ -607,9 +638,26 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
             default: r = 200; g = 50; b = 180; break;
         }
     }
+    // Damage ghost (white trail showing HP before last hit, fading out)
+    if (m_bossBarGhostTimer > 0 && m_bossBarGhostPct > pct) {
+        float ghostFade = m_bossBarGhostTimer / 0.45f;
+        int ghostFillW = static_cast<int>(barW * m_bossBarGhostPct);
+        SDL_SetRenderDrawColor(renderer, 255, 240, 220, static_cast<Uint8>(200 * ghostFade));
+        SDL_Rect ghost = {barX + fillW, barY, ghostFillW - fillW, barH};
+        SDL_RenderFillRect(renderer, &ghost);
+    }
+
     SDL_SetRenderDrawColor(renderer, r, g, b, 240);
     SDL_Rect fill = {barX, barY, fillW, barH};
     SDL_RenderFillRect(renderer, &fill);
+
+    // Phase transition flash (additive white overlay)
+    if (m_bossBarPhaseFlashTimer > 0) {
+        float flashT = m_bossBarPhaseFlashTimer / 0.5f;
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, static_cast<Uint8>(200 * flashT));
+        SDL_Rect flash = {barX, barY, barW, barH};
+        SDL_RenderFillRect(renderer, &flash);
+    }
 
     // Phase markers at 66% and 33%
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 60);

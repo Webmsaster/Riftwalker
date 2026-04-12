@@ -858,6 +858,14 @@ void PlayState::updateQuestProgress() {
     if (m_questCompleteTimer > 0) {
         m_questCompleteTimer -= 1.0f / 60.0f; // Approximate dt (called from fixed update)
     }
+    // Tick relic pickup celebration timer (runs alongside other HUD timers)
+    if (m_relicPickupFlashTimer > 0) {
+        m_relicPickupFlashTimer -= 1.0f / 60.0f;
+        if (m_relicPickupFlashTimer <= 0) {
+            m_relicPickupFlashTimer = 0;
+            m_relicPickupID = -1;
+        }
+    }
 
     if (!m_activeQuest.active || m_activeQuest.completed) return;
 

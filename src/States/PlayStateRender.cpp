@@ -1068,6 +1068,11 @@ void PlayState::render(SDL_Renderer* renderer) {
         renderRelicChoice(renderer, game->getFont());
     }
 
+    // Relic pickup celebration (flash + name card, after choice closes)
+    if (m_relicPickupFlashTimer > 0) {
+        renderRelicPickupFlash(renderer, game->getFont());
+    }
+
     // CRT scanline post-processing effect (drawn last, on top of everything)
     if (g_crtEffect) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);

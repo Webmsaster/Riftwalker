@@ -19,6 +19,7 @@ private:
     std::vector<Button> m_buttons;
     int m_selectedButton = 0;
     float m_time = 0;
+    float m_slideInTimer = 0;   // 0->1 over SLIDE_IN_DURATION for entry animation
     bool m_confirmAbandon = false;
     bool m_confirmRestart = false;
 };

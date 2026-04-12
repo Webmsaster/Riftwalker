@@ -347,6 +347,13 @@ private:
     bool m_bossDefeated = false;
     bool m_voidSovereignDefeated = false;
     bool m_bossIntroActive = false; // Freeze gameplay during boss title card
+    // Boss HP bar damage ghost + shake + phase flash (visual polish)
+    float m_bossBarShakeTimer = 0;
+    float m_bossBarGhostPct = 0;      // Previous HP% shown as fading white trail
+    float m_bossBarGhostTimer = 0;
+    int m_bossBarLastPhase = 0;
+    float m_bossBarPhaseFlashTimer = 0;
+    float m_bossBarLastPct = 1.0f;    // Track HP for damage detection
     void spawnBoss();
     void renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font);
     void endRun();
@@ -357,10 +364,16 @@ private:
     bool m_showRelicChoice = false;
     std::vector<RelicID> m_relicChoices;
     int m_relicChoiceSelected = 0;
+    // Relic pickup celebration (flash + name card)
+    float m_relicPickupFlashTimer = 0;
+    float m_relicPickupFlashDuration = 1.4f;
+    int m_relicPickupID = -1;
+    SDL_Color m_relicPickupGlow{255, 255, 255, 255};
     void showRelicChoice();
     void showCursedRelicChoice();  // Cursed-only relic offer (secret rooms)
     void selectRelic(int index);
     void renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font);
+    void renderRelicPickupFlash(SDL_Renderer* renderer, TTF_Font* font);
     void renderRelicBar(SDL_Renderer* renderer, TTF_Font* font);
 
     // Challenge mode
