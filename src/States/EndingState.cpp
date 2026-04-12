@@ -166,15 +166,18 @@ void EndingState::render(SDL_Renderer* renderer) {
             }
 
             if (m_fontBody) {
-                float baseY = 1200 - m_storyScroll;
+                float baseY = (SCREEN_HEIGHT * 0.83f) - m_storyScroll;
+                float fadeInEnd = SCREEN_HEIGHT * 0.15f;        // fully visible by 15% from top
+                float fadeOutStart = SCREEN_HEIGHT * 0.78f;     // start fading at 78%
+                float cullBottom = SCREEN_HEIGHT - 20;          // cull just off-screen
                 for (int i = 0; i < numLines; i++) {
                     float ly = baseY + i * 60;
-                    if (ly < -60 || ly > 1240) continue;
+                    if (ly < -60 || ly > cullBottom) continue;
 
                     // Fade at edges
                     float fadeAlpha = 1.0f;
-                    if (ly < 160) fadeAlpha = ly / 160.0f;
-                    if (ly > 1040) fadeAlpha = (1240 - ly) / 200.0f;
+                    if (ly < fadeInEnd) fadeAlpha = ly / fadeInEnd;
+                    if (ly > fadeOutStart) fadeAlpha = (cullBottom - ly) / (cullBottom - fadeOutStart);
                     fadeAlpha = std::max(0.0f, std::min(1.0f, fadeAlpha));
 
                     SDL_Color col = {

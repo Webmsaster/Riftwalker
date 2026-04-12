@@ -352,7 +352,9 @@ void ChallengeSelectState::renderChallengeCard(SDL_Renderer* renderer, TTF_Font*
     }
 
     SDL_Color descColor = selected ? SDL_Color{180, 175, 200, 220} : SDL_Color{100, 95, 120, 150};
-    SDL_Surface* ds = TTF_RenderUTF8_Blended(font, LOC(cDescKey), descColor);
+    // Use word-wrapped rendering so long DE descriptions don't overflow the card
+    Uint32 wrapW = 960; // card usable width after 34px left + 20px right padding
+    SDL_Surface* ds = TTF_RenderUTF8_Blended_Wrapped(font, LOC(cDescKey), descColor, wrapW);
     if (ds) {
         SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
         if (dt) {

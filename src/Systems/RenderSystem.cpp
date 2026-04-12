@@ -187,8 +187,11 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         SDL_SetTextureColorMod(sprite.texture, 255, 255, 255);
         SDL_SetTextureAlphaMod(sprite.texture, addA);
         SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &rect, renderAngle, nullptr, flip);
-        // Restore blend mode
+        // Restore blend mode + color/alpha mod (shared textures leak state to the next
+        // entity of the same type if we don't reset — manifests as random white flashes).
         SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureColorMod(sprite.texture, filteredColor.r, filteredColor.g, filteredColor.b);
+        SDL_SetTextureAlphaMod(sprite.texture, static_cast<Uint8>(sprite.color.a * alpha));
     }
 
     return true;

@@ -470,15 +470,15 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 }
             }
 
-            // Track hits for enrage system
+            // Track hits for enrage system — isEnraged triggers AISystem's Enrage animation
+            // (sprite recoloring removed: setColor(red) was never reverted, leaving enemies
+            // permanently tinted in Idle/Patrol states. The AISystem animation dispatch is
+            // the authoritative enrage visual.)
             if (isPlayer && target.hasComponent<AIComponent>()) {
                 auto& targetAI = target.getComponent<AIComponent>();
                 targetAI.timesHit++;
                 if (targetAI.timesHit >= 3 && !targetAI.isEnraged) {
                     targetAI.isEnraged = true;
-                    if (target.hasComponent<SpriteComponent>()) {
-                        target.getComponent<SpriteComponent>().setColor(255, 60, 40);
-                    }
                 }
             }
 

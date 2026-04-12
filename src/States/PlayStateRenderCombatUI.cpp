@@ -27,7 +27,21 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
     Uint8 a = static_cast<Uint8>(alpha * 220);
 
     bool hasReward = !notif->rewardText.empty();
-    int popW = 600, popH = hasReward ? 112 : 80;
+    // Measure actual text widths so panel fits localized strings (DE ~30% wider)
+    char achText[128];
+    snprintf(achText, sizeof(achText), LOC("hud.achievement"), notif->name.c_str());
+    int achW = 0, achH = 0;
+    TTF_SizeUTF8(font, achText, &achW, &achH);
+
+    char rewardText[128] = "";
+    int rewW = 0, rewH = 0;
+    if (hasReward) {
+        snprintf(rewardText, sizeof(rewardText), LOC("hud.reward"), notif->rewardText.c_str());
+        TTF_SizeUTF8(font, rewardText, &rewW, &rewH);
+    }
+    int maxTextW = std::max(achW, rewW);
+    int popW = std::max(600, maxTextW + 88 + 24);       // 68 icon margin + 20 right padding
+    int popH = hasReward ? (16 + achH + 8 + rewH + 16) : (16 + achH + 16);
     int popX = SCREEN_WIDTH / 2 - popW / 2;
     int popY = SCREEN_HEIGHT - 80 - popH - static_cast<int>(slideIn * 20);
 
@@ -40,19 +54,17 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
 
     // Trophy icon
     SDL_SetRenderDrawColor(renderer, 255, 200, 50, a);
-    SDL_Rect trophy = {popX + 20, popY + 16, 32, 32};
+    SDL_Rect trophy = {popX + 20, popY + (popH - 32) / 2, 32, 32};
     SDL_RenderFillRect(renderer, &trophy);
 
     // Achievement name
-    char achText[128];
-    snprintf(achText, sizeof(achText), LOC("hud.achievement"), notif->name.c_str());
     SDL_Color tc = {200, 255, 210, a};
     SDL_Surface* ts = TTF_RenderUTF8_Blended(font, achText, tc);
     if (ts) {
         SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
         if (tt) {
             SDL_SetTextureAlphaMod(tt, a);
-            SDL_Rect tr = {popX + 68, popY + 8, ts->w, ts->h};
+            SDL_Rect tr = {popX + 68, popY + 16, ts->w, ts->h};
             SDL_RenderCopy(renderer, tt, nullptr, &tr);
             SDL_DestroyTexture(tt);
         }
@@ -61,15 +73,13 @@ void PlayState::renderAchievementNotification(SDL_Renderer* renderer, TTF_Font* 
 
     // Reward text line (golden)
     if (hasReward) {
-        char rewardText[128];
-        snprintf(rewardText, sizeof(rewardText), LOC("hud.reward"), notif->rewardText.c_str());
         SDL_Color rc = {255, 220, 80, a};
         SDL_Surface* rs = TTF_RenderUTF8_Blended(font, rewardText, rc);
         if (rs) {
             SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
             if (rt) {
                 SDL_SetTextureAlphaMod(rt, a);
-                SDL_Rect rr = {popX + 68, popY + 56, rs->w, rs->h};
+                SDL_Rect rr = {popX + 68, popY + 16 + achH + 8, rs->w, rs->h};
                 SDL_RenderCopy(renderer, rt, nullptr, &rr);
                 SDL_DestroyTexture(rt);
             }
@@ -160,7 +170,11 @@ void PlayState::renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font
         float alpha = slideIn * fadeOut;
         Uint8 a = static_cast<Uint8>(alpha * 240);
 
-        int popW = 560, popH = 64;
+        // Size panel from measured text so DE strings fit
+        int textW = 0, textH = 0;
+        TTF_SizeUTF8(font, n.text, &textW, &textH);
+        int popW = std::max(560, textW + 40);
+        int popH = std::max(64, textH + 24);
         int popX = SCREEN_WIDTH / 2 - popW / 2;
         int popY = baseY + static_cast<int>((1.0f - slideIn) * 40);
 
@@ -178,7 +192,7 @@ void PlayState::renderUnlockNotifications(SDL_Renderer* renderer, TTF_Font* font
             SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
             if (tt) {
                 SDL_SetTextureAlphaMod(tt, a);
-                SDL_Rect tr = {popX + 20, popY + 12, ts->w, ts->h};
+                SDL_Rect tr = {popX + (popW - ts->w) / 2, popY + (popH - ts->h) / 2, ts->w, ts->h};
                 SDL_RenderCopy(renderer, tt, nullptr, &tr);
                 SDL_DestroyTexture(tt);
             }

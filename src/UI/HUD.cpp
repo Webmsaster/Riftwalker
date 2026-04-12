@@ -814,8 +814,10 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         const int infoY = m_showMinimap ? 260 : 24;
         const int zone  = std::clamp((m_currentFloor - 1) / 6, 0, 4) + 1;
 
-        // Background panel (texture-based)
-        SDL_Rect infoBg = {infoX - 5, infoY - 2, 170, 36};
+        // Background panel (texture-based). Width covers both line-1 elements:
+        // floor text at infoX and kill/NG+ text at infoX+200, plus padding.
+        // Using a generous 320px fits the longest DE boss-floor string.
+        SDL_Rect infoBg = {infoX - 5, infoY - 2, 320, 68};
         SDL_Texture* infoPanelTex = ResourceManager::instance().getTexture("assets/textures/ui/panel_dark.png");
         if (infoPanelTex) {
             SDL_SetTextureBlendMode(infoPanelTex, SDL_BLENDMODE_BLEND);
@@ -1168,6 +1170,13 @@ void HUD::renderWeaponPanel(SDL_Renderer* renderer, TTF_Font* font,
         if (player->getEntity()->hasComponent<RelicComponent>()) {
             auto& relics=player->getEntity()->getComponent<RelicComponent>();
             int synergyY=wpnY+108;
+            // Clip synergy text to the weapon panel's right edge so long DE descriptions
+            // don't bleed into the game viewport.
+            SDL_Rect prevClip; SDL_bool prevEnabled;
+            SDL_RenderGetClipRect(renderer, &prevClip);
+            prevEnabled = SDL_RenderIsClipEnabled(renderer);
+            SDL_Rect synClip = {wpnX + 20, wpnY, 840, 180};
+            SDL_RenderSetClipRect(renderer, &synClip);
             for(int i=0;i<static_cast<int>(SynergyID::COUNT);i++){
                 auto sid=static_cast<SynergyID>(i);
                 if(RelicSynergy::isWeaponSynergyActive(relics,sid,combat.currentMelee,combat.currentRanged)){
@@ -1180,6 +1189,8 @@ void HUD::renderWeaponPanel(SDL_Renderer* renderer, TTF_Font* font,
                     synergyY+=56;
                 }
             }
+            // Restore previous clip state
+            SDL_RenderSetClipRect(renderer, prevEnabled ? &prevClip : nullptr);
         }
     }
 }

@@ -115,8 +115,12 @@ void LoreState::render(SDL_Renderer* renderer) {
             if (surf) {
                 SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
                 if (tex) {
-                    SDL_Rect dst = {listX, listY + i * 64, surf->w, surf->h};
-                    SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                    // Clip to sidebar width so long DE titles don't bleed into detail panel
+                    int maxW = 540;
+                    int drawW = std::min(surf->w, maxW);
+                    SDL_Rect src = {0, 0, drawW, surf->h};
+                    SDL_Rect dst = {listX, listY + i * 64, drawW, surf->h};
+                    SDL_RenderCopy(renderer, tex, &src, &dst);
                     SDL_DestroyTexture(tex);
                 }
                 SDL_FreeSurface(surf);

@@ -40,9 +40,9 @@ void ClassSelectState::handleEvent(const SDL_Event& event) {
         }
     }
 
-    // Card layout — mirrors render() calculations exactly
+    // Card layout — MUST mirror render() exactly or hover/click areas diverge from visuals
     int cardW = (ClassSystem::CLASS_COUNT <= 3) ? 680 : 560;
-    int cardH = 880;
+    int cardH = 1100;
     int gap   = (ClassSystem::CLASS_COUNT <= 3) ? 60  : 40;
     int totalW = cardW * ClassSystem::CLASS_COUNT + gap * (ClassSystem::CLASS_COUNT - 1);
     int startX = SCREEN_WIDTH / 2 - totalW / 2;

@@ -240,15 +240,20 @@ void PlayState::renderRelicChoice(SDL_Renderer* renderer, TTF_Font* font) {
             }
         }
 
-        // Description
+        // Description — word-wrapped so long DE strings don't overflow card or overlap key hint
         {
             SDL_Color dc = {180, 180, 200, 220};
-            SDL_Surface* s = TTF_RenderUTF8_Blended(font, rDisplayDesc, dc);
+            Uint32 wrapW = static_cast<Uint32>(cardW - 40);
+            SDL_Surface* s = TTF_RenderUTF8_Blended_Wrapped(font, rDisplayDesc, dc, wrapW);
             if (s) {
                 SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
                 if (t) {
-                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 320, s->w, s->h};
-                    SDL_RenderCopy(renderer, t, nullptr, &r);
+                    // Clamp height so description can't overlap key hint at cardY+cardH-70
+                    int maxDescH = cardH - 320 - 90;
+                    int drawH = std::min(s->h, maxDescH);
+                    SDL_Rect src = {0, 0, s->w, drawH};
+                    SDL_Rect r = {cx + cardW / 2 - s->w / 2, cardY + 320, s->w, drawH};
+                    SDL_RenderCopy(renderer, t, &src, &r);
                     SDL_DestroyTexture(t);
                 }
                 SDL_FreeSurface(s);

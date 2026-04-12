@@ -1072,12 +1072,14 @@ void PlayState::renderQuestHUD(SDL_Renderer* renderer, TTF_Font* font) {
             return;
         }
 
+        // Measure actual rendered text width (was strlen*7.5f estimate, wrong at 2K + UTF-8)
+        int textW = 0, textH = 0;
+        TTF_SizeUTF8(font, buf, &textW, &textH);
         // Background panel
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        int textW = static_cast<int>(std::strlen(buf) * 7.5f); // Approximate text width
         int panelX = SCREEN_WIDTH - textW - 30;
         int panelY = SCREEN_HEIGHT - 85;
-        SDL_Rect bg = {panelX - 8, panelY - 4, textW + 16, 24};
+        SDL_Rect bg = {panelX - 12, panelY - 6, textW + 24, textH + 12};
         SDL_SetRenderDrawColor(renderer, 15, 12, 30, 180);
         SDL_RenderFillRect(renderer, &bg);
         SDL_SetRenderDrawColor(renderer, 100, 180, 255, 150);
@@ -1105,13 +1107,14 @@ void PlayState::renderQuestHUD(SDL_Renderer* renderer, TTF_Font* font) {
         char buf[128];
         std::snprintf(buf, sizeof(buf), LOC("hud.quest_complete"), m_activeQuest.shardReward);
 
-        int textW = static_cast<int>(std::strlen(buf) * 7.5f);
+        int textW = 0, textH = 0;
+        TTF_SizeUTF8(font, buf, &textW, &textH);
         int panelX = SCREEN_WIDTH / 2 - textW / 2;
         int panelY = SCREEN_HEIGHT / 3;
 
         // Golden background
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_Rect bg = {panelX - 12, panelY - 6, textW + 24, 30};
+        SDL_Rect bg = {panelX - 16, panelY - 8, textW + 32, textH + 16};
         SDL_SetRenderDrawColor(renderer, 30, 25, 10, static_cast<Uint8>(alpha * 200));
         SDL_RenderFillRect(renderer, &bg);
         SDL_SetRenderDrawColor(renderer, 255, 215, 80, static_cast<Uint8>(alpha * 200));

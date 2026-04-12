@@ -463,10 +463,12 @@ void PlayState::update(float dt) {
     // Playtest: human-like auto-play for balance testing
     if (m_playtest) updatePlaytest(dt);
 
-    // Hit-freeze: brief pause on melee hit for impact feel
+    // Hit-freeze: brief pause on melee hit for impact feel.
+    // Uses max() so a big charged hit still extends an already-draining freeze
+    // from a previous normal hit (multi-hit frames felt thin with discard semantics).
     float freeze = m_combatSystem.consumeHitFreeze();
-    if (freeze > 0 && m_hitFreezeTimer <= 0) {
-        m_hitFreezeTimer = freeze;
+    if (freeze > 0) {
+        m_hitFreezeTimer = std::max(m_hitFreezeTimer, freeze);
     }
     if (m_hitFreezeTimer > 0) {
         m_hitFreezeTimer -= dt;
