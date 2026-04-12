@@ -659,10 +659,29 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
         SDL_RenderFillRect(renderer, &flash);
     }
 
-    // Phase markers at 66% and 33%
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 60);
-    SDL_RenderDrawLine(renderer, barX + barW * 2 / 3, barY, barX + barW * 2 / 3, barY + barH);
-    SDL_RenderDrawLine(renderer, barX + barW / 3, barY, barX + barW / 3, barY + barH);
+    // Phase markers at 66% and 33%. Base alpha is subtle (60) but pulses brighter
+    // when HP approaches the threshold, warning players of an incoming transition.
+    float distTo66 = std::abs(rawPct - 0.66f);
+    float distTo33 = std::abs(rawPct - 0.33f);
+    Uint8 marker66A = 60;
+    Uint8 marker33A = 60;
+    if (rawPct > 0.66f && distTo66 < 0.12f) {
+        // Within 12% above phase-2 threshold — pulse loud
+        float nearness = 1.0f - (distTo66 / 0.12f);
+        float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.012f);
+        marker66A = static_cast<Uint8>(60 + 180 * nearness * pulse);
+    }
+    if (rawPct > 0.33f && distTo33 < 0.12f) {
+        float nearness = 1.0f - (distTo33 / 0.12f);
+        float pulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.012f);
+        marker33A = static_cast<Uint8>(60 + 180 * nearness * pulse);
+    }
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, marker66A);
+    SDL_RenderDrawLine(renderer, barX + barW * 2 / 3, barY - 2, barX + barW * 2 / 3, barY + barH + 2);
+    SDL_RenderDrawLine(renderer, barX + barW * 2 / 3 + 1, barY - 2, barX + barW * 2 / 3 + 1, barY + barH + 2);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, marker33A);
+    SDL_RenderDrawLine(renderer, barX + barW / 3, barY - 2, barX + barW / 3, barY + barH + 2);
+    SDL_RenderDrawLine(renderer, barX + barW / 3 + 1, barY - 2, barX + barW / 3 + 1, barY + barH + 2);
 
     // Boss name (dynamic based on boss type)
     if (font) {

@@ -1074,16 +1074,18 @@ void HUD::renderAbilityBar(SDL_Renderer* renderer, TTF_Font* font,
             SDL_Rect timerFill2={buffX,buffY+buffSize+1,timerW,timerBarH2}; SDL_RenderFillRect(renderer,&timerFill2);
             buffX+=buffSize+buffGap;
         };
-        drawBuff("S",player->speedBoostTimer,6.0f,{255,255,80,255});
-        drawBuff("D",player->damageBoostTimer,8.0f,{255,80,80,255});
-        if (player->hasShield) drawBuff("W",player->shieldTimer,8.0f,{100,180,255,255});
-        if (player->isRiftChargeActive()) drawBuff("R",player->riftChargeTimer,player->riftChargeDuration,{80,160,255,255});
-        if (player->hasMomentum()) drawBuff("M",player->momentumTimer,player->momentumDuration,{255,140,40,255});
+        // 2-letter codes are more readable than single letters at 2K
+        drawBuff("SPD",player->speedBoostTimer,6.0f,{255,255,80,255});
+        drawBuff("DMG",player->damageBoostTimer,8.0f,{255,80,80,255});
+        if (player->hasShield) drawBuff("SHD",player->shieldTimer,8.0f,{100,180,255,255});
+        if (player->isRiftChargeActive()) drawBuff("RFT",player->riftChargeTimer,player->riftChargeDuration,{80,160,255,255});
+        if (player->hasMomentum()) drawBuff("MOM",player->momentumTimer,player->momentumDuration,{255,140,40,255});
         if (player->postDashInvisTimer>0 && player->playerClass==PlayerClass::Phantom)
-            drawBuff("I",player->postDashInvisTimer,ClassSystem::getData(PlayerClass::Phantom).postDashInvisTime,{60,220,200,255});
-        if (player->isBurning()) drawBuff("F",player->burnTimer,3.0f,{255,120,30,255});
-        if (player->isFrozen()) drawBuff("C",player->freezeTimer,2.0f,{80,180,255,255});
-        if (player->isPoisoned()) drawBuff("P",player->poisonTimer,4.0f,{80,220,80,255});
+            drawBuff("INV",player->postDashInvisTimer,ClassSystem::getData(PlayerClass::Phantom).postDashInvisTime,{60,220,200,255});
+        // Debuffs get full names so player understands why they're taking damage
+        if (player->isBurning()) drawBuff("BRN",player->burnTimer,3.0f,{255,120,30,255});
+        if (player->isFrozen()) drawBuff("FRZ",player->freezeTimer,2.0f,{80,180,255,255});
+        if (player->isPoisoned()) drawBuff("PSN",player->poisonTimer,4.0f,{80,220,80,255});
     }
 
     // Ability icons (below active buffs)
