@@ -906,6 +906,47 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Tutorial hints (first 3 levels only)
     renderTutorialHints(renderer, game->getFont());
 
+    // Parry window visual: white ring around player while isParrying or counterReady
+    if (m_player && m_player->getEntity() &&
+        m_player->getEntity()->hasComponent<CombatComponent>() &&
+        m_player->getEntity()->hasComponent<TransformComponent>()) {
+        auto& pCombat = m_player->getEntity()->getComponent<CombatComponent>();
+        if (pCombat.isParrying || pCombat.counterReady) {
+            Vec2 wp = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+            Vec2 sp = m_camera.worldToScreen(wp);
+            // Active parry: bright white ring. Counter-ready: gold ring (followup available).
+            Uint8 ringR, ringG, ringB;
+            float intensity;
+            if (pCombat.isParrying) {
+                intensity = pCombat.parryTimer / pCombat.parryWindow;
+                ringR = 255; ringG = 255; ringB = 255;
+            } else {
+                intensity = pCombat.counterWindow / 0.5f;
+                ringR = 255; ringG = 220; ringB = 80;
+            }
+            intensity = std::max(0.0f, std::min(1.0f, intensity));
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+            int cx = static_cast<int>(sp.x);
+            int cy = static_cast<int>(sp.y);
+            int radius = 70 + static_cast<int>((1.0f - intensity) * 10);
+            Uint8 alpha = static_cast<Uint8>(200 * intensity);
+            SDL_SetRenderDrawColor(renderer, ringR, ringG, ringB, alpha);
+            // Draw ring via 8 line segments
+            for (int i = 0; i < 32; i++) {
+                float a1 = (i / 32.0f) * 6.283185f;
+                float a2 = ((i + 1) / 32.0f) * 6.283185f;
+                int x1 = cx + static_cast<int>(std::cos(a1) * radius);
+                int y1 = cy + static_cast<int>(std::sin(a1) * radius);
+                int x2 = cx + static_cast<int>(std::cos(a2) * radius);
+                int y2 = cy + static_cast<int>(std::sin(a2) * radius);
+                SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+                // Double thickness
+                SDL_RenderDrawLine(renderer, x1, y1 + 1, x2, y2 + 1);
+            }
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        }
+    }
+
     // Floating damage numbers
     renderDamageNumbers(renderer, game->getFont());
 

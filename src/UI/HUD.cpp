@@ -756,7 +756,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
     // Combo Finisher prompt (below combo counter)
     if (player && player->isFinisherAvailable() && font) {
         // Determine finisher name and color by class
-        const char* finisherName = "FINISHER";
+        const char* finisherName = "[E] FINISHER";
         SDL_Color fColor = {255, 215, 0, 255};
         switch (player->playerClass) {
             case PlayerClass::Voidwalker:
@@ -770,6 +770,10 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             case PlayerClass::Phantom:
                 finisherName = "[E] PHASE BURST";
                 fColor = {80, 220, 255, 255};
+                break;
+            case PlayerClass::Technomancer:
+                finisherName = "[E] OVERCHARGE SURGE";
+                fColor = {255, 200, 50, 255};
                 break;
             default: break;
         }

@@ -38,8 +38,17 @@ void GameOverState::enter() {
 }
 
 void GameOverState::handleEvent(const SDL_Event& event) {
-    if ((event.type == SDL_KEYDOWN || event.type == SDL_CONTROLLERBUTTONDOWN ||
-         event.type == SDL_MOUSEBUTTONDOWN) && m_timer > 1.5f) {
+    if (m_timer <= 1.5f) return;
+
+    // Quick retry with same class via R key — keeps roguelike loop snappy
+    if (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_R) {
+        AudioManager::instance().play(SFX::MenuConfirm);
+        game->changeState(StateID::DifficultySelect);
+        return;
+    }
+
+    if (event.type == SDL_KEYDOWN || event.type == SDL_CONTROLLERBUTTONDOWN ||
+        event.type == SDL_MOUSEBUTTONDOWN) {
         AudioManager::instance().play(SFX::MenuConfirm);
         game->changeState(StateID::Menu);
     }

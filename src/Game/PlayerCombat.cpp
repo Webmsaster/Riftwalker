@@ -543,7 +543,8 @@ void Player::executeComboFinisher() {
         float knockback = 500.0f;
         float stunDuration = 0.5f;
 
-        AudioManager::instance().play(SFX::GroundSlam);
+        // Dimension-themed sound is more appropriate than GroundSlam (mass/impact)
+        AudioManager::instance().play(SFX::DimensionSwitch);
         combatSystemRef->addHitFreeze(0.1f);
 
         // Purple ring particles

@@ -482,9 +482,10 @@ void ShopState::renderCard(SDL_Renderer* renderer, const RunBuff& buff, int x, i
             SDL_FreeSurface(ns);
         }
 
-        // Description (localized)
+        // Description (localized, wrapped so long DE strings fit card width)
         SDL_Color dc = {180, 180, 200, 200};
-        SDL_Surface* ds = TTF_RenderUTF8_Blended(font, LOC(buffDescKey), dc);
+        Uint32 wrapW = static_cast<Uint32>(w - 40);
+        SDL_Surface* ds = TTF_RenderUTF8_Blended_Wrapped(font, LOC(buffDescKey), dc, wrapW);
         if (ds) {
             SDL_Texture* dt = SDL_CreateTextureFromSurface(renderer, ds);
             if (dt) {

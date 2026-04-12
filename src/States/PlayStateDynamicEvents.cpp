@@ -65,8 +65,12 @@ void PlayState::triggerDynamicEvent() {
     m_dynamicEventAnnouncementTimer = 2.5f;
     m_dynamicEventsTriggered++;
 
-    // Announcement SFX + camera shake
-    AudioManager::instance().play(SFX::CollapseWarning);
+    // Announcement SFX + camera shake — per-type so player can tell which event fired
+    SFX announceSfx = SFX::AnomalySpawn; // default: something unusual is happening
+    if (type == DynamicEventType::DimensionStorm) announceSfx = SFX::DimensionSwitch;
+    else if (type == DynamicEventType::EliteInvasion) announceSfx = SFX::AnomalySpawn;
+    else if (type == DynamicEventType::TimeDilation) announceSfx = SFX::BossTeleport;
+    AudioManager::instance().play(announceSfx);
     m_camera.shake(8.0f, 0.3f);
 
     // Announcement particles at player position

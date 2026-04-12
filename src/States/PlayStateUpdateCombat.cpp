@@ -523,7 +523,8 @@ void PlayState::updateKillEffects() {
             m_particles.burst(playerPos, 30, gold, 140.0f, 3.5f);
             // Small screen shake
             m_camera.shake(3.0f, 0.2f);
-            AudioManager::instance().play(SFX::LevelComplete);
+            // Use ComboMilestone for level-up celebration so it's distinct from floor-complete
+            AudioManager::instance().play(SFX::ComboMilestone);
         }
     }
 

@@ -259,8 +259,13 @@ void PlayState::updateDimensionEffects(float dt) {
         m_musicSystem.update(dt, nearEnemies, bossActive, hp, m_entropy.getEntropy());
         AudioManager::instance().updateMusicLayers(m_musicSystem);
 
-        // Procedural music: boss track switching and phase changes
+        // Procedural music: boss track switching and phase changes.
+        // setBossActive early-exits if bossActive is unchanged, so we also call
+        // setBossPhase explicitly to catch mid-fight phase escalation.
         m_musicSystem.setBossActive(bossActive, bossPhase);
+        if (bossActive) {
+            m_musicSystem.setBossPhase(bossPhase);
+        }
     }
 }
 

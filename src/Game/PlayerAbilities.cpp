@@ -232,7 +232,7 @@ void Player::handleAbilities(float dt, const InputManager& input) {
 
             activeTurrets++;
             turretCooldownTimer = turretCooldown;
-            AudioManager::instance().play(SFX::RiftRepair); // deploy sound
+            AudioManager::instance().play(SFX::ShockTrap); // deploy sound (was RiftRepair — environmental overload)
 
             if (particles) {
                 particles->burst(spawnPos, 12, {230, 180, 50, 200}, 80.0f, 2.5f);
