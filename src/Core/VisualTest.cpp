@@ -36,7 +36,7 @@ static const char* stateIdName(StateID id) {
 bool g_visualTest = false;
 
 void VisualTest::init() {
-    m_phase = Phase::WaitSplash;
+    m_phase = Phase::CaptureSplash;
     m_phaseFrame = 0;
     m_captureCount = 0;
 }
@@ -72,6 +72,19 @@ bool VisualTest::update(int frameCount, Game* game) {
     switch (m_phase) {
 
     // ========== CORE GAMEPLAY FLOW ==========
+
+    case Phase::CaptureSplash:
+        // Splash auto-transitions to Menu at 2.5s (150 frames).
+        // Title fades in by 1.5s, subtitle starts at 1.0s and finishes at 2.0s.
+        // Capture at 2.0s (frame 120) so both are fully visible.
+        if (m_phaseFrame >= 120 && game->getCurrentStateID() == StateID::Splash) {
+            capture(game, "splash");
+            nextPhase(Phase::WaitSplash);
+        } else if (game->getCurrentStateID() != StateID::Splash) {
+            // Splash already ended before we could capture (e.g. if disabled)
+            nextPhase(Phase::WaitSplash);
+        }
+        break;
 
     case Phase::WaitSplash:
         // Splash auto-transitions to Menu at 2.5s. Wait until we're in Menu

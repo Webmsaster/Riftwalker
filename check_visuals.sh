@@ -6,7 +6,7 @@
 #
 # What it does:
 #   1. Builds the game (Release config)
-#   2. Runs the automated visual test (17 screenshots across all menus + gameplay)
+#   2. Runs the automated visual test (18 screenshots across all menus + gameplay)
 #   3. Compares every screenshot against the saved baseline
 #   4. If ANYTHING changed, opens an interactive HTML diff report in your browser
 #      so you can see side-by-side: reference, actual, and a red pixel-diff overlay
@@ -40,13 +40,13 @@ else
 fi
 
 # ------- Step 2: run the visual test -------
-echo "[2/3] Capturing 17 screenshots via --visual-test..."
+echo "[2/3] Capturing 18 screenshots via --visual-test..."
 rm -f build/Release/screenshots/visual_test/*.png
 (cd build/Release && timeout 220 ./Riftwalker.exe --visual-test 2>&1 | grep -E "capture|Complete" || true)
 
 CAPTURED=$(ls build/Release/screenshots/visual_test/*.png 2>/dev/null | wc -l)
-if [[ "$CAPTURED" -lt 17 ]]; then
-    echo "ERROR: Expected 17 screenshots, got $CAPTURED. Visual test crashed or stalled."
+if [[ "$CAPTURED" -lt 18 ]]; then
+    echo "ERROR: Expected 18 screenshots, got $CAPTURED. Visual test crashed or stalled."
     exit 1
 fi
 
@@ -88,7 +88,7 @@ rm -f /tmp/diff_$$
 
 echo ""
 if [[ "$FAILED" -eq 0 && "$NEW" -eq 0 ]]; then
-    echo "PASS: All 17 screens match the baseline. Game looks correct."
+    echo "PASS: All 18 screens match the baseline. Game looks correct."
     exit 0
 fi
 

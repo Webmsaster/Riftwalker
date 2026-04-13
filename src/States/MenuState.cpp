@@ -39,7 +39,8 @@ void MenuState::enter() {
     int btnH = 60;
     int gap = 4;
     int totalMenuH = 13 * (btnH + gap) - gap;
-    int startY = SCREEN_HEIGHT - totalMenuH - 32;
+    // Leave 112px below the last button for nav hint + version footer
+    int startY = SCREEN_HEIGHT - totalMenuH - 112;
 
     // Auto-redirect first-time players to tutorial
     bool firstTime = (game->getUpgradeSystem().totalRuns == 0);
@@ -484,7 +485,7 @@ void MenuState::render(SDL_Renderer* renderer) {
         if (hs) {
             SDL_Texture* ht = SDL_CreateTextureFromSurface(renderer, hs);
             if (ht) {
-                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, SCREEN_HEIGHT - 60, hs->w, hs->h};
+                SDL_Rect hr = {SCREEN_WIDTH / 2 - hs->w / 2, SCREEN_HEIGHT - 85, hs->w, hs->h};
                 SDL_RenderCopy(renderer, ht, nullptr, &hr);
                 SDL_DestroyTexture(ht);
             }
@@ -499,7 +500,7 @@ void MenuState::render(SDL_Renderer* renderer) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, SCREEN_HEIGHT - 14, s->w, s->h};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w / 2, SCREEN_HEIGHT - 42, s->w, s->h};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }

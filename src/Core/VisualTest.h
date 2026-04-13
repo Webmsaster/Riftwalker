@@ -32,6 +32,7 @@ private:
 
     enum class Phase {
         // --- Core gameplay flow ---
+        CaptureSplash,
         WaitSplash,
         CaptureMenu,
         NavigateToGame,

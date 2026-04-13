@@ -284,7 +284,7 @@ void BestiaryState::render(SDL_Renderer* renderer) {
 
     // ---- Left: list panel ----
     {
-        SDL_Rect panelBg = {LIST_X - 4, LIST_Y - 4, LIST_W + 8, VISIBLE * (ROW_H + 4) + 8};
+        SDL_Rect panelBg = {LIST_X - 4, LIST_Y - 4, LIST_W + 8, VISIBLE * (ROW_H + 8) + 4};
         if (!renderPanelBg(renderer, panelBg, 200)) {
             SDL_SetRenderDrawColor(renderer, 15, 12, 28, 120);
             SDL_RenderFillRect(renderer, &panelBg);
@@ -399,7 +399,7 @@ void BestiaryState::render(SDL_Renderer* renderer) {
     // Scroll indicator dots
     if (m_totalEntries > VISIBLE) {
         int dotsX = LIST_X + LIST_W + 8;
-        int dotsAreaH = VISIBLE * (ROW_H + 4);
+        int dotsAreaH = VISIBLE * (ROW_H + 8);
         for (int i = 0; i < m_totalEntries; i++) {
             int dotY = LIST_Y + static_cast<int>(dotsAreaH * i / static_cast<float>(m_totalEntries));
             bool isCur = (i == m_selected);

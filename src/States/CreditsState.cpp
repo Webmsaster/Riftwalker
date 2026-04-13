@@ -2,13 +2,16 @@
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
 #include "Core/Localization.h"
+#include "Core/VisualTest.h"
 #include <cmath>
 #include <cstdlib>
 
 void CreditsState::enter() {
     m_fontTitle = TTF_OpenFont("assets/fonts/default.ttf", 56);
     m_fontBody = TTF_OpenFont("assets/fonts/default.ttf", 32);
-    m_scrollY = 0.0f;
+    // Visual test mode: jump past the empty scroll-up so the first few
+    // sections (title + design + engine) are already on screen at capture time
+    m_scrollY = g_visualTest ? 1100.0f : 0.0f;
     m_time = 0.0f;
     m_particles.clear();
 
