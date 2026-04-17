@@ -434,8 +434,8 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
     for (int i = 0; i < gradSteps; ++i) {
         int yTop = sr.y + (sr.h * i) / gradSteps;
         int yH   = sr.h / gradSteps + 1;
-        Uint8 a  = static_cast<Uint8>(28 - i * 7); // 28,21,14,7
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, a / 2);
+        Uint8 a  = static_cast<Uint8>(14 - i * 4); // 14,10,6,2 (subtle highlight)
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, a);
         SDL_Rect band = {sr.x, yTop, sr.w, yH};
         SDL_RenderFillRect(renderer, &band);
     }
