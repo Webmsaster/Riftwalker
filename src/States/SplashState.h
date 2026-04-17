@@ -10,6 +10,9 @@ public:
     void update(float dt) override;
     void render(SDL_Renderer* renderer) override;
 
+    // For visual test instrumentation
+    float getElapsed() const { return m_time; }
+
 private:
     void transitionToMenu();
 

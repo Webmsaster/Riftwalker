@@ -2,6 +2,7 @@
 #include "Game.h"
 #include "ScreenCapture.h"
 #include "../States/GameState.h"
+#include "../States/SplashState.h"
 #include <SDL2/SDL.h>
 #include <string>
 
@@ -73,18 +74,25 @@ bool VisualTest::update(int frameCount, Game* game) {
 
     // ========== CORE GAMEPLAY FLOW ==========
 
-    case Phase::CaptureSplash:
-        // Splash auto-transitions to Menu at 2.5s (150 frames).
-        // Title fades in by 1.5s, subtitle starts at 1.0s and finishes at 2.0s.
-        // Capture at 2.0s (frame 120) so both are fully visible.
-        if (m_phaseFrame >= 120 && game->getCurrentStateID() == StateID::Splash) {
-            capture(game, "splash");
-            nextPhase(Phase::WaitSplash);
-        } else if (game->getCurrentStateID() != StateID::Splash) {
-            // Splash already ended before we could capture (e.g. if disabled)
+    case Phase::CaptureSplash: {
+        // Splash auto-transitions to Menu at 2.5s of splash-state time.
+        // Title fades in by 1.5s, subtitle finishes by 2.0s.
+        // Use splash state's own elapsed time (not wall-clock frames) so capture
+        // is robust to high-Hz vsync + timer catch-up that races physics ahead.
+        // Capture at 2.0s of splash-time when both elements are fully visible.
+        if (game->getCurrentStateID() == StateID::Splash) {
+            if (auto* splash = static_cast<SplashState*>(game->getState(StateID::Splash))) {
+                if (splash->getElapsed() >= 2.0f) {
+                    capture(game, "splash");
+                    nextPhase(Phase::WaitSplash);
+                }
+            }
+        } else {
+            // Splash ended before we could capture — fall through silently
             nextPhase(Phase::WaitSplash);
         }
         break;
+    }
 
     case Phase::WaitSplash:
         // Splash auto-transitions to Menu at 2.5s. Wait until we're in Menu
