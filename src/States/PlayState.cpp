@@ -391,7 +391,7 @@ void PlayState::update(float dt) {
         m_deathSequenceTimer -= dt; // Real-time countdown (not slowed)
 
         // Camera zoom: smoothly zoom in during death
-        float targetZoom = 5.0f + 2.4f * std::min(1.0f, progress * 2.0f);
+        float targetZoom = 3.5f + 2.4f * std::min(1.0f, progress * 2.0f);
         m_camera.zoom += (targetZoom - m_camera.zoom) * std::min(1.0f, dt * 4.0f);
 
         m_camera.update(slowDt);       // camera shake continues (slowed)
@@ -424,7 +424,7 @@ void PlayState::update(float dt) {
 
         if (m_deathSequenceTimer <= 0) {
             m_playerDying = false;
-            m_camera.zoom = 5.0f; // Reset zoom before transitioning
+            m_camera.zoom = 3.5f; // Reset zoom before transitioning
             if (m_playtest) {
                 playtestOnDeath();
             } else {
@@ -827,7 +827,7 @@ void PlayState::update(float dt) {
                 AudioManager::instance().playMusic(ZONE_TRACKS[trackIdx]);
             }
             // Dramatic zoom-in on boss kill
-            m_camera.zoomTarget = 5.6f;
+            m_camera.zoomTarget = 3.9f;
             m_camera.zoomSpeed = 3.0f;
             // Boss kill rewards
             float bossShardMult = game->getRunBuffSystem().getShardMultiplier();

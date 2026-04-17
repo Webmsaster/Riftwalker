@@ -11,9 +11,15 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Quality**: 0 compiler warnings, visual regression 17/17 PASS, 38 bug patterns documented in `.claude/rules/bug-patterns.md`
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
 
-**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-04-11).
+**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-04-12).
 
-**Latest session (2026-04-11, 31 commits):**
+**Latest session (2026-04-12, 8 commits, 40+ fixes):**
+- **Gameplay bugs phase** — 8 damage multiplier chain bypasses fixed: Ground Slam, 4 combo finishers, Phase Strike, Shock Trap, Rift Shield burst, GravityGauntlet counter; shared `computePlayerDamageMult()` helper; ItemDrop GlassCannon protection, Blacksmith multiplier persistence, boss enrage race (CombatSystem timesHit exclusion), VoidSovereign/EntropyIncarnate phase timer seeding, UpgradeSystem/AscensionSystem save clamps.
+- **Visual polish passes 1–6** — Layout fixes (EndingState, Quest HUD, ClassSelect, Relic overflow), render state leaks (enemy enrage, hit-freeze), DE localization overflow (6 panels), major UI polish (pause transition, boss HP ghost, phase flash, relic pickup), enemy feedback (ability bursts, crit particles, elite slow-mo), visual state leaks, 7 missing enemy death FX, electric chain numbers, AncientWeapon reveal, audio semantics (5 SFX swaps), parry ring visual, quick retry [R], shop card wrap, music system wiring, buff labels, boss phase warnings.
+- **Deferred**: Relic bar tooltips, Tutorial expansion (Synergy/Parry/Finisher hints), Colorblind mode.
+- All builds clean, 0 compiler warnings. Session ready for production.
+
+**Previous session (2026-04-11, 31 commits):**
 - **Electric chain ranged parity**: Element 3 (Electric) 30% chain damage was deferred for ranged — now fires via `m_currentEntities->forEach` in projectile onTrigger lambda. Cost bounded (1x per hit, not per frame).
 - **EchoStrike ranged fix**: `rollEchoStrike()` was melee-only (another early-return survivor). Added to projectile onTrigger with PiercingEcho synergy override (35% for RiftCrossbow).
 - **3 new weapon-relic synergies** (all 12 weapons now have synergies): GravityThorns (GravityGauntlet + ThornMail, +5 impact DMG), PhantomGrapple (GrapplingHook + PhaseCloak, 2s invis on kill), PiercingEcho (RiftCrossbow + EchoStrike, 35% echo chance). 25 synergies total.
@@ -83,7 +89,7 @@ Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victo
 **Visual Regression Testing** (implemented):
 - `python tools/visual_report.py` — Generate HTML diff reports (Reference / Actual / Diff)
 - Playtest-Bot auto-captures floor screenshots (1, 5, 10, 15, 20, 25, 30)
-- 7 Visual Checkpoints: Menu, ClassSelect, Gameplay, Debug, Pause, Upgrades, Achievements
+- 18 Visual Checkpoints (including CaptureSplash at frame 120): Menu, ClassSelect, Gameplay, Debug, Pause, Upgrades, Achievements
 - pixelmatch-cpp17 für Pixel-Diffs, CI-Pipeline mit GitHub Actions
 
 ## Architecture (Riftwalker)
