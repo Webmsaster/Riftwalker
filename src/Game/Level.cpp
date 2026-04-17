@@ -58,16 +58,34 @@ bool Level::inBounds(int x, int y) const {
 }
 
 bool Level::loadTileset(const std::string& path) {
-    // AI-generated tileset disabled — procedural rendering looks cleaner.
-    // Set kUseTileset to true once proper pixel-art tileset is available.
-    constexpr bool kUseTileset = true;
+    // tileset_universal.png is an AI-generated biome image sliced into 16×6
+    // cells — NOT a real auto-tile layout. Rendering it via auto-tile index
+    // produced random slices (light bars, crystals, etc.) glued together,
+    // which read as "cut off" tiles. Procedural rendering (edge-aware
+    // colored quads in renderSolidTile's fallback path) looks clean and
+    // consistent until we have a properly authored pixel-art tileset.
+    constexpr bool kUseTileset = false;
     if (!kUseTileset) {
         SDL_Log("Tileset disabled (using procedural rendering)");
         return false;
     }
     m_tileset = ResourceManager::instance().getTexture(path);
     if (m_tileset) {
-        SDL_Log("Tileset loaded: %s", path.c_str());
+        // Query actual texture dimensions so srcRect stays in-bounds.
+        // tileset_universal.png is 2048x768 → 8 cols × 3 rows at 256px.
+        // Without this, autoTileIndex (0-15) reads past the right edge for
+        // col 8-15, producing garbage/stretched edge samples (the "cut off"
+        // look the user reported).
+        int texW = 0, texH = 0;
+        SDL_QueryTexture(m_tileset, nullptr, nullptr, &texW, &texH);
+        if (texW > 0 && m_texTileSize > 0) {
+            m_tilesetCols = std::max(1, texW / m_texTileSize);
+        }
+        if (texH > 0 && m_texTileSize > 0) {
+            m_tilesetRows = std::max(1, texH / m_texTileSize);
+        }
+        SDL_Log("Tileset loaded: %s (%dx%d, %d cols x %d rows @ %dpx)",
+                path.c_str(), texW, texH, m_tilesetCols, m_tilesetRows, m_texTileSize);
     }
     return m_tileset != nullptr;
 }
@@ -97,9 +115,13 @@ int Level::getAutoTileIndex(int tx, int ty, int dim) const {
 void Level::renderTilesetTile(SDL_Renderer* renderer, SDL_Rect destRect,
                                int tilesetRow, int tilesetCol, const Tile& tile) {
     if (!m_tileset) return;
+    // Clamp to actual tileset bounds — caller may pass indices designed
+    // for a 16-col layout; our sheet is smaller.
+    int col = ((tilesetCol % m_tilesetCols) + m_tilesetCols) % m_tilesetCols;
+    int row = ((tilesetRow % m_tilesetRows) + m_tilesetRows) % m_tilesetRows;
     SDL_Rect srcRect = {
-        tilesetCol * m_texTileSize,
-        tilesetRow * m_texTileSize,
+        col * m_texTileSize,
+        row * m_texTileSize,
         m_texTileSize, m_texTileSize
     };
 
@@ -307,11 +329,14 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
 
 void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile,
                              int tx, int ty, int dim) const {
-    // Tileset rendering: use auto-tile index for correct variant
+    // Tileset rendering: use auto-tile index for correct variant, wrapped
+    // to the tileset's actual column count. Previously assumed a 16-col
+    // auto-tile sheet; tileset_universal.png is only 8 cols → autoIdx 8-15
+    // sampled past the right edge, producing smeared "cut-off" tile edges.
     if (m_tileset) {
         int autoIdx = getAutoTileIndex(tx, ty, dim);
-        // Row 0 of tileset, column = auto-tile index (0-15)
-        SDL_Rect srcRect = { autoIdx * m_texTileSize, 0, m_texTileSize, m_texTileSize };
+        int col = autoIdx % m_tilesetCols;
+        SDL_Rect srcRect = { col * m_texTileSize, 0, m_texTileSize, m_texTileSize };
         // Subtle brightness variation per tile (deterministic from position)
         int variation = ((tx * 7 + ty * 13 + tx * ty) % 15) - 7; // -7 to +7
         // Lighten the color mod so tileset texture detail shows through

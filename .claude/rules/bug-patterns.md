@@ -310,3 +310,26 @@ would have missed by eye.
 6. **Order-of-operations bugs love pre-passes** — any time there's a collection pass + main loop pass, check if the main loop resets what the pre-pass wrote.
 7. **The "0 findings, saturated" signal is valid — but don't stop too early.** The HUD m_frameTicks regression was found AFTER two consecutive "0 findings, saturated" agent reviews. One more focused review on files I had TOUCHED (not just files I was worried about) caught it. **Files you modified recently deserve a review even after saturation is declared elsewhere.**
 8. **Always grep for `X = X` patterns after a large replace_all.** One second of grep would have caught #30 at the time of commit f4fcef8 instead of 26 commits later.
+
+### 39. UI Layout Overflow — Bestiary, Menu Footer, Credits Scroll
+- **Pattern A (Bestiary last row)**: Row height constant `ROW_H+4` was inconsistent with render-area calculation `ROW_H+8`, causing the last enemy entry to render partially outside the panel bottom border.
+- **Pattern B (Menu Footer overlap)**: Quit button positioned at `y=1348–1408` overlapped with navigation hint at `y=1380`, making hint text unreadable. Button was originally designed for a lower menu area without accounting for footer positioning.
+- **Pattern C (Credits scroll)**: Visual tester captured only the tail end of the scrolling credits because `m_scrollY` was not initialized to show early sections. Initial scroll position (typically 0 or calculated from content) was missing for test baseline.
+- **Impact A**: Last enemy in Bestiary list clipped at bottom, visual inconsistency.
+- **Impact B**: Quit button text overlapped with nav hint, readability loss.
+- **Impact C**: Baseline screenshot only showed last ~20% of credits, missing all opening credit sections.
+- **Fix A**: Unified spacing constant: changed render-area calculation from `ROW_H+8` to `ROW_H+4` to match row increment.
+- **Fix B**: Moved Quit button 80px higher (button extent now `y=1268–1328`), removing overlap. Removed version-text from right margin to prevent right-edge overflow.
+- **Fix C**: Set `m_scrollY = 1100` at visual test initialization to show credits from early sections.
+- **Lesson**: When drawing a list of identical-height rows in a bounded panel, the row spacing constant must be used consistently in TWO places: the row-drawing loop increment AND the panel boundary calculation. A mismatch of ±4px is enough to cause clipping on the Nth row. For fixed-height buttons in a footer, verify positions don't overlap by checking `y_max` of button N against `y_min` of button N+1. For scrollable content in tests, initialize scroll state to a position that captures opening content, not trailing content.
+- **Detection heuristic**: Grep for row-draw loops with a spacing constant (e.g., `y += ROW_H+4`) and find all calculations that reference ROW_H; verify the offset (e.g., `+4`, `+8`) matches everywhere. For overlapping UI, check y-positions in UI layout code and verify no two interactive elements have intersecting y-ranges.
+
+## Session 2026-04-17 (Sprite/Tile Rendering)
+
+### 40. AI-Generated "Tileset" Rendered as Auto-Tile — Chopped-Up Look
+- **Pattern**: `Level::loadTileset` loaded `tileset_universal.png` (2048×768) and `renderSolidTile` sampled it by `autoIdx * m_texTileSize` where autoIdx is a 4-bit neighbor bitmask (0–15). The PNG was AI-generated biome artwork sliced into 16 cols × 6 rows of 128×128 cells, NOT a true auto-tile layout. Each neighbor-configuration read a random decorative slice (light bars, crystals, chevrons) instead of the matching edge variant.
+- **Impact**: Every solid tile in gameplay looked abgeschnitten / chopped up. Adjacent tiles with different neighbor states showed wildly different content (piano-key stripes next to metal-plate next to crystal), because cells 0-15 of row 0 are 16 random slices of one biome image, not 16 auto-tile edge permutations. The "cut off" / "weird sprite" feeling the user reported across the run-time.
+- **Additional bug**: `m_tilesetCols` declared as `16` in header but never used — srcRect never bounds-checked. If the texture had been smaller the code would read past the right edge silently.
+- **Fix**: Flipped `kUseTileset` back to `false` to restore the procedural edge-aware rendering (lines 410–459 of `Level::renderSolidTile`). Procedural path renders `tile.color` as base + highlight/shadow on exposed edges + subtle shading. Also populated `m_tilesetCols/Rows` from actual texture dimensions in `loadTileset` and wrapped srcRect col/row via modulo so any future tileset won't silently OOB.
+- **Lesson**: A "tileset" PNG is not auto-tile-usable unless its cells are actually indexed by neighbor-bitmask (0=isolated, 15=surrounded). Test: grid lines should separate edge variants (top-open, top+right-open, etc.), NOT arbitrary decorative art. If the art was authored as one big biome image and mechanically sliced, the result will look chopped when rendered per-tile. Procedural edge-aware rendering is often the better default until a real pixel-art auto-tile sheet exists.
+- **Detection heuristic**: Grep for `autoTileIndex * tileSize` or similar in tile-sampling code; verify the texture's column count equals 16 AND its cells are truly indexed by neighbor bitmask (e.g., cell 0 has rounded corners, cell 15 is a center block). If unsure, flip to procedural.

@@ -123,7 +123,8 @@ private:
     void buildLaserCache() const;
 
     SDL_Texture* m_tileset = nullptr;
-    int m_tilesetCols = 16;  // Tiles per row in tileset
+    int m_tilesetCols = 8;   // Tiles per row (set from texture on load)
+    int m_tilesetRows = 3;   // Tile rows (set from texture on load)
 
     int index(int x, int y) const { return y * m_width + x; }
 
