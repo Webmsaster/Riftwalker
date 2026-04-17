@@ -2,6 +2,7 @@
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
 #include "Core/Localization.h"
+#include "Core/ResourceManager.h"
 #include "UI/UITextures.h"
 #include <cmath>
 #include <cstdio>
@@ -426,28 +427,34 @@ void ClassSelectState::renderClassPreview(SDL_Renderer* renderer, const ClassDat
                                            int cx, int cy) {
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // Character body (28x48 like player)
-    int bw = 84, bh = 144; // scaled up for 2K preview
-    SDL_SetRenderDrawColor(renderer, data.color.r, data.color.g, data.color.b, 220);
-    SDL_Rect body = {cx - bw / 2, cy - bh / 2, bw, bh};
-    SDL_RenderFillRect(renderer, &body);
+    // Preview bounding box (matches sprite aspect 128:192 = 2:3)
+    int bw = 180, bh = 270;
 
-    // Eyes
-    int eyeY = cy - bh / 2 + 28;
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 200);
-    SDL_Rect eyeL = {cx - 16, eyeY, 10, 12};
-    SDL_Rect eyeR = {cx + 6, eyeY, 10, 12};
-    SDL_RenderFillRect(renderer, &eyeL);
-    SDL_RenderFillRect(renderer, &eyeR);
+    // Try to render real player sprite with class color tint
+    SDL_Texture* playerTex = ResourceManager::instance().getTexture(
+        "assets/textures/singles/player/player.png");
+    if (playerTex) {
+        // Apply class-color tint (multiply) + slight brightness boost so blue-heavy
+        // armor doesn't wash out for red/green classes.
+        Uint8 tr = static_cast<Uint8>(std::min(255, data.color.r + 80));
+        Uint8 tg = static_cast<Uint8>(std::min(255, data.color.g + 80));
+        Uint8 tb = static_cast<Uint8>(std::min(255, data.color.b + 80));
+        SDL_SetTextureColorMod(playerTex, tr, tg, tb);
+        SDL_SetTextureAlphaMod(playerTex, 255);
 
-    // Pupils
-    SDL_SetRenderDrawColor(renderer, 20, 15, 30, 255);
-    SDL_Rect pupilL = {cx - 12, eyeY + 4, 6, 6};
-    SDL_Rect pupilR = {cx + 10, eyeY + 4, 6, 6};
-    SDL_RenderFillRect(renderer, &pupilL);
-    SDL_RenderFillRect(renderer, &pupilR);
+        SDL_Rect dst = {cx - bw / 2, cy - bh / 2, bw, bh};
+        SDL_RenderCopy(renderer, playerTex, nullptr, &dst);
 
-    // Class-specific visual detail
+        // Reset tint so other consumers of this texture aren't affected.
+        SDL_SetTextureColorMod(playerTex, 255, 255, 255);
+    } else {
+        // Fallback: colored rectangle (shouldn't happen in release builds)
+        SDL_SetRenderDrawColor(renderer, data.color.r, data.color.g, data.color.b, 220);
+        SDL_Rect body = {cx - bw / 2, cy - bh / 2, bw, bh};
+        SDL_RenderFillRect(renderer, &body);
+    }
+
+    // Class-specific visual detail (FX around the sprite)
     float t = m_time;
     if (data.id == PlayerClass::Voidwalker) {
         // Rift energy aura (pulsing blue glow)
@@ -461,95 +468,96 @@ void ClassSelectState::renderClassPreview(SDL_Renderer* renderer, const ClassDat
             SDL_RenderDrawRect(renderer, &aura);
         }
     } else if (data.id == PlayerClass::Berserker) {
-        // Rage lines emanating from body
-        for (int i = 0; i < 6; i++) {
-            float angle = t * 2.0f + i * 1.047f;
-            float len = 24.0f + 16.0f * std::sin(t * 4.0f + i);
-            int x1 = cx + static_cast<int>(std::cos(angle) * (bw / 2 + 2));
-            int y1 = cy + static_cast<int>(std::sin(angle) * (bh / 2 + 2) * 0.5f);
+        // Rage lines emanating from body (longer for bigger sprite)
+        for (int i = 0; i < 8; i++) {
+            float angle = t * 2.0f + i * 0.785f;
+            float len = 40.0f + 24.0f * std::sin(t * 4.0f + i);
+            int x1 = cx + static_cast<int>(std::cos(angle) * (bw / 2 + 8));
+            int y1 = cy + static_cast<int>(std::sin(angle) * (bh / 2 + 8) * 0.5f);
             int x2 = cx + static_cast<int>(std::cos(angle) * (bw / 2 + len));
             int y2 = cy + static_cast<int>(std::sin(angle) * (bh / 2 + len) * 0.5f);
             Uint8 a = static_cast<Uint8>(120 + 80 * std::sin(t * 3.0f + i));
             SDL_SetRenderDrawColor(renderer, 255, 80, 40, a);
             SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
         }
-        // Shoulder pads
-        SDL_SetRenderDrawColor(renderer, 180, 40, 40, 200);
-        SDL_Rect padL = {cx - bw / 2 - 12, cy - bh / 2 + 8, 16, 24};
-        SDL_Rect padR = {cx + bw / 2 - 4, cy - bh / 2 + 8, 16, 24};
-        SDL_RenderFillRect(renderer, &padL);
-        SDL_RenderFillRect(renderer, &padR);
     } else if (data.id == PlayerClass::Phantom) {
-        // Shadow trail copies
-        for (int i = 1; i <= 3; i++) {
-            float offset = i * 16.0f;
-            float phase = std::sin(t * 2.0f + i * 0.8f) * 3.0f;
-            Uint8 a = static_cast<Uint8>(60 - i * 15);
-            SDL_SetRenderDrawColor(renderer, data.color.r, data.color.g, data.color.b, a);
-            SDL_Rect ghost = {cx - bw / 2 - static_cast<int>(offset),
-                              cy - bh / 2 + static_cast<int>(phase),
-                              bw, bh};
-            SDL_RenderFillRect(renderer, &ghost);
+        // Translucent sprite copies trailing behind (real ghost, not flat rect)
+        if (playerTex) {
+            Uint8 tr = static_cast<Uint8>(std::min(255, data.color.r + 80));
+            Uint8 tg = static_cast<Uint8>(std::min(255, data.color.g + 80));
+            Uint8 tb = static_cast<Uint8>(std::min(255, data.color.b + 80));
+            for (int i = 1; i <= 3; i++) {
+                int offset = i * 28;
+                int phase  = static_cast<int>(std::sin(t * 2.0f + i * 0.8f) * 6.0f);
+                Uint8 a = static_cast<Uint8>(80 - i * 18);
+                SDL_SetTextureColorMod(playerTex, tr, tg, tb);
+                SDL_SetTextureAlphaMod(playerTex, a);
+                SDL_Rect ghost = {cx - bw / 2 - offset, cy - bh / 2 + phase, bw, bh};
+                SDL_RenderCopy(renderer, playerTex, nullptr, &ghost);
+            }
+            SDL_SetTextureColorMod(playerTex, 255, 255, 255);
+            SDL_SetTextureAlphaMod(playerTex, 255);
         }
         // Speed lines
-        for (int i = 0; i < 4; i++) {
-            int ly = cy - bh / 4 + i * (bh / 4);
-            int lx = cx + bw / 2 + 10;
-            float len = 30.0f + 20.0f * std::sin(t * 5.0f + i);
+        for (int i = 0; i < 5; i++) {
+            int ly = cy - bh / 3 + i * (bh / 5);
+            int lx = cx + bw / 2 + 16;
+            float len = 50.0f + 28.0f * std::sin(t * 5.0f + i);
             Uint8 a = static_cast<Uint8>(100 + 50 * std::sin(t * 3.0f + i));
             SDL_SetRenderDrawColor(renderer, 60, 220, 200, a);
             SDL_RenderDrawLine(renderer, lx, ly, lx + static_cast<int>(len), ly);
         }
     } else if (data.id == PlayerClass::Technomancer) {
-        // Mini turret on the right side
-        int turretX = cx + bw / 2 + 20;
+        // Mini turret on the right side (scaled up for bigger sprite)
+        int turretX = cx + bw / 2 + 36;
         int turretY = cy + bh / 4;
         float turretPulse = 0.6f + 0.4f * std::sin(t * 4.0f);
         // Turret base
         SDL_SetRenderDrawColor(renderer, 180, 140, 40, 200);
-        SDL_Rect tBase = {turretX - 16, turretY + 8, 32, 12};
+        SDL_Rect tBase = {turretX - 24, turretY + 14, 48, 18};
         SDL_RenderFillRect(renderer, &tBase);
         // Turret body
         SDL_SetRenderDrawColor(renderer, 200, 160, 50, 220);
-        SDL_Rect tBody = {turretX - 12, turretY - 8, 24, 20};
+        SDL_Rect tBody = {turretX - 18, turretY - 12, 36, 30};
         SDL_RenderFillRect(renderer, &tBody);
         // Turret barrel (oscillates to track)
         float barrelAngle = std::sin(t * 2.5f) * 0.4f;
-        int bx2 = turretX + static_cast<int>(std::cos(barrelAngle) * 28);
-        int by2 = turretY + static_cast<int>(std::sin(barrelAngle) * 28) - 4;
+        int bx2 = turretX + static_cast<int>(std::cos(barrelAngle) * 50);
+        int by2 = turretY + static_cast<int>(std::sin(barrelAngle) * 50) - 6;
         SDL_SetRenderDrawColor(renderer, 230, 190, 60, 220);
-        SDL_RenderDrawLine(renderer, turretX + 8, turretY - 2, bx2, by2);
-        SDL_RenderDrawLine(renderer, turretX + 4, turretY, bx2, by2 + 1);
+        SDL_RenderDrawLine(renderer, turretX + 12, turretY - 2, bx2, by2);
+        SDL_RenderDrawLine(renderer, turretX + 8, turretY, bx2, by2 + 1);
+        SDL_RenderDrawLine(renderer, turretX + 12, turretY + 2, bx2, by2 + 2);
         // Muzzle flash
         SDL_SetRenderDrawColor(renderer, 255, 220, 80, static_cast<Uint8>(180 * turretPulse));
-        SDL_Rect muzzle = {bx2 - 1, by2 - 1, 3, 3};
+        SDL_Rect muzzle = {bx2 - 3, by2 - 3, 7, 7};
         SDL_RenderFillRect(renderer, &muzzle);
 
-        // Shock trap on the left side (pulsing diamond)
-        int trapX = cx - bw / 2 - 14;
-        int trapY = cy + bh / 4 + 4;
+        // Shock trap on the left side (pulsing diamond, bigger)
+        int trapX = cx - bw / 2 - 28;
+        int trapY = cy + bh / 4 + 8;
         float trapPulse = 0.5f + 0.5f * std::sin(t * 5.0f);
         SDL_SetRenderDrawColor(renderer, 255, static_cast<Uint8>(200 + 30 * trapPulse),
-                               static_cast<Uint8>(50 + 50 * trapPulse), 200);
-        // Diamond shape
-        SDL_RenderDrawLine(renderer, trapX, trapY - 5, trapX + 5, trapY);
-        SDL_RenderDrawLine(renderer, trapX + 5, trapY, trapX, trapY + 5);
-        SDL_RenderDrawLine(renderer, trapX, trapY + 5, trapX - 5, trapY);
-        SDL_RenderDrawLine(renderer, trapX - 5, trapY, trapX, trapY - 5);
+                               static_cast<Uint8>(50 + 50 * trapPulse), 220);
+        int ts = 12;
+        SDL_RenderDrawLine(renderer, trapX, trapY - ts, trapX + ts, trapY);
+        SDL_RenderDrawLine(renderer, trapX + ts, trapY, trapX, trapY + ts);
+        SDL_RenderDrawLine(renderer, trapX, trapY + ts, trapX - ts, trapY);
+        SDL_RenderDrawLine(renderer, trapX - ts, trapY, trapX, trapY - ts);
         // Inner glow
-        SDL_SetRenderDrawColor(renderer, 255, 255, 100, static_cast<Uint8>(150 * trapPulse));
-        SDL_Rect trapGlow = {trapX - 2, trapY - 2, 4, 4};
+        SDL_SetRenderDrawColor(renderer, 255, 255, 100, static_cast<Uint8>(180 * trapPulse));
+        SDL_Rect trapGlow = {trapX - 4, trapY - 4, 8, 8};
         SDL_RenderFillRect(renderer, &trapGlow);
 
         // Rotating gear particles around body
-        for (int i = 0; i < 6; i++) {
-            float angle = t * 1.5f + i * 1.047f;
-            float radius = bw / 2 + 6.0f + 3.0f * std::sin(t * 3.0f + i);
+        for (int i = 0; i < 8; i++) {
+            float angle = t * 1.5f + i * 0.785f;
+            float radius = bw / 2 + 14.0f + 6.0f * std::sin(t * 3.0f + i);
             int gx = cx + static_cast<int>(std::cos(angle) * radius);
             int gy = cy + static_cast<int>(std::sin(angle) * radius * 0.6f);
             Uint8 ga = static_cast<Uint8>(80 + 60 * std::sin(t * 2.0f + i));
             SDL_SetRenderDrawColor(renderer, 230, 180, 50, ga);
-            SDL_Rect gear = {gx - 1, gy - 1, 3, 3};
+            SDL_Rect gear = {gx - 2, gy - 2, 5, 5};
             SDL_RenderFillRect(renderer, &gear);
         }
     }
