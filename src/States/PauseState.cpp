@@ -254,8 +254,9 @@ void PauseState::render(SDL_Renderer* renderer) {
     SDL_RenderDrawLine(renderer, panelRight, panelBot, panelRight - cornerSize, panelBot);
     SDL_RenderDrawLine(renderer, panelRight, panelBot, panelRight, panelBot - cornerSize);
 
-    // Title with glow
+    // Title with glow (above panel so it doesn't overlap Run Stats / Equipment columns)
     TTF_Font* font = game->getFont();
+    const int titleY = 240;
     if (font) {
         // Glow layer
         SDL_Color glowC = {120, 80, 200, static_cast<Uint8>(60 + 40 * pulse)};
@@ -264,7 +265,7 @@ void PauseState::render(SDL_Renderer* renderer) {
             SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
             if (gt) {
                 SDL_SetTextureBlendMode(gt, SDL_BLENDMODE_ADD);
-                SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w - 2, 436, gs->w * 2 + 4, gs->h * 2 + 4};
+                SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w - 2, titleY - 4, gs->w * 2 + 4, gs->h * 2 + 4};
                 SDL_RenderCopy(renderer, gt, nullptr, &gr);
                 SDL_DestroyTexture(gt);
             }
@@ -277,7 +278,7 @@ void PauseState::render(SDL_Renderer* renderer) {
         if (s) {
             SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
             if (t) {
-                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w, 440, s->w * 2, s->h * 2};
+                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w, titleY, s->w * 2, s->h * 2};
                 SDL_RenderCopy(renderer, t, nullptr, &r);
                 SDL_DestroyTexture(t);
             }
@@ -286,7 +287,7 @@ void PauseState::render(SDL_Renderer* renderer) {
 
         // Separator line under title
         SDL_SetRenderDrawColor(renderer, 100, 70, 180, 80);
-        SDL_RenderDrawLine(renderer, 800, 580, 1760, 580);
+        SDL_RenderDrawLine(renderer, 800, titleY + 100, 1760, titleY + 100);
     }
 
     // Buttons
