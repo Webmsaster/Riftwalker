@@ -34,7 +34,9 @@
 #include <string>
 
 namespace {
-constexpr bool kUseAiFinalBackgroundArtTest = true;
+// Photo-real AI backgrounds clash with stylized sprites and flat tiles.
+// Procedural starfield + nebula matches the game's aesthetic better.
+constexpr bool kUseAiFinalBackgroundArtTest = false;
 constexpr const char* kDimAFinalBackgroundPath =
     "assets/ai/finals/backgrounds/run01/rw_bg_dima_run01_s1103_fin.png";
 constexpr const char* kDimBFinalBackgroundPath =

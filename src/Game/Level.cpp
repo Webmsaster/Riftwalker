@@ -417,53 +417,125 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
     bool emptyLeft  = !isSolid(tx - 1, ty, dim);
     bool emptyRight = !isSolid(tx + 1, ty, dim);
 
-    // Base fill
-    SDL_SetRenderDrawColor(renderer, tile.color.r, tile.color.g, tile.color.b, 255);
+    // Per-tile deterministic variation for visual interest (kills flat look)
+    int tileHash = (tx * 2654435761u + ty * 2246822519u) & 0xFFFF;
+    int variation = ((tileHash >> 4) & 15) - 7; // -7 to +7
+
+    // Base fill: slightly darkened so highlights pop
+    Uint8 baseR = static_cast<Uint8>(std::clamp(tile.color.r - 12 + variation, 0, 255));
+    Uint8 baseG = static_cast<Uint8>(std::clamp(tile.color.g - 12 + variation, 0, 255));
+    Uint8 baseB = static_cast<Uint8>(std::clamp(tile.color.b - 12 + variation, 0, 255));
+    SDL_SetRenderDrawColor(renderer, baseR, baseG, baseB, 255);
     SDL_RenderFillRect(renderer, &sr);
 
-    // Inner shading (darker towards bottom-right)
-    Uint8 shadR = tile.color.r > 25 ? tile.color.r - 25 : 0;
-    Uint8 shadG = tile.color.g > 25 ? tile.color.g - 25 : 0;
-    Uint8 shadB = tile.color.b > 25 ? tile.color.b - 25 : 0;
+    // Vertical gradient: lighter at top, darker at bottom (sense of light direction)
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    int gradSteps = 4;
+    for (int i = 0; i < gradSteps; ++i) {
+        int yTop = sr.y + (sr.h * i) / gradSteps;
+        int yH   = sr.h / gradSteps + 1;
+        Uint8 a  = static_cast<Uint8>(28 - i * 7); // 28,21,14,7
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, a / 2);
+        SDL_Rect band = {sr.x, yTop, sr.w, yH};
+        SDL_RenderFillRect(renderer, &band);
+    }
+    // Bottom-right shading wedge for depth
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 40);
     SDL_Rect shade = {sr.x + sr.w / 2, sr.y + sr.h / 2, sr.w / 2, sr.h / 2};
-    SDL_SetRenderDrawColor(renderer, shadR, shadG, shadB, 60);
     SDL_RenderFillRect(renderer, &shade);
 
-    // Highlight on exposed edges (brighter)
-    Uint8 hiR = static_cast<Uint8>(std::min(255, tile.color.r + 35));
-    Uint8 hiG = static_cast<Uint8>(std::min(255, tile.color.g + 35));
-    Uint8 hiB = static_cast<Uint8>(std::min(255, tile.color.b + 35));
+    // Bevel highlights on exposed edges (2px bright + 1px ultra-bright outer)
+    Uint8 hiR = static_cast<Uint8>(std::min(255, tile.color.r + 60));
+    Uint8 hiG = static_cast<Uint8>(std::min(255, tile.color.g + 60));
+    Uint8 hiB = static_cast<Uint8>(std::min(255, tile.color.b + 60));
+    Uint8 ultraR = static_cast<Uint8>(std::min(255, tile.color.r + 100));
+    Uint8 ultraG = static_cast<Uint8>(std::min(255, tile.color.g + 100));
+    Uint8 ultraB = static_cast<Uint8>(std::min(255, tile.color.b + 100));
 
     if (emptyAbove) {
-        SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, 200);
-        SDL_Rect top = {sr.x, sr.y, sr.w, 2};
+        SDL_SetRenderDrawColor(renderer, ultraR, ultraG, ultraB, 255);
+        SDL_Rect top = {sr.x, sr.y, sr.w, 1};
         SDL_RenderFillRect(renderer, &top);
+        SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, 220);
+        SDL_Rect top2 = {sr.x, sr.y + 1, sr.w, 2};
+        SDL_RenderFillRect(renderer, &top2);
     }
     if (emptyLeft) {
-        SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, 150);
-        SDL_Rect left = {sr.x, sr.y, 2, sr.h};
+        SDL_SetRenderDrawColor(renderer, ultraR, ultraG, ultraB, 220);
+        SDL_Rect left = {sr.x, sr.y, 1, sr.h};
         SDL_RenderFillRect(renderer, &left);
+        SDL_SetRenderDrawColor(renderer, hiR, hiG, hiB, 170);
+        SDL_Rect left2 = {sr.x + 1, sr.y, 1, sr.h};
+        SDL_RenderFillRect(renderer, &left2);
     }
 
-    // Shadow on exposed bottom/right edges
-    Uint8 shR = tile.color.r > 40 ? tile.color.r - 40 : 0;
-    Uint8 shG = tile.color.g > 40 ? tile.color.g - 40 : 0;
-    Uint8 shB = tile.color.b > 40 ? tile.color.b - 40 : 0;
+    // Shadow on exposed bottom/right (deeper for 3D feel)
+    Uint8 shR = tile.color.r > 60 ? tile.color.r - 60 : 0;
+    Uint8 shG = tile.color.g > 60 ? tile.color.g - 60 : 0;
+    Uint8 shB = tile.color.b > 60 ? tile.color.b - 60 : 0;
+    Uint8 deepR = tile.color.r > 90 ? tile.color.r - 90 : 0;
+    Uint8 deepG = tile.color.g > 90 ? tile.color.g - 90 : 0;
+    Uint8 deepB = tile.color.b > 90 ? tile.color.b - 90 : 0;
 
     if (emptyBelow) {
-        SDL_SetRenderDrawColor(renderer, shR, shG, shB, 200);
+        SDL_SetRenderDrawColor(renderer, shR, shG, shB, 230);
         SDL_Rect bot = {sr.x, sr.y + sr.h - 2, sr.w, 2};
         SDL_RenderFillRect(renderer, &bot);
+        SDL_SetRenderDrawColor(renderer, deepR, deepG, deepB, 255);
+        SDL_Rect bot2 = {sr.x, sr.y + sr.h - 1, sr.w, 1};
+        SDL_RenderFillRect(renderer, &bot2);
     }
     if (emptyRight) {
-        SDL_SetRenderDrawColor(renderer, shR, shG, shB, 150);
+        SDL_SetRenderDrawColor(renderer, shR, shG, shB, 200);
         SDL_Rect right = {sr.x + sr.w - 2, sr.y, 2, sr.h};
         SDL_RenderFillRect(renderer, &right);
+        SDL_SetRenderDrawColor(renderer, deepR, deepG, deepB, 230);
+        SDL_Rect right2 = {sr.x + sr.w - 1, sr.y, 1, sr.h};
+        SDL_RenderFillRect(renderer, &right2);
     }
 
-    // Subtle grid line (very faint)
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 20);
-    SDL_RenderDrawRect(renderer, &sr);
+    // Surface detail: sparse cracks/wear/moss for texture (per ~25% of tiles)
+    if ((tileHash & 3) == 0) {
+        int detailType = (tileHash >> 2) & 3;
+        Uint8 detailA = 30 + (tileHash >> 4) % 25;
+        if (detailType == 0 && emptyAbove) {
+            // Vertical hairline crack from top edge
+            int cx = sr.x + (tileHash % (sr.w - 6)) + 3;
+            int cLen = 4 + tileHash % 6;
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, detailA);
+            SDL_RenderDrawLine(renderer, cx, sr.y, cx + (tileHash & 1 ? 2 : -2), sr.y + cLen);
+        } else if (detailType == 1) {
+            // Wear pit (1-3px dark patch)
+            int wx = sr.x + 3 + tileHash % (sr.w - 6);
+            int wy = sr.y + 3 + (tileHash >> 3) % (sr.h - 6);
+            int sz = 1 + (tileHash >> 5) % 3;
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, detailA);
+            SDL_Rect wear = {wx, wy, sz, sz};
+            SDL_RenderFillRect(renderer, &wear);
+        } else if (detailType == 2 && emptyAbove) {
+            // Top-edge moss (greenish flecks)
+            SDL_SetRenderDrawColor(renderer, 60, 100, 50, detailA);
+            for (int mx = 0; mx < sr.w; mx += 3 + (tileHash + mx) % 5) {
+                if (((tileHash + mx * 7) & 3) == 0) {
+                    SDL_Rect moss = {sr.x + mx, sr.y + 1, 2, 1};
+                    SDL_RenderFillRect(renderer, &moss);
+                }
+            }
+        } else {
+            // Speckle highlight (bright dot for sparkle/sheen)
+            int sx2 = sr.x + 4 + tileHash % (sr.w - 8);
+            int sy2 = sr.y + 4 + (tileHash >> 4) % (sr.h - 8);
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 35);
+            SDL_Rect sp = {sx2, sy2, 1, 1};
+            SDL_RenderFillRect(renderer, &sp);
+        }
+    }
+
+    // Subtle inner border (faint dark line, only when tile is fully embedded)
+    if (!emptyAbove && !emptyBelow && !emptyLeft && !emptyRight) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 18);
+        SDL_RenderDrawRect(renderer, &sr);
+    }
 }
 
 void Level::renderOneWayTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& tile) const {
