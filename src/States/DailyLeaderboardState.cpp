@@ -190,16 +190,13 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
         dlRenderTextCentered(renderer, font, buf, SCREEN_WIDTH / 2, 104, infoColor);
     }
 
-    // Today's personal best
-    {
-        int todayBest = m_todayEntries.empty() ? 0 : m_todayEntries[0].score;
+    // Today's personal best (only show when there ARE entries — empty state shown
+    // once below in the table area, not duplicated in the header)
+    if (!m_todayEntries.empty()) {
+        int todayBest = m_todayEntries[0].score;
         char buf[64];
-        if (todayBest > 0)
-            std::snprintf(buf, sizeof(buf), LOC("daily.best_today"), todayBest);
-        else
-            std::snprintf(buf, sizeof(buf), "%s", LOC("daily.no_runs"));
-        SDL_Color bestColor = (todayBest > 0) ? SDL_Color{255, 220, 60, alpha}
-                                               : SDL_Color{120, 120, 150, alpha};
+        std::snprintf(buf, sizeof(buf), LOC("daily.best_today"), todayBest);
+        SDL_Color bestColor = {255, 220, 60, alpha};
         dlRenderTextCentered(renderer, font, buf, SCREEN_WIDTH / 2, 140, bestColor);
     }
 
@@ -218,7 +215,7 @@ void DailyLeaderboardState::render(SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 220, 190, 80, static_cast<Uint8>(alpha * 0.6f));
     SDL_RenderDrawRect(renderer, &headerBg);
 
-    SDL_Color headerCol = {200, 185, 130, alpha};
+    SDL_Color headerCol = {255, 230, 150, alpha};
     dlRenderText(renderer, font, "#",                    tableX,         tableY, headerCol);
     dlRenderText(renderer, font, LOC("daily.score"),   tableX + 70,   tableY, headerCol);
     dlRenderText(renderer, font, LOC("daily.class"),   tableX + 310,  tableY, headerCol);

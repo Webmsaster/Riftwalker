@@ -69,16 +69,18 @@ void LoreState::render(SDL_Renderer* renderer) {
         }
     }
 
-    // Progress
+    // Progress (centered over the detail panel, not the screen, so it sits
+    // above the right-hand content rather than floating in the middle)
     if (m_fontSmall) {
         char buf[64];
         snprintf(buf, sizeof(buf), LOC("lore.fragments"), m_lore->discoveredCount(), m_lore->totalCount());
-        SDL_Color gray = {150, 130, 170, 255};
+        SDL_Color gray = {180, 160, 210, 255};
         SDL_Surface* surf = TTF_RenderUTF8_Blended(m_fontSmall, buf, gray);
         if (surf) {
             SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
             if (tex) {
-                SDL_Rect dst = {SCREEN_WIDTH / 2 - surf->w / 2, 170, surf->w, surf->h};
+                int panelCenterX = 620 + 920 / 2;
+                SDL_Rect dst = {panelCenterX - surf->w / 2, 150, surf->w, surf->h};
                 SDL_RenderCopy(renderer, tex, nullptr, &dst);
                 SDL_DestroyTexture(tex);
             }
@@ -86,7 +88,10 @@ void LoreState::render(SDL_Renderer* renderer) {
         }
     }
 
-    // List on left
+    // List on left — 20 fragments must fit between y=200 and the controls hint
+    // at y=SCREEN_HEIGHT-60. With ROW_H=58 we end at y=200+19*58=1302, leaves
+    // breathing room above the hint line.
+    constexpr int ROW_H = 58;
     int listX = 60, listY = 200;
     for (int i = 0; i < static_cast<int>(fragments.size()); i++) {
         bool discovered = fragments[i].discovered;
@@ -94,7 +99,7 @@ void LoreState::render(SDL_Renderer* renderer) {
 
         // Background
         if (selected) {
-            SDL_Rect bg = {listX - 5, listY + i * 64 - 2, 500, 56};
+            SDL_Rect bg = {listX - 5, listY + i * ROW_H - 2, 500, ROW_H - 4};
             if (!renderPanelBg(renderer, bg, 200, "assets/textures/ui/panel_light.png")) {
                 SDL_SetRenderDrawColor(renderer, 60, 30, 80, 200);
                 SDL_RenderFillRect(renderer, &bg);
@@ -119,7 +124,7 @@ void LoreState::render(SDL_Renderer* renderer) {
                     int maxW = 540;
                     int drawW = std::min(surf->w, maxW);
                     SDL_Rect src = {0, 0, drawW, surf->h};
-                    SDL_Rect dst = {listX, listY + i * 64, drawW, surf->h};
+                    SDL_Rect dst = {listX, listY + i * ROW_H, drawW, surf->h};
                     SDL_RenderCopy(renderer, tex, &src, &dst);
                     SDL_DestroyTexture(tex);
                 }
