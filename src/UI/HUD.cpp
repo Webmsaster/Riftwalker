@@ -815,14 +815,14 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
 
     // Floor / Zone + Rift Shards — compact info strip below minimap
     {
-        const int infoX = screenW - 340;
+        const int infoX = screenW - 420;
         const int infoY = m_showMinimap ? 260 : 24;
         const int zone  = std::clamp((m_currentFloor - 1) / 6, 0, 4) + 1;
 
         // Background panel (texture-based). Width covers both line-1 elements:
-        // floor text at infoX and kill/NG+ text at infoX+200, plus padding.
-        // Using a generous 320px fits the longest DE boss-floor string.
-        SDL_Rect infoBg = {infoX - 5, infoY - 2, 320, 68};
+        // floor text at infoX and kill/NG+ text at infoX+260, plus padding.
+        // 400px fits "F12 / Zone 5" + "K:9999 NG+10" with breathing room.
+        SDL_Rect infoBg = {infoX - 5, infoY - 2, 400, 68};
         SDL_Texture* infoPanelTex = ResourceManager::instance().getTexture("assets/textures/ui/panel_dark.png");
         if (infoPanelTex) {
             SDL_SetTextureBlendMode(infoPanelTex, SDL_BLENDMODE_BLEND);
@@ -864,7 +864,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 std::snprintf(extraText, sizeof(extraText), "K:%d NG+%d", m_killCount, m_ngPlusTier);
             else
                 std::snprintf(extraText, sizeof(extraText), "K:%d", m_killCount);
-            renderText(renderer, font, extraText, infoX + 200, infoY, {200, 160, 160, 150});
+            renderText(renderer, font, extraText, infoX + 260, infoY, {200, 160, 160, 150});
 
             // Line 2: diamond icon + shard count
             int iy2 = infoY + 34;
@@ -890,7 +890,7 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
                 Uint8 a = static_cast<Uint8>(200 * pulse);
                 timerCol = {255, 215, 80, a};
             }
-            renderText(renderer, font, timerText, infoX + 200, iy2, timerCol);
+            renderText(renderer, font, timerText, infoX + 260, iy2, timerCol);
         }
     }
 
