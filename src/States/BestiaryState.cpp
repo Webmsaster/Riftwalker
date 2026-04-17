@@ -410,10 +410,10 @@ void BestiaryState::render(SDL_Renderer* renderer) {
     }
 
     // ---- Right: detail panel ----
-    SDL_SetRenderDrawColor(renderer, 16, 12, 28, 100);
+    SDL_SetRenderDrawColor(renderer, 16, 12, 28, 200);
     SDL_Rect detailBg = {DETAIL_X, DETAIL_Y, DETAIL_W, DETAIL_H};
     SDL_RenderFillRect(renderer, &detailBg);
-    SDL_SetRenderDrawColor(renderer, 70, 60, 100, 70);
+    SDL_SetRenderDrawColor(renderer, 90, 75, 130, 180);
     SDL_RenderDrawRect(renderer, &detailBg);
 
     bool selIsBoss = (m_selected >= regularCount);
@@ -438,10 +438,10 @@ void BestiaryState::renderDiscoveredDetail(SDL_Renderer* renderer, TTF_Font* fon
                                            const BestiaryEntry& entry, int typeIdx, bool isBoss) {
     // Preview on the left sub-panel
     {
-        SDL_SetRenderDrawColor(renderer, 10, 8, 22, 100);
+        SDL_SetRenderDrawColor(renderer, 10, 8, 22, 200);
         SDL_Rect previewPanel = {DETAIL_X + 16, DETAIL_Y + 16, 480, DETAIL_H - 32};
         SDL_RenderFillRect(renderer, &previewPanel);
-        SDL_SetRenderDrawColor(renderer, 50, 45, 75, 80);
+        SDL_SetRenderDrawColor(renderer, 70, 60, 110, 160);
         SDL_RenderDrawRect(renderer, &previewPanel);
     }
 
@@ -633,10 +633,10 @@ void BestiaryState::renderUndiscoveredDetail(SDL_Renderer* renderer, TTF_Font* f
                                               int typeIdx, bool isBoss) {
     // Silhouette preview in the left sub-panel
     {
-        SDL_SetRenderDrawColor(renderer, 8, 6, 18, 100);
+        SDL_SetRenderDrawColor(renderer, 8, 6, 18, 200);
         SDL_Rect previewPanel = {DETAIL_X + 16, DETAIL_Y + 16, 480, DETAIL_H - 32};
         SDL_RenderFillRect(renderer, &previewPanel);
-        SDL_SetRenderDrawColor(renderer, 40, 35, 60, 80);
+        SDL_SetRenderDrawColor(renderer, 60, 50, 90, 160);
         SDL_RenderDrawRect(renderer, &previewPanel);
     }
 
