@@ -480,8 +480,22 @@ void PlayState::updateTechnomancerEntities(float dt) {
 
 void PlayState::updateBossEffects(float dt) {
     // Combined boss-effects pass: VoidSovereign (type 4) + EntropyIncarnate (type 5).
-    // Single forEach over all entities; per-entity isBoss flag is the cheap gate.
+    // Single forEach over all entities; per-entity isBoss / isEntropyMinion
+    // flags are the cheap gates. Boss + entropy-minion-death scans were two
+    // walks; merged into one with branch on flag.
     m_entities.forEach([&](Entity& e) {
+        if (e.isEntropyMinion) {
+            if (!e.hasComponent<HealthComponent>()) return;
+            auto& mhp = e.getComponent<HealthComponent>();
+            if (mhp.currentHP <= 0 && e.isAlive()) {
+                m_entropy.addEntropy(10.0f);
+                if (e.hasComponent<TransformComponent>()) {
+                    Vec2 mPos = e.getComponent<TransformComponent>().getCenter();
+                    m_particles.burst(mPos, 20, {140, 0, 200, 255}, 150.0f, 4.0f);
+                }
+            }
+            return;
+        }
         if (!e.isBoss) return;
         if (!e.hasComponent<AIComponent>()) return;
         auto& bossAi = e.getComponent<AIComponent>();
@@ -567,21 +581,6 @@ void PlayState::updateBossEffects(float dt) {
         if (bossAi.eiFinalStandTriggered && !bossAi.eiFinalStandEntropyApplied) {
             bossAi.eiFinalStandEntropyApplied = true;
             m_entropy.addEntropy(30.0f);
-        }
-    });
-
-    // Entropy minion death: add +10 entropy to player on death
-    // (Handled by zombie sweep in CombatSystem -- detect dying entropy minions here)
-    m_entities.forEach([&](Entity& e) {
-        if (!e.isEntropyMinion) return;
-        if (!e.hasComponent<HealthComponent>()) return;
-        auto& mhp = e.getComponent<HealthComponent>();
-        if (mhp.currentHP <= 0 && e.isAlive()) {
-            m_entropy.addEntropy(10.0f);
-            if (e.hasComponent<TransformComponent>()) {
-                Vec2 mPos = e.getComponent<TransformComponent>().getCenter();
-                m_particles.burst(mPos, 20, {140, 0, 200, 255}, 150.0f, 4.0f);
-            }
         }
     });
 }
