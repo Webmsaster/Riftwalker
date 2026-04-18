@@ -411,24 +411,27 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
             int fogH = 80 + band * 40;
             float wave = std::sin(ticks * 0.0004f + band * 1.5f) * 8.0f;
             fogY += static_cast<int>(wave);
-            // Gradient: center is brightest, edges fade
-            for (int row = 0; row < fogH; row += 2) {
+            // Gradient: center is brightest, edges fade.
+            // Step 4px (was 2px) — halves the row count, visually equivalent at alpha <=8.
+            for (int row = 0; row < fogH; row += 4) {
                 float rowT = static_cast<float>(row) / fogH;
                 float edgeFade = 1.0f - std::abs(rowT - 0.5f) * 2.0f; // 0→1→0
                 edgeFade = edgeFade * edgeFade; // Sharper falloff
                 Uint8 fogA = static_cast<Uint8>(8 * edgeFade);
                 if (fogA < 2) continue;
                 SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, fogA);
-                SDL_Rect fogRect = {0, fogY + row, SCREEN_WIDTH, 2};
+                SDL_Rect fogRect = {0, fogY + row, SCREEN_WIDTH, 4};
                 SDL_RenderFillRect(renderer, &fogRect);
             }
         }
     }
 
-    // Layer 6: Floating dimension particles (close parallax)
+    // Layer 6: Floating dimension particles (close parallax).
+    // Reduced 20 -> 12: each particle has unique alpha (sin-wave) so can't batch
+    // by color; reducing count is the cleanest perf win at this layer.
     auto& dimColor = (m_dimManager.getCurrentDimension() == 1) ?
         m_themeA.colors.solid : m_themeB.colors.solid;
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 12; i++) {
         float speed = 0.3f + (i % 5) * 0.1f;
         int baseX = ((i * 4513 + 23143) % 1600) - 160;
         int baseY = ((i * 3251 + 51749) % 900) - 90;

@@ -798,8 +798,10 @@ void ScreenEffects::renderBloom(SDL_Renderer* renderer) {
         int cy = static_cast<int>(gp.y);
         float r = gp.radius;
 
-        // Draw 4 concentric soft layers (inner = brighter, outer = dimmer)
-        constexpr int kLayers = 4;
+        // Draw 3 concentric soft layers (inner = brighter, outer = dimmer).
+        // Reduced from 4 -> 3: outermost layer's quadratic alpha = (1-0.75)^2 = 6.25%
+        // intensity, almost always failing the a<2 cull below — wasted iteration.
+        constexpr int kLayers = 3;
         for (int layer = 0; layer < kLayers; ++layer) {
             float t = static_cast<float>(layer) / static_cast<float>(kLayers);
             float layerRadius = r * (0.3f + t * 0.7f); // 30% to 100% of radius
