@@ -150,7 +150,7 @@ void Localization::loadStrings() {
     m_en["menu.daily_best"]        = "Best: %d";
     m_en["menu.daily_no_best"]     = "Best: ---";
     m_en["menu.career_stats"]      = "CAREER STATS";
-    m_en["menu.stats_runs"]        = "Runs: %d  |  Best Floor: %d";
+    m_en["menu.stats_runs"]        = "Runs: %d  |  Floors Cleared: %d";
     m_en["menu.stats_kills"]       = "Kills: %d  |  Rifts: %d";
     m_en["menu.stats_shards"]      = "Shards: %d";
     m_en["menu.stats_playtime"]    = "Playtime: %dh %dm";
@@ -548,7 +548,7 @@ void Localization::loadStrings() {
 
     // Run History
     m_en["history.title"]          = "RUN HISTORY";
-    m_en["history.stats"]          = "Total Runs: %d    Enemies Killed: %d    Best Floor: %d    Rifts: %d";
+    m_en["history.stats"]          = "Total Runs: %d    Enemies Killed: %d    Floors Cleared: %d    Rifts: %d";
     m_en["history.avg_kills"]      = "Avg Kills/Run: %.1f";
     m_en["history.class"]          = "Class";
     m_en["history.floor"]          = "Floor";
@@ -1265,7 +1265,7 @@ void Localization::loadStrings() {
     m_de["menu.daily_best"]        = "Bestleistung: %d";
     m_de["menu.daily_no_best"]     = "Bestleistung: ---";
     m_de["menu.career_stats"]      = "KARRIERE-STATISTIK";
-    m_de["menu.stats_runs"]        = "Laeufe: %d  |  Beste Etage: %d";
+    m_de["menu.stats_runs"]        = "Laeufe: %d  |  Etagen geschafft: %d";
     m_de["menu.stats_kills"]       = "Kills: %d  |  Risse: %d";
     m_de["menu.stats_shards"]      = "Splitter: %d";
     m_de["menu.stats_playtime"]    = "Spielzeit: %dh %dm";
@@ -1746,7 +1746,7 @@ void Localization::loadStrings() {
 
     // Run History
     m_de["history.title"]          = "LAUFCHRONIK";
-    m_de["history.stats"]          = "Laeufe: %d    Gegner: %d    Beste Etage: %d    Risse: %d";
+    m_de["history.stats"]          = "Laeufe: %d    Gegner: %d    Etagen geschafft: %d    Risse: %d";
     m_de["history.avg_kills"]      = "Ø Kills/Lauf: %.1f";
     m_de["history.class"]          = "Klasse";
     m_de["history.floor"]          = "Etage";
