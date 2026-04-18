@@ -161,16 +161,26 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         }
     }
 
-    // Outline pass: draw sprite 4x in black at 1px offsets (Hollow Knight method)
-    // Skip for tiny entities or low alpha
+    // Outline pass: draw sprite in black at 1px offsets (Hollow Knight method)
+    // Player/bosses get full 4-axis outline; regular enemies get cheaper 2-axis (looks identical at gameplay zoom).
+    // Skip entirely for tiny entities or low alpha.
     if (alpha > 0.4f && rect.w >= 8 && rect.h >= 8) {
         SDL_SetTextureColorMod(sprite.texture, 0, 0, 0);
         SDL_SetTextureAlphaMod(sprite.texture, static_cast<Uint8>(200 * alpha));
         SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
-        static const int offsets[][2] = {{1,0},{-1,0},{0,1},{0,-1}};
-        for (auto& off : offsets) {
-            SDL_Rect outlineRect = {rect.x + off[0], rect.y + off[1], rect.w, rect.h};
-            SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &outlineRect, renderAngle, nullptr, flip);
+        const bool fullOutline = entity.isPlayer || entity.isBoss;
+        static const int offsets4[][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+        static const int offsets2[][2] = {{1,0},{0,1}};
+        if (fullOutline) {
+            for (auto& off : offsets4) {
+                SDL_Rect outlineRect = {rect.x + off[0], rect.y + off[1], rect.w, rect.h};
+                SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &outlineRect, renderAngle, nullptr, flip);
+            }
+        } else {
+            for (auto& off : offsets2) {
+                SDL_Rect outlineRect = {rect.x + off[0], rect.y + off[1], rect.w, rect.h};
+                SDL_RenderCopyEx(renderer, sprite.texture, &srcRect, &outlineRect, renderAngle, nullptr, flip);
+            }
         }
     }
 
@@ -297,7 +307,7 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     }
 
     // Dash afterimage ghost trail: render fading copies behind the entity
-    {
+    if (entity.getComponent<SpriteComponent>().afterimageCount > 0) {
         auto& sprite = entity.getComponent<SpriteComponent>();
         for (int i = 0; i < sprite.afterimageCount; i++) {
             auto& ai = sprite.afterimages[i];
@@ -383,20 +393,19 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     // Idle breathing now handled inside renderSprite() code-driven animation system
 
     // Hybrid rendering: try sprite first, fall back to procedural
-    if (entity.getComponent<SpriteComponent>().texture) {
-        // Soft gradient drop shadow (4 bands, decreasing alpha, expanding outward)
+    if (entity.getComponent<SpriteComponent>().texture && alpha > 0.1f) {
+        // Soft gradient drop shadow (2 bands — was 4, halved cost per entity)
         int baseW = screenRect.w * 3 / 4;
         int baseH = std::max(2, screenRect.h / 5);
         int baseX = screenRect.x + (screenRect.w - baseW) / 2;
         int baseY = screenRect.y + screenRect.h - baseH / 3;
-        for (int band = 3; band >= 0; band--) {
-            int expand = band * 2;
+        for (int band = 1; band >= 0; band--) {
+            int expand = band * 4;
             int bw = baseW + expand * 2;
             int bh = baseH + expand;
             int bx = baseX - expand;
             int by = baseY - expand / 2;
-            // Alpha: inner band darkest (40), outer lightest (8)
-            Uint8 sa = static_cast<Uint8>((10 + (3 - band) * 10) * alpha);
+            Uint8 sa = static_cast<Uint8>((15 + (1 - band) * 25) * alpha);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, sa);
             SDL_Rect shadowRect = {bx, by, bw, bh};
             SDL_RenderFillRect(renderer, &shadowRect);
@@ -619,26 +628,24 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
                  255, 255, 255, glowA);
     }
 
+    // Cache AIComponent once for the rest of overlay logic — avoids 5+ component lookups per entity.
+    AIComponent* aiPtr = (entity.isEnemy && entity.hasComponent<AIComponent>())
+        ? &entity.getComponent<AIComponent>() : nullptr;
+
     // Freeze tint: blue overlay while enemy is slowed by ice weapon
-    if (entity.isEnemy && entity.hasComponent<AIComponent>()) {
-        float freezeT = entity.getComponent<AIComponent>().freezeTimer;
-        if (freezeT > 0) {
-            // Pulsing blue tint intensity
-            float pulse = 0.5f + 0.5f * std::sin(freezeT * 10.0f);
-            Uint8 fa = static_cast<Uint8>(80 * pulse * alpha);
-            fillRect(renderer, screenRect.x, screenRect.y, screenRect.w, screenRect.h,
-                     100, 180, 255, fa);
-        }
+    if (aiPtr && aiPtr->freezeTimer > 0) {
+        float freezeT = aiPtr->freezeTimer;
+        // Pulsing blue tint intensity
+        float pulse = 0.5f + 0.5f * std::sin(freezeT * 10.0f);
+        Uint8 fa = static_cast<Uint8>(80 * pulse * alpha);
+        fillRect(renderer, screenRect.x, screenRect.y, screenRect.w, screenRect.h,
+                 100, 180, 255, fa);
     }
 
     // HP bar for regular enemies (visible briefly after taking damage)
     if (entity.isEnemy && entity.hasComponent<HealthComponent>()) {
         auto& hpShow = entity.getComponent<HealthComponent>();
-        bool hasOwnBar = false;
-        if (entity.hasComponent<AIComponent>()) {
-            auto& aiCheck = entity.getComponent<AIComponent>();
-            hasOwnBar = aiCheck.isElite || aiCheck.isMiniBoss || entity.isBoss;
-        }
+        bool hasOwnBar = aiPtr ? (aiPtr->isElite || aiPtr->isMiniBoss || entity.isBoss) : entity.isBoss;
         if (!hasOwnBar && hpShow.damageShowTimer > 0 && hpShow.getPercent() < 1.0f) {
             float fadeAlpha = std::min(1.0f, hpShow.damageShowTimer / 0.5f); // fade out in last 0.5s
             int barW = screenRect.w + 4;
@@ -663,8 +670,8 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     }
 
     // Element aura for elemental enemies
-    if (entity.isEnemy && entity.hasComponent<AIComponent>()) {
-        auto& ai = entity.getComponent<AIComponent>();
+    if (aiPtr) {
+        auto& ai = *aiPtr;
         if (ai.element != EnemyElement::None) {
             float time = m_frameTicks * 0.004f;
             float pulse = 0.4f + 0.6f * std::abs(std::sin(time));
@@ -880,10 +887,10 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
     }
 
     // Enemy rim light: element/type-specific colored additive outline
-    if (entity.isEnemy && alpha > 0.4f &&
-        entity.hasComponent<AIComponent>() && entity.hasComponent<SpriteComponent>() &&
+    if (aiPtr && alpha > 0.4f &&
+        entity.hasComponent<SpriteComponent>() &&
         entity.getComponent<SpriteComponent>().texture) {
-        auto& ai = entity.getComponent<AIComponent>();
+        auto& ai = *aiPtr;
         Uint8 rimR = 180, rimG = 180, rimB = 180; // Default: neutral white
         // Element-based rim color
         switch (static_cast<int>(ai.element)) {
@@ -907,10 +914,20 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         SDL_SetTextureBlendMode(spr.texture, SDL_BLENDMODE_ADD);
         SDL_SetTextureColorMod(spr.texture, rimR, rimG, rimB);
         SDL_SetTextureAlphaMod(spr.texture, rimA);
-        static const int rimOff[][2] = {{1,0},{-1,0},{0,1},{0,-1}};
-        for (auto& off : rimOff) {
-            SDL_Rect rimRect = {screenRect.x + off[0], screenRect.y + off[1], screenRect.w, screenRect.h};
-            SDL_RenderCopyEx(renderer, spr.texture, &srcRect2, &rimRect, 0.0, nullptr, flip2);
+        // Bosses/elites/miniBosses get 4-axis rim; normal enemies get 2-axis (visually identical at gameplay zoom).
+        const bool fullRim = entity.isBoss || ai.isElite || ai.isMiniBoss;
+        static const int rimOff4[][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+        static const int rimOff2[][2] = {{1,0},{0,1}};
+        if (fullRim) {
+            for (auto& off : rimOff4) {
+                SDL_Rect rimRect = {screenRect.x + off[0], screenRect.y + off[1], screenRect.w, screenRect.h};
+                SDL_RenderCopyEx(renderer, spr.texture, &srcRect2, &rimRect, 0.0, nullptr, flip2);
+            }
+        } else {
+            for (auto& off : rimOff2) {
+                SDL_Rect rimRect = {screenRect.x + off[0], screenRect.y + off[1], screenRect.w, screenRect.h};
+                SDL_RenderCopyEx(renderer, spr.texture, &srcRect2, &rimRect, 0.0, nullptr, flip2);
+            }
         }
         SDL_SetTextureBlendMode(spr.texture, SDL_BLENDMODE_BLEND);
     }

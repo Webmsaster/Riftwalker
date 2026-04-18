@@ -41,12 +41,9 @@ const char* SpriteConfig::animStateToName(AnimState state) {
 
 bool SpriteConfig::setupPlayer(AnimationComponent& anim, SpriteComponent& sprite) {
     if (!kUseEntitySprites) return false; // Use procedural rendering
-    // Single-frame mode: load best frame from singles/, animate via code transforms
-    auto* tex = ResourceManager::instance().getTexture("assets/textures/singles/player/player.png");
-    if (!tex) {
-        // Fallback: try original spritesheet (uses first frame only)
-        tex = ResourceManager::instance().getTexture("assets/textures/player/player.png");
-    }
+    // Multi-frame mode: load full spritesheet, use baked-in pixel-art animations.
+    // Sheet layout: 8 cols x 9 rows of 128x192 frames (4x upscale of 32x48).
+    auto* tex = ResourceManager::instance().getTexture("assets/textures/player/player.png");
     if (!tex) {
         if (!applyPlayerPlaceholder(sprite)) {
             SDL_Log("Warning: Both texture and placeholder failed for player");
@@ -55,8 +52,22 @@ bool SpriteConfig::setupPlayer(AnimationComponent& anim, SpriteComponent& sprite
     }
 
     sprite.texture = tex;
-    const int fw = 128, fh = 192;  // Single frame dimensions
-    addSingleFrameAnims(anim, fw, fh);
+    const int fw = 128, fh = 192;
+    // Row, frame count, duration, loop — matches PLAYER_ANIMS in sprite_generator/config.py
+    anim.addSheetAnimation(Anim::Idle,      0, 6, fw, fh, SLOW_DUR, true);
+    anim.addSheetAnimation(Anim::Run,       1, 8, fw, fh, FRAME_DUR, true);
+    anim.addSheetAnimation(Anim::Walk,      1, 8, fw, fh, FRAME_DUR, true);
+    anim.addSheetAnimation(Anim::Move,      1, 8, fw, fh, FRAME_DUR, true);
+    anim.addSheetAnimation(Anim::Jump,      2, 3, fw, fh, FAST_DUR, false);
+    anim.addSheetAnimation(Anim::Fall,      3, 3, fw, fh, FRAME_DUR, true);
+    anim.addSheetAnimation(Anim::Dash,      4, 4, fw, fh, FAST_DUR, false);
+    anim.addSheetAnimation(Anim::WallSlide, 5, 3, fw, fh, FRAME_DUR, true);
+    anim.addSheetAnimation(Anim::Attack,    6, 6, fw, fh, FAST_DUR, false);
+    anim.addSheetAnimation(Anim::Attack1,   6, 6, fw, fh, FAST_DUR, false);
+    anim.addSheetAnimation(Anim::Attack2,   6, 6, fw, fh, FAST_DUR, false);
+    anim.addSheetAnimation(Anim::Attack3,   6, 6, fw, fh, FAST_DUR, false);
+    anim.addSheetAnimation(Anim::Hurt,      7, 3, fw, fh, FAST_DUR, false);
+    anim.addSheetAnimation(Anim::Dead,      8, 5, fw, fh, FRAME_DUR, false);
     anim.play(Anim::Idle);
     return true;
 }

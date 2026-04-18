@@ -135,8 +135,8 @@ void PlayState::startNewRun() {
     m_voidSovereignDefeated = false;
     m_trails.clear();
     m_moveTrailTimer = 0.0f;
-    m_camera.zoom = 3.5f; // Reset death zoom
-    m_camera.zoomTarget = 3.5f;
+    m_camera.zoom = 2.8f; // Reset death zoom
+    m_camera.zoomTarget = 2.8f;
     m_runTime = 0.0f;
     m_bestCombo = 0;
     m_nearNPCIndex = -1;
@@ -274,7 +274,7 @@ void PlayState::generateLevel() {
     m_damageIndicators.clear();
     m_trails.clear();
     // Reset zoom to default for new level (boss zoom-out will re-apply if needed)
-    m_camera.zoomTarget = 3.5f;
+    m_camera.zoomTarget = 2.8f;
     m_camera.zoomSpeed = 2.0f;
 
     m_levelGen.setThemes(m_themeA, m_themeB);

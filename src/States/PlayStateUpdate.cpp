@@ -26,6 +26,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <string>
+#include <vector>
 
 // Smoke test logging (defined in PlayStateSmokeBot.cpp)
 extern void smokeLog(const char* fmt, ...);
@@ -222,13 +223,27 @@ void PlayState::updateDimensionEffects(float dt) {
         }
     }
     m_screenEffects.setEntropy(m_entropy.getEntropy());
-    // Check if Void Storm or Entropy Storm is active
+
+    // Combined boss/enemy scan (storm flags + music + nearEnemies in one forEach)
     bool stormActive = false;
+    int nearEnemies = 0;
+    bool bossActive = false;
+    int bossPhase = 1;
+    Vec2 pPos = m_player ? m_player->getEntity()->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
     m_entities.forEach([&](Entity& e) {
-        if (e.isBoss && e.hasComponent<AIComponent>()) {
-            auto& bossAi = e.getComponent<AIComponent>();
-            if (bossAi.bossType == 4 && bossAi.vsStormActive > 0) stormActive = true;
-            if (bossAi.bossType == 5 && bossAi.eiStormActive > 0) stormActive = true;
+        if (e.isEnemy) {
+            if (e.isBoss && e.hasComponent<AIComponent>()) {
+                bossActive = true;
+                auto& bossAi = e.getComponent<AIComponent>();
+                bossPhase = bossAi.bossPhase;
+                if (bossAi.bossType == 4 && bossAi.vsStormActive > 0) stormActive = true;
+                if (bossAi.bossType == 5 && bossAi.eiStormActive > 0) stormActive = true;
+            }
+            if (!e.hasComponent<TransformComponent>()) return;
+            auto& et = e.getComponent<TransformComponent>();
+            float dx = et.getCenter().x - pPos.x;
+            float dy = et.getCenter().y - pPos.y;
+            if (dx * dx + dy * dy < 400.0f * 400.0f) nearEnemies++;
         }
     });
     m_screenEffects.setVoidStorm(stormActive);
@@ -236,25 +251,6 @@ void PlayState::updateDimensionEffects(float dt) {
 
     // Music system
     {
-        int nearEnemies = 0;
-        bool bossActive = false;
-        int bossPhase = 1;
-        Vec2 pPos = m_player ? m_player->getEntity()->getComponent<TransformComponent>().getCenter() : Vec2{0, 0};
-        m_entities.forEach([&](Entity& e) {
-            if (e.isEnemy) {
-                if (e.isBoss) {
-                    bossActive = true;
-                    if (e.hasComponent<AIComponent>()) {
-                        bossPhase = e.getComponent<AIComponent>().bossPhase;
-                    }
-                }
-                if (!e.hasComponent<TransformComponent>()) return;
-                auto& et = e.getComponent<TransformComponent>();
-                float dx = et.getCenter().x - pPos.x;
-                float dy = et.getCenter().y - pPos.y;
-                if (dx * dx + dy * dy < 400.0f * 400.0f) nearEnemies++;
-            }
-        });
         float hp = m_player ? m_player->getEntity()->getComponent<HealthComponent>().getPercent() : 1.0f;
         m_musicSystem.update(dt, nearEnemies, bossActive, hp, m_entropy.getEntropy());
         AudioManager::instance().updateMusicLayers(m_musicSystem);
@@ -393,6 +389,20 @@ void PlayState::updateTechnomancerEntities(float dt) {
 
     int turretCount = 0;
     int curDim = m_dimManager.getCurrentDimension();
+
+    // Pre-build alive-enemy list once so the turret loop is O(turrets * enemies)
+    // instead of O(turrets * ALL entities). Reusable static buffer to avoid alloc.
+    struct EnemyCacheEntry { Entity* e; Vec2 center; };
+    static thread_local std::vector<EnemyCacheEntry> s_enemyCache;
+    s_enemyCache.clear();
+    m_entities.forEach([&](Entity& e) {
+        if (!e.isEnemy) return;
+        if (!e.isAlive() || !e.hasComponent<TransformComponent>() || !e.hasComponent<HealthComponent>()) return;
+        if (e.dimension != 0 && e.dimension != curDim) return;
+        if (e.getComponent<HealthComponent>().currentHP <= 0) return;
+        s_enemyCache.push_back({&e, e.getComponent<TransformComponent>().getCenter()});
+    });
+
     m_entities.forEach([&](Entity& turret) {
         if (!turret.isPlayerTurret || !turret.isAlive()) return;
         if (!turret.hasComponent<HealthComponent>()) return;
@@ -413,25 +423,18 @@ void PlayState::updateTechnomancerEntities(float dt) {
         auto& tt = turret.getComponent<TransformComponent>();
         Vec2 turretPos = tt.getCenter();
 
-        // Find nearest enemy in range (squared comparison)
+        // Find nearest enemy in range using the cached list (squared comparison)
         Entity* nearestEnemy = nullptr;
         float nearestDistSq = ai.detectRange * ai.detectRange;
-        m_entities.forEach([&](Entity& e) {
-            if (!e.isEnemy) return;
-            if (!e.isAlive() || !e.hasComponent<TransformComponent>()) return;
-            if (!e.hasComponent<HealthComponent>()) return;
-            if (e.dimension != 0 && e.dimension != curDim) return;
-            auto& eHP = e.getComponent<HealthComponent>();
-            if (eHP.currentHP <= 0) return;
-            auto& et = e.getComponent<TransformComponent>();
-            float dx = et.getCenter().x - turretPos.x;
-            float dy = et.getCenter().y - turretPos.y;
+        for (auto& ec : s_enemyCache) {
+            float dx = ec.center.x - turretPos.x;
+            float dy = ec.center.y - turretPos.y;
             float distSq = dx * dx + dy * dy;
             if (distSq < nearestDistSq) {
                 nearestDistSq = distSq;
-                nearestEnemy = &e;
+                nearestEnemy = ec.e;
             }
-        });
+        }
 
         // Auto-fire at nearest enemy
         ai.attackTimer -= dt;

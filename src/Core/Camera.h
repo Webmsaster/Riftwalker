@@ -32,8 +32,8 @@ public:
     void setPosition(const Vec2& pos) { m_position = pos; }
     void setBounds(float minX, float minY, float maxX, float maxY);
 
-    float zoom = 3.5f;  // Zoomed out for playability (was 5.0 — felt too close)
-    float zoomTarget = 3.5f; // Target zoom for smooth transitions
+    float zoom = 2.8f;  // Zoomed out for visibility + perf (3.5 → 2.8 = ~36% fewer pixels rendered)
+    float zoomTarget = 2.8f; // Target zoom for smooth transitions
     float zoomSpeed = 2.0f;  // Lerp speed (units/sec)
 
     int getViewWidth() const { return m_screenW; }
