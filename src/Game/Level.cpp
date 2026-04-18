@@ -4,6 +4,14 @@
 #include <cmath>
 #include <cstdio>
 
+namespace {
+    // Batched constant-color rects for solid-tile rendering. Filled by
+    // renderSolidTile (procedural path), drained by Level::render after the
+    // main tile loop with one SetRenderDrawColor per pass.
+    thread_local std::vector<SDL_Rect> g_solidRects;
+    thread_local std::vector<SDL_Rect> g_embeddedRects;
+}
+
 Level::Level(int width, int height, int tileSize)
     : m_width(width), m_height(height), m_tileSize(tileSize), m_texTileSize(tileSize * 4)
 {
@@ -177,7 +185,11 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
         SDL_RenderDrawLine(renderer, fs.x, fs.y, fs.x, fs.y + fs.h);
     }
 
-    // Render current dimension tiles with edge-aware rendering
+    // Render current dimension tiles with edge-aware rendering.
+    // Reset solid-tile batch buffers; renderSolidTile pushes per-tile rects
+    // for batched constant-color passes drained after the loop.
+    g_solidRects.clear();
+    g_embeddedRects.clear();
     for (int y = startY; y <= endY; y++) {
         for (int x = startX; x <= endX; x++) {
             const Tile& tile = getTile(x, y, currentDim);
@@ -279,6 +291,28 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
                 }
                 SDL_RenderDrawRect(renderer, &innerGlow);
             }
+        }
+    }
+
+    // Batched constant-color passes for solid tiles (saves ~3 SetColor per
+    // tile by setting state once and looping the FillRect/DrawRect calls).
+    if (!g_solidRects.empty()) {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 12);
+        for (const SDL_Rect& sr : g_solidRects) {
+            SDL_Rect upper = {sr.x, sr.y, sr.w, sr.h / 2 + 1};
+            SDL_RenderFillRect(renderer, &upper);
+        }
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 4);
+        for (const SDL_Rect& sr : g_solidRects) {
+            SDL_Rect lower = {sr.x, sr.y + sr.h / 2, sr.w, sr.h / 2 + 1};
+            SDL_RenderFillRect(renderer, &lower);
+        }
+    }
+    if (!g_embeddedRects.empty()) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 18);
+        for (const SDL_Rect& sr : g_embeddedRects) {
+            SDL_RenderDrawRect(renderer, &sr);
         }
     }
 
@@ -435,18 +469,12 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
     SDL_SetRenderDrawColor(renderer, baseR, baseG, baseB, 255);
     SDL_RenderFillRect(renderer, &sr);
 
-    // Vertical gradient: 2 bands instead of 4 — visually equivalent at gameplay
-    // zoom, halves SetColor/FillRect cost per solid tile (was 8 calls, now 4).
+    // Gradient (white alpha 12 + 4) and embedded inner border are batched
+    // by Level::render after the main tile loop — push the rect for the
+    // batch passes. Wedge stays per-tile to preserve bevel-darkening order.
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    {
-        int yH = sr.h / 2 + 1;
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 12); // upper highlight
-        SDL_Rect upper = {sr.x, sr.y, sr.w, yH};
-        SDL_RenderFillRect(renderer, &upper);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 4); // lower fade
-        SDL_Rect lower = {sr.x, sr.y + sr.h / 2, sr.w, yH};
-        SDL_RenderFillRect(renderer, &lower);
-    }
+    g_solidRects.push_back(sr);
+
     // Bottom-right shading wedge for depth
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 40);
     SDL_Rect shade = {sr.x + sr.w / 2, sr.y + sr.h / 2, sr.w / 2, sr.h / 2};
@@ -539,10 +567,9 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
         }
     }
 
-    // Subtle inner border (faint dark line, only when tile is fully embedded)
+    // Inner border (embedded tiles): batched by Level::render after the loop.
     if (!emptyAbove && !emptyBelow && !emptyLeft && !emptyRight) {
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 18);
-        SDL_RenderDrawRect(renderer, &sr);
+        g_embeddedRects.push_back(sr);
     }
 }
 
