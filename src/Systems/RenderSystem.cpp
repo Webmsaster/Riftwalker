@@ -886,10 +886,20 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         SDL_SetTextureBlendMode(spr.texture, SDL_BLENDMODE_BLEND);
     }
 
-    // Enemy rim light: element/type-specific colored additive outline
-    if (aiPtr && alpha > 0.4f &&
-        entity.hasComponent<SpriteComponent>() &&
-        entity.getComponent<SpriteComponent>().texture) {
+    // Enemy rim light: element/type-specific colored additive outline.
+    // Skip entirely for normal non-elemental enemies (rim alpha is so low it's barely visible
+    // and we save 2 RenderCopyEx per such entity). Element/elite/boss rims still draw.
+    bool wantRim = aiPtr && alpha > 0.4f
+        && entity.hasComponent<SpriteComponent>()
+        && entity.getComponent<SpriteComponent>().texture;
+    if (wantRim) {
+        auto& ai = *aiPtr;
+        bool special = (static_cast<int>(ai.element) != 0)
+            || ai.isElite || ai.isMiniBoss
+            || entity.isBoss || ai.enemyType == EnemyType::Boss;
+        if (!special) wantRim = false;
+    }
+    if (wantRim) {
         auto& ai = *aiPtr;
         Uint8 rimR = 180, rimG = 180, rimB = 180; // Default: neutral white
         // Element-based rim color
@@ -897,11 +907,10 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
             case 1: rimR = 255; rimG = 120; rimB = 40; break;  // Fire: orange
             case 2: rimR = 80;  rimG = 180; rimB = 255; break; // Ice: blue
             case 3: rimR = 255; rimG = 240; rimB = 60; break;  // Electric: yellow
-            default: // Type-based fallback
+            default: // Type-based fallback (only special enemies reach here now)
                 if (ai.enemyType == EnemyType::Boss) { rimR = 220; rimG = 40; rimB = 60; }
                 else if (ai.isElite) { rimR = 200; rimG = 160; rimB = 40; }
                 else if (ai.isMiniBoss) { rimR = 255; rimG = 200; rimB = 50; }
-                else { rimR = 140; rimG = 100; rimB = 160; } // Normal: dim purple (void theme)
                 break;
         }
         // Subtle additive rim (2px expanded sprite in rim color)

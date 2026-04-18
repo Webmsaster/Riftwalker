@@ -295,10 +295,10 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
                     int bh = 60 + (i * 31) % 120;
                     SDL_Rect bld = {sx, SCREEN_HEIGHT - bh, bw, bh};
                     SDL_RenderFillRect(renderer, &bld);
-                    // Window dots
+                    // Window dots — set color once, then batch fills (was per-window state change)
+                    SDL_SetRenderDrawColor(renderer, silR, silG, static_cast<Uint8>(std::min(255, silB + 40)), 20);
                     for (int wy = SCREEN_HEIGHT - bh + 8; wy < SCREEN_HEIGHT - 8; wy += 12) {
                         for (int wx = sx + 4; wx < sx + bw - 4; wx += 8) {
-                            SDL_SetRenderDrawColor(renderer, silR, silG, static_cast<Uint8>(std::min(255, silB + 40)), 20);
                             SDL_Rect win = {wx, wy, 3, 4};
                             SDL_RenderFillRect(renderer, &win);
                         }

@@ -481,11 +481,14 @@ void PlayState::updateTechnomancerEntities(float dt) {
 }
 
 void PlayState::updateBossEffects(float dt) {
-    // Void Sovereign Phase 3: auto dimension switch
+    // Combined boss-effects pass: VoidSovereign (type 4) + EntropyIncarnate (type 5).
+    // Single forEach over all entities; per-entity isBoss flag is the cheap gate.
     m_entities.forEach([&](Entity& e) {
         if (!e.isBoss) return;
         if (!e.hasComponent<AIComponent>()) return;
         auto& bossAi = e.getComponent<AIComponent>();
+
+        // VoidSovereign Phase 3: auto dimension switch
         if (bossAi.bossType == 4 && bossAi.vsForceDimSwitch) {
             bossAi.vsForceDimSwitch = false;
             m_dimManager.switchDimension(true);
@@ -495,13 +498,7 @@ void PlayState::updateBossEffects(float dt) {
             m_musicSystem.setDimension(m_dimManager.getCurrentDimension());
             m_screenEffects.triggerDimensionRipple();
         }
-    });
 
-    // Entropy Incarnate boss effects
-    m_entities.forEach([&](Entity& e) {
-        if (!e.isBoss) return;
-        if (!e.hasComponent<AIComponent>()) return;
-        auto& bossAi = e.getComponent<AIComponent>();
         if (bossAi.bossType != 5) return;
 
         // Entropy Pulse: add entropy when pulse just fired
