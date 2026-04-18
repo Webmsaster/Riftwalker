@@ -148,7 +148,12 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
 
     Uint32 ticks = SDL_GetTicks();
 
-    // Floor pass: subtle grid + color variation on empty tiles
+    // Floor pass: subtle grid + color variation on empty tiles.
+    // Two passes over visible empty tiles to halve state changes:
+    //   Pass A: per-tile varied FillRect (color must change each tile).
+    //   Pass B: single white SetColor + all grid lines.
+    static thread_local std::vector<SDL_Rect> s_emptyRects;
+    s_emptyRects.clear();
     for (int y = startY; y <= endY; y++) {
         for (int x = startX; x <= endX; x++) {
             const Tile& tile = getTile(x, y, currentDim);
@@ -158,16 +163,18 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
                              static_cast<float>(m_tileSize),
                              static_cast<float>(m_tileSize) };
             SDL_Rect fs = camera.worldToScreen(fw);
-            // Slight color variation based on position hash
             int hash = (x * 7919 + y * 6271) & 0xFF;
-            Uint8 vary = static_cast<Uint8>(8 + (hash % 11)); // 8-18 range
+            Uint8 vary = static_cast<Uint8>(8 + (hash % 11));
             SDL_SetRenderDrawColor(renderer, vary, vary / 2, vary + 4, 18);
             SDL_RenderFillRect(renderer, &fs);
-            // Grid lines between tiles
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 8);
-            SDL_RenderDrawLine(renderer, fs.x, fs.y, fs.x + fs.w, fs.y);
-            SDL_RenderDrawLine(renderer, fs.x, fs.y, fs.x, fs.y + fs.h);
+            s_emptyRects.push_back(fs);
         }
+    }
+    // Grid lines: one color set, then all draws batched
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 8);
+    for (const SDL_Rect& fs : s_emptyRects) {
+        SDL_RenderDrawLine(renderer, fs.x, fs.y, fs.x + fs.w, fs.y);
+        SDL_RenderDrawLine(renderer, fs.x, fs.y, fs.x, fs.y + fs.h);
     }
 
     // Render current dimension tiles with edge-aware rendering
