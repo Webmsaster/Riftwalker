@@ -147,9 +147,8 @@ private:
 
     // Update/combat sub-steps (CombatSystemUpdate.cpp, CombatSystemEffects.cpp)
     void processGroundSlam(EntityManager& entities, int currentDim);
-    void processBurnDoT(EntityManager& entities, float dt);
-    // Combined freeze-decay (enemies) + projectile lifetime/trail pass.
-    // Single forEach replaces two scans; branches on isEnemy/isProjectile.
+    // Combined enemy DoT pass (freeze decay + burn DoT) + projectile lifetime/trail.
+    // Single forEach replaces three scans; branches on isEnemy/isProjectile.
     void processFreezeAndProjectiles(EntityManager& entities, float dt);
     void processZombieSweep(EntityManager& entities, int currentDim);
     void processCounterAttack(Entity& player, EntityManager& entities, int currentDim);

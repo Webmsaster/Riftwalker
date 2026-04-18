@@ -136,90 +136,77 @@ void CombatSystem::processGroundSlam(EntityManager& entities, int currentDim) {
     });
 }
 
-void CombatSystem::processBurnDoT(EntityManager& entities, float dt) {
-    // Process element burn DoT on enemies
-    entities.forEach([&](Entity& e) {
-        if (!e.isEnemy) return;
-        if (!e.hasComponent<AIComponent>()) return;
-        auto& ai = e.getComponent<AIComponent>();
-        if (ai.burnTimer > 0) {
-            ai.burnTimer -= dt;
-            ai.burnDmgTick -= dt;
-            if (ai.burnDmgTick <= 0 && e.hasComponent<HealthComponent>()) {
-                ai.burnDmgTick = 0.3f;
-                float burnDmg = 5.0f;
-                e.getComponent<HealthComponent>().takeDamage(burnDmg);
-                m_damageEvents.push_back({e.hasComponent<TransformComponent>() ?
-                    e.getComponent<TransformComponent>().getCenter() : Vec2{0,0},
-                    burnDmg, false, false});
-                if (m_particles && e.hasComponent<TransformComponent>()) {
-                    m_particles->burst(e.getComponent<TransformComponent>().getCenter(),
-                        3, {255, 120, 30, 255}, 60.0f, 1.5f);
-                }
-                // Burn kill
-                if (e.getComponent<HealthComponent>().currentHP <= 0) {
-                    killCount++;
-                    // Kill event for combat challenges (burn DOT kill)
-                    {
-                        KillEvent ke{};
-                        ke.enemyType = static_cast<int>(ai.enemyType);
-                        ke.wasElite = ai.isElite;
-                        ke.wasMiniBoss = ai.isMiniBoss;
-                        ke.wasBoss = (ai.enemyType == EnemyType::Boss);
-                        killEvents.push_back(ke);
-                    }
-                    // Weapon mastery: burn kills attributed to current melee
-                    if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
-                        int wIdx = static_cast<int>(m_player->getEntity()->getComponent<CombatComponent>().currentMelee);
-                        if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT))
-                            weaponKills[wIdx]++;
-                    }
-                    if (ai.isMiniBoss) killedMiniBoss = true;
-                    if (ai.element != EnemyElement::None) killedElemental = true;
-                    Bestiary::onEnemyKill(ai.enemyType);
-                    // Berserker: Momentum stack on burn kill
-                    if (m_player) m_player->addMomentumStack();
-                    // Run buff: DashRefresh on kill
-                    if (m_dashRefreshOnKill && m_player) {
-                        m_player->dashCooldownTimer = 0;
-                    }
-                    Vec2 deathPos = e.hasComponent<TransformComponent>() ?
-                        e.getComponent<TransformComponent>().getCenter() : Vec2{0,0};
-                    // Drop items (mini-bosses 3x, elites 2x)
-                    int burnDropCount = 1;
-                    if (ai.isMiniBoss) burnDropCount = 3;
-                    else if (ai.isElite) burnDropCount = 2;
-                    ItemDrop::spawnRandomDrop(entities, deathPos, e.dimension, burnDropCount, m_player);
-                    AudioManager::instance().play(SFX::EnemyDeath);
-                    e.destroy();
-                    if (m_particles) {
-                        m_particles->burst(deathPos, 15, {255, 100, 30, 255}, 180.0f, 3.0f);
-                    }
-                }
-            }
-        }
-    });
-}
-
 void CombatSystem::processFreezeAndProjectiles(EntityManager& entities, float dt) {
-    // Combined pass: enemies (freeze decay) + projectiles (lifetime/trail).
-    // Both branches are mutually exclusive on the same entity (no entity is
-    // both isEnemy and isProjectile), so a single forEach replaces two scans.
+    // Combined pass: enemies (freeze decay + burn DoT) + projectiles (lifetime/trail).
+    // Burn DoT used to be a separate forEach (processBurnDoT) — merged here so
+    // every per-frame entity walk is collapsed when possible. Enemy and projectile
+    // branches are mutually exclusive on the same entity (no entity is both).
     Uint32 frameTicks = SDL_GetTicks();
     bool emitIceParticles = (frameTicks % 8 == 0);
     entities.forEach([&](Entity& e) {
         if (e.isEnemy) {
             if (!e.hasComponent<AIComponent>()) return;
             auto& ai = e.getComponent<AIComponent>();
+            // Freeze decay
             if (ai.freezeTimer > 0) {
                 ai.freezeTimer -= dt;
-                // Periodic ice crystal particles while frozen
                 if (m_particles && e.hasComponent<TransformComponent>() && emitIceParticles) {
                     auto& t = e.getComponent<TransformComponent>();
                     Vec2 center = t.getCenter();
                     float ox = (static_cast<float>(std::rand() % 20) - 10.0f);
                     m_particles->burst({center.x + ox, center.y - 4.0f}, 1,
                         {150, 210, 255, 160}, 20.0f, 1.0f);
+                }
+            }
+            // Burn DoT (formerly processBurnDoT)
+            if (ai.burnTimer > 0) {
+                ai.burnTimer -= dt;
+                ai.burnDmgTick -= dt;
+                if (ai.burnDmgTick <= 0 && e.hasComponent<HealthComponent>()) {
+                    ai.burnDmgTick = 0.3f;
+                    float burnDmg = 5.0f;
+                    e.getComponent<HealthComponent>().takeDamage(burnDmg);
+                    m_damageEvents.push_back({e.hasComponent<TransformComponent>() ?
+                        e.getComponent<TransformComponent>().getCenter() : Vec2{0,0},
+                        burnDmg, false, false});
+                    if (m_particles && e.hasComponent<TransformComponent>()) {
+                        m_particles->burst(e.getComponent<TransformComponent>().getCenter(),
+                            3, {255, 120, 30, 255}, 60.0f, 1.5f);
+                    }
+                    if (e.getComponent<HealthComponent>().currentHP <= 0) {
+                        killCount++;
+                        {
+                            KillEvent ke{};
+                            ke.enemyType = static_cast<int>(ai.enemyType);
+                            ke.wasElite = ai.isElite;
+                            ke.wasMiniBoss = ai.isMiniBoss;
+                            ke.wasBoss = (ai.enemyType == EnemyType::Boss);
+                            killEvents.push_back(ke);
+                        }
+                        if (m_player && m_player->getEntity()->hasComponent<CombatComponent>()) {
+                            int wIdx = static_cast<int>(m_player->getEntity()->getComponent<CombatComponent>().currentMelee);
+                            if (wIdx >= 0 && wIdx < static_cast<int>(WeaponID::COUNT))
+                                weaponKills[wIdx]++;
+                        }
+                        if (ai.isMiniBoss) killedMiniBoss = true;
+                        if (ai.element != EnemyElement::None) killedElemental = true;
+                        Bestiary::onEnemyKill(ai.enemyType);
+                        if (m_player) m_player->addMomentumStack();
+                        if (m_dashRefreshOnKill && m_player) {
+                            m_player->dashCooldownTimer = 0;
+                        }
+                        Vec2 deathPos = e.hasComponent<TransformComponent>() ?
+                            e.getComponent<TransformComponent>().getCenter() : Vec2{0,0};
+                        int burnDropCount = 1;
+                        if (ai.isMiniBoss) burnDropCount = 3;
+                        else if (ai.isElite) burnDropCount = 2;
+                        ItemDrop::spawnRandomDrop(entities, deathPos, e.dimension, burnDropCount, m_player);
+                        AudioManager::instance().play(SFX::EnemyDeath);
+                        e.destroy();
+                        if (m_particles) {
+                            m_particles->burst(deathPos, 15, {255, 100, 30, 255}, 180.0f, 3.0f);
+                        }
+                    }
                 }
             }
             return;

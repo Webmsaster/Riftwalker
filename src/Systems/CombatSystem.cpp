@@ -86,7 +86,6 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
     // Rift Shield: absorb incoming damage to player
     // (handled in processAttack below via parry-like check)
 
-    processBurnDoT(entities, dt);
     processFreezeAndProjectiles(entities, dt);
     processZombieSweep(entities, currentDimension);
 }
