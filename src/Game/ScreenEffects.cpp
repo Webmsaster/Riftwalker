@@ -533,7 +533,7 @@ void ScreenEffects::renderVignette(SDL_Renderer* renderer, int screenW, int scre
     // Vignette coverage: darken outer ~40% of screen
     // Max alpha at the very edge (corners get darkest)
     constexpr Uint8 kMaxEdgeAlpha = 70;   // Subtle but noticeable
-    constexpr int kBands = 16;            // Number of gradient bands (performance-friendly)
+    constexpr int kBands = 10;            // Reduced 16 -> 10 (still smooth at quadratic falloff)
 
     // Calculate band dimensions — from edge inward
     const float innerFractionW = 0.55f;  // Inner clear zone = 55% of width
@@ -569,8 +569,9 @@ void ScreenEffects::renderVignette(SDL_Renderer* renderer, int screenW, int scre
         SDL_RenderFillRect(renderer, &right);
     }
 
-    // Corner extra darkening (elliptical, 4 corners with coarse blocks)
-    constexpr int kCornerBlock = 16;
+    // Corner extra darkening (elliptical, 4 corners with coarse blocks).
+    // Block size 16 -> 24 reduces blocks per corner by ~55% (~120 -> ~55 blocks).
+    constexpr int kCornerBlock = 24;
     const int cornerW = marginW;
     const int cornerH = marginH;
     const Uint8 cornerMaxA = static_cast<Uint8>(kMaxEdgeAlpha * 0.9f);
@@ -834,9 +835,11 @@ void ScreenEffects::renderDynamicLighting(SDL_Renderer* renderer, int screenW, i
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     // Ambient darkness with light radii carved out
-    // Performance-optimized: 8px grid + distance-squared (no sqrt)
+    // Performance-optimized: 12px grid + distance-squared (no sqrt).
+    // Bumped 8 -> 12 (saves ~55% cells: 320*180 -> 213*120 = 57.6k -> 25.6k cells/frame).
+    // Visually equivalent for low-alpha ambient darkness gradient at 1440p.
     constexpr Uint8 kAmbientDarkness = 40;
-    constexpr int kStep = 8;
+    constexpr int kStep = 12;
 
     for (int y = 0; y < screenH; y += kStep) {
         float cy = y + kStep * 0.5f;
