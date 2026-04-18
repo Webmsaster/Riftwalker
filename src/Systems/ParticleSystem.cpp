@@ -110,18 +110,16 @@ void ParticleSystem::render(SDL_Renderer* renderer, const Camera& camera) {
         m_drawBuf.push_back(d);
     }
 
-    // Pass 2: All additive glow halos in a single ADD block
+    // Pass 2: All additive glow halos in a single ADD block.
+    // Single combined glow rect (was 2 halos at alpha 0.18 + 0.30) — visually
+    // near-identical with ADD blending and halves SetColor+FillRect per glow particle.
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
     for (const auto& d : m_drawBuf) {
         if (!d.hasGlow) continue;
-        Uint8 glowA = static_cast<Uint8>(d.alpha * 0.18f);
+        Uint8 glowA = static_cast<Uint8>(d.alpha * 0.40f);
         SDL_SetRenderDrawColor(renderer, d.r, d.g, d.b, glowA);
-        SDL_Rect glow2 = {d.rect.x - 4, d.rect.y - 4, d.rect.w + 8, d.rect.h + 8};
-        SDL_RenderFillRect(renderer, &glow2);
-        Uint8 glowA2 = static_cast<Uint8>(d.alpha * 0.3f);
-        SDL_SetRenderDrawColor(renderer, d.r, d.g, d.b, glowA2);
-        SDL_Rect glow1 = {d.rect.x - 2, d.rect.y - 2, d.rect.w + 4, d.rect.h + 4};
-        SDL_RenderFillRect(renderer, &glow1);
+        SDL_Rect glow = {d.rect.x - 3, d.rect.y - 3, d.rect.w + 6, d.rect.h + 6};
+        SDL_RenderFillRect(renderer, &glow);
     }
 
     // Pass 3: All core rects + hot centers in a single BLEND block

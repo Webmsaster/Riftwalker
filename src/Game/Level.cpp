@@ -530,8 +530,10 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
         SDL_RenderFillRect(renderer, &right2);
     }
 
-    // Surface detail: sparse cracks/wear/moss for texture (per ~25% of tiles)
-    if ((tileHash & 3) == 0) {
+    // Surface detail: sparse cracks/wear/moss for texture (per ~12.5% of tiles, was 25%).
+    // Lower density saves ~half the per-tile detail SetColor+FillRect/DrawLine calls,
+    // visually equivalent at gameplay zoom.
+    if ((tileHash & 7) == 0) {
         int detailType = (tileHash >> 2) & 3;
         Uint8 detailA = 30 + (tileHash >> 4) % 25;
         if (detailType == 0 && emptyAbove) {

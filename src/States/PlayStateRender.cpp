@@ -211,7 +211,9 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
             int nOffY = static_cast<int>(camPos.y * nebulaParallax);
             auto& accent = (m_dimManager.getCurrentDimension() == 1) ?
                 m_themeA.colors.accent : m_themeB.colors.accent;
-            for (int i = 0; i < 5; i++) {
+            // Reduced cloud count (5 → 3) and rect count per cloud (4 → 3): at alpha
+            // ~8-12 these clouds are background-only; reduction is imperceptible at gameplay zoom.
+            for (int i = 0; i < 3; i++) {
                 int baseX = ((i * 12347 + 5281) % 2200) - 400;
                 int baseY = ((i * 8731 + 2917) % 1000) - 200;
                 int nx = ((baseX - nOffX) % 2000 + 2000) % 2000 - 400;
@@ -220,11 +222,10 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
                 int cloudH = 80 + (i * 23) % 120;
                 float drift = std::sin(ticks * 0.0004f + i * 1.3f) * 15.0f;
                 nx += static_cast<int>(drift);
-                // Draw as overlapping semi-transparent circles
                 Uint8 na = static_cast<Uint8>(8 + 4 * std::sin(ticks * 0.001f + i));
                 SDL_SetRenderDrawColor(renderer, accent.r / 3, accent.g / 3, accent.b / 3, na);
-                for (int j = 0; j < 4; j++) {
-                    int cx = nx + (j * cloudW) / 4;
+                for (int j = 0; j < 3; j++) {
+                    int cx = nx + (j * cloudW) / 3;
                     int cy = ny + static_cast<int>(std::sin(j * 1.5f) * cloudH / 3);
                     int rw = cloudW / 3 + (j * 13) % 20;
                     int rh = cloudH / 2 + (j * 7) % 10;
@@ -267,7 +268,9 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
             SDL_SetRenderDrawColor(renderer, silR, silG, silB, silA);
 
             int themeId = static_cast<int>(theme.id);
-            for (int i = 0; i < 8; i++) {
+            // Halved silhouette count (8 → 4): at alpha 30 + 0.1x parallax these are
+            // background dressing, halving them is barely perceptible at gameplay zoom.
+            for (int i = 0; i < 4; i++) {
                 int baseX = ((i * 8317 + 29741) % 2000) - 200;
                 int baseY = SCREEN_HEIGHT - 100 - ((i * 4729) % 400);
                 int sx = ((baseX - offX) % 1800 + 1800) % 1800 - 200;

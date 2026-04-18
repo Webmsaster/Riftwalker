@@ -162,13 +162,17 @@ bool RenderSystem::renderSprite(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
     }
 
     // Outline pass: draw sprite in black at 1px offsets (Hollow Knight method)
-    // Player/bosses get full 4-axis outline; regular enemies get cheaper 2-axis (looks identical at gameplay zoom).
-    // Skip entirely for tiny entities or low alpha.
-    if (alpha > 0.4f && rect.w >= 8 && rect.h >= 8) {
+    // Player/bosses get full 4-axis outline; regular enemies get cheaper 2-axis.
+    // Skip for tiny/low-alpha entities AND for non-player/non-boss small/faded enemies
+    // (outline barely visible at gameplay zoom for distant pickups, projectiles, etc.).
+    const bool fullOutline = entity.isPlayer || entity.isBoss;
+    const bool wantOutline = fullOutline
+        ? (alpha > 0.4f && rect.w >= 8 && rect.h >= 8)
+        : (alpha > 0.55f && rect.w >= 16 && rect.h >= 16);
+    if (wantOutline) {
         SDL_SetTextureColorMod(sprite.texture, 0, 0, 0);
         SDL_SetTextureAlphaMod(sprite.texture, static_cast<Uint8>(200 * alpha));
         SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND);
-        const bool fullOutline = entity.isPlayer || entity.isBoss;
         static const int offsets4[][2] = {{1,0},{-1,0},{0,1},{0,-1}};
         static const int offsets2[][2] = {{1,0},{0,1}};
         if (fullOutline) {
