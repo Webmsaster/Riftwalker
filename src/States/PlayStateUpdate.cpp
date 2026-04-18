@@ -403,24 +403,39 @@ void PlayState::updateTechnomancerEntities(float dt) {
         s_enemyCache.push_back({&e, e.getComponent<TransformComponent>().getCenter()});
     });
 
-    m_entities.forEach([&](Entity& turret) {
-        if (!turret.isPlayerTurret || !turret.isAlive()) return;
-        if (!turret.hasComponent<HealthComponent>()) return;
+    // Combined turret + trap pass: single entity scan handles both player-owned
+    // entity types. Trap branch decays lifetime & counts; turret branch adds
+    // targeting + auto-fire on top of the same decay logic.
+    int trapCount = 0;
+    m_entities.forEach([&](Entity& e) {
+        if (!e.isAlive()) return;
+        const bool isTurret = e.isPlayerTurret;
+        const bool isTrap   = e.isPlayerTrap;
+        if (!isTurret && !isTrap) return;
+        if (!e.hasComponent<HealthComponent>()) return;
 
-        auto& hp = turret.getComponent<HealthComponent>();
-        hp.currentHP -= dt; // decay lifetime
+        auto& hp = e.getComponent<HealthComponent>();
+        hp.currentHP -= dt; // decay lifetime (shared by turret + trap)
         if (hp.currentHP <= 0) {
-            // Turret expired
-            auto& tt = turret.getComponent<TransformComponent>();
-            m_particles.burst(tt.getCenter(), 8, {230, 180, 50, 150}, 60.0f, 2.0f);
-            turret.destroy();
+            auto& tt = e.getComponent<TransformComponent>();
+            if (isTurret) {
+                m_particles.burst(tt.getCenter(), 8, {230, 180, 50, 150}, 60.0f, 2.0f);
+            } else {
+                m_particles.burst(tt.getCenter(), 6, {255, 200, 50, 120}, 40.0f, 1.5f);
+            }
+            e.destroy();
             return;
         }
-        turretCount++;
+        if (isTrap) {
+            trapCount++;
+            return;
+        }
 
-        if (!turret.hasComponent<AIComponent>() || !turret.hasComponent<CombatComponent>()) return;
-        auto& ai = turret.getComponent<AIComponent>();
-        auto& tt = turret.getComponent<TransformComponent>();
+        // Turret-only: targeting + auto-fire.
+        turretCount++;
+        if (!e.hasComponent<AIComponent>() || !e.hasComponent<CombatComponent>()) return;
+        auto& ai = e.getComponent<AIComponent>();
+        auto& tt = e.getComponent<TransformComponent>();
         Vec2 turretPos = tt.getCenter();
 
         // Find nearest enemy in range using the cached list (squared comparison)
@@ -439,7 +454,7 @@ void PlayState::updateTechnomancerEntities(float dt) {
         // Auto-fire at nearest enemy
         ai.attackTimer -= dt;
         if (nearestEnemy && ai.attackTimer <= 0) {
-            auto& combat = turret.getComponent<CombatComponent>();
+            auto& combat = e.getComponent<CombatComponent>();
             auto& et = nearestEnemy->getComponent<TransformComponent>();
             Vec2 dir = (et.getCenter() - turretPos).normalized();
             ai.attackTimer = ai.attackCooldown;
@@ -454,29 +469,12 @@ void PlayState::updateTechnomancerEntities(float dt) {
                 4, {255, 220, 80, 220}, 40.0f, 1.5f);
 
             // Face toward target
-            if (turret.hasComponent<SpriteComponent>()) {
-                turret.getComponent<SpriteComponent>().flipX = (dir.x < 0);
+            if (e.hasComponent<SpriteComponent>()) {
+                e.getComponent<SpriteComponent>().flipX = (dir.x < 0);
             }
         }
     });
     m_player->activeTurrets = turretCount;
-
-    // Count active traps (lifetime decay)
-    int trapCount = 0;
-    m_entities.forEach([&](Entity& trap) {
-        if (!trap.isPlayerTrap || !trap.isAlive()) return;
-        if (!trap.hasComponent<HealthComponent>()) return;
-
-        auto& hp = trap.getComponent<HealthComponent>();
-        hp.currentHP -= dt; // decay lifetime
-        if (hp.currentHP <= 0) {
-            auto& trapT = trap.getComponent<TransformComponent>();
-            m_particles.burst(trapT.getCenter(), 6, {255, 200, 50, 120}, 40.0f, 1.5f);
-            trap.destroy();
-            return;
-        }
-        trapCount++;
-    });
     m_player->activeTraps = trapCount;
 }
 
