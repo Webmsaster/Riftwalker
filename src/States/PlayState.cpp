@@ -342,9 +342,10 @@ void PlayState::update(float dt) {
             auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
             RelicSystem::applyStatEffects(rc, *m_player, hp, combat);
 
-            // Re-apply relic-specific modifiers
+            // Re-apply relic-specific modifiers. Multiply (don't overwrite) so the
+            // upgrade + achievement + class composition from generateLevel() survives.
             m_dimManager.switchCooldown = std::max(0.20f,
-                0.5f * RelicSystem::getSwitchCooldownMult(rc));
+                m_dimManager.switchCooldown * RelicSystem::getSwitchCooldownMult(rc));
 
             // TimeDilator: re-apply ability cooldown reduction
             if (rc.hasRelic(RelicID::TimeDilator) &&

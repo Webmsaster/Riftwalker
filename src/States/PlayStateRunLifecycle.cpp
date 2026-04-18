@@ -314,9 +314,11 @@ void PlayState::generateLevel() {
         };
     }
 
-    // Voidwalker: reduced switch cooldown
+    // Voidwalker: reduced switch cooldown (multiply, not overwrite, so upgrade
+    // and achievement multipliers from applyUpgrades() above survive)
     if (g_selectedClass == PlayerClass::Voidwalker) {
-        m_dimManager.switchCooldown = 0.5f * ClassSystem::getData(PlayerClass::Voidwalker).switchCDReduction;
+        m_dimManager.switchCooldown = std::max(0.20f,
+            m_dimManager.switchCooldown * ClassSystem::getData(PlayerClass::Voidwalker).switchCDReduction);
     }
 
     auto& playerTransform = m_player->getEntity()->getComponent<TransformComponent>();
