@@ -160,12 +160,14 @@ void AudioManager::playMusic(const std::string& path, int loops, int fadeMs) {
     if (!m_initialized || m_muted) return;
     Mix_Music* music = ResourceManager::instance().getMusic(path);
     if (music) {
-        // Fade out any currently playing music, then fade in the new track
+        // Fade out any currently playing music, then fade in the new track.
+        // NOTE: do NOT call Mix_VolumeMusic after Mix_FadeInMusic — it snaps the
+        // fade target to full volume immediately, defeating the fade-in.
+        // Mix_VolumeMusic is already kept current by setMusicVolume / setMasterVolume.
         if (Mix_PlayingMusic() && fadeMs > 0) {
             Mix_FadeOutMusic(fadeMs / 2);
         }
         Mix_FadeInMusic(music, loops, fadeMs);
-        Mix_VolumeMusic(static_cast<int>(m_musicVolume * m_masterVolume));
     }
 }
 
