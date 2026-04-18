@@ -32,6 +32,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <string>
+#include <vector>
 
 namespace {
 // Photo-real AI backgrounds clash with stylized sprites and flat tiles.
@@ -1118,12 +1119,19 @@ void PlayState::render(SDL_Renderer* renderer) {
         renderRelicPickupFlash(renderer, game->getFont());
     }
 
-    // CRT scanline post-processing effect (drawn last, on top of everything)
+    // CRT scanline post-processing effect (drawn last, on top of everything).
+    // Batched via SDL_RenderFillRects: single backend call for all ~720 lines
+    // instead of per-line dispatch. Buffer reused across frames.
     if (g_crtEffect) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 30);
-        for (int y = 0; y < SCREEN_HEIGHT; y += 2) {
-            SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
+        static thread_local std::vector<SDL_Rect> s_scanlines;
+        if (s_scanlines.empty()) {
+            s_scanlines.reserve(SCREEN_HEIGHT / 2 + 1);
+            for (int y = 0; y < SCREEN_HEIGHT; y += 2) {
+                s_scanlines.push_back({0, y, SCREEN_WIDTH, 1});
+            }
         }
+        SDL_RenderFillRects(renderer, s_scanlines.data(), static_cast<int>(s_scanlines.size()));
     }
 }
