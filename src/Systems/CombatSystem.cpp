@@ -87,8 +87,7 @@ void CombatSystem::update(EntityManager& entities, float dt, int currentDimensio
     // (handled in processAttack below via parry-like check)
 
     processBurnDoT(entities, dt);
-    processFreezeDecay(entities, dt);
-    processProjectileLifetime(entities, dt);
+    processFreezeAndProjectiles(entities, dt);
     processZombieSweep(entities, currentDimension);
 }
 

@@ -201,56 +201,54 @@ void CombatSystem::processBurnDoT(EntityManager& entities, float dt) {
     });
 }
 
-void CombatSystem::processFreezeDecay(EntityManager& entities, float dt) {
-    // Cache once — was called per-enemy in forEach below
+void CombatSystem::processFreezeAndProjectiles(EntityManager& entities, float dt) {
+    // Combined pass: enemies (freeze decay) + projectiles (lifetime/trail).
+    // Both branches are mutually exclusive on the same entity (no entity is
+    // both isEnemy and isProjectile), so a single forEach replaces two scans.
     Uint32 frameTicks = SDL_GetTicks();
     bool emitIceParticles = (frameTicks % 8 == 0);
-    // Process freeze slow decay on enemies
     entities.forEach([&](Entity& e) {
-        if (!e.isEnemy) return;
-        if (!e.hasComponent<AIComponent>()) return;
-        auto& ai = e.getComponent<AIComponent>();
-        if (ai.freezeTimer > 0) {
-            ai.freezeTimer -= dt;
-            // Periodic ice crystal particles while frozen
-            if (m_particles && e.hasComponent<TransformComponent>() && emitIceParticles) {
-                auto& t = e.getComponent<TransformComponent>();
-                Vec2 center = t.getCenter();
-                float ox = (static_cast<float>(std::rand() % 20) - 10.0f);
-                m_particles->burst({center.x + ox, center.y - 4.0f}, 1,
-                    {150, 210, 255, 160}, 20.0f, 1.0f);
+        if (e.isEnemy) {
+            if (!e.hasComponent<AIComponent>()) return;
+            auto& ai = e.getComponent<AIComponent>();
+            if (ai.freezeTimer > 0) {
+                ai.freezeTimer -= dt;
+                // Periodic ice crystal particles while frozen
+                if (m_particles && e.hasComponent<TransformComponent>() && emitIceParticles) {
+                    auto& t = e.getComponent<TransformComponent>();
+                    Vec2 center = t.getCenter();
+                    float ox = (static_cast<float>(std::rand() % 20) - 10.0f);
+                    m_particles->burst({center.x + ox, center.y - 4.0f}, 1,
+                        {150, 210, 255, 160}, 20.0f, 1.0f);
+                }
             }
-        }
-    });
-}
-
-void CombatSystem::processProjectileLifetime(EntityManager& entities, float dt) {
-    // Projectile lifetime: destroy stale projectiles
-    entities.forEach([&](Entity& proj) {
-        if (!proj.isProjectile) return;
-        if (!proj.hasComponent<SpriteComponent>()) return;
-        auto& sprite = proj.getComponent<SpriteComponent>();
-        sprite.animTimer += dt;
-        if (sprite.animTimer > 3.0f) {
-            proj.destroy();
             return;
         }
-        // Trail particles behind moving projectiles
-        if (m_particles && proj.hasComponent<TransformComponent>()) {
-            sprite.afterimageSpawnTimer += dt;
-            if (sprite.afterimageSpawnTimer >= 0.05f) {
-                sprite.afterimageSpawnTimer -= 0.05f;
-                auto& t = proj.getComponent<TransformComponent>();
-                SDL_Color trail = {static_cast<Uint8>(sprite.color.r * 3 / 4),
-                                   static_cast<Uint8>(sprite.color.g * 3 / 4),
-                                   static_cast<Uint8>(sprite.color.b * 3 / 4),
-                                   180};
-                m_particles->burst(t.getCenter(), 1, trail, 20.0f, 2.0f);
+        if (e.isProjectile) {
+            if (!e.hasComponent<SpriteComponent>()) return;
+            auto& sprite = e.getComponent<SpriteComponent>();
+            sprite.animTimer += dt;
+            if (sprite.animTimer > 3.0f) {
+                e.destroy();
+                return;
             }
-        }
-        // Fade out in last second
-        if (sprite.animTimer > 2.0f) {
-            sprite.color.a = static_cast<Uint8>(255 * (3.0f - sprite.animTimer));
+            // Trail particles behind moving projectiles
+            if (m_particles && e.hasComponent<TransformComponent>()) {
+                sprite.afterimageSpawnTimer += dt;
+                if (sprite.afterimageSpawnTimer >= 0.05f) {
+                    sprite.afterimageSpawnTimer -= 0.05f;
+                    auto& t = e.getComponent<TransformComponent>();
+                    SDL_Color trail = {static_cast<Uint8>(sprite.color.r * 3 / 4),
+                                       static_cast<Uint8>(sprite.color.g * 3 / 4),
+                                       static_cast<Uint8>(sprite.color.b * 3 / 4),
+                                       180};
+                    m_particles->burst(t.getCenter(), 1, trail, 20.0f, 2.0f);
+                }
+            }
+            // Fade out in last second
+            if (sprite.animTimer > 2.0f) {
+                sprite.color.a = static_cast<Uint8>(255 * (3.0f - sprite.animTimer));
+            }
         }
     });
 }
