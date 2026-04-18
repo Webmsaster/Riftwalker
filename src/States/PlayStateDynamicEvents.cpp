@@ -122,8 +122,8 @@ void PlayState::triggerDynamicEvent() {
 
                 auto& e = Enemy::createByType(m_entities, enemyType, spawnPos, 0);
 
-                // Make elite with random modifier
-                EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 9);
+                // Make elite with random modifier (12 modifiers defined; %12 covers all).
+                EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 12);
                 Enemy::makeElite(e, mod);
 
                 // Apply theme variant if applicable

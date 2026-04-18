@@ -452,10 +452,10 @@ void PlayState::spawnEnemies() {
                 EnemyElement el = static_cast<EnemyElement>(1 + std::rand() % 3);
                 Enemy::applyElement(e, el);
             }
-            // Zone-based elite modifier
+            // Zone-based elite modifier (12 modifiers defined; range %12 covers all).
             if (getZone(m_currentDifficulty) >= 1 && static_cast<EnemyType>(sp.enemyType) != EnemyType::Boss
                 && !e.getComponent<AIComponent>().isElite && std::rand() % 100 < eliteChance) {
-                EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 9);
+                EliteModifier mod = static_cast<EliteModifier>(1 + std::rand() % 12);
                 Enemy::makeElite(e, mod);
             }
             // Zone-based mini-boss chance (not on boss floors)
