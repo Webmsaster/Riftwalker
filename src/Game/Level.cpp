@@ -435,16 +435,17 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
     SDL_SetRenderDrawColor(renderer, baseR, baseG, baseB, 255);
     SDL_RenderFillRect(renderer, &sr);
 
-    // Vertical gradient: lighter at top, darker at bottom (sense of light direction)
+    // Vertical gradient: 2 bands instead of 4 — visually equivalent at gameplay
+    // zoom, halves SetColor/FillRect cost per solid tile (was 8 calls, now 4).
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    int gradSteps = 4;
-    for (int i = 0; i < gradSteps; ++i) {
-        int yTop = sr.y + (sr.h * i) / gradSteps;
-        int yH   = sr.h / gradSteps + 1;
-        Uint8 a  = static_cast<Uint8>(14 - i * 4); // 14,10,6,2 (subtle highlight)
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, a);
-        SDL_Rect band = {sr.x, yTop, sr.w, yH};
-        SDL_RenderFillRect(renderer, &band);
+    {
+        int yH = sr.h / 2 + 1;
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 12); // upper highlight
+        SDL_Rect upper = {sr.x, sr.y, sr.w, yH};
+        SDL_RenderFillRect(renderer, &upper);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 4); // lower fade
+        SDL_Rect lower = {sr.x, sr.y + sr.h / 2, sr.w, yH};
+        SDL_RenderFillRect(renderer, &lower);
     }
     // Bottom-right shading wedge for depth
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 40);
