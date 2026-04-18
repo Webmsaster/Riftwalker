@@ -106,17 +106,19 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
     Vec2 camPos = m_camera.getPosition();
     Uint32 ticks = m_frameTicks;
 
-    // Animated energy field: subtle diagonal grid lines for living background
+    // Animated energy field: subtle diagonal grid lines for living background.
+    // Spacing widened from 40/60 → 80/120 — at alpha 6/4 the pattern is barely
+    // visible, doubling spacing halves RenderDrawLine count (~272 → ~136/frame).
     {
         float scrollSpeed = 0.02f;
-        int scrollOffset = static_cast<int>(ticks * scrollSpeed) % 40;
+        int scrollOffset = static_cast<int>(ticks * scrollSpeed) % 80;
         int dim = m_dimManager.getCurrentDimension();
         Uint8 lineR = (dim == 1) ? 40 : 60;
         Uint8 lineG = (dim == 1) ? 50 : 40;
         Uint8 lineB = (dim == 1) ? 80 : 50;
         // Diagonal lines (top-left to bottom-right, scrolling)
         SDL_SetRenderDrawColor(renderer, lineR, lineG, lineB, 6);
-        for (int i = -SCREEN_HEIGHT; i < SCREEN_WIDTH + SCREEN_HEIGHT; i += 40) {
+        for (int i = -SCREEN_HEIGHT; i < SCREEN_WIDTH + SCREEN_HEIGHT; i += 80) {
             int x1 = i + scrollOffset;
             int y1 = 0;
             int x2 = i - SCREEN_HEIGHT + scrollOffset;
@@ -124,9 +126,9 @@ void PlayState::renderBackground(SDL_Renderer* renderer) {
             SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
         }
         // Cross-hatch (opposite diagonal, slower)
-        int scrollOffset2 = static_cast<int>(ticks * scrollSpeed * 0.6f) % 60;
+        int scrollOffset2 = static_cast<int>(ticks * scrollSpeed * 0.6f) % 120;
         SDL_SetRenderDrawColor(renderer, lineR, lineG, lineB, 4);
-        for (int i = -SCREEN_HEIGHT; i < SCREEN_WIDTH + SCREEN_HEIGHT; i += 60) {
+        for (int i = -SCREEN_HEIGHT; i < SCREEN_WIDTH + SCREEN_HEIGHT; i += 120) {
             int x1 = i - scrollOffset2;
             int y1 = 0;
             int x2 = i + SCREEN_HEIGHT - scrollOffset2;
