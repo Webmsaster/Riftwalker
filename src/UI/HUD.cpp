@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
+#include <vector>
 
 // Safe float-to-Uint8 conversion clamped to [0,255]
 static inline Uint8 clampU8(float v) {
@@ -245,34 +246,47 @@ void HUD::renderMinimap(SDL_Renderer* renderer, const Level* level,
     }
 
     // --- Enemy dots (red for regular, orange pulsing for bosses) ---
+    // Batch regular dots under a single SetRenderDrawColor; bosses are 0-1 count.
     if (entities) {
+        struct EnemyDot { int x, y; bool boss; };
+        static thread_local std::vector<EnemyDot> s_dots;
+        s_dots.clear();
         entities->forEach([&](Entity& e) {
             if (!e.isEnemy) return;
             if (!e.hasComponent<TransformComponent>()) return;
-
             auto& et = e.getComponent<TransformComponent>();
             int emx = offsetX + static_cast<int>((et.getCenter().x / tileSize) * scale);
             int emy = offsetY + static_cast<int>((et.getCenter().y / tileSize) * scale);
-
             if (emx < mapX || emx >= mapX + mapW || emy < mapY || emy >= mapY + mapH) return;
+            s_dots.push_back({emx, emy, e.isBoss});
+        });
 
-            if (e.isBoss) {
-                // Boss: larger pulsing orange dot
-                float bPulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.008f);
-                SDL_SetRenderDrawColor(renderer, 255, 140, 40, clampU8(200 + 55 * bPulse));
-                SDL_Rect er = {emx - 3, emy - 3, 6, 6};
-                SDL_RenderFillRect(renderer, &er);
-                // Bright center
-                SDL_SetRenderDrawColor(renderer, 255, 220, 100, 255);
-                SDL_Rect ec = {emx - 1, emy - 1, 2, 2};
-                SDL_RenderFillRect(renderer, &ec);
-            } else {
-                // Regular enemy: small red dot
-                SDL_SetRenderDrawColor(renderer, 255, 55, 55, 200);
-                SDL_Rect er = {emx - 1, emy - 1, 3, 3};
+        // Pass 1: regular enemy dots (single color set)
+        SDL_SetRenderDrawColor(renderer, 255, 55, 55, 200);
+        for (const auto& d : s_dots) {
+            if (d.boss) continue;
+            SDL_Rect er = {d.x - 1, d.y - 1, 3, 3};
+            SDL_RenderFillRect(renderer, &er);
+        }
+
+        // Pass 2: boss dots (pulsing color + bright center)
+        bool anyBoss = false;
+        for (const auto& d : s_dots) { if (d.boss) { anyBoss = true; break; } }
+        if (anyBoss) {
+            float bPulse = 0.5f + 0.5f * std::sin(m_frameTicks * 0.008f);
+            SDL_SetRenderDrawColor(renderer, 255, 140, 40, clampU8(200 + 55 * bPulse));
+            for (const auto& d : s_dots) {
+                if (!d.boss) continue;
+                SDL_Rect er = {d.x - 3, d.y - 3, 6, 6};
                 SDL_RenderFillRect(renderer, &er);
             }
-        });
+            SDL_SetRenderDrawColor(renderer, 255, 220, 100, 255);
+            for (const auto& d : s_dots) {
+                if (!d.boss) continue;
+                SDL_Rect ec = {d.x - 1, d.y - 1, 2, 2};
+                SDL_RenderFillRect(renderer, &ec);
+            }
+        }
     }
 
     // --- Player position dot (blinking white) with facing direction arrow ---
