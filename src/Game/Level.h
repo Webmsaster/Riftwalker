@@ -75,6 +75,9 @@ public:
     // New tile type checks
     bool isIceTile(int tileX, int tileY, int dimension) const;
     bool isGravityWell(int tileX, int tileY, int dimension) const;
+    // Lazy cache: true if any tile in either dimension is a gravity well.
+    // Lets PhysicsSystem skip the per-entity 5x5 well scan on levels without any.
+    bool hasAnyGravityWell() const;
     Vec2 getTeleporterDestination(int tileX, int tileY, int dimension) const;
     void updateTiles(float dt);  // Update crumbling timers etc.
     void triggerCrumble(int tileX, int tileY, int dimension);
@@ -121,6 +124,9 @@ private:
     struct EmitterPos { int x = 0, y = 0, dim = 0; };
     mutable std::vector<EmitterPos> m_laserEmitters;
     void buildLaserCache() const;
+
+    // Lazy gravity well presence cache: -1 = uncomputed, 0 = none, 1 = present
+    mutable int m_gravityWellCheck = -1;
 
     SDL_Texture* m_tileset = nullptr;
     int m_tilesetCols = 8;   // Tiles per row (set from texture on load)

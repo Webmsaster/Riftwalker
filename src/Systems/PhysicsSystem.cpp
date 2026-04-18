@@ -37,27 +37,30 @@ void PhysicsSystem::update(EntityManager& entities, float dt, Level* level, int 
                 phys.onIce = true;
             }
 
-            // Gravity Well: attract/repel entities
-            int centerTX = static_cast<int>(t.getCenter().x) / level->getTileSize();
-            int centerTY = static_cast<int>(t.getCenter().y) / level->getTileSize();
-            for (int dy = -2; dy <= 2; dy++) {
-                for (int dx = -2; dx <= 2; dx++) {
-                    int gx = centerTX + dx;
-                    int gy = centerTY + dy;
-                    if (level->isGravityWell(gx, gy, dim)) {
-                        float wellCX = (gx + 0.5f) * level->getTileSize();
-                        float wellCY = (gy + 0.5f) * level->getTileSize();
-                        float pullDX = wellCX - t.getCenter().x;
-                        float pullDY = wellCY - t.getCenter().y;
-                        float distSq = pullDX * pullDX + pullDY * pullDY;
-                        // Skip if out of range (no sqrt needed)
-                        if (distSq <= 16.0f || distSq >= 9216.0f) continue; // 4^2, 96^2
-                        float dist = std::sqrt(distSq);
-                        float force = 200.0f / (dist + 10.0f);
-                        // Dimension 1: attract, Dimension 2: repel
-                        float sign = (dim == 1) ? 1.0f : -1.0f;
-                        phys.velocity.x += (pullDX / dist) * force * sign * dt;
-                        phys.velocity.y += (pullDY / dist) * force * sign * dt;
+            // Gravity Well: attract/repel entities. Skip the 5x5 scan entirely
+            // on levels without any well (lazy cached on Level).
+            if (level->hasAnyGravityWell()) {
+                int centerTX = static_cast<int>(t.getCenter().x) / level->getTileSize();
+                int centerTY = static_cast<int>(t.getCenter().y) / level->getTileSize();
+                for (int dy = -2; dy <= 2; dy++) {
+                    for (int dx = -2; dx <= 2; dx++) {
+                        int gx = centerTX + dx;
+                        int gy = centerTY + dy;
+                        if (level->isGravityWell(gx, gy, dim)) {
+                            float wellCX = (gx + 0.5f) * level->getTileSize();
+                            float wellCY = (gy + 0.5f) * level->getTileSize();
+                            float pullDX = wellCX - t.getCenter().x;
+                            float pullDY = wellCY - t.getCenter().y;
+                            float distSq = pullDX * pullDX + pullDY * pullDY;
+                            // Skip if out of range (no sqrt needed)
+                            if (distSq <= 16.0f || distSq >= 9216.0f) continue; // 4^2, 96^2
+                            float dist = std::sqrt(distSq);
+                            float force = 200.0f / (dist + 10.0f);
+                            // Dimension 1: attract, Dimension 2: repel
+                            float sign = (dim == 1) ? 1.0f : -1.0f;
+                            phys.velocity.x += (pullDX / dist) * force * sign * dt;
+                            phys.velocity.y += (pullDY / dist) * force * sign * dt;
+                        }
                     }
                 }
             }

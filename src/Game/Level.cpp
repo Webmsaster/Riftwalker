@@ -1061,6 +1061,7 @@ void Level::clear() {
     m_randomEvents.clear();
     m_npcs.clear();
     m_laserCacheDirty = true;
+    m_gravityWellCheck = -1;
 }
 
 bool Level::isIceTile(int tileX, int tileY, int dimension) const {
@@ -1071,6 +1072,21 @@ bool Level::isIceTile(int tileX, int tileY, int dimension) const {
 bool Level::isGravityWell(int tileX, int tileY, int dimension) const {
     if (!inBounds(tileX, tileY)) return false;
     return getTile(tileX, tileY, dimension).type == TileType::GravityWell;
+}
+
+bool Level::hasAnyGravityWell() const {
+    if (m_gravityWellCheck < 0) {
+        m_gravityWellCheck = 0;
+        for (const auto& t : m_tilesA) {
+            if (t.type == TileType::GravityWell) { m_gravityWellCheck = 1; break; }
+        }
+        if (m_gravityWellCheck == 0) {
+            for (const auto& t : m_tilesB) {
+                if (t.type == TileType::GravityWell) { m_gravityWellCheck = 1; break; }
+            }
+        }
+    }
+    return m_gravityWellCheck == 1;
 }
 
 Vec2 Level::getTeleporterDestination(int tileX, int tileY, int dimension) const {
