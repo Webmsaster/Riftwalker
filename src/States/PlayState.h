@@ -619,6 +619,9 @@ private:
         char text[64] = {};
         float timer = 0;
         SDL_Color color{220, 220, 220, 255};
+        SDL_Texture* cachedTex = nullptr;
+        int texW = 0;
+        int texH = 0;
     };
     static constexpr int MAX_KILL_FEED = 5;
     KillFeedEntry m_killFeed[5];

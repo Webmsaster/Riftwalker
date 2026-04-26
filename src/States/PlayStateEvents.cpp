@@ -1073,6 +1073,9 @@ void PlayState::updateEventChain(float dt) {
 
 void PlayState::addKillFeedEntry(const KillEvent& ke) {
     auto& entry = m_killFeed[m_killFeedHead % MAX_KILL_FEED];
+    // Free any previously-cached glyph texture from the slot we're about to reuse.
+    if (entry.cachedTex) { SDL_DestroyTexture(entry.cachedTex); entry.cachedTex = nullptr; }
+    entry.texW = entry.texH = 0;
     entry.timer = 4.0f; // visible for 4 seconds
 
     // Get localized enemy name from Bestiary

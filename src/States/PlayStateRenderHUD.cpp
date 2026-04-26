@@ -960,56 +960,64 @@ void PlayState::renderKillFeed(SDL_Renderer* renderer, TTF_Font* font) {
     int x = SCREEN_WIDTH - 40;
     int y = SCREEN_HEIGHT - 280;
 
-    // Collect active entries in display order (newest at bottom)
-    struct DisplayEntry { const char* text; SDL_Color color; float timer; };
+    // Collect active entries in display order (newest at bottom).
+    // Render directly from KillFeedEntry so cached textures persist per-slot.
+    struct DisplayEntry { KillFeedEntry* entry; };
     DisplayEntry display[MAX_KILL_FEED];
     int count = 0;
 
     for (int i = MAX_KILL_FEED - 1; i >= 0; i--) {
         int idx = (m_killFeedHead - 1 - i + MAX_KILL_FEED * 2) % MAX_KILL_FEED;
         if (m_killFeed[idx].timer > 0 && m_killFeed[idx].text[0] != '\0') {
-            display[count++] = {m_killFeed[idx].text, m_killFeed[idx].color, m_killFeed[idx].timer};
+            display[count++] = {&m_killFeed[idx]};
         }
     }
 
     for (int i = 0; i < count; i++) {
-        float alpha = std::min(display[i].timer / 0.5f, 1.0f);
+        KillFeedEntry& kfe = *display[i].entry;
+        float alpha = std::min(kfe.timer / 0.5f, 1.0f);
         // Slide-in animation: new entries slide from right
-        float slideProgress = std::min(display[i].timer / 0.15f, 1.0f);
+        float slideProgress = std::min(kfe.timer / 0.15f, 1.0f);
         float eased = 1.0f - (1.0f - slideProgress) * (1.0f - slideProgress); // ease-out
         int slideOffset = static_cast<int>((1.0f - eased) * 120);
 
-        SDL_Color c = display[i].color;
+        SDL_Color c = kfe.color;
         Uint8 a = static_cast<Uint8>(c.a * alpha);
 
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, display[i].text, {c.r, c.g, c.b, 255});
-        if (surf) {
-            int entryX = x - surf->w + slideOffset;
-            int entryW = surf->w + 32;
-
-            // Background panel with gradient
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(70 * alpha));
-            SDL_Rect bgRect = {entryX - 20, y - 2, entryW + 20, surf->h + 4};
-            SDL_RenderFillRect(renderer, &bgRect);
-            // Left accent bar (colored)
-            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(180 * alpha));
-            SDL_Rect accentBar = {entryX - 24, y - 2, 4, surf->h + 4};
-            SDL_RenderFillRect(renderer, &accentBar);
-
-            // Kill dot (small colored circle)
-            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, a);
-            SDL_Rect dot = {entryX - 16, y + surf->h / 2 - 4, 8, 8};
-            SDL_RenderFillRect(renderer, &dot);
-
-            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
-            if (tex) {
-                SDL_SetTextureAlphaMod(tex, a);
-                SDL_Rect r = {entryX, y, surf->w, surf->h};
-                SDL_RenderCopy(renderer, tex, nullptr, &r);
-                SDL_DestroyTexture(tex);
+        // Lazy-init cached glyph texture once per entry; reuse across frames
+        // (was: TTF_RenderUTF8_Blended every frame for every active entry).
+        if (!kfe.cachedTex) {
+            SDL_Surface* surf = TTF_RenderUTF8_Blended(font, kfe.text, {c.r, c.g, c.b, 255});
+            if (surf) {
+                kfe.cachedTex = SDL_CreateTextureFromSurface(renderer, surf);
+                kfe.texW = surf->w;
+                kfe.texH = surf->h;
+                SDL_FreeSurface(surf);
             }
-            SDL_FreeSurface(surf);
         }
+        if (!kfe.cachedTex) { y += 40; continue; }
+
+        int entryX = x - kfe.texW + slideOffset;
+        int entryW = kfe.texW + 32;
+
+        // Background panel with gradient
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(70 * alpha));
+        SDL_Rect bgRect = {entryX - 20, y - 2, entryW + 20, kfe.texH + 4};
+        SDL_RenderFillRect(renderer, &bgRect);
+        // Left accent bar (colored)
+        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, static_cast<Uint8>(180 * alpha));
+        SDL_Rect accentBar = {entryX - 24, y - 2, 4, kfe.texH + 4};
+        SDL_RenderFillRect(renderer, &accentBar);
+
+        // Kill dot (small colored circle)
+        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, a);
+        SDL_Rect dot = {entryX - 16, y + kfe.texH / 2 - 4, 8, 8};
+        SDL_RenderFillRect(renderer, &dot);
+
+        SDL_SetTextureAlphaMod(kfe.cachedTex, a);
+        SDL_Rect r = {entryX, y, kfe.texW, kfe.texH};
+        SDL_RenderCopy(renderer, kfe.cachedTex, nullptr, &r);
+
         y += 40;
     }
 }

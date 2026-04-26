@@ -108,6 +108,12 @@ void PlayState::exit() {
     if (m_killStreakCachedTex) { SDL_DestroyTexture(m_killStreakCachedTex); m_killStreakCachedTex = nullptr; }
     if (m_levelUpLabelCachedTex) { SDL_DestroyTexture(m_levelUpLabelCachedTex); m_levelUpLabelCachedTex = nullptr; }
     if (m_levelUpNumCachedTex) { SDL_DestroyTexture(m_levelUpNumCachedTex); m_levelUpNumCachedTex = nullptr; }
+    for (auto& kfe : m_killFeed) {
+        if (kfe.cachedTex) { SDL_DestroyTexture(kfe.cachedTex); kfe.cachedTex = nullptr; }
+        kfe.texW = kfe.texH = 0;
+        kfe.text[0] = '\0';
+        kfe.timer = 0;
+    }
     m_killStreakCachedKey.clear();
     m_levelUpLabelCachedKey.clear();
     m_levelUpNumCachedKey.clear();
