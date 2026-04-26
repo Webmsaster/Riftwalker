@@ -114,6 +114,9 @@ void PlayState::exit() {
         kfe.text[0] = '\0';
         kfe.timer = 0;
     }
+    if (m_bossNameCachedTex) { SDL_DestroyTexture(m_bossNameCachedTex); m_bossNameCachedTex = nullptr; }
+    m_bossNameCachedType = -1;
+    m_bossNameCachedW = m_bossNameCachedH = 0;
     m_killStreakCachedKey.clear();
     m_levelUpLabelCachedKey.clear();
     m_levelUpNumCachedKey.clear();

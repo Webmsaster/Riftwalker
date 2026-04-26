@@ -211,6 +211,14 @@ private:
     int m_killStreakCachedW = 0;
     int m_killStreakCachedH = 0;
 
+    // Cached boss-name texture (rebuilt only when boss type changes).
+    // Boss HUD draws every frame during a fight; this saves a
+    // TTF_RenderUTF8_Blended + CreateTextureFromSurface per frame.
+    SDL_Texture* m_bossNameCachedTex = nullptr;
+    int m_bossNameCachedType = -1; // -1 = invalid
+    int m_bossNameCachedW = 0;
+    int m_bossNameCachedH = 0;
+
     // Wave/area clear celebration
     float m_waveClearTimer = 0;       // text overlay duration (2s)
     float m_waveClearFlashTimer = 0;  // screen brightness pulse (0.15s)

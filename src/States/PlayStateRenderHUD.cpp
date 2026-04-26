@@ -683,21 +683,28 @@ void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     SDL_RenderDrawLine(renderer, barX + barW / 3, barY - 2, barX + barW / 3, barY + barH + 2);
     SDL_RenderDrawLine(renderer, barX + barW / 3 + 1, barY - 2, barX + barW / 3 + 1, barY + barH + 2);
 
-    // Boss name (dynamic based on boss type)
+    // Boss name (dynamic based on boss type) — cached per boss type so the
+    // text+texture pair only rebuilds when the boss changes.
     if (font) {
         int bt = 0;
         if (boss->hasComponent<AIComponent>()) bt = boss->getComponent<AIComponent>().bossType;
-        const char* bossName = (bt == 5) ? LOC("boss.entropy_incarnate") : (bt == 4) ? LOC("boss.void_sovereign") : (bt == 3) ? LOC("boss.temporal_weaver") : (bt == 2) ? LOC("boss.dim_architect") : (bt == 1) ? LOC("boss.void_wyrm") : LOC("boss.rift_guardian");
-        SDL_Color tc = (bt == 5) ? SDL_Color{80, 220, 80, 220} : (bt == 4) ? SDL_Color{180, 80, 255, 220} : (bt == 3) ? SDL_Color{220, 190, 100, 220} : (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
-        SDL_Surface* ts = TTF_RenderUTF8_Blended(font, bossName, tc);
-        if (ts) {
-            SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
-            if (tt) {
-                SDL_Rect tr = {SCREEN_WIDTH / 2 - ts->w / 2, barY + barH + 8, ts->w, ts->h};
-                SDL_RenderCopy(renderer, tt, nullptr, &tr);
-                SDL_DestroyTexture(tt);
+        if (bt != m_bossNameCachedType || !m_bossNameCachedTex) {
+            if (m_bossNameCachedTex) { SDL_DestroyTexture(m_bossNameCachedTex); m_bossNameCachedTex = nullptr; }
+            const char* bossName = (bt == 5) ? LOC("boss.entropy_incarnate") : (bt == 4) ? LOC("boss.void_sovereign") : (bt == 3) ? LOC("boss.temporal_weaver") : (bt == 2) ? LOC("boss.dim_architect") : (bt == 1) ? LOC("boss.void_wyrm") : LOC("boss.rift_guardian");
+            SDL_Color tc = (bt == 5) ? SDL_Color{80, 220, 80, 220} : (bt == 4) ? SDL_Color{180, 80, 255, 220} : (bt == 3) ? SDL_Color{220, 190, 100, 220} : (bt == 2) ? SDL_Color{160, 180, 255, 220} : (bt == 1) ? SDL_Color{180, 255, 200, 220} : SDL_Color{220, 180, 255, 220};
+            SDL_Surface* ts = TTF_RenderUTF8_Blended(font, bossName, tc);
+            if (ts) {
+                m_bossNameCachedTex = SDL_CreateTextureFromSurface(renderer, ts);
+                m_bossNameCachedW = ts->w;
+                m_bossNameCachedH = ts->h;
+                SDL_FreeSurface(ts);
+                m_bossNameCachedType = bt;
             }
-            SDL_FreeSurface(ts);
+        }
+        if (m_bossNameCachedTex) {
+            SDL_Rect tr = {SCREEN_WIDTH / 2 - m_bossNameCachedW / 2, barY + barH + 8,
+                           m_bossNameCachedW, m_bossNameCachedH};
+            SDL_RenderCopy(renderer, m_bossNameCachedTex, nullptr, &tr);
         }
     }
 }
