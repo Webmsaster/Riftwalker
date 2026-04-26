@@ -46,8 +46,11 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
         int edgeW = screenW / 15 + static_cast<int>(hpBoost * screenW * 0.08f);
         int edgeH = screenH / 15 + static_cast<int>(hpBoost * screenH * 0.08f);
 
-        // Use coarser step size for performance (2px bands instead of 1px)
-        constexpr int kStep = 2;
+        // Use coarser step size for performance (4px bands; matches the
+        // low-HP vignette path. Visually identical at 1440p — quadratic
+        // falloff hides the band boundary entirely. ~half the draw calls
+        // vs the previous 2px step on the base vignette.)
+        constexpr int kStep = 4;
 
         // Top edge gradient
         for (int i = 0; i < edgeH; i += kStep) {
@@ -90,7 +93,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
         int cornerW = edgeW;
         int cornerH = edgeH;
         Uint8 cornerMaxA = static_cast<Uint8>(std::min(255, static_cast<int>(vigA) * 3 / 4));
-        constexpr int kCornerBlock = 12; // Block size for corner fill (scaled for 2K)
+        constexpr int kCornerBlock = 24; // Block size for corner fill (24px at 2K — quadratic falloff hides the seam, ~4x fewer draw calls vs 12px)
         int cornerPositions[4][2] = {
             {0, 0}, {screenW - cornerW, 0},
             {0, screenH - cornerH}, {screenW - cornerW, screenH - cornerH}
@@ -836,10 +839,17 @@ void ScreenEffects::renderDynamicLighting(SDL_Renderer* renderer, int screenW, i
 
     // Ambient darkness with light radii carved out
     // Performance-optimized: 12px grid + distance-squared (no sqrt).
-    // Bumped 8 -> 12 (saves ~55% cells: 320*180 -> 213*120 = 57.6k -> 25.6k cells/frame).
-    // Visually equivalent for low-alpha ambient darkness gradient at 1440p.
+    // Was: per-cell SetRenderDrawColor + FillRect (~25k state changes/frame at 1440p).
+    // Now: bucket cells by darkness/8 into 5 alpha tiers; one SetColor per tier
+    // followed by a single RenderFillRects call. The original alpha range is
+    // 2..40 in steady increments — quantizing to multiples of 8 is invisible
+    // against the very-low-alpha ambient darkness gradient.
     constexpr Uint8 kAmbientDarkness = 40;
     constexpr int kStep = 12;
+    constexpr int kBuckets = 5; // alpha tiers 8/16/24/32/40
+    static constexpr Uint8 kBucketAlpha[kBuckets] = {8, 16, 24, 32, 40};
+    static thread_local std::vector<SDL_Rect> s_lightBuckets[kBuckets];
+    for (auto& b : s_lightBuckets) b.clear();
 
     for (int y = 0; y < screenH; y += kStep) {
         float cy = y + kStep * 0.5f;
@@ -861,13 +871,19 @@ void ScreenEffects::renderDynamicLighting(SDL_Renderer* renderer, int screenW, i
             }
 
             if (totalLight >= 0.95f) continue; // Fully lit, skip draw
-            Uint8 darkness = static_cast<Uint8>(kAmbientDarkness * (1.0f - std::min(1.0f, totalLight)));
+            int darkness = static_cast<int>(kAmbientDarkness * (1.0f - std::min(1.0f, totalLight)));
             if (darkness < 2) continue;
-
-            SDL_SetRenderDrawColor(renderer, 0, 0, 5, darkness);
-            SDL_Rect band = {x, y, kStep, kStep};
-            SDL_RenderFillRect(renderer, &band);
+            int bucket = (darkness - 1) / 8; // 0..4 (alpha 8 covers 1..8)
+            if (bucket > kBuckets - 1) bucket = kBuckets - 1;
+            s_lightBuckets[bucket].push_back({x, y, kStep, kStep});
         }
+    }
+
+    for (int b = 0; b < kBuckets; ++b) {
+        if (s_lightBuckets[b].empty()) continue;
+        SDL_SetRenderDrawColor(renderer, 0, 0, 5, kBucketAlpha[b]);
+        SDL_RenderFillRects(renderer, s_lightBuckets[b].data(),
+                            static_cast<int>(s_lightBuckets[b].size()));
     }
 
     // Reset light count for next frame
