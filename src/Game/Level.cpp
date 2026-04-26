@@ -157,11 +157,15 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
     Uint32 ticks = SDL_GetTicks();
 
     // Floor pass: subtle grid + color variation on empty tiles.
-    // Two passes over visible empty tiles to halve state changes:
-    //   Pass A: per-tile varied FillRect (color must change each tile).
-    //   Pass B: single white SetColor + all grid lines.
+    // Was: per-tile SetColor (1000+ state changes/frame).
+    // Now: bucket tiles by hash into 4 color tiers; one SetColor per tier,
+    // then SDL_RenderFillRects batches the rects for that tier.
+    // Visually: variance was vary in [8..18] — 4 discrete tiers (10,13,16,18)
+    // are indistinguishable on the dark floor.
     static thread_local std::vector<SDL_Rect> s_emptyRects;
+    static thread_local std::vector<SDL_Rect> s_emptyBuckets[4];
     s_emptyRects.clear();
+    for (auto& b : s_emptyBuckets) b.clear();
     for (int y = startY; y <= endY; y++) {
         for (int x = startX; x <= endX; x++) {
             const Tile& tile = getTile(x, y, currentDim);
@@ -172,11 +176,18 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
                              static_cast<float>(m_tileSize) };
             SDL_Rect fs = camera.worldToScreen(fw);
             int hash = (x * 7919 + y * 6271) & 0xFF;
-            Uint8 vary = static_cast<Uint8>(8 + (hash % 11));
-            SDL_SetRenderDrawColor(renderer, vary, vary / 2, vary + 4, 18);
-            SDL_RenderFillRect(renderer, &fs);
+            int bucket = (hash >> 4) & 3; // 4 tiers
+            s_emptyBuckets[bucket].push_back(fs);
             s_emptyRects.push_back(fs);
         }
+    }
+    static constexpr Uint8 kVaryTiers[4] = { 10, 13, 16, 18 };
+    for (int b = 0; b < 4; ++b) {
+        if (s_emptyBuckets[b].empty()) continue;
+        Uint8 v = kVaryTiers[b];
+        SDL_SetRenderDrawColor(renderer, v, v / 2, static_cast<Uint8>(v + 4), 18);
+        SDL_RenderFillRects(renderer, s_emptyBuckets[b].data(),
+                            static_cast<int>(s_emptyBuckets[b].size()));
     }
     // Grid lines: one color set, then all draws batched
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 8);
@@ -298,22 +309,41 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
     // tile by setting state once and looping the FillRect/DrawRect calls).
     if (!g_solidRects.empty()) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        // Build upper/lower gradient rects once, then batch-fill each band.
+        static thread_local std::vector<SDL_Rect> s_upperBand;
+        static thread_local std::vector<SDL_Rect> s_lowerBand;
+        s_upperBand.clear();
+        s_lowerBand.clear();
+        s_upperBand.reserve(g_solidRects.size());
+        s_lowerBand.reserve(g_solidRects.size());
+        for (const SDL_Rect& sr : g_solidRects) {
+            s_upperBand.push_back({sr.x, sr.y, sr.w, sr.h / 2 + 1});
+            s_lowerBand.push_back({sr.x, sr.y + sr.h / 2, sr.w, sr.h / 2 + 1});
+        }
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 12);
-        for (const SDL_Rect& sr : g_solidRects) {
-            SDL_Rect upper = {sr.x, sr.y, sr.w, sr.h / 2 + 1};
-            SDL_RenderFillRect(renderer, &upper);
-        }
+        SDL_RenderFillRects(renderer, s_upperBand.data(),
+                            static_cast<int>(s_upperBand.size()));
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 4);
-        for (const SDL_Rect& sr : g_solidRects) {
-            SDL_Rect lower = {sr.x, sr.y + sr.h / 2, sr.w, sr.h / 2 + 1};
-            SDL_RenderFillRect(renderer, &lower);
-        }
+        SDL_RenderFillRects(renderer, s_lowerBand.data(),
+                            static_cast<int>(s_lowerBand.size()));
     }
     if (!g_embeddedRects.empty()) {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 18);
-        for (const SDL_Rect& sr : g_embeddedRects) {
-            SDL_RenderDrawRect(renderer, &sr);
+        SDL_RenderDrawRects(renderer, g_embeddedRects.data(),
+                            static_cast<int>(g_embeddedRects.size()));
+    }
+    // Batched shading wedge (0,0,0,40) for all solid tiles — single SetColor
+    // and one SDL_RenderFillRects call instead of per-tile state changes.
+    if (!g_solidRects.empty()) {
+        static thread_local std::vector<SDL_Rect> s_wedgeRects;
+        s_wedgeRects.clear();
+        s_wedgeRects.reserve(g_solidRects.size());
+        for (const SDL_Rect& sr : g_solidRects) {
+            s_wedgeRects.push_back({sr.x + sr.w / 2, sr.y + sr.h / 2, sr.w / 2, sr.h / 2});
         }
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 40);
+        SDL_RenderFillRects(renderer, s_wedgeRects.data(),
+                            static_cast<int>(s_wedgeRects.size()));
     }
 
     // Ghost overlay of other dimension
@@ -469,16 +499,12 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
     SDL_SetRenderDrawColor(renderer, baseR, baseG, baseB, 255);
     SDL_RenderFillRect(renderer, &sr);
 
-    // Gradient (white alpha 12 + 4) and embedded inner border are batched
-    // by Level::render after the main tile loop — push the rect for the
-    // batch passes. Wedge stays per-tile to preserve bevel-darkening order.
+    // Gradient, embedded inner border, AND bottom-right shading wedge are
+    // batched by Level::render after the main tile loop — push the rect for
+    // the batch passes. The wedge color is constant (0,0,0,40), so batching
+    // saves ~1 SetColor + ~1 FillRect per visible solid tile (~200/frame).
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     g_solidRects.push_back(sr);
-
-    // Bottom-right shading wedge for depth
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 40);
-    SDL_Rect shade = {sr.x + sr.w / 2, sr.y + sr.h / 2, sr.w / 2, sr.h / 2};
-    SDL_RenderFillRect(renderer, &shade);
 
     // Bevel highlights on exposed edges (2px bright + 1px ultra-bright outer)
     Uint8 hiR = static_cast<Uint8>(std::min(255, tile.color.r + 60));

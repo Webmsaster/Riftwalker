@@ -5,15 +5,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-## Current State (2026-04-12)
+## Current State (2026-04-18)
 - **Content**: 12 weapons (12/12 counter-attacks), 4 classes (4/4 combo finishers), 38 relics, 25 synergies (13 relic-relic + 12 weapon-relic, fully localized), 6 bosses, 17 enemy types, NG+ tiers 0–10
 - **Localization**: 963 EN + 1192 DE keys, ~162 gameplay tips (EN+DE)
-- **Quality**: 0 compiler warnings, visual regression 17/17 PASS, 38 bug patterns documented in `.claude/rules/bug-patterns.md`
+- **Quality**: 0 compiler warnings, visual regression 17/17 PASS, 41 bug patterns documented in `.claude/rules/bug-patterns.md`
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
 
-**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-04-12).
+**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-04-18).
 
-**Latest session (2026-04-12, 8 commits, 40+ fixes):**
+**Latest session (2026-04-18, 4 commits, perf-focused):**
+- **Render hotpath batching** — 4 targeted optimizations targeting redundant state changes in high-frequency render paths:
+  1. RenderSystem: Skip rim light entirely for non-elemental non-elite enemies (rim alpha 18% barely visible at gameplay zoom). NeonCity window SetColor hoisted out of nested loop.
+  2. Boss-effects forEach merged (2 entity scans → 1).
+  3. HUD minimap: Enemy dots batched under single SetRenderDrawColor (was per-entity).
+  4. Level floor pass: Empty-tile grid lines batched under one SetColor (~1000+ state changes/frame saved).
+  5. Solid tile gradient: 4 bands → 2 (visually equivalent at gameplay zoom, halves gradient cost per tile, ~400 fewer SetColor+FillRect/frame).
+- **Trade-offs (intentional)**: (1) Normal enemies no longer have rim glow (only elites/bosses/elemental), (2) Solid tile gradient slightly less smooth.
+- **Cumulative effect**: Meaningful drop in state changes/frame across world, level, and HUD rendering. Visually identical in gameplay (zoom-normalized).
+
+**Previous session (2026-04-12, 8 commits, 40+ fixes):**
 - **Gameplay bugs phase** — 8 damage multiplier chain bypasses fixed: Ground Slam, 4 combo finishers, Phase Strike, Shock Trap, Rift Shield burst, GravityGauntlet counter; shared `computePlayerDamageMult()` helper; ItemDrop GlassCannon protection, Blacksmith multiplier persistence, boss enrage race (CombatSystem timesHit exclusion), VoidSovereign/EntropyIncarnate phase timer seeding, UpgradeSystem/AscensionSystem save clamps.
 - **Visual polish passes 1–6** — Layout fixes (EndingState, Quest HUD, ClassSelect, Relic overflow), render state leaks (enemy enrage, hit-freeze), DE localization overflow (6 panels), major UI polish (pause transition, boss HP ghost, phase flash, relic pickup), enemy feedback (ability bursts, crit particles, elite slow-mo), visual state leaks, 7 missing enemy death FX, electric chain numbers, AncientWeapon reveal, audio semantics (5 SFX swaps), parry ring visual, quick retry [R], shop card wrap, music system wiring, buff labels, boss phase warnings.
 - **Deferred**: Relic bar tooltips, Tutorial expansion (Synergy/Parry/Finisher hints), Colorblind mode.

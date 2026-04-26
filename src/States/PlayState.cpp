@@ -959,12 +959,17 @@ void PlayState::update(float dt) {
     updateDeathEffects(dt);
     updateFogParticles(dt);
 
-    // DimResidue damage zones: tick down lifetime and deal AoE damage
+    // DimResidue damage zones: tick down lifetime and deal AoE damage.
+    // Was O(zones * entities) due to nested forEach — now O(zones + entities)
+    // by collecting active zones once (max 3), then a single enemy pass.
     int curDim = m_dimManager.getCurrentDimension();
     float residueDps = 15.0f; // Default DPS
     if (m_player && m_player->getEntity()->hasComponent<RelicComponent>()) {
         residueDps = RelicSynergy::getResidueDamage(m_player->getEntity()->getComponent<RelicComponent>());
     }
+    struct ResidueZone { Vec2 center; };
+    ResidueZone zones[8];
+    int zoneN = 0;
     m_entities.forEach([&](Entity& zone) {
         if (!zone.isDimResidue) return;
         if (!zone.hasComponent<HealthComponent>()) return;
@@ -974,23 +979,29 @@ void PlayState::update(float dt) {
             zone.destroy();
             return;
         }
-        // Only deal damage in matching dimension
         if (zone.dimension != 0 && zone.dimension != curDim) return;
-        auto& zt = zone.getComponent<TransformComponent>();
-        Vec2 zCenter = zt.getCenter();
-        // Damage enemies in range
+        if (zoneN < 8) {
+            zones[zoneN++] = { zone.getComponent<TransformComponent>().getCenter() };
+        }
+    });
+    if (zoneN > 0) {
+        const float dmgTick = residueDps * dt;
+        constexpr float radSq = 48.0f * 48.0f;
         m_entities.forEach([&](Entity& enemy) {
             if (!enemy.isEnemy) return;
             if (enemy.dimension != 0 && enemy.dimension != curDim) return;
             if (!enemy.hasComponent<TransformComponent>() || !enemy.hasComponent<HealthComponent>()) return;
-            auto& et = enemy.getComponent<TransformComponent>();
-            float dx = et.getCenter().x - zCenter.x;
-            float dy = et.getCenter().y - zCenter.y;
-            if (dx * dx + dy * dy < 48.0f * 48.0f) {
-                enemy.getComponent<HealthComponent>().takeDamage(residueDps * dt);
+            Vec2 ec = enemy.getComponent<TransformComponent>().getCenter();
+            for (int i = 0; i < zoneN; ++i) {
+                float dx = ec.x - zones[i].center.x;
+                float dy = ec.y - zones[i].center.y;
+                if (dx * dx + dy * dy < radSq) {
+                    enemy.getComponent<HealthComponent>().takeDamage(dmgTick);
+                    break; // one tick per enemy per frame
+                }
             }
         });
-    });
+    }
 
     // Ambient theme particles (subtle atmospheric effects matching world theme)
     m_ambientDustTimer += dt;
