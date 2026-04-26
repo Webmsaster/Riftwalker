@@ -219,6 +219,27 @@ private:
     int m_bossNameCachedW = 0;
     int m_bossNameCachedH = 0;
 
+    // Cached rift-counter texture (rebuilt only when rift counts change).
+    // Rasterized every frame while rifts remain on a level.
+    SDL_Texture* m_riftCounterCachedTex = nullptr;
+    int m_riftCounterCachedW = 0;
+    int m_riftCounterCachedH = 0;
+    int m_riftCounterCachedRepaired = -1;
+    int m_riftCounterCachedTotal = -1;
+    int m_riftCounterCachedDimA = -1;
+    int m_riftCounterCachedDimB = -1;
+
+    // Cached challenge-HUD textures: name + per-mutator labels are
+    // static for the run; only rebuild on challenge/mutator change.
+    SDL_Texture* m_challengeNameCachedTex = nullptr;
+    int m_challengeNameCachedID = -1;
+    int m_challengeNameCachedW = 0;
+    int m_challengeNameCachedH = 0;
+    SDL_Texture* m_mutatorCachedTex[2] = {nullptr, nullptr};
+    int m_mutatorCachedID[2] = {-1, -1};
+    int m_mutatorCachedW[2] = {0, 0};
+    int m_mutatorCachedH[2] = {0, 0};
+
     // Wave/area clear celebration
     float m_waveClearTimer = 0;       // text overlay duration (2s)
     float m_waveClearFlashTimer = 0;  // screen brightness pulse (0.15s)

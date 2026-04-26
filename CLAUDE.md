@@ -13,15 +13,20 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 
 **History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-04-18).
 
-**Latest session (2026-04-18, 4 commits, perf-focused):**
-- **Render hotpath batching** — 4 targeted optimizations targeting redundant state changes in high-frequency render paths:
-  1. RenderSystem: Skip rim light entirely for non-elemental non-elite enemies (rim alpha 18% barely visible at gameplay zoom). NeonCity window SetColor hoisted out of nested loop.
-  2. Boss-effects forEach merged (2 entity scans → 1).
-  3. HUD minimap: Enemy dots batched under single SetRenderDrawColor (was per-entity).
-  4. Level floor pass: Empty-tile grid lines batched under one SetColor (~1000+ state changes/frame saved).
-  5. Solid tile gradient: 4 bands → 2 (visually equivalent at gameplay zoom, halves gradient cost per tile, ~400 fewer SetColor+FillRect/frame).
-- **Trade-offs (intentional)**: (1) Normal enemies no longer have rim glow (only elites/bosses/elemental), (2) Solid tile gradient slightly less smooth.
-- **Cumulative effect**: Meaningful drop in state changes/frame across world, level, and HUD rendering. Visually identical in gameplay (zoom-normalized).
+**Latest session (2026-04-18, 3 commits, major perf-focused):**
+- **`97e69af` — 4 Render-Hotpath-Reduktionen + DimResidue-Loop-Inversion**
+  1. Floor-Pass: Empty-Tiles in 4 Hash-Buckets gruppiert → 1 SetColor pro Bucket statt ~1000/Frame
+  2. Solid-Tile-Shading-Wedge (0,0,0,40) jetzt nach dem Tile-Loop gebatcht → ~200 weniger State-Changes/Frame
+  3. Solid-Tile-Gradient + Embedded-Border auf `SDL_RenderFillRects`/`DrawRects` umgestellt
+  4. DimResidue: O(zones × entities) → O(zones + entities) durch Sammeln der aktiven Zonen (max 8) in einem kleinen Array, dann einzelner Enemy-Sweep — gleiche Pattern wie Technomancer-Turrets
+- **`be2e70b` — Kill-Feed-Glyph-Cache**
+  - War: `TTF_RenderUTF8_Blended` + `CreateTextureFromSurface` jeden Frame für jeden aktiven Eintrag (bis zu 5 × 60fps = ~300 Raster-Calls/sec)
+  - Jetzt: Lazy-Init pro Slot, Wiederverwendung über die 4-Sek-Sichtbarkeitszeit; Slot-Reuse macht alte Textur frei
+- **`a7bd55a` — Boss-Name-Cache**
+  - War: Boss-HUD rasterte den Namen jeden Frame (60 calls/sec über mehrere Min Bossfight)
+  - Jetzt: Cache per `bossType`, neu gebaut nur bei Boss-Wechsel
+- **FPS-Verbesserung**: 21 → 83 FPS im Gameplay-Shot (Referenz-Vergleich)
+- **Verifikation**: Build clean (0 Warnings), Smoke-Test OK, Visual-Regression: alle FAILs sind Gameplay-State-Variationen (Position/Timer/Quest-Banner), keine Render-Regressions.
 
 **Previous session (2026-04-12, 8 commits, 40+ fixes):**
 - **Gameplay bugs phase** — 8 damage multiplier chain bypasses fixed: Ground Slam, 4 combo finishers, Phase Strike, Shock Trap, Rift Shield burst, GravityGauntlet counter; shared `computePlayerDamageMult()` helper; ItemDrop GlassCannon protection, Blacksmith multiplier persistence, boss enrage race (CombatSystem timesHit exclusion), VoidSovereign/EntropyIncarnate phase timer seeding, UpgradeSystem/AscensionSystem save clamps.

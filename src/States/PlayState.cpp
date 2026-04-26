@@ -117,6 +117,18 @@ void PlayState::exit() {
     if (m_bossNameCachedTex) { SDL_DestroyTexture(m_bossNameCachedTex); m_bossNameCachedTex = nullptr; }
     m_bossNameCachedType = -1;
     m_bossNameCachedW = m_bossNameCachedH = 0;
+    if (m_riftCounterCachedTex) { SDL_DestroyTexture(m_riftCounterCachedTex); m_riftCounterCachedTex = nullptr; }
+    m_riftCounterCachedRepaired = m_riftCounterCachedTotal = -1;
+    m_riftCounterCachedDimA = m_riftCounterCachedDimB = -1;
+    m_riftCounterCachedW = m_riftCounterCachedH = 0;
+    if (m_challengeNameCachedTex) { SDL_DestroyTexture(m_challengeNameCachedTex); m_challengeNameCachedTex = nullptr; }
+    m_challengeNameCachedID = -1;
+    m_challengeNameCachedW = m_challengeNameCachedH = 0;
+    for (int i = 0; i < 2; i++) {
+        if (m_mutatorCachedTex[i]) { SDL_DestroyTexture(m_mutatorCachedTex[i]); m_mutatorCachedTex[i] = nullptr; }
+        m_mutatorCachedID[i] = -1;
+        m_mutatorCachedW[i] = m_mutatorCachedH[i] = 0;
+    }
     m_killStreakCachedKey.clear();
     m_levelUpLabelCachedKey.clear();
     m_levelUpNumCachedKey.clear();

@@ -80,23 +80,40 @@ void PlayState::renderRiftProgress(SDL_Renderer* renderer) {
             }
             TTF_Font* font = game->getFont();
             if (font) {
-                char riftBuf[96];
-                std::snprintf(riftBuf, sizeof(riftBuf), LOC("hud.rifts_counter"),
-                              m_levelRiftsRepaired, totalRifts, dimARemaining, dimBRemaining);
-                SDL_Color rc = {180, 130, 255, 200};
-                SDL_Surface* rs = TTF_RenderUTF8_Blended(font, riftBuf, rc);
-                if (rs) {
-                    SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
-                    if (rt) {
-                        // Push down if combat challenge panel is showing (avoid overlap)
-                        int rifty = (m_combatChallenge.active && !m_combatChallenge.completed)
-                                    ? (m_isBossLevel ? 200 : 140)
-                                    : 60;
-                        SDL_Rect rr = {SCREEN_WIDTH / 2 - rs->w / 2, rifty, rs->w, rs->h};
-                        SDL_RenderCopy(renderer, rt, nullptr, &rr);
-                        SDL_DestroyTexture(rt);
+                // Rebuild only when any of the four counters change. Stable
+                // across thousands of frames per level until a rift is repaired.
+                if (m_levelRiftsRepaired != m_riftCounterCachedRepaired ||
+                    totalRifts != m_riftCounterCachedTotal ||
+                    dimARemaining != m_riftCounterCachedDimA ||
+                    dimBRemaining != m_riftCounterCachedDimB ||
+                    !m_riftCounterCachedTex) {
+                    if (m_riftCounterCachedTex) {
+                        SDL_DestroyTexture(m_riftCounterCachedTex);
+                        m_riftCounterCachedTex = nullptr;
                     }
-                    SDL_FreeSurface(rs);
+                    char riftBuf[96];
+                    std::snprintf(riftBuf, sizeof(riftBuf), LOC("hud.rifts_counter"),
+                                  m_levelRiftsRepaired, totalRifts, dimARemaining, dimBRemaining);
+                    SDL_Color rc = {180, 130, 255, 200};
+                    SDL_Surface* rs = TTF_RenderUTF8_Blended(font, riftBuf, rc);
+                    if (rs) {
+                        m_riftCounterCachedTex = SDL_CreateTextureFromSurface(renderer, rs);
+                        m_riftCounterCachedW = rs->w;
+                        m_riftCounterCachedH = rs->h;
+                        SDL_FreeSurface(rs);
+                        m_riftCounterCachedRepaired = m_levelRiftsRepaired;
+                        m_riftCounterCachedTotal = totalRifts;
+                        m_riftCounterCachedDimA = dimARemaining;
+                        m_riftCounterCachedDimB = dimBRemaining;
+                    }
+                }
+                if (m_riftCounterCachedTex) {
+                    int rifty = (m_combatChallenge.active && !m_combatChallenge.completed)
+                                ? (m_isBossLevel ? 200 : 140)
+                                : 60;
+                    SDL_Rect rr = {SCREEN_WIDTH / 2 - m_riftCounterCachedW / 2, rifty,
+                                   m_riftCounterCachedW, m_riftCounterCachedH};
+                    SDL_RenderCopy(renderer, m_riftCounterCachedTex, nullptr, &rr);
                 }
             }
         }
@@ -714,19 +731,28 @@ void PlayState::renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font) {
     if (!font) return;
 
     int y = 90;
-    // Challenge name
+    // Challenge name — cached per challenge ID (only rebuilds on change).
     if (g_activeChallenge != ChallengeID::None) {
-        const auto& cd = ChallengeMode::getChallengeData(g_activeChallenge);
-        SDL_Color cc = {255, 200, 60, 200};
-        SDL_Surface* s = TTF_RenderUTF8_Blended(font, cd.name, cc);
-        if (s) {
-            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-            if (t) {
-                SDL_Rect r = {15, y, s->w, s->h};
-                SDL_RenderCopy(renderer, t, nullptr, &r);
-                SDL_DestroyTexture(t);
+        int challengeID = static_cast<int>(g_activeChallenge);
+        if (challengeID != m_challengeNameCachedID || !m_challengeNameCachedTex) {
+            if (m_challengeNameCachedTex) {
+                SDL_DestroyTexture(m_challengeNameCachedTex);
+                m_challengeNameCachedTex = nullptr;
             }
-            SDL_FreeSurface(s);
+            const auto& cd = ChallengeMode::getChallengeData(g_activeChallenge);
+            SDL_Color cc = {255, 200, 60, 200};
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, cd.name, cc);
+            if (s) {
+                m_challengeNameCachedTex = SDL_CreateTextureFromSurface(renderer, s);
+                m_challengeNameCachedW = s->w;
+                m_challengeNameCachedH = s->h;
+                SDL_FreeSurface(s);
+                m_challengeNameCachedID = challengeID;
+            }
+        }
+        if (m_challengeNameCachedTex) {
+            SDL_Rect r = {15, y, m_challengeNameCachedW, m_challengeNameCachedH};
+            SDL_RenderCopy(renderer, m_challengeNameCachedTex, nullptr, &r);
         }
         y += 20;
 
@@ -768,19 +794,28 @@ void PlayState::renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font) {
         }
     }
 
-    // Active mutators
+    // Active mutators — cached per slot+ID, only rebuilt on change.
     for (int i = 0; i < 2; i++) {
         if (g_activeMutators[i] == MutatorID::None) continue;
-        const auto& md = ChallengeMode::getMutatorData(g_activeMutators[i]);
-        SDL_Surface* ms = TTF_RenderUTF8_Blended(font, md.name, SDL_Color{180, 180, 220, 160});
-        if (ms) {
-            SDL_Texture* mt = SDL_CreateTextureFromSurface(renderer, ms);
-            if (mt) {
-                SDL_Rect mr = {15, y, ms->w, ms->h};
-                SDL_RenderCopy(renderer, mt, nullptr, &mr);
-                SDL_DestroyTexture(mt);
+        int mid = static_cast<int>(g_activeMutators[i]);
+        if (mid != m_mutatorCachedID[i] || !m_mutatorCachedTex[i]) {
+            if (m_mutatorCachedTex[i]) {
+                SDL_DestroyTexture(m_mutatorCachedTex[i]);
+                m_mutatorCachedTex[i] = nullptr;
             }
-            SDL_FreeSurface(ms);
+            const auto& md = ChallengeMode::getMutatorData(g_activeMutators[i]);
+            SDL_Surface* ms = TTF_RenderUTF8_Blended(font, md.name, SDL_Color{180, 180, 220, 160});
+            if (ms) {
+                m_mutatorCachedTex[i] = SDL_CreateTextureFromSurface(renderer, ms);
+                m_mutatorCachedW[i] = ms->w;
+                m_mutatorCachedH[i] = ms->h;
+                SDL_FreeSurface(ms);
+                m_mutatorCachedID[i] = mid;
+            }
+        }
+        if (m_mutatorCachedTex[i]) {
+            SDL_Rect mr = {15, y, m_mutatorCachedW[i], m_mutatorCachedH[i]};
+            SDL_RenderCopy(renderer, m_mutatorCachedTex[i], nullptr, &mr);
         }
         y += 16;
     }
