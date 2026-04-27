@@ -61,7 +61,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     $<IF:$<TARGET_EXISTS:SDL2_image::SDL2_image>,SDL2_image::SDL2_image,SDL2_image::SDL2_image-static>
     $<IF:$<TARGET_EXISTS:SDL2_mixer::SDL2_mixer>,SDL2_mixer::SDL2_mixer,SDL2_mixer::SDL2_mixer-static>
     $<IF:$<TARGET_EXISTS:SDL2_ttf::SDL2_ttf>,SDL2_ttf::SDL2_ttf,SDL2_ttf::SDL2_ttf-static>
-    Tracy::TracyClient
+    # Tracy: keep instrumented Debug build for profiling, NOT linked in Release
+    # so ZoneScopedN macros become no-ops (no timestamp/queue overhead in hot paths).
+    $<$<NOT:$<CONFIG:Release>>:Tracy::TracyClient>
 )
 
 # Copy assets to build directory
