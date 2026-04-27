@@ -494,6 +494,7 @@ void Game::loadSaveData() {
             else if (key == "muted")           { if (static_cast<int>(value) != 0 && !AudioManager::instance().isMuted()) AudioManager::instance().toggleMute();
                                                    else if (static_cast<int>(value) == 0 && AudioManager::instance().isMuted()) AudioManager::instance().toggleMute(); }
             else if (key == "crt_effect")      { g_crtEffect = (static_cast<int>(value) != 0); }
+            else if (key == "quality_preset")  { g_qualityPreset = std::clamp(static_cast<int>(value), 0, 2); applyQualityPreset(); }
             else if (key == "window_width")    { int w = static_cast<int>(value); if (w >= 640 && w <= 7680) WINDOW_WIDTH = w; }
             else if (key == "window_height")   { int h = static_cast<int>(value); if (h >= 480 && h <= 4320) WINDOW_HEIGHT = h; }
             else if (key == "last_class")      { int c = static_cast<int>(value); if (c >= 0 && c < static_cast<int>(PlayerClass::COUNT)) g_selectedClass = static_cast<PlayerClass>(c); }
@@ -535,6 +536,7 @@ void Game::saveSettings() {
         f << "language "         << static_cast<int>(Localization::instance().getLanguage()) << "\n";
         f << "muted "             << (AudioManager::instance().isMuted() ? 1 : 0) << "\n";
         f << "crt_effect "       << (g_crtEffect ? 1 : 0) << "\n";
+        f << "quality_preset "   << g_qualityPreset << "\n";
         f << "window_width "     << WINDOW_WIDTH  << "\n";
         f << "window_height "    << WINDOW_HEIGHT << "\n";
         f << "last_class "       << static_cast<int>(g_selectedClass) << "\n";

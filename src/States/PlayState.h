@@ -240,6 +240,20 @@ private:
     int m_mutatorCachedW[2] = {0, 0};
     int m_mutatorCachedH[2] = {0, 0};
 
+    // Speedrun timer texture cache: text only changes per integer second.
+    // Bucket by (mins*100 + secs) so the texture rebuilds at 1Hz instead of 60Hz.
+    SDL_Texture* m_speedrunTimerCachedTex = nullptr;
+    int m_speedrunTimerCachedKey = -1;
+    int m_speedrunTimerCachedW = 0;
+    int m_speedrunTimerCachedH = 0;
+    bool m_speedrunTimerCachedRed = false;
+
+    // Endless score text cache: rebuilds only when score changes.
+    SDL_Texture* m_endlessScoreCachedTex = nullptr;
+    int m_endlessScoreCachedValue = -1;
+    int m_endlessScoreCachedW = 0;
+    int m_endlessScoreCachedH = 0;
+
     // Wave/area clear celebration
     float m_waveClearTimer = 0;       // text overlay duration (2s)
     float m_waveClearFlashTimer = 0;  // screen brightness pulse (0.15s)

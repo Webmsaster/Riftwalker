@@ -1,5 +1,6 @@
 #include "Level.h"
 #include "Core/ResourceManager.h"
+#include "Core/Game.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -201,6 +202,17 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
     // for batched constant-color passes drained after the loop.
     g_solidRects.clear();
     g_embeddedRects.clear();
+
+    // Bucket dim-exclusive border rects by alpha tier so we draw them with
+    // one SetColor + RenderDrawRects per bucket instead of per-tile state changes.
+    // pulse is in [0,1] -> dimAlpha in [40,90] -> bucketed to 4 tiers.
+    constexpr int kDimBuckets = 4;
+    static thread_local std::vector<SDL_Rect> s_dimBorderOuter[kDimBuckets];
+    static thread_local std::vector<SDL_Rect> s_dimBorderInner[kDimBuckets];
+    for (int b = 0; b < kDimBuckets; ++b) {
+        s_dimBorderOuter[b].clear();
+        s_dimBorderInner[b].clear();
+    }
     for (int y = startY; y <= endY; y++) {
         for (int x = startX; x <= endX; x++) {
             const Tile& tile = getTile(x, y, currentDim);
@@ -280,28 +292,38 @@ void Level::render(SDL_Renderer* renderer, const Camera& camera,
                 SDL_RenderFillRect(renderer, &sr);
             }
 
-            // Dimension-exclusive indicator: pulsing border on tiles that don't exist in the other dimension
+            // Dimension-exclusive indicator: pulsing border on tiles that don't exist in the other dimension.
+            // Bucketed by pulse tier to enable batched draw after the loop.
             if (isDimensionExclusive(x, y, currentDim) &&
                 (tile.isSolid() || tile.isOneWay())) {
                 float pulse = 0.5f + 0.5f * std::sin(ticks * 0.004f + x * 1.3f + y * 2.1f);
-                Uint8 dimAlpha = static_cast<Uint8>(40 + 50 * pulse);
-                // Color matches current dimension (blue=dim1, red=dim2)
-                if (currentDim == 1) {
-                    SDL_SetRenderDrawColor(renderer, 100, 160, 255, dimAlpha);
-                } else {
-                    SDL_SetRenderDrawColor(renderer, 255, 100, 100, dimAlpha);
-                }
-                SDL_RenderDrawRect(renderer, &sr);
-                // Inner glow line
-                SDL_Rect innerGlow = {sr.x + 1, sr.y + 1, sr.w - 2, sr.h - 2};
-                Uint8 innerAlpha = static_cast<Uint8>(20 + 25 * pulse);
-                if (currentDim == 1) {
-                    SDL_SetRenderDrawColor(renderer, 100, 160, 255, innerAlpha);
-                } else {
-                    SDL_SetRenderDrawColor(renderer, 255, 100, 100, innerAlpha);
-                }
-                SDL_RenderDrawRect(renderer, &innerGlow);
+                int bucket = static_cast<int>(pulse * (kDimBuckets - 0.001f));
+                if (bucket < 0) bucket = 0;
+                else if (bucket >= kDimBuckets) bucket = kDimBuckets - 1;
+                s_dimBorderOuter[bucket].push_back(sr);
+                s_dimBorderInner[bucket].push_back({sr.x + 1, sr.y + 1, sr.w - 2, sr.h - 2});
             }
+        }
+    }
+
+    // Drain batched dim-exclusive borders: 4 alpha tiers x 2 lines (outer + inner)
+    // = 8 SetColor + 8 RenderDrawRects max, instead of per-tile state changes.
+    {
+        Uint8 dr, dg, db;
+        if (currentDim == 1) { dr = 100; dg = 160; db = 255; }
+        else { dr = 255; dg = 100; db = 100; }
+        // Bucket center pulses: 0.125, 0.375, 0.625, 0.875 -> alpha tiers
+        for (int b = 0; b < kDimBuckets; ++b) {
+            if (s_dimBorderOuter[b].empty()) continue;
+            float pulseMid = (b + 0.5f) / kDimBuckets;
+            Uint8 dimA = static_cast<Uint8>(40 + 50 * pulseMid);
+            Uint8 innA = static_cast<Uint8>(20 + 25 * pulseMid);
+            SDL_SetRenderDrawColor(renderer, dr, dg, db, dimA);
+            SDL_RenderDrawRects(renderer, s_dimBorderOuter[b].data(),
+                                static_cast<int>(s_dimBorderOuter[b].size()));
+            SDL_SetRenderDrawColor(renderer, dr, dg, db, innA);
+            SDL_RenderDrawRects(renderer, s_dimBorderInner[b].data(),
+                                static_cast<int>(s_dimBorderInner[b].size()));
         }
     }
 
@@ -558,8 +580,9 @@ void Level::renderSolidTile(SDL_Renderer* renderer, SDL_Rect sr, const Tile& til
 
     // Surface detail: sparse cracks/wear/moss for texture (per ~12.5% of tiles, was 25%).
     // Lower density saves ~half the per-tile detail SetColor+FillRect/DrawLine calls,
-    // visually equivalent at gameplay zoom.
-    if ((tileHash & 7) == 0) {
+    // visually equivalent at gameplay zoom. Quality preset can skip more details
+    // by widening the mask: g_detailSkipMask=0x1 -> 6.25%, 0x3 -> 1.5%.
+    if ((tileHash & (7 | g_detailSkipMask)) == 0) {
         int detailType = (tileHash >> 2) & 3;
         Uint8 detailA = 30 + (tileHash >> 4) % 25;
         if (detailType == 0 && emptyAbove) {

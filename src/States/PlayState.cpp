@@ -129,6 +129,13 @@ void PlayState::exit() {
         m_mutatorCachedID[i] = -1;
         m_mutatorCachedW[i] = m_mutatorCachedH[i] = 0;
     }
+    if (m_speedrunTimerCachedTex) { SDL_DestroyTexture(m_speedrunTimerCachedTex); m_speedrunTimerCachedTex = nullptr; }
+    m_speedrunTimerCachedKey = -1;
+    m_speedrunTimerCachedW = m_speedrunTimerCachedH = 0;
+    m_speedrunTimerCachedRed = false;
+    if (m_endlessScoreCachedTex) { SDL_DestroyTexture(m_endlessScoreCachedTex); m_endlessScoreCachedTex = nullptr; }
+    m_endlessScoreCachedValue = -1;
+    m_endlessScoreCachedW = m_endlessScoreCachedH = 0;
     m_killStreakCachedKey.clear();
     m_levelUpLabelCachedKey.clear();
     m_levelUpNumCachedKey.clear();

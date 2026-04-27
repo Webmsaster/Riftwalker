@@ -760,35 +760,58 @@ void PlayState::renderChallengeHUD(SDL_Renderer* renderer, TTF_Font* font) {
         if (g_activeChallenge == ChallengeID::Speedrun && m_challengeTimer > 0) {
             int mins = static_cast<int>(m_challengeTimer) / 60;
             int secs = static_cast<int>(m_challengeTimer) % 60;
-            char timerText[32];
-            std::snprintf(timerText, sizeof(timerText), "%d:%02d", mins, secs);
-            SDL_Color tc = (m_challengeTimer < 60) ? SDL_Color{255, 60, 60, 255} : SDL_Color{200, 200, 200, 220};
-            SDL_Surface* ts = TTF_RenderUTF8_Blended(font, timerText, tc);
-            if (ts) {
-                SDL_Texture* tt = SDL_CreateTextureFromSurface(renderer, ts);
-                if (tt) {
-                    SDL_Rect tr = {15, y, ts->w, ts->h};
-                    SDL_RenderCopy(renderer, tt, nullptr, &tr);
-                    SDL_DestroyTexture(tt);
+            int key = mins * 100 + secs;
+            bool isRed = (m_challengeTimer < 60);
+            // Rebuild only when integer second flips OR red/grey color flips
+            // (1Hz instead of 60Hz raster).
+            if (key != m_speedrunTimerCachedKey ||
+                isRed != m_speedrunTimerCachedRed ||
+                !m_speedrunTimerCachedTex) {
+                if (m_speedrunTimerCachedTex) {
+                    SDL_DestroyTexture(m_speedrunTimerCachedTex);
+                    m_speedrunTimerCachedTex = nullptr;
                 }
-                SDL_FreeSurface(ts);
+                char timerText[32];
+                std::snprintf(timerText, sizeof(timerText), "%d:%02d", mins, secs);
+                SDL_Color tc = isRed ? SDL_Color{255, 60, 60, 255} : SDL_Color{200, 200, 200, 220};
+                SDL_Surface* ts = TTF_RenderUTF8_Blended(font, timerText, tc);
+                if (ts) {
+                    m_speedrunTimerCachedTex = SDL_CreateTextureFromSurface(renderer, ts);
+                    m_speedrunTimerCachedW = ts->w;
+                    m_speedrunTimerCachedH = ts->h;
+                    SDL_FreeSurface(ts);
+                    m_speedrunTimerCachedKey = key;
+                    m_speedrunTimerCachedRed = isRed;
+                }
+            }
+            if (m_speedrunTimerCachedTex) {
+                SDL_Rect tr = {15, y, m_speedrunTimerCachedW, m_speedrunTimerCachedH};
+                SDL_RenderCopy(renderer, m_speedrunTimerCachedTex, nullptr, &tr);
             }
             y += 20;
         }
 
-        // Endless score
+        // Endless score: cached, only rebuilds when score changes.
         if (g_activeChallenge == ChallengeID::EndlessRift) {
-            char scoreText[32];
-            std::snprintf(scoreText, sizeof(scoreText), LOC("hud.score"), m_endlessScore);
-            SDL_Surface* ss = TTF_RenderUTF8_Blended(font, scoreText, SDL_Color{200, 180, 255, 220});
-            if (ss) {
-                SDL_Texture* st = SDL_CreateTextureFromSurface(renderer, ss);
-                if (st) {
-                    SDL_Rect sr = {15, y, ss->w, ss->h};
-                    SDL_RenderCopy(renderer, st, nullptr, &sr);
-                    SDL_DestroyTexture(st);
+            if (m_endlessScore != m_endlessScoreCachedValue || !m_endlessScoreCachedTex) {
+                if (m_endlessScoreCachedTex) {
+                    SDL_DestroyTexture(m_endlessScoreCachedTex);
+                    m_endlessScoreCachedTex = nullptr;
                 }
-                SDL_FreeSurface(ss);
+                char scoreText[32];
+                std::snprintf(scoreText, sizeof(scoreText), LOC("hud.score"), m_endlessScore);
+                SDL_Surface* ss = TTF_RenderUTF8_Blended(font, scoreText, SDL_Color{200, 180, 255, 220});
+                if (ss) {
+                    m_endlessScoreCachedTex = SDL_CreateTextureFromSurface(renderer, ss);
+                    m_endlessScoreCachedW = ss->w;
+                    m_endlessScoreCachedH = ss->h;
+                    SDL_FreeSurface(ss);
+                    m_endlessScoreCachedValue = m_endlessScore;
+                }
+            }
+            if (m_endlessScoreCachedTex) {
+                SDL_Rect sr = {15, y, m_endlessScoreCachedW, m_endlessScoreCachedH};
+                SDL_RenderCopy(renderer, m_endlessScoreCachedTex, nullptr, &sr);
             }
             y += 20;
         }

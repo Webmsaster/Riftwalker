@@ -99,6 +99,10 @@ void Localization::loadStrings() {
     m_en["options.on"]             = "ON";
     m_en["options.off"]            = "OFF";
     m_en["options.crt_effect"]     = "CRT Effect";
+    m_en["options.quality"]        = "Quality";
+    m_en["options.quality_low"]    = "Low";
+    m_en["options.quality_med"]    = "Medium";
+    m_en["options.quality_high"]   = "High";
     m_en["options.nav_hint"]       = "A/D Adjust  |  W/S Navigate  |  ENTER Toggle  |  ESC Back";
 
     // Game Over
@@ -1214,6 +1218,10 @@ void Localization::loadStrings() {
     m_de["options.on"]             = "AN";
     m_de["options.off"]            = "AUS";
     m_de["options.crt_effect"]     = "CRT-Effekt";
+    m_de["options.quality"]        = "Qualitaet";
+    m_de["options.quality_low"]    = "Niedrig";
+    m_de["options.quality_med"]    = "Mittel";
+    m_de["options.quality_high"]   = "Hoch";
     m_de["options.nav_hint"]       = "A/D Anpassen  |  W/S Navigieren  |  ENTER Umschalten  |  ESC Zurueck";
 
     // Game Over

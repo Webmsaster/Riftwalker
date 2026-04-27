@@ -35,6 +35,24 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # MSVC: enable C++ exception handling + suppress common noise warnings
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /EHsc /wd4100 /wd4189)
+    # Aggressive Release optimizations (low-end PC friendly: NO /arch:AVX, baseline x64/SSE2 only)
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Release>:/O2>          # Maximum optimization
+        $<$<CONFIG:Release>:/Oi>          # Enable intrinsic functions
+        $<$<CONFIG:Release>:/Ot>          # Favor speed over size
+        $<$<CONFIG:Release>:/Oy>          # Omit frame pointers (frees a register)
+        $<$<CONFIG:Release>:/GL>          # Whole Program Optimization (LTCG)
+        $<$<CONFIG:Release>:/Gy>          # Function-level linking (dead code elimination)
+        $<$<CONFIG:Release>:/Gw>          # Optimize globals
+        $<$<CONFIG:Release>:/GS->         # Disable buffer security checks (we control the code)
+        $<$<CONFIG:Release>:/fp:fast>     # Fast floating-point math
+        $<$<CONFIG:Release>:/DNDEBUG>     # Strip asserts
+    )
+    target_link_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Release>:/LTCG>        # Link-time code generation (pairs with /GL)
+        $<$<CONFIG:Release>:/OPT:REF>     # Eliminate unreferenced functions/data
+        $<$<CONFIG:Release>:/OPT:ICF>     # Identical COMDAT folding
+    )
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

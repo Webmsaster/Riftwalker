@@ -800,17 +800,16 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         float fScale = 1.0f + 0.1f * std::sin(m_frameTicks * 0.012f);
 
         int finisherY = 220; // below combo area (scaled for 2K)
-        SDL_Surface* fSurf = TTF_RenderUTF8_Blended(font, finisherName, fColor);
-        if (fSurf) {
-            SDL_Texture* fTex = SDL_CreateTextureFromSurface(renderer, fSurf);
-            if (fTex) {
-                int fw = static_cast<int>(fSurf->w * fScale);
-                int fh = static_cast<int>(fSurf->h * fScale);
-                SDL_Rect dst = {screenW / 2 - fw / 2, finisherY, fw, fh};
-                SDL_RenderCopy(renderer, fTex, nullptr, &dst);
-                SDL_DestroyTexture(fTex);
-            }
-            SDL_FreeSurface(fSurf);
+        // Cached glyph: text never changes mid-run (per-class string), only alpha pulses.
+        // White base color + per-frame ColorMod gives us a single SDL_Texture we keep
+        // across frames instead of TTF_RenderUTF8_Blended + CreateTextureFromSurface every frame.
+        if (CachedText* fEntry = getOrBuildText(renderer, font, finisherName, {255, 255, 255, 255})) {
+            SDL_SetTextureColorMod(fEntry->texture, fColor.r, fColor.g, fColor.b);
+            SDL_SetTextureAlphaMod(fEntry->texture, fColor.a);
+            int fw = static_cast<int>(fEntry->w * fScale);
+            int fh = static_cast<int>(fEntry->h * fScale);
+            SDL_Rect dst = {screenW / 2 - fw / 2, finisherY, fw, fh};
+            SDL_RenderCopy(renderer, fEntry->texture, nullptr, &dst);
         }
 
         // Finisher availability timer bar

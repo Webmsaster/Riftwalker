@@ -47,6 +47,7 @@ static constexpr int OPT_COLORBLIND = OPT_HUD_OPAC + 2;
 static constexpr int OPT_HUDSCALE   = OPT_HUD_OPAC + 3;
 static constexpr int OPT_LANGUAGE   = OPT_HUD_OPAC + 4;
 static constexpr int OPT_CRT       = OPT_HUD_OPAC + 5;
+static constexpr int OPT_QUALITY   = OPT_HUD_OPAC + 6;
 // Controls / Reset / Back are the last 3 (special buttons)
 
 void OptionsState::enter() {
@@ -67,6 +68,7 @@ void OptionsState::enter() {
     m_options.push_back({LOC("options.hud_scale"), static_cast<int>(g_hudScale * 100), 75, 150, 25, false});
     m_options.push_back({LOC("options.language"), static_cast<int>(Localization::instance().getLanguage()), 0, 1, 1, false}); // 0=EN, 1=DE
     m_options.push_back({LOC("options.crt_effect"), g_crtEffect ? 1 : 0, 0, 1, 1, true});
+    m_options.push_back({LOC("options.quality"), g_qualityPreset, 0, 2, 1, false});
     m_options.push_back({LOC("options.controls"),      0, 0, 0, 0, false}); // special: open keybindings
     m_options.push_back({LOC("options.reset"), 0, 0, 0, 0, false}); // special: reset
     m_options.push_back({LOC("options.back"),          0, 0, 0, 0, false}); // special: back button
@@ -162,6 +164,7 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     m_options[OPT_HUDSCALE].value   = 100; // HUD scale 100%
                     m_options[OPT_LANGUAGE].value   = 0;   // English
                     m_options[OPT_CRT].value        = 0;   // CRT off
+                    m_options[OPT_QUALITY].value    = 2;   // High
                     for (int i = 0; i < static_cast<int>(m_options.size()) - 3; i++) applyOption(i);
                     game->saveSettings();
                     AudioManager::instance().play(SFX::MenuConfirm);
@@ -266,6 +269,10 @@ void OptionsState::applyOption(int index) {
         case OPT_CRT: // CRT Scanline Effect
             g_crtEffect = (m_options[OPT_CRT].value == 1);
             break;
+        case OPT_QUALITY: // Performance preset
+            g_qualityPreset = std::clamp(m_options[OPT_QUALITY].value, 0, 2);
+            applyQualityPreset();
+            break;
     }
 }
 
@@ -298,6 +305,15 @@ std::string OptionsState::getValueText(int index) const {
         char buf[16];
         std::snprintf(buf, sizeof(buf), "%d%%", opt.value);
         return buf;
+    }
+    // Quality preset: Low / Medium / High
+    if (index == OPT_QUALITY) {
+        switch (opt.value) {
+            case 0: return LOC("options.quality_low");
+            case 1: return LOC("options.quality_med");
+            case 2: return LOC("options.quality_high");
+            default: return "?";
+        }
     }
     char buf[16];
     std::snprintf(buf, sizeof(buf), "%d%%", opt.value);
@@ -385,6 +401,7 @@ void OptionsState::update(float dt) {
             m_options[OPT_HUDSCALE].value   = 100;
             m_options[OPT_LANGUAGE].value    = 0;
             m_options[OPT_CRT].value         = 0;
+            m_options[OPT_QUALITY].value     = 2;
             for (int i = 0; i < static_cast<int>(m_options.size()) - 3; i++) applyOption(i);
             game->saveSettings();
             AudioManager::instance().play(SFX::MenuConfirm);

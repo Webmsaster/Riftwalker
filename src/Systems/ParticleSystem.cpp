@@ -189,7 +189,7 @@ void ParticleSystem::burst(const Vec2& pos, int count, SDL_Color color, float sp
         static_cast<Uint8>(color.b / 4),
         static_cast<Uint8>(1) // non-zero triggers useColorLerp
     };
-    e.burstCount = count;
+    e.burstCount = std::max(1, static_cast<int>(count * g_particleQualityMult));
     e.speed = speed;
     e.speedVariance = speed * 0.5f;
     e.lifetime = 0.5f;
@@ -222,6 +222,7 @@ void ParticleSystem::directionalBurst(const Vec2& pos, int count, SDL_Color colo
     e.direction = dirDeg;
     e.spread = spreadDeg;
     e.gravity = 200.0f;
+    e.burstCount = std::max(1, static_cast<int>(e.burstCount * g_particleQualityMult));
     addEmitter(e);
 }
 
@@ -236,7 +237,8 @@ void ParticleSystem::damageEffect(const Vec2& pos, SDL_Color color) {
 
 void ParticleSystem::weaponTrail(const Vec2& origin, const Vec2& tipPos, SDL_Color color, float intensity) {
     // Spawn trail particles along the weapon line (origin -> tip)
-    int count = static_cast<int>(3 + intensity * 3); // 3-6 particles per frame (was 2-4)
+    int count = static_cast<int>((3 + intensity * 3) * g_particleQualityMult); // 3-6 particles per frame
+    if (count < 1) count = 1;
     for (int i = 0; i < count; i++) {
         int slot = findFreeSlot();
         if (slot < 0) return; // Pool full
@@ -285,6 +287,7 @@ void ParticleSystem::weaponTrail(const Vec2& origin, const Vec2& tipPos, SDL_Col
 }
 
 void ParticleSystem::chargeGather(const Vec2& center, int count, SDL_Color color, float radius, float inwardSpeed, float size) {
+    count = std::max(1, static_cast<int>(count * g_particleQualityMult));
     for (int i = 0; i < count; i++) {
         int slot = findFreeSlot();
         if (slot < 0) return;

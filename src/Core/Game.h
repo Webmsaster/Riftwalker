@@ -120,6 +120,60 @@ inline int g_colorBlindMode = 0;
 inline float g_hudScale = 1.0f; // 0.75 - 1.5
 inline bool g_crtEffect = false; // CRT scanline post-processing
 
+// Performance / quality preset
+// 0 = Low (low-end PCs, ~all post-FX off, particle budget halved)
+// 1 = Medium (post-FX on, ambient particles + dynamic lighting off)
+// 2 = High (everything on; default)
+inline int g_qualityPreset = 2;
+// Particle quality multiplier (driven by quality preset; 0.4 / 0.7 / 1.0)
+inline float g_particleQualityMult = 1.0f;
+// Skip every Nth detail pass (driven by quality preset; 1 = no skipping)
+inline int g_detailSkipMask = 0;
+// Master toggle for expensive post-FX (driven by quality preset)
+inline bool g_postFxBloom = true;
+inline bool g_postFxAmbientParticles = true;
+inline bool g_postFxDynamicLighting = true;
+inline bool g_postFxColorGrading = true;
+inline bool g_postFxVignette = true;
+// Disables expensive screen-space chromatic aberration / glitch overlays at low preset
+inline bool g_postFxScreenOverlays = true;
+
+inline void applyQualityPreset() {
+    switch (g_qualityPreset) {
+        case 0: // Low
+            g_particleQualityMult     = 0.4f;
+            g_detailSkipMask          = 0x3; // Skip 3 of 4 procedural-tile-detail passes
+            g_postFxBloom             = false;
+            g_postFxAmbientParticles  = false;
+            g_postFxDynamicLighting   = false;
+            g_postFxColorGrading      = false;
+            g_postFxVignette          = false;
+            g_postFxScreenOverlays    = false;
+            break;
+        case 1: // Medium
+            g_particleQualityMult     = 0.7f;
+            g_detailSkipMask          = 0x1; // Skip ~half of procedural-tile detail
+            g_postFxBloom             = true;
+            g_postFxAmbientParticles  = false;
+            g_postFxDynamicLighting   = false;
+            g_postFxColorGrading      = true;
+            g_postFxVignette          = true;
+            g_postFxScreenOverlays    = true;
+            break;
+        case 2: // High (default)
+        default:
+            g_particleQualityMult     = 1.0f;
+            g_detailSkipMask          = 0;
+            g_postFxBloom             = true;
+            g_postFxAmbientParticles  = true;
+            g_postFxDynamicLighting   = true;
+            g_postFxColorGrading      = true;
+            g_postFxVignette          = true;
+            g_postFxScreenOverlays    = true;
+            break;
+    }
+}
+
 // Color blind helper: remap colors for visibility
 inline SDL_Color applyColorBlind(SDL_Color c) {
     if (g_colorBlindMode == 0) return c;

@@ -1,5 +1,6 @@
 #include "Game/ScreenEffects.h"
 #include "States/GameState.h"
+#include "Core/Game.h"
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
@@ -25,7 +26,7 @@ void ScreenEffects::update(float dt) {
     else m_glitchTimer = 0;
 
     // Update ambient particles (use stored screen dimensions from last render call)
-    if (ambientParticlesEnabled && m_ambientParticlesInitialized) {
+    if (ambientParticlesEnabled && g_postFxAmbientParticles && m_ambientParticlesInitialized) {
         // Screen dimensions match Game::SCREEN_WIDTH/HEIGHT (logical resolution)
         updateAmbientParticles(dt, GameState::SCREEN_WIDTH, GameState::SCREEN_HEIGHT, m_currentDimension);
     }
@@ -485,7 +486,7 @@ void ScreenEffects::renderPostProcessing(SDL_Renderer* renderer, int screenW, in
     // Use a fixed dt estimate of ~16ms (60fps) since we don't get dt here;
     // the actual particle update is in update() for timing, but we do visual
     // updates here too for dimension-color responsiveness.
-    if (ambientParticlesEnabled) {
+    if (ambientParticlesEnabled && g_postFxAmbientParticles) {
         if (!m_ambientParticlesInitialized) {
             initAmbientParticles(screenW, screenH);
         }
@@ -494,7 +495,7 @@ void ScreenEffects::renderPostProcessing(SDL_Renderer* renderer, int screenW, in
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     // 1. Color grading (lowest layer — subtle dimension mood tint)
-    if (colorGradingEnabled) {
+    if (colorGradingEnabled && g_postFxColorGrading) {
         renderColorGrading(renderer, screenW, screenH, currentDimension, dimBlendAlpha);
     }
 
@@ -509,17 +510,17 @@ void ScreenEffects::renderPostProcessing(SDL_Renderer* renderer, int screenW, in
     }
 
     // 2. Bloom/glow simulation (additive bright spots)
-    if (bloomEnabled && m_glowPointCount > 0) {
+    if (bloomEnabled && g_postFxBloom && m_glowPointCount > 0) {
         renderBloom(renderer);
     }
 
     // 3. Ambient particles (floating dust motes)
-    if (ambientParticlesEnabled) {
+    if (ambientParticlesEnabled && g_postFxAmbientParticles) {
         renderAmbientParticles(renderer);
     }
 
     // 4. Cinematic vignette (darkened edges — drawn on top for cinematic framing)
-    if (vignetteEnabled) {
+    if (vignetteEnabled && g_postFxVignette) {
         renderVignette(renderer, screenW, screenH);
     }
 
@@ -833,7 +834,7 @@ void ScreenEffects::registerLight(float screenX, float screenY, float radius,
 }
 
 void ScreenEffects::renderDynamicLighting(SDL_Renderer* renderer, int screenW, int screenH) {
-    if (!dynamicLightingEnabled || m_lightCount == 0) return;
+    if (!dynamicLightingEnabled || !g_postFxDynamicLighting || m_lightCount == 0) return;
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
