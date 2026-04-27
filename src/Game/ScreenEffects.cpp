@@ -231,7 +231,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
     }
 
     // 3b. Chromatic aberration on player damage (brief RGB split at screen edges)
-    if (m_chromaticTimer > 0) {
+    if (m_chromaticTimer > 0 && g_postFxScreenOverlays) {
         float t = m_chromaticTimer / 0.15f; // 1→0
         float intensity = t * m_chromaticIntensity;
         int offset = static_cast<int>(6 * intensity); // 0-6 pixel shift (scaled for 2K)
@@ -436,7 +436,7 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
     }
 
     // 7. Entropy glitch
-    if (m_entropy > 80.0f && m_glitchTimer > 0) {
+    if (m_entropy > 80.0f && m_glitchTimer > 0 && g_postFxScreenOverlays) {
         float intensity = (m_entropy - 80.0f) / 20.0f;
         int numGlitches = static_cast<int>(intensity * 5);
         for (int i = 0; i < numGlitches; i++) {
@@ -778,6 +778,8 @@ void ScreenEffects::renderAmbientParticles(SDL_Renderer* renderer) {
 // -----------------------------------------------------------------------------
 void ScreenEffects::registerGlowPoint(float screenX, float screenY, float radius,
                                        Uint8 r, Uint8 g, Uint8 b, Uint8 intensity) {
+    // Skip the bookkeeping entirely when bloom is disabled by quality preset.
+    if (!bloomEnabled || !g_postFxBloom) return;
     if (m_glowPointCount >= kMaxGlowPoints) return;
     auto& gp = m_glowPoints[m_glowPointCount++];
     gp.x = screenX;
@@ -829,6 +831,8 @@ void ScreenEffects::renderBloom(SDL_Renderer* renderer) {
 
 void ScreenEffects::registerLight(float screenX, float screenY, float radius,
                                    Uint8 r, Uint8 g, Uint8 b, float intensity) {
+    // Skip the bookkeeping entirely when dynamic lighting is disabled by quality preset.
+    if (!dynamicLightingEnabled || !g_postFxDynamicLighting) return;
     if (m_lightCount >= kMaxLights) return;
     m_lights[m_lightCount++] = {screenX, screenY, radius, r, g, b, intensity};
 }
