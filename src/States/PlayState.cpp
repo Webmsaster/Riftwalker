@@ -661,6 +661,38 @@ void PlayState::update(float dt) {
         m_lastAchievementTimer = curTimer;
     }
 
+    // Synergy first-activation banner: scan all 25 synergies, fire a golden
+    // banner once per synergy when it activates for the first time this run.
+    // The banner timer counts down independently and the most recent activation
+    // wins (rare to fire two synergies in the same frame).
+    if (m_player && m_player->getEntity() &&
+        m_player->getEntity()->hasComponent<RelicComponent>() &&
+        m_player->getEntity()->hasComponent<CombatComponent>()) {
+        const auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
+        const auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+        for (int i = 0; i < static_cast<int>(SynergyID::COUNT); ++i) {
+            SynergyID sid = static_cast<SynergyID>(i);
+            const auto& sd = RelicSynergy::getData(sid);
+            bool active = (sd.requiredWeapon == WeaponID::COUNT)
+                ? RelicSynergy::isActive(relics, sid)
+                : RelicSynergy::isWeaponSynergyActive(relics, sid,
+                                                      combat.currentMelee,
+                                                      combat.currentRanged);
+            if (active && !m_synergySeen[i]) {
+                m_synergySeen[i] = true;
+                m_synergyBannerName = sd.name ? sd.name : "Synergy";
+                m_synergyBannerTimer = 2.5f;
+                m_camera.flash(0.20f, 255, 220, 100);
+                game->getInputMutable().rumble(0.40f, 180);
+                if (m_player->getEntity()->hasComponent<TransformComponent>()) {
+                    Vec2 pp = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                    m_particles.burst(pp, 16, {255, 230, 120, 255}, 130.0f, 3.5f);
+                }
+            }
+        }
+    }
+    if (m_synergyBannerTimer > 0.0f) m_synergyBannerTimer -= dt;
+
     // Mastery tier-up celebration: fire once per weapon when its tier rises.
     // Camera flash + rumble + particle burst at player. Pairs with the
     // existing HUD text-flash so the moment hits all senses.

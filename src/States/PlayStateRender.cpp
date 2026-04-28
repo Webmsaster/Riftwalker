@@ -945,6 +945,50 @@ void PlayState::render(SDL_Renderer* renderer) {
         }
     }
 
+    // Synergy activation banner — golden centered banner when a new synergy
+    // first activates this run. Tells the player their build just clicked.
+    if (m_synergyBannerTimer > 0.0f && game->getFont() && !m_synergyBannerName.empty()) {
+        TTF_Font* font = game->getFont();
+        float t = m_synergyBannerTimer / 2.5f; // 1 -> 0
+        float fade = 1.0f;
+        if (t > 0.92f) fade = (1.0f - t) / 0.08f;
+        else if (t < 0.20f) fade = t / 0.20f;
+        fade = std::max(0.0f, std::min(1.0f, fade));
+        Uint8 a = static_cast<Uint8>(fade * 230);
+        if (a > 5) {
+            const char* prefix = "SYNERGY: ";
+            char banner[128];
+            std::snprintf(banner, sizeof(banner), "%s%s", prefix, m_synergyBannerName.c_str());
+            SDL_Color c = {255, 220, 100, a};
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, banner, c);
+            if (s) {
+                SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
+                if (tex) {
+                    SDL_SetTextureAlphaMod(tex, a);
+                    int sw = s->w * 2;
+                    int sh = s->h * 2;
+                    int padX = 24, padY = 12;
+                    int bw = sw + padX * 2;
+                    int bh = sh + padY * 2;
+                    int bx = SCREEN_WIDTH / 2 - bw / 2;
+                    int by = 280;
+                    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+                    SDL_SetRenderDrawColor(renderer, 30, 22, 8,
+                                           static_cast<Uint8>(fade * 220));
+                    SDL_Rect bg = {bx, by, bw, bh};
+                    SDL_RenderFillRect(renderer, &bg);
+                    SDL_SetRenderDrawColor(renderer, 255, 220, 100,
+                                           static_cast<Uint8>(fade * 200));
+                    SDL_RenderDrawRect(renderer, &bg);
+                    SDL_Rect tr = {bx + padX, by + padY, sw, sh};
+                    SDL_RenderCopy(renderer, tex, nullptr, &tr);
+                    SDL_DestroyTexture(tex);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+    }
+
     // Combo break red border flash — fires when a 5+ combo drops to 0 from
     // timeout, so the loss reads viscerally instead of just disappearing.
     if (m_comboBreakFlashTimer > 0.0f) {

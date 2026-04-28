@@ -1,5 +1,7 @@
 #pragma once
 #include <set>
+#include <array>
+#include <string>
 #include "GameState.h"
 #include "ECS/EntityManager.h"
 #include "Core/Camera.h"
@@ -166,6 +168,13 @@ private:
     // particle burst at the player when a weapon hits a new mastery tier
     // mid-run. Tracks 2 slots: [0]=melee, [1]=ranged.
     int m_lastMasteryTier[2] = {0, 0};
+
+    // Synergy first-activation tracking: 25 bits (one per SynergyID); set the
+    // first time the synergy goes active in this run, used to surface a brief
+    // golden banner so the player knows their build just clicked.
+    std::array<bool, 32> m_synergySeen = {}; // 25 used, padded to 32
+    std::string m_synergyBannerName;
+    float m_synergyBannerTimer = 0.0f;
 
     // Auto-pause resume countdown: when the auto-pause-on-focus-loss path
     // triggers, this is set so the player gets a brief "ready" freeze on
