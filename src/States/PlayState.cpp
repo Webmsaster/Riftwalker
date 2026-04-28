@@ -593,6 +593,9 @@ void PlayState::update(float dt) {
     // Run time tracking
     m_runTime += dt;
 
+    // Save indicator toast timer (HUD reads g_saveIndicatorTimer each frame)
+    if (g_saveIndicatorTimer > 0.0f) g_saveIndicatorTimer -= dt;
+
     // Player update
     m_player->update(dt, game->getInput());
 
@@ -687,6 +690,9 @@ void PlayState::update(float dt) {
         num.maxLifetime = 1.0f;
         num.isPlayerDamage = false;
         m_damageNumbers.push_back(num);
+        // Tactile parry confirm: firm rumble pulse — a parry is the most
+        // satisfying defensive action; reward all senses.
+        game->getInputMutable().rumble(0.55f, 140);
     }
     m_combatSystem.parryEvents.clear();
 

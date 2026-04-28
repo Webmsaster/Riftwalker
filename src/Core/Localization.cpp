@@ -56,6 +56,7 @@ void Localization::loadStrings() {
     m_en["pause.abandon_confirm"]  = "Confirm Abandon?";
     m_en["pause.quit_menu"]        = "Quit to Menu";
     m_en["pause.nav_hint"]         = "ESC Resume  |  W/S Navigate  |  ENTER Select";
+    m_en["pause.controls_header"]  = "Controls";
 
     // Pause Stats
     m_en["pause.run_stats"]        = "RUN STATS";
@@ -1177,6 +1178,7 @@ void Localization::loadStrings() {
     m_de["pause.abandon_confirm"]  = "Wirklich abbrechen?";
     m_de["pause.quit_menu"]        = "Zurueck zum Menue";
     m_de["pause.nav_hint"]         = "ESC Fortsetzen  |  W/S Navigieren  |  ENTER Auswaehlen";
+    m_de["pause.controls_header"]  = "Steuerung";
 
     // Pause Stats
     m_de["pause.run_stats"]        = "LAUF-STATISTIK";

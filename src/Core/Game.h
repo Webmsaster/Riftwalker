@@ -127,6 +127,13 @@ inline bool g_reduceFlashes = false;
 // Helper: scales flash alpha (1.0 normal, 0.3 when reduce-flashes is on)
 inline float flashScale() { return g_reduceFlashes ? 0.3f : 1.0f; }
 
+// Save indicator: any code that persists state can call notifySaved().
+// PlayState's HUD reads g_saveIndicatorTimer each frame and renders a small
+// "Saved" toast in the corner that fades out in 1.5s. Doesn't depend on the
+// rest of the codebase — single global float.
+inline float g_saveIndicatorTimer = 0.0f;
+inline void notifySaved() { g_saveIndicatorTimer = 1.5f; }
+
 // Performance / quality preset
 // 0 = Low (low-end PCs, ~all post-FX off, particle budget halved)
 // 1 = Medium (post-FX on, ambient particles + dynamic lighting off)

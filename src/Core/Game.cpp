@@ -521,6 +521,7 @@ void Game::saveSaveData() {
 
     // Save audio/visual settings
     saveSettings();
+    notifySaved();
 }
 
 void Game::saveSettings() {

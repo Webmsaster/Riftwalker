@@ -288,8 +288,18 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                         m_particles->burst(targetCenter, 16, {255, 215, 0, 255}, 250.0f, 3.5f);
                         // Inner gold sparkle
                         m_particles->burst(targetCenter, 10, {255, 200, 60, 255}, 100.0f, 2.0f);
+                        // Directional shockwave rays — 8 evenly-spaced bursts give
+                        // the parry an unmistakable "kapow" star pattern that the
+                        // 360° bursts alone don't read as clearly.
+                        for (int ang = 0; ang < 8; ++ang) {
+                            float a = ang * 45.0f;
+                            m_particles->directionalBurst(targetCenter, 4,
+                                {255, 240, 180, 255}, a, 18.0f, 420.0f, 3.0f);
+                        }
                     }
                     // Queue "PARRY!" floating text for PlayState
+                    // (rumble is fired from PlayState's parry-event consumer
+                    // since CombatSystem doesn't own the InputManager)
                     parryEvents.push_back({targetCenter});
                     return; // Negate the hit entirely
                 }
@@ -532,6 +542,17 @@ void CombatSystem::processAttack(Entity& attacker, EntityManager& entities, int 
                 if (targetIsPlayer && hp.isInvincible()) return;
                 hp.takeDamage(damage);
                 m_damageEvents.push_back({targetCenter, damage, !isPlayer, isCrit, false, transform.getCenter()});
+
+                // Game feel: camera kick scales with damage taken — small chip
+                // damage barely shakes (or just rumbles), heavy hits shake hard.
+                // Reads as "I just got slapped" and helps the player gauge how
+                // bad the hit was without staring at the HP bar.
+                if (targetIsPlayer && damage > 0.5f && m_camera) {
+                    // Threshold: <8 dmg = soft, 8..30 = medium, 30+ = heavy
+                    float kick = std::min(20.0f, 1.5f + damage * 0.45f);
+                    float dur  = std::min(0.45f, 0.10f + damage * 0.012f);
+                    m_camera->shake(kick, dur);
+                }
 
                 // Combo-stage knockback variation (player only)
                 int comboStage = (isPlayer && combat.comboCount > 0) ? ((combat.comboCount - 1) % 3) : 0;

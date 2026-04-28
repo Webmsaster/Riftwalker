@@ -2,6 +2,7 @@
 #include "PlayState.h"
 #include "Core/Game.h"
 #include "Core/AudioManager.h"
+#include "Core/InputManager.h"
 #include "Core/Localization.h"
 #include "UI/UITextures.h"
 #include "Game/WeaponSystem.h"
@@ -337,6 +338,81 @@ void PauseState::render(SDL_Renderer* renderer) {
                 SDL_DestroyTexture(ht);
             }
             SDL_FreeSurface(hs);
+        }
+    }
+
+    // Quick controls reference (bottom-left panel) — players can glance at the
+    // current bindings without leaving the run. Reads live from InputManager so
+    // remapped keys are reflected.
+    if (font) {
+        const auto& input = game->getInput();
+        struct Row { Action action; const char* labelKey; };
+        const Row rows[] = {
+            {Action::MoveLeft,    "action.move_left"},
+            {Action::MoveRight,   "action.move_right"},
+            {Action::Jump,        "action.jump"},
+            {Action::Dash,        "action.dash"},
+            {Action::Attack,      "action.melee"},
+            {Action::RangedAttack,"action.ranged"},
+            {Action::Interact,    "action.interact"},
+            {Action::DimensionSwitch, "action.dim_switch"},
+        };
+        constexpr int kRowCount = sizeof(rows) / sizeof(rows[0]);
+        constexpr int kRowH = 30;
+        const int panelW = 380;
+        const int panelH = kRowCount * kRowH + 40;
+        const int panelX = 30;
+        const int panelY = SCREEN_HEIGHT - panelH - 100;
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 12, 8, 22, 200);
+        SDL_Rect bg = {panelX, panelY, panelW, panelH};
+        SDL_RenderFillRect(renderer, &bg);
+        SDL_SetRenderDrawColor(renderer, 80, 60, 140, 160);
+        SDL_RenderDrawRect(renderer, &bg);
+
+        // Header
+        SDL_Color headerC = {180, 150, 220, 220};
+        SDL_Surface* hdr = TTF_RenderUTF8_Blended(font, LOC("pause.controls_header"), headerC);
+        if (hdr) {
+            SDL_Texture* htex = SDL_CreateTextureFromSurface(renderer, hdr);
+            if (htex) {
+                SDL_Rect hr = {panelX + 14, panelY + 8, hdr->w, hdr->h};
+                SDL_RenderCopy(renderer, htex, nullptr, &hr);
+                SDL_DestroyTexture(htex);
+            }
+            SDL_FreeSurface(hdr);
+        }
+
+        for (int i = 0; i < kRowCount; ++i) {
+            int ry = panelY + 36 + i * kRowH;
+            SDL_Color labelC = {160, 160, 180, 220};
+            SDL_Color keyC   = {255, 220, 140, 230};
+            // Action label (left)
+            SDL_Surface* ls = TTF_RenderUTF8_Blended(font, LOC(rows[i].labelKey), labelC);
+            if (ls) {
+                SDL_Texture* lt = SDL_CreateTextureFromSurface(renderer, ls);
+                if (lt) {
+                    SDL_Rect lr = {panelX + 14, ry, ls->w, ls->h};
+                    SDL_RenderCopy(renderer, lt, nullptr, &lr);
+                    SDL_DestroyTexture(lt);
+                }
+                SDL_FreeSurface(ls);
+            }
+            // Key label (right) — live from InputManager
+            SDL_Scancode sc = input.getKeyForAction(rows[i].action);
+            const char* kn = SDL_GetScancodeName(sc);
+            if (!kn || !*kn) kn = "?";
+            SDL_Surface* ks = TTF_RenderUTF8_Blended(font, kn, keyC);
+            if (ks) {
+                SDL_Texture* kt = SDL_CreateTextureFromSurface(renderer, ks);
+                if (kt) {
+                    SDL_Rect kr = {panelX + panelW - 14 - ks->w, ry, ks->w, ks->h};
+                    SDL_RenderCopy(renderer, kt, nullptr, &kr);
+                    SDL_DestroyTexture(kt);
+                }
+                SDL_FreeSurface(ks);
+            }
         }
     }
 }

@@ -970,6 +970,47 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
         SDL_Rect dst = {0, 0, screenW, screenH};
         SDL_RenderCopy(renderer, m_hudTarget, nullptr, &dst);
     }
+
+    // Save indicator toast (drawn AFTER opacity blit so it's always full-bright).
+    // Triggered by notifySaved() — fades over 1.5s in the bottom-right corner.
+    if (font && g_saveIndicatorTimer > 0.0f) {
+        float t = std::min(1.0f, g_saveIndicatorTimer / 1.5f);
+        // Quick fade-in (first 100ms), hold, then fade-out (last 400ms)
+        float alphaF = 1.0f;
+        if (t > 0.93f) alphaF = (1.0f - t) / 0.07f;       // fade-in tail
+        else if (t < 0.27f) alphaF = t / 0.27f;            // fade-out
+        alphaF = std::max(0.0f, std::min(1.0f, alphaF));
+        Uint8 a = static_cast<Uint8>(alphaF * 220);
+        if (a > 5) {
+            SDL_Color c = {200, 220, 180, a};
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, "Saved", c);
+            if (s) {
+                SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
+                if (tex) {
+                    SDL_SetTextureAlphaMod(tex, a);
+                    int padX = 14, padY = 8;
+                    SDL_Rect bg = {screenW - s->w - padX * 2 - 24,
+                                   screenH - s->h - padY * 2 - 24,
+                                   s->w + padX * 2, s->h + padY * 2};
+                    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+                    SDL_SetRenderDrawColor(renderer, 10, 20, 14,
+                                           static_cast<Uint8>(alphaF * 200));
+                    SDL_RenderFillRect(renderer, &bg);
+                    SDL_SetRenderDrawColor(renderer, 100, 200, 130,
+                                           static_cast<Uint8>(alphaF * 180));
+                    SDL_RenderDrawRect(renderer, &bg);
+                    // Small green checkmark dot
+                    SDL_SetRenderDrawColor(renderer, 120, 230, 140, a);
+                    SDL_Rect dot = {bg.x + 8, bg.y + bg.h / 2 - 3, 6, 6};
+                    SDL_RenderFillRect(renderer, &dot);
+                    SDL_Rect tr = {bg.x + padX + 8, bg.y + padY, s->w, s->h};
+                    SDL_RenderCopy(renderer, tex, nullptr, &tr);
+                    SDL_DestroyTexture(tex);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+    }
 }
 
 // ============================================================
