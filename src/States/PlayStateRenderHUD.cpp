@@ -541,6 +541,7 @@ void PlayState::renderOffScreenEnemyArrows(SDL_Renderer* renderer) {
     // Render small directional arrow + dot for any boss or elite that exists
     // off-screen, anchored at the screen edge along the line from camera center
     // to the enemy. Pulses + colored by tier (boss = red, elite = orange).
+    // Also shows a green beacon arrow when the exit is active but off-screen.
     if (!m_player) return;
     constexpr int kEdgeMargin = 40; // distance from screen edge
     const int cx = SCREEN_WIDTH / 2;
@@ -552,6 +553,55 @@ void PlayState::renderOffScreenEnemyArrows(SDL_Renderer* renderer) {
     float pulse = 0.7f + 0.3f * std::sin(ticks * 0.008f);
 
     int curDim = m_dimManager.getCurrentDimension();
+
+    // Exit beacon when active + off-screen — guides players to the exit once
+    // all rifts are repaired. Bright green so it doesn't get confused with the
+    // red boss / orange elite arrows.
+    if (m_level && m_level->isExitActive()) {
+        Vec2 exitPos = m_level->getExitPoint();
+        Vec2 exitCenter = {exitPos.x + m_level->getTileSize() * 0.5f,
+                           exitPos.y + m_level->getTileSize()};
+        Vec2 sp = m_camera.worldToScreen(exitCenter);
+        if (sp.x < -20 || sp.x > SCREEN_WIDTH + 20 ||
+            sp.y < -20 || sp.y > SCREEN_HEIGHT + 20) {
+            float dx = sp.x - cx;
+            float dy = sp.y - cy;
+            float mag = std::sqrt(dx * dx + dy * dy);
+            if (mag > 0.001f) {
+                dx /= mag; dy /= mag;
+                float halfW = SCREEN_WIDTH * 0.5f - kEdgeMargin;
+                float halfH = SCREEN_HEIGHT * 0.5f - kEdgeMargin;
+                float t1 = (std::abs(dx) > 0.001f) ? halfW / std::abs(dx) : 1e9f;
+                float t2 = (std::abs(dy) > 0.001f) ? halfH / std::abs(dy) : 1e9f;
+                float t = std::min(t1, t2);
+                int ax = cx + static_cast<int>(dx * t);
+                int ay = cy + static_cast<int>(dy * t);
+                Uint8 a = static_cast<Uint8>(220 * pulse);
+                // Larger green dot + halo
+                SDL_SetRenderDrawColor(renderer, 80, 255, 100, a);
+                SDL_Rect dot = {ax - 7, ay - 7, 14, 14};
+                SDL_RenderFillRect(renderer, &dot);
+                SDL_SetRenderDrawColor(renderer, 80, 255, 100,
+                                       static_cast<Uint8>(a / 3));
+                SDL_Rect halo = {ax - 14, ay - 14, 28, 28};
+                SDL_RenderFillRect(renderer, &halo);
+                // Triangle pointing outward
+                int tipX = ax + static_cast<int>(dx * 26);
+                int tipY = ay + static_cast<int>(dy * 26);
+                float px = -dy, py = dx;
+                int b1x = ax + static_cast<int>(px * 11);
+                int b1y = ay + static_cast<int>(py * 11);
+                int b2x = ax - static_cast<int>(px * 11);
+                int b2y = ay - static_cast<int>(py * 11);
+                SDL_SetRenderDrawColor(renderer, 80, 255, 100, a);
+                SDL_RenderDrawLine(renderer, b1x, b1y, tipX, tipY);
+                SDL_RenderDrawLine(renderer, b2x, b2y, tipX, tipY);
+                SDL_RenderDrawLine(renderer, b1x, b1y, b2x, b2y);
+                SDL_RenderDrawLine(renderer, b1x, b1y + 1, tipX, tipY + 1);
+                SDL_RenderDrawLine(renderer, b2x, b2y + 1, tipX, tipY + 1);
+            }
+        }
+    }
 
     m_entities.forEach([&](Entity& e) {
         if (!e.isAlive() || !e.isEnemy) return;
