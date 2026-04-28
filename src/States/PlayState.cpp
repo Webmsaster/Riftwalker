@@ -928,6 +928,12 @@ void PlayState::update(float dt) {
             game->getUpgradeSystem().addRiftShards(bossShards);
             AudioManager::instance().play(SFX::LevelComplete);
             m_camera.shake(15.0f, 0.5f);
+            // Boss kill: triple-sense climax — long rumble pulse, gold-white
+            // camera flash, brief slow-mo dilation. The achievement haptic
+            // (if any unlocks) layers on top a moment later.
+            game->getInputMutable().rumble(0.85f, 380);
+            m_camera.flash(0.35f, 255, 230, 160);
+            m_killSlowMoTimer = 0.45f;
             Vec2 playerPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
             m_particles.burst(playerPos, 60, {255, 200, 100, 255}, 350.0f, 6.0f);
 
@@ -1405,6 +1411,9 @@ void PlayState::update(float dt) {
                 ? SDL_Color{255, 180, 60, 200}   // Orange/white for melee
                 : SDL_Color{60, 180, 255, 200};   // Blue/cyan for ranged
             m_particles.burst(pPos, 8, burstColor, 100.0f, 2.5f);
+            // Tactile confirm — short crisp rumble pulse so the swap registers
+            // even when the player isn't looking at the HUD weapon panel.
+            game->getInputMutable().rumble(0.20f, 60);
 
             m_player->weaponSwitchPending = 0;
         }
