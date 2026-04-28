@@ -28,6 +28,13 @@ void AISystem::updateDimensionalArchitect(Entity& entity, float dt, const Vec2& 
             m_particles->burst(pos, 30, {100, 180, 255, 220}, 200.0f, 6.0f);
         }
         AudioManager::instance().play(SFX::ArchCollapse);
+        // Camera shake scales with phase intensity — phase 4 (rare extra phase
+        // at 15% HP under Ascension) is the most dramatic, phase 2 the gentlest.
+        if (m_camera) {
+            float intensity = 6.0f + newPhase * 3.5f;   // 9.5 / 13 / 16.5 / 20
+            float duration = 0.30f + newPhase * 0.08f;  // 0.38 / 0.46 / 0.54 / 0.62
+            m_camera->shake(intensity, duration);
+        }
     }
 
     // Hover animation (floating boss)
