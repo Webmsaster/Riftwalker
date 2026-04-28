@@ -182,7 +182,7 @@ void Localization::loadStrings() {
     m_en["hud.repair_dimb"]        = "Press F to repair volatile DIM-B rift (+%d%% shards, -%.0f entropy)";
     m_en["hud.repair_dima"]        = "Press F to repair stable DIM-A rift";
     m_en["relic.cursed"]           = "CURSED";
-    m_en["menu.version"]           = "v0.1  -  Made with SDL2";
+    m_en["menu.version"]           = "v1.0  -  Made with SDL2";
     m_en["pause.ngplus"]           = "New Game+ %d";
     m_en["pause.mastery"]          = "  [%s] %d kills";
     m_en["mastery.familiar"]       = "Familiar";
@@ -1337,7 +1337,7 @@ void Localization::loadStrings() {
     m_de["hud.repair_dimb"]        = "F: Instabilen DIM-B-Riss reparieren (+%d%% Splitter, -%.0f Entropie)";
     m_de["hud.repair_dima"]        = "F: Stabilen DIM-A-Riss reparieren";
     m_de["relic.cursed"]           = "VERFLUCHT";
-    m_de["menu.version"]           = "v0.1  -  Erstellt mit SDL2";
+    m_de["menu.version"]           = "v1.0  -  Erstellt mit SDL2";
     m_de["pause.ngplus"]           = "New Game+ %d";
     m_de["pause.mastery"]          = "  [%s] %d Kills";
     m_de["mastery.familiar"]       = "Vertraut";
