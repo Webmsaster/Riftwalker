@@ -213,6 +213,15 @@ void Game::handleEvents() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
+            // Mid-run quit safeguard: if the player presses the close button or
+            // Alt-F4 during an active run, redirect to PauseState (which has the
+            // explicit Abandon Run / Quit options) instead of dropping the run
+            // silently. Smoke test / playtest bot bypass for automation.
+            if (!g_autoSmokeTest && !g_autoPlaytest &&
+                getCurrentStateID() == StateID::Play) {
+                pushState(StateID::Pause);
+                continue; // swallow the SDL_QUIT — user must confirm in Pause
+            }
             m_running = false;
             return;
         }

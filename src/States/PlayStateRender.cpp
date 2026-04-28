@@ -917,6 +917,27 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Tutorial hints (first 3 levels only)
     renderTutorialHints(renderer, game->getFont());
 
+    // Combo break red border flash — fires when a 5+ combo drops to 0 from
+    // timeout, so the loss reads viscerally instead of just disappearing.
+    if (m_comboBreakFlashTimer > 0.0f) {
+        float t = m_comboBreakFlashTimer / 0.4f; // 1 -> 0
+        Uint8 a = static_cast<Uint8>(t * t * 180); // quadratic fade
+        if (a > 5) {
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer, 220, 60, 60, a);
+            // Four edge bands (top/bottom/left/right) — frame the screen red.
+            int band = 28;
+            SDL_Rect top    = {0, 0, SCREEN_WIDTH, band};
+            SDL_Rect bottom = {0, SCREEN_HEIGHT - band, SCREEN_WIDTH, band};
+            SDL_Rect left   = {0, band, band, SCREEN_HEIGHT - 2 * band};
+            SDL_Rect right  = {SCREEN_WIDTH - band, band, band, SCREEN_HEIGHT - 2 * band};
+            SDL_RenderFillRect(renderer, &top);
+            SDL_RenderFillRect(renderer, &bottom);
+            SDL_RenderFillRect(renderer, &left);
+            SDL_RenderFillRect(renderer, &right);
+        }
+    }
+
     // Stuck-detection contextual hint (60s no progress -> surface advice)
     if (m_stuckHintTimer > 0.0f && game->getFont()) {
         TTF_Font* font = game->getFont();

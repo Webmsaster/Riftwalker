@@ -616,6 +616,38 @@ void PlayState::update(float dt) {
     }
     if (m_stuckHintTimer > 0.0f) m_stuckHintTimer -= dt;
 
+    // Achievement unlock haptic: fire once when notification timer rises from 0.
+    {
+        float curTimer = 0.0f;
+        if (auto* notif = game->getAchievements().getActiveNotification()) {
+            curTimer = notif->timer;
+        }
+        if (curTimer > m_lastAchievementTimer + 0.5f) {
+            // Rising edge — new achievement unlocked. Crisp positive feedback.
+            game->getInputMutable().rumble(0.55f, 200);
+            m_camera.flash(0.25f, 200, 255, 180); // gentle green-gold flash
+            if (m_player && m_player->getEntity() &&
+                m_player->getEntity()->hasComponent<TransformComponent>()) {
+                Vec2 pp = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                m_particles.burst(pp, 14, {255, 220, 80, 255}, 140.0f, 3.5f);
+                m_particles.burst(pp, 8,  {200, 255, 200, 255}, 90.0f,  2.5f);
+            }
+        }
+        m_lastAchievementTimer = curTimer;
+    }
+
+    // Combo break red flash: detect drop from >=5 combo to 0 (timeout). The
+    // combo lives on the player's CombatComponent, not on CombatSystem.
+    if (m_player && m_player->getEntity() &&
+        m_player->getEntity()->hasComponent<CombatComponent>()) {
+        int curCombo = m_player->getEntity()->getComponent<CombatComponent>().comboCount;
+        if (m_lastComboCount >= 5 && curCombo == 0) {
+            m_comboBreakFlashTimer = 0.4f;
+        }
+        m_lastComboCount = curCombo;
+    }
+    if (m_comboBreakFlashTimer > 0.0f) m_comboBreakFlashTimer -= dt;
+
     // Player update
     m_player->update(dt, game->getInput());
 

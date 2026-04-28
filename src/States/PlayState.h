@@ -158,6 +158,14 @@ private:
     int m_lastProgressRifts = 0;            // rifts repaired at last progress mark
     float m_stuckHintTimer = 0.0f;          // visibility timer for hint (>0 = shown)
 
+    // Edge-detect achievement notifications so we can fire haptic + camera
+    // flash exactly once per unlock (timer goes from 0 -> duration on unlock).
+    float m_lastAchievementTimer = 0.0f;
+    // Edge-detect combo break: fire a red border flash when combo drops from
+    // a meaningful threshold (>=5) to 0 abruptly.
+    int m_lastComboCount = 0;
+    float m_comboBreakFlashTimer = 0.0f;
+
     // World themes
     WorldTheme m_themeA;
     WorldTheme m_themeB;
