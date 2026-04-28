@@ -177,6 +177,8 @@ void PlayState::updateDimensionEffects(float dt) {
     // Pickup magnet: shards within ~150px accelerate toward the player so
     // post-fight cleanup isn't fiddly. Distance check uses squared distance
     // to avoid sqrt; pull strength tapers with distance for a soft fall-off.
+    // Gravity is toggled per-frame so a shard that briefly entered the magnet
+    // zone and then left does NOT lose gravity permanently (regression catch).
     if (m_player && m_player->getEntity()) {
         Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
         constexpr float kMagnetRange = 150.0f;
@@ -189,19 +191,25 @@ void PlayState::updateDimensionEffects(float dt) {
             // Only pull shards in the player's dimension (or dim-0 'both')
             if (e.dimension != 0 &&
                 e.dimension != m_dimManager.getCurrentDimension()) return;
+            auto& sphys = e.getComponent<PhysicsBody>();
             auto& tt = e.getComponent<TransformComponent>();
             Vec2 sp = tt.getCenter();
             float dx = pPos.x - sp.x;
             float dy = pPos.y - sp.y;
             float d2 = dx * dx + dy * dy;
-            if (d2 > kMagnetRangeSq || d2 < 1.0f) return;
+            if (d2 > kMagnetRangeSq || d2 < 1.0f) {
+                // Out of magnet range: ensure gravity is restored (shard may
+                // have entered/exited the zone earlier in the run).
+                sphys.useGravity = true;
+                return;
+            }
             float d = std::sqrt(d2);
             float t = 1.0f - (d / kMagnetRange); // 1 close, 0 at edge
             float pull = kMagnetStrength * t * dt;
-            auto& sphys = e.getComponent<PhysicsBody>();
             sphys.velocity.x += (dx / d) * pull;
             sphys.velocity.y += (dy / d) * pull;
-            // Disable gravity inside magnet zone so shards don't fall through floors
+            // Disable gravity inside magnet zone so the pull dominates and
+            // shards don't sink while being attracted across uneven terrain.
             sphys.useGravity = false;
         });
     }

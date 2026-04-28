@@ -593,8 +593,8 @@ void PlayState::update(float dt) {
     // Run time tracking
     m_runTime += dt;
 
-    // Save indicator toast timer (HUD reads g_saveIndicatorTimer each frame)
-    if (g_saveIndicatorTimer > 0.0f) g_saveIndicatorTimer -= dt;
+    // Save indicator timer is now ticked from Game::update() so it decays in
+    // any state (avoids stale toast on Play re-entry after a Menu-side save).
 
     // Player update
     m_player->update(dt, game->getInput());

@@ -5,15 +5,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-## Current State (2026-04-18)
+## Current State (2026-04-28)
 - **Content**: 12 weapons (12/12 counter-attacks), 4 classes (4/4 combo finishers), 38 relics, 25 synergies (13 relic-relic + 12 weapon-relic, fully localized), 6 bosses, 17 enemy types, NG+ tiers 0–10
 - **Localization**: 963 EN + 1192 DE keys, ~162 gameplay tips (EN+DE)
 - **Quality**: 0 compiler warnings, visual regression 17/17 PASS, 41 bug patterns documented in `.claude/rules/bug-patterns.md`
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
 
-**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-04-18).
+**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-04-28).
 
-**Latest session (2026-04-18, 3 commits, major perf-focused):**
+**Latest session (2026-04-28, 9 autonomous commits, Game Feel + Human-Friendly polish):**
+- **Round 3**: Camera-Kick auf Player-Damage (skaliert mit Schadenshöhe), Parry-Shockwave-Star (8 Strahlen × 45°), Parry-Rumble (0.55 / 140ms)
+- **Round 4**: Dash-Haptic (0.45 / 90ms), Pickup-Pop bei großen Hauls (Rumble + 2px Camera-Bump), HP-% bei < 25 % HP neben dem Balken
+- **Round 5**: Tutorial Page 5 "Parry" + Page 6 "Finisher" (deferred items completed)
+- **Round 6**: Boss-Telegraph deutlich verstärkt — 2× Partikel-Anzahl + 1.4× Größe, ab 65% Windup zusätzlicher 6-Speichen-Bodenring, Tutorial Page 7 "Synergy"
+- **Round 7**: Pickup-Magnet (150 px, quadratischer Falloff), Auto-Pause bei Fokusverlust
+- **Round 8**: Off-Screen-Pfeile für Bosse (rot) und Elites (orange) am Bildschirmrand
+- **Round 9**: Exit-Beacon (grün) wenn alle Rifts repariert und Exit Off-Screen
+- **Pause-Menu**: Live-Controls-Panel (8 Aktionen mit aktuellen Bindings aus InputManager), Save-Indicator mit grünem Toast
+- **All deferred Tutorial Pages complete**: Parry (Page 5), Finisher (Page 6), Synergy (Page 7) — all three from previous CLAUDE.md deferred list now implemented
+- **Build**: 0 Errors, 0 echte Warnungen (nur informatives D9025 zur Tracy-Disable-Bestätigung), Smoke-Tests grün
+
+**Previous session (2026-04-18, 3 commits, major perf-focused):**
 - **`97e69af` — 4 Render-Hotpath-Reduktionen + DimResidue-Loop-Inversion**
   1. Floor-Pass: Empty-Tiles in 4 Hash-Buckets gruppiert → 1 SetColor pro Bucket statt ~1000/Frame
   2. Solid-Tile-Shading-Wedge (0,0,0,40) jetzt nach dem Tile-Loop gebatcht → ~200 weniger State-Changes/Frame
@@ -31,7 +43,7 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 **Previous session (2026-04-12, 8 commits, 40+ fixes):**
 - **Gameplay bugs phase** — 8 damage multiplier chain bypasses fixed: Ground Slam, 4 combo finishers, Phase Strike, Shock Trap, Rift Shield burst, GravityGauntlet counter; shared `computePlayerDamageMult()` helper; ItemDrop GlassCannon protection, Blacksmith multiplier persistence, boss enrage race (CombatSystem timesHit exclusion), VoidSovereign/EntropyIncarnate phase timer seeding, UpgradeSystem/AscensionSystem save clamps.
 - **Visual polish passes 1–6** — Layout fixes (EndingState, Quest HUD, ClassSelect, Relic overflow), render state leaks (enemy enrage, hit-freeze), DE localization overflow (6 panels), major UI polish (pause transition, boss HP ghost, phase flash, relic pickup), enemy feedback (ability bursts, crit particles, elite slow-mo), visual state leaks, 7 missing enemy death FX, electric chain numbers, AncientWeapon reveal, audio semantics (5 SFX swaps), parry ring visual, quick retry [R], shop card wrap, music system wiring, buff labels, boss phase warnings.
-- **Deferred**: Relic bar tooltips, Tutorial expansion (Synergy/Parry/Finisher hints), Colorblind mode.
+- **Deferred**: Relic bar tooltips, Colorblind mode (Tutorial expansion now complete).
 - All builds clean, 0 compiler warnings. Session ready for production.
 
 **Previous session (2026-04-11, 31 commits):**

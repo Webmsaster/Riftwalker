@@ -273,6 +273,13 @@ void Game::handleEvents() {
 
 void Game::update() {
     ZoneScopedN("GameUpdate");
+    // Save indicator timer ticks here (state-agnostic) so a save fired in any
+    // state — Menu, Pause, Shop — decays normally and doesn't pop a stale
+    // "Saved" toast 5 minutes later when the user finally enters Play.
+    if (g_saveIndicatorTimer > 0.0f) {
+        g_saveIndicatorTimer -= Timer::FIXED_TIMESTEP;
+        if (g_saveIndicatorTimer < 0.0f) g_saveIndicatorTimer = 0.0f;
+    }
     // Handle screen transition
     if (m_transition != TransitionState::None) {
         m_transitionTimer += Timer::FIXED_TIMESTEP;
