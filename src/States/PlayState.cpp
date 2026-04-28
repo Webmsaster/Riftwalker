@@ -596,6 +596,26 @@ void PlayState::update(float dt) {
     // Save indicator timer is now ticked from Game::update() so it decays in
     // any state (avoids stale toast on Play re-entry after a Menu-side save).
 
+    // Stuck-detection: if 60s pass with no rift repaired and no kills, surface
+    // a contextual hint nudging the player to try the unused tools (dim switch
+    // or minimap). Resets whenever progress is made. Suppressed during boss
+    // fights (different problem) and tutorial-like context.
+    int curKills = m_combatSystem.killCount;
+    if (curKills != m_lastProgressKills ||
+        m_levelRiftsRepaired != m_lastProgressRifts) {
+        m_lastProgressKills = curKills;
+        m_lastProgressRifts = m_levelRiftsRepaired;
+        m_progressTimer = 0.0f;
+        m_stuckHintTimer = 0.0f;
+    } else if (!m_isBossLevel && !m_levelComplete && !m_collapsing) {
+        m_progressTimer += dt;
+        if (m_progressTimer > 60.0f && m_stuckHintTimer <= 0.0f) {
+            m_stuckHintTimer = 6.0f; // visible for 6s
+            m_progressTimer = 30.0f; // re-arm after 30s of further idleness
+        }
+    }
+    if (m_stuckHintTimer > 0.0f) m_stuckHintTimer -= dt;
+
     // Player update
     m_player->update(dt, game->getInput());
 

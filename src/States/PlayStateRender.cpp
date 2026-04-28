@@ -917,6 +917,46 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Tutorial hints (first 3 levels only)
     renderTutorialHints(renderer, game->getFont());
 
+    // Stuck-detection contextual hint (60s no progress -> surface advice)
+    if (m_stuckHintTimer > 0.0f && game->getFont()) {
+        TTF_Font* font = game->getFont();
+        // Fade in/out over 0.5s edges of the 6s window
+        float t = m_stuckHintTimer / 6.0f;
+        float fade = 1.0f;
+        if (t > 0.92f) fade = (1.0f - t) / 0.08f;
+        else if (t < 0.08f) fade = t / 0.08f;
+        fade = std::max(0.0f, std::min(1.0f, fade));
+        Uint8 a = static_cast<Uint8>(220 * fade);
+        if (a > 5) {
+            const char* msg = LOC("hud.stuck_hint");
+            SDL_Color c = {180, 230, 255, a};
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, msg, c);
+            if (s) {
+                SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
+                if (tex) {
+                    SDL_SetTextureAlphaMod(tex, a);
+                    int padX = 24, padY = 12;
+                    int bw = s->w + padX * 2;
+                    int bh = s->h + padY * 2;
+                    int bx = SCREEN_WIDTH / 2 - bw / 2;
+                    int by = SCREEN_HEIGHT - bh - 220;
+                    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+                    SDL_SetRenderDrawColor(renderer, 12, 18, 30,
+                                           static_cast<Uint8>(fade * 200));
+                    SDL_Rect bg = {bx, by, bw, bh};
+                    SDL_RenderFillRect(renderer, &bg);
+                    SDL_SetRenderDrawColor(renderer, 100, 160, 220,
+                                           static_cast<Uint8>(fade * 180));
+                    SDL_RenderDrawRect(renderer, &bg);
+                    SDL_Rect tr = {bx + padX, by + padY, s->w, s->h};
+                    SDL_RenderCopy(renderer, tex, nullptr, &tr);
+                    SDL_DestroyTexture(tex);
+                }
+                SDL_FreeSurface(s);
+            }
+        }
+    }
+
     // Parry window visual: white ring around player while isParrying or counterReady
     if (m_player && m_player->getEntity() &&
         m_player->getEntity()->hasComponent<CombatComponent>() &&

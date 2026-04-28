@@ -3,6 +3,7 @@
 #include "Game/RelicSynergy.h"
 #include "Components/HealthComponent.h"
 #include "Components/CombatComponent.h"
+#include "States/GameState.h" // for g_selectedDifficulty
 #include <algorithm>
 #include <random>
 
@@ -492,6 +493,13 @@ float RelicSystem::getDamageTakenMult(const RelicComponent& relics, int currentD
     // ChaosRift buff: type 2 = -30% damage taken for 15s
     if (relics.hasRelic(RelicID::ChaosRift) && relics.chaosRiftBuffTimer > 0 && relics.chaosRiftBuffType == 2) {
         mult *= 0.70f;
+    }
+    // Casual mode (Easy difficulty): -25% damage taken across all sites that
+    // route through this helper. Stacks multiplicatively with relics so a
+    // GlassCannon Easy player still takes more damage than a baseline Easy
+    // player — relative balance preserved.
+    if (g_selectedDifficulty == GameDifficulty::Easy) {
+        mult *= 0.75f;
     }
     return mult;
 }

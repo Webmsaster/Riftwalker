@@ -150,6 +150,14 @@ private:
     std::set<int> m_repairedRiftIndices;
     int m_levelRiftsRepaired = 0;
 
+    // Stuck-detection: track time since last meaningful progress (rift repaired
+    // or kill). After ~60s of no progress, surface a contextual hint nudging
+    // the player toward dim-switching or revisiting the minimap.
+    float m_progressTimer = 0.0f;          // seconds since last progress
+    int m_lastProgressKills = 0;            // kill count at last progress mark
+    int m_lastProgressRifts = 0;            // rifts repaired at last progress mark
+    float m_stuckHintTimer = 0.0f;          // visibility timer for hint (>0 = shown)
+
     // World themes
     WorldTheme m_themeA;
     WorldTheme m_themeB;

@@ -145,6 +145,7 @@ void Localization::loadStrings() {
 
     // HUD
     m_en["hud.collapse"]           = "COLLAPSE: %d.%d";
+    m_en["hud.stuck_hint"]         = "Stuck? Try [Q] to switch dimensions — paths differ between A and B.";
     m_en["hud.exit"]               = "EXIT";
     m_en["hud.level_up"]           = "LEVEL UP!";
     m_en["hud.lore_discovered"]    = "LORE DISCOVERED";
@@ -1291,6 +1292,7 @@ void Localization::loadStrings() {
 
     // HUD
     m_de["hud.collapse"]           = "KOLLAPS: %d.%d";
+    m_de["hud.stuck_hint"]         = "Festgefahren? Druecke [Q] fuer den Dim-Wechsel — Wege unterscheiden sich zwischen A und B.";
     m_de["hud.exit"]               = "AUSGANG";
     m_de["hud.level_up"]           = "LEVEL UP!";
     m_de["hud.lore_discovered"]    = "WISSEN ENTDECKT";

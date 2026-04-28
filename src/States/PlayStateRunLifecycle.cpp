@@ -667,6 +667,11 @@ void PlayState::applyUpgrades() {
     // from baseMaxHP) doesn't overwrite it. Previously the buff was applied in
     // applyRunBuffs() BEFORE applyStatEffects, so it was lost on every level transition.
     hp.maxHP += game->getRunBuffSystem().getMaxHPBoost();
+    // Casual mode (Easy difficulty): +30% HP for first-time-friendly survivability.
+    // Pairs with the existing -30% enemy spawn count and 1.5x shard drops.
+    if (g_selectedDifficulty == GameDifficulty::Easy) {
+        hp.maxHP *= 1.30f;
+    }
     hp.currentHP = hp.maxHP;
 
     // Cache base stats (class + upgrades + achievements + buffs) so RelicSystem::applyStatEffects
@@ -679,6 +684,11 @@ void PlayState::applyUpgrades() {
     // BALANCE: Base melee 20 -> 25, ranged 12 -> 15 (matches Player.cpp change)
     combat.meleeAttack.damage = 25.0f * upgrades.getMeleeDamageMultiplier() * achBonus.meleeDamageMult * achBonus.allDamageMult * milestoneBonus.bonusDamageMult;
     combat.rangedAttack.damage = 15.0f * upgrades.getRangedDamageMultiplier() * achBonus.rangedDamageMult * achBonus.allDamageMult * milestoneBonus.bonusDamageMult;
+    // Casual mode: +20% damage dealt so first-timers feel impactful.
+    if (g_selectedDifficulty == GameDifficulty::Easy) {
+        combat.meleeAttack.damage  *= 1.20f;
+        combat.rangedAttack.damage *= 1.20f;
+    }
 
     m_dimManager.switchCooldown = 0.5f * upgrades.getSwitchCooldownMultiplier() * achBonus.switchCooldownMult;
     // Bug fix: base passive decay (0.15f default from SuitEntropy ctor) was being overwritten
