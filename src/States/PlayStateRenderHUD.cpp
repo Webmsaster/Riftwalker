@@ -1127,11 +1127,23 @@ void PlayState::renderDamageNumbers(SDL_Renderer* renderer, TTF_Font* font) {
                 std::snprintf(buf, sizeof(buf), "%.0f", dn.value);
             }
 
-            // Compute base scale once
+            // Compute base scale once: tiered so crushing damage really pops.
+            //   PARRY!     -> 1.8 (kept)
+            //   crit + 50+ -> 2.2 (boss-killer hit)
+            //   crit       -> 1.8 (kept)
+            //   100+ dmg   -> 1.7 (rare big hit, even non-crit)
+            //   50+ dmg    -> 1.5
+            //   20+ dmg    -> 1.3 (kept)
             if (dn.isBuff && dn.buffText && std::strcmp(dn.buffText, "PARRY!") == 0) {
                 dn.baseScale = 1.8f;
+            } else if (dn.isCritical && dn.value > 50.0f) {
+                dn.baseScale = 2.2f;
             } else if (dn.isCritical) {
                 dn.baseScale = 1.8f;
+            } else if (dn.value > 100.0f) {
+                dn.baseScale = 1.7f;
+            } else if (dn.value > 50.0f) {
+                dn.baseScale = 1.5f;
             } else if (dn.value > 20) {
                 dn.baseScale = 1.3f;
             }

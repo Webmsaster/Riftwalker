@@ -221,17 +221,19 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
         }
     }
 
-    // 3. Kill flash
+    // 3. Kill flash (dampened when photosensitivity-friendly mode is on)
     if (m_killFlashTimer > 0) {
         float t = m_killFlashTimer / 0.05f;
-        Uint8 a = static_cast<Uint8>(t * 30);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, a);
-        SDL_Rect full = {0, 0, screenW, screenH};
-        SDL_RenderFillRect(renderer, &full);
+        Uint8 a = static_cast<Uint8>(t * 30 * flashScale());
+        if (a > 0) {
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, a);
+            SDL_Rect full = {0, 0, screenW, screenH};
+            SDL_RenderFillRect(renderer, &full);
+        }
     }
 
     // 3b. Chromatic aberration on player damage (brief RGB split at screen edges)
-    if (m_chromaticTimer > 0 && g_postFxScreenOverlays) {
+    if (m_chromaticTimer > 0 && g_postFxScreenOverlays && !g_reduceFlashes) {
         float t = m_chromaticTimer / 0.15f; // 1→0
         float intensity = t * m_chromaticIntensity;
         int offset = static_cast<int>(6 * intensity); // 0-6 pixel shift (scaled for 2K)
@@ -435,8 +437,9 @@ void ScreenEffects::render(SDL_Renderer* renderer, int screenW, int screenH, TTF
         SDL_RenderFillRect(renderer, &right);
     }
 
-    // 7. Entropy glitch
-    if (m_entropy > 80.0f && m_glitchTimer > 0 && g_postFxScreenOverlays) {
+    // 7. Entropy glitch (skipped entirely on reduce-flashes — full-screen RGB
+    // bars at high frequency are the highest-risk effect for photosensitive players)
+    if (m_entropy > 80.0f && m_glitchTimer > 0 && g_postFxScreenOverlays && !g_reduceFlashes) {
         float intensity = (m_entropy - 80.0f) / 20.0f;
         int numGlitches = static_cast<int>(intensity * 5);
         for (int i = 0; i < numGlitches; i++) {

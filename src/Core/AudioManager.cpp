@@ -3,6 +3,7 @@
 #include "SoundGenerator.h"
 #include "MusicSystem.h"
 #include <SDL2/SDL.h>
+#include <cstdlib>
 
 AudioManager& AudioManager::instance() {
     static AudioManager inst;
@@ -212,7 +213,26 @@ void AudioManager::play(SFX sfx) {
     if (idx >= 0 && idx < static_cast<int>(SFX::COUNT) && m_sfx[idx]) {
         int channel = Mix_PlayChannel(-1, m_sfx[idx], 0);
         if (channel >= 0) {
-            Mix_Volume(channel, static_cast<int>(m_sfxVolume * m_masterVolume));
+            int baseVol = static_cast<int>(m_sfxVolume * m_masterVolume);
+            // Game feel: small per-call volume variation on "rapid hit" SFX so
+            // rapid combat doesn't fatigue the listener with identical samples.
+            // ±12% drift on hit/swing/shot, deterministic-but-uncorrelated via std::rand().
+            // Other SFX (menu, ambience, music cues) stay at exact volume.
+            switch (sfx) {
+                case SFX::MeleeSwing: case SFX::MeleeHit: case SFX::RangedShot:
+                case SFX::EnemyHit:    case SFX::CriticalHit: case SFX::ElectricChain:
+                case SFX::IceFreeze:   case SFX::FireBurn: case SFX::LaserHit: {
+                    int variance = (std::rand() % 25) - 12; // -12..+12 (~12%)
+                    int v = baseVol + (baseVol * variance) / 100;
+                    if (v < 1) v = 1;
+                    if (v > 128) v = 128;
+                    Mix_Volume(channel, v);
+                    break;
+                }
+                default:
+                    Mix_Volume(channel, baseVol);
+                    break;
+            }
         }
     }
 }

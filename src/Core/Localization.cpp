@@ -39,6 +39,7 @@ void Localization::loadStrings() {
     m_en["menu.options"]           = "Options";
     m_en["menu.quit"]              = "Quit";
     m_en["menu.tutorial"]          = "Tutorial";
+    m_en["menu.welcome_hint"]      = "New player? Try the Tutorial first";
     m_en["menu.rift_shards"]       = "Rift Shards: %d";
     m_en["menu.ascension"]         = "Ascension %d";
     m_en["menu.rift_cores"]        = "Rift Cores: %d";
@@ -103,6 +104,7 @@ void Localization::loadStrings() {
     m_en["options.quality_low"]    = "Low";
     m_en["options.quality_med"]    = "Medium";
     m_en["options.quality_high"]   = "High";
+    m_en["options.reduce_flashes"] = "Reduce Flashes";
     m_en["options.nav_hint"]       = "A/D Adjust  |  W/S Navigate  |  ENTER Toggle  |  ESC Back";
 
     // Game Over
@@ -1223,6 +1225,7 @@ void Localization::loadStrings() {
     m_de["options.quality_low"]    = "Niedrig";
     m_de["options.quality_med"]    = "Mittel";
     m_de["options.quality_high"]   = "Hoch";
+    m_de["options.reduce_flashes"] = "Blitze reduzieren";
     m_de["options.nav_hint"]       = "A/D Anpassen  |  W/S Navigieren  |  ENTER Umschalten  |  ESC Zurueck";
 
     // Game Over
@@ -1728,6 +1731,7 @@ void Localization::loadStrings() {
     m_de["tut.page.ready.tip3"]         = "Tipp: Pruefe das Bestiarium um Gegner-Schwaechen zu erfahren.";
     m_de["tut.page.ready.start"]        = ">>> Druecke ENTER um deine Klasse zu waehlen <<<";
     m_de["menu.tutorial"]               = "Tutorial";
+    m_de["menu.welcome_hint"]      = "Neu hier? Starte mit dem Tutorial";
 
     // Death causes
     m_de["death.hp"]               = "HP aufgebraucht";

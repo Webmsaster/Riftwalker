@@ -17,19 +17,28 @@ Camera::Camera(int screenW, int screenH)
     : m_screenW(screenW), m_screenH(screenH) {}
 
 void Camera::follow(const Vec2& target, float dt, const Vec2& velocity, bool grounded) {
-    // Calculate look-ahead offset based on movement direction
+    // Calculate look-ahead offset based on movement direction.
+    // Game feel: scale strength by speed so sprinting reveals more terrain
+    // ahead while a slow walk barely shifts the frame. Capped at 1.4x so the
+    // camera never slings far enough to disorient.
     Vec2 targetLookAhead = {0, 0};
     float speed = velocity.length();
     if (speed > 30.0f) {
         Vec2 dir = velocity.normalized();
-        targetLookAhead = dir * lookAheadStrength;
+        // Speed factor: 0.6 at 30px/s -> 1.4 at 350+px/s (player base ~330)
+        float speedNorm = std::min(speed / 350.0f, 1.0f);
+        float strength = lookAheadStrength * (0.6f + 0.8f * speedNorm);
+        targetLookAhead = dir * strength;
         // Reduce vertical look-ahead (less useful in platformer)
         targetLookAhead.y *= 0.3f;
     }
 
-    // Smoothly interpolate look-ahead
+    // Smoothly interpolate look-ahead. Asymmetric speed: build up faster than
+    // we recover, so committed sprinting feels responsive but stopping doesn't
+    // snap the camera back hard.
     Vec2 lookDiff = targetLookAhead - m_lookAheadSmooth;
-    m_lookAheadSmooth += lookDiff * (3.0f * dt);
+    float lookSmooth = (lookDiff.length() > m_lookAheadSmooth.length()) ? 4.0f : 2.0f;
+    m_lookAheadSmooth += lookDiff * (lookSmooth * dt);
 
     m_target = target + m_lookAheadSmooth;
 

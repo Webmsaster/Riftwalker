@@ -478,6 +478,37 @@ void MenuState::render(SDL_Renderer* renderer) {
         renderDailyInfo(renderer, font);
     }
 
+    // First-time player welcome — encourage Tutorial first.
+    // Detected by zero total runs in upgrade save. Pulses gently next to the
+    // Tutorial button (idx 1) so it draws the eye without nagging veterans.
+    if (font && game->getUpgradeSystem().totalRuns == 0 && m_buttons.size() > 1) {
+        float pulse = 0.7f + 0.3f * std::sin(m_time * 2.5f);
+        Uint8 a = static_cast<Uint8>(230 * pulse * m_fadeIn);
+        SDL_Color welcomeC = {255, 220, 120, a};
+        SDL_Surface* ws = TTF_RenderUTF8_Blended(font, LOC("menu.welcome_hint"), welcomeC);
+        if (ws) {
+            SDL_Texture* wt = SDL_CreateTextureFromSurface(renderer, ws);
+            if (wt) {
+                SDL_SetTextureAlphaMod(wt, a);
+                // Place to the LEFT of the Tutorial button so it points at it.
+                const auto& tutBtn = m_buttons[1];
+                int tx = tutBtn.getX() - ws->w - 28;
+                int ty = tutBtn.getY() + tutBtn.getH() / 2 - ws->h / 2;
+                SDL_Rect wr = {tx, ty, ws->w, ws->h};
+                SDL_RenderCopy(renderer, wt, nullptr, &wr);
+                // Arrow pointing right toward the button
+                SDL_SetRenderDrawColor(renderer, 255, 220, 120, a);
+                int ax = tutBtn.getX() - 18;
+                int ay = ty + ws->h / 2;
+                SDL_RenderDrawLine(renderer, ax, ay, ax + 12, ay);
+                SDL_RenderDrawLine(renderer, ax + 6, ay - 5, ax + 12, ay);
+                SDL_RenderDrawLine(renderer, ax + 6, ay + 5, ax + 12, ay);
+                SDL_DestroyTexture(wt);
+            }
+            SDL_FreeSurface(ws);
+        }
+    }
+
     // Keyboard shortcut hint
     if (font) {
         SDL_Color hintC = {120, 120, 140, 180};

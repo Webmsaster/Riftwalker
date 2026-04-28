@@ -28,6 +28,10 @@ public:
     void setPosition(int x, int y) { m_rect.x = x; m_rect.y = y; }
     void setText(const std::string& text) { m_text = text; }
     const std::string& getText() const { return m_text; }
+    int getX() const { return m_rect.x; }
+    int getY() const { return m_rect.y; }
+    int getW() const { return m_rect.w; }
+    int getH() const { return m_rect.h; }
 
 private:
     SDL_Rect m_rect;

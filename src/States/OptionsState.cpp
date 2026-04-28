@@ -48,6 +48,7 @@ static constexpr int OPT_HUDSCALE   = OPT_HUD_OPAC + 3;
 static constexpr int OPT_LANGUAGE   = OPT_HUD_OPAC + 4;
 static constexpr int OPT_CRT       = OPT_HUD_OPAC + 5;
 static constexpr int OPT_QUALITY   = OPT_HUD_OPAC + 6;
+static constexpr int OPT_REDUCE_FLASH = OPT_HUD_OPAC + 7;
 // Controls / Reset / Back are the last 3 (special buttons)
 
 void OptionsState::enter() {
@@ -69,6 +70,7 @@ void OptionsState::enter() {
     m_options.push_back({LOC("options.language"), static_cast<int>(Localization::instance().getLanguage()), 0, 1, 1, false}); // 0=EN, 1=DE
     m_options.push_back({LOC("options.crt_effect"), g_crtEffect ? 1 : 0, 0, 1, 1, true});
     m_options.push_back({LOC("options.quality"), g_qualityPreset, 0, 2, 1, false});
+    m_options.push_back({LOC("options.reduce_flashes"), g_reduceFlashes ? 1 : 0, 0, 1, 1, true});
     m_options.push_back({LOC("options.controls"),      0, 0, 0, 0, false}); // special: open keybindings
     m_options.push_back({LOC("options.reset"), 0, 0, 0, 0, false}); // special: reset
     m_options.push_back({LOC("options.back"),          0, 0, 0, 0, false}); // special: back button
@@ -165,6 +167,7 @@ void OptionsState::handleEvent(const SDL_Event& event) {
                     m_options[OPT_LANGUAGE].value   = 0;   // English
                     m_options[OPT_CRT].value        = 0;   // CRT off
                     m_options[OPT_QUALITY].value    = 2;   // High
+                    m_options[OPT_REDUCE_FLASH].value = 0;  // Flashes on
                     for (int i = 0; i < static_cast<int>(m_options.size()) - 3; i++) applyOption(i);
                     game->saveSettings();
                     AudioManager::instance().play(SFX::MenuConfirm);
@@ -272,6 +275,9 @@ void OptionsState::applyOption(int index) {
         case OPT_QUALITY: // Performance preset
             g_qualityPreset = std::clamp(m_options[OPT_QUALITY].value, 0, 2);
             applyQualityPreset();
+            break;
+        case OPT_REDUCE_FLASH: // Photosensitivity toggle
+            g_reduceFlashes = (m_options[OPT_REDUCE_FLASH].value == 1);
             break;
     }
 }
@@ -402,6 +408,7 @@ void OptionsState::update(float dt) {
             m_options[OPT_LANGUAGE].value    = 0;
             m_options[OPT_CRT].value         = 0;
             m_options[OPT_QUALITY].value     = 2;
+            m_options[OPT_REDUCE_FLASH].value = 0;
             for (int i = 0; i < static_cast<int>(m_options.size()) - 3; i++) applyOption(i);
             game->saveSettings();
             AudioManager::instance().play(SFX::MenuConfirm);

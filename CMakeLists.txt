@@ -61,10 +61,22 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     $<IF:$<TARGET_EXISTS:SDL2_image::SDL2_image>,SDL2_image::SDL2_image,SDL2_image::SDL2_image-static>
     $<IF:$<TARGET_EXISTS:SDL2_mixer::SDL2_mixer>,SDL2_mixer::SDL2_mixer,SDL2_mixer::SDL2_mixer-static>
     $<IF:$<TARGET_EXISTS:SDL2_ttf::SDL2_ttf>,SDL2_ttf::SDL2_ttf,SDL2_ttf::SDL2_ttf-static>
-    # Tracy: keep instrumented Debug build for profiling, NOT linked in Release
-    # so ZoneScopedN macros become no-ops (no timestamp/queue overhead in hot paths).
-    $<$<NOT:$<CONFIG:Release>>:Tracy::TracyClient>
+    Tracy::TracyClient
 )
+
+# Tracy: link in every config so the header is available, but undefine
+# TRACY_ENABLE in Release so ZoneScopedN macros expand to no-ops (no per-zone
+# timestamp + queue write in hot paths). /OPT:REF then strips the unused
+# Tracy library code at link time.
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Release>:/UTRACY_ENABLE>
+    )
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Release>:-UTRACY_ENABLE>
+    )
+endif()
 
 # Copy assets to build directory
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

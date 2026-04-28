@@ -120,6 +120,13 @@ inline int g_colorBlindMode = 0;
 inline float g_hudScale = 1.0f; // 0.75 - 1.5
 inline bool g_crtEffect = false; // CRT scanline post-processing
 
+// Photosensitivity / "reduce flashes" toggle: dampens kill-flash, glitch
+// overlays, chromatic aberration, sweep flashes by ~70% intensity.
+// Off by default — opt-in for affected players.
+inline bool g_reduceFlashes = false;
+// Helper: scales flash alpha (1.0 normal, 0.3 when reduce-flashes is on)
+inline float flashScale() { return g_reduceFlashes ? 0.3f : 1.0f; }
+
 // Performance / quality preset
 // 0 = Low (low-end PCs, ~all post-FX off, particle budget halved)
 // 1 = Medium (post-FX on, ambient particles + dynamic lighting off)
