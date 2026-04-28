@@ -7,7 +7,7 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 
 ## Current State (2026-04-28)
 - **Content**: 12 weapons (12/12 counter-attacks), 4 classes (4/4 combo finishers), 38 relics, 25 synergies (13 relic-relic + 12 weapon-relic, fully localized), 6 bosses, 17 enemy types, NG+ tiers 0–10
-- **Localization**: 988 EN + 1217 DE keys, ~162 gameplay tips, **9-page Tutorial** (Welcome / Controls / Combat / Dimensions / Progression / Parry / Finisher / Synergy / Ready)
+- **Localization**: 996 EN + 1225 DE keys, **170 gameplay tips** (tip.0..tip.169, EN+DE), **9-page Tutorial** (Welcome / Controls / Combat / Dimensions / Progression / Parry / Finisher / Synergy / Ready)
 - **Quality presets**: Low / Medium / High with toggle persistence, photosensitivity-friendly "Reduce Flashes" toggle, casual-friendly Easy difficulty (+30% HP, +20% damage, -25% damage taken)
 - **Quality**: 0 compiler warnings (one informational D9025), 41 bug patterns + 2 new audit-fix patterns (#43 magnet gravity leak, #44 stale save toast)
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
@@ -53,6 +53,13 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 **Phase 4 — Audit Fixes (1 commit, see bug patterns #43, #44)**
 - Pickup magnet permanently disabled gravity (similar to bug #22): out-of-range branch now restores
 - Save indicator timer never decayed outside Play (stale toast on Play re-entry): now ticked from Game::update
+
+**Phase 5 — Final polish round (4 commits)**
+- Achievement unlock haptic: rumble (0.55/200ms) + camera flash + 22-particle burst on rising-edge of notification timer
+- Combo break red flash: 4-band frame fade when 5+ combo timeouts to 0 (4-band quadratic alpha 0.4s)
+- Mid-run quit guard: SDL_QUIT during Play pushes PauseState instead of exiting silently
+- Weapon switch haptic (0.20/60ms) on Q/R cycle; boss kill triple-sense climax (0.85/380ms rumble + gold-white camera flash + 0.45s slow-mo) layered on existing zoom + shake
+- 8 new gameplay tips (162 -> 170) for new mechanics: quick retry, Quality preset, Reduce Flashes, Casual difficulty, aim-assist, boss telegraph, off-screen arrow legend, stuck shortcut
 
 **Previous session (2026-04-18, 3 commits, major perf-focused):**
 - **`97e69af` — 4 Render-Hotpath-Reduktionen + DimResidue-Loop-Inversion**
