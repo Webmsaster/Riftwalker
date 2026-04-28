@@ -430,7 +430,24 @@ void TutorialState::renderPage(SDL_Renderer* renderer, TTF_Font* font) {
             break;
         }
 
-        case 7: { // Ready!
+        case 7: { // Synergy — relic + weapon combos
+            renderTitle("tut.page.synergy.title");
+            int y = contentY;
+
+            renderLine(LOC("tut.page.synergy.intro"), y); y += lineH;
+            y += 16;
+            renderLine(LOC("tut.page.synergy.relic"), y, {255, 200, 100, 255}); y += lineH;
+            renderLine(LOC("tut.page.synergy.relic_ex"), y, {200, 180, 220, 255}); y += lineH;
+            y += 16;
+            renderLine(LOC("tut.page.synergy.weapon"), y, {120, 220, 255, 255}); y += lineH;
+            renderLine(LOC("tut.page.synergy.weapon_ex"), y, {200, 220, 240, 255}); y += lineH;
+            y += 16;
+            renderLine(LOC("tut.page.synergy.discover"), y, {180, 255, 180, 255}); y += lineH;
+            renderLine(LOC("tut.page.synergy.tip"), y, {200, 180, 100, 255});
+            break;
+        }
+
+        case 8: { // Ready!
             renderTitle("tut.page.ready.title");
             int y = contentY + 40;
 

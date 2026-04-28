@@ -534,6 +534,15 @@ void Localization::loadStrings() {
     m_en["tut.page.finisher.classes"]  = "Each class finisher is unique: Rift Pulse, Blood Cleave, Phase Burst, Overcharge.";
     m_en["tut.page.finisher.tip"]      = "Tip: a finisher hits like 5 normal attacks AND resets your invincibility.";
 
+    m_en["tut.page.synergy.title"]    = "Synergies — Build Crafting";
+    m_en["tut.page.synergy.intro"]    = "25 hidden synergies trigger when you collect specific combos.";
+    m_en["tut.page.synergy.relic"]    = "Relic-Relic: 13 pairs of relics combine for a new effect.";
+    m_en["tut.page.synergy.relic_ex"] = "Example: BloodOrb + GlassCannon = +50% damage at low HP.";
+    m_en["tut.page.synergy.weapon"]   = "Weapon-Relic: 12 pairs link a weapon to a relic for a unique boost.";
+    m_en["tut.page.synergy.weapon_ex"]= "Example: GravityGauntlet + ThornMail = +5 impact damage on hit.";
+    m_en["tut.page.synergy.discover"] = "Synergies show in the HUD weapon panel when active.";
+    m_en["tut.page.synergy.tip"]      = "Tip: synergies often beat raw stats — read the descriptions in shops.";
+
     m_en["tut.page.ready.title"]        = "Ready to Rift!";
     m_en["tut.page.ready.1"]            = "You know what you need. Time to walk the rift.";
     m_en["tut.page.ready.2"]            = "Choose your class, pick your difficulty, and dive in.";
@@ -1753,6 +1762,15 @@ void Localization::loadStrings() {
     m_de["tut.page.finisher.execute"]  = "Druecke Interagieren fuer einen klassenspezifischen Supermove.";
     m_de["tut.page.finisher.classes"]  = "Jede Klasse hat einen eigenen Finisher: Rift Pulse, Blood Cleave, Phase Burst, Overcharge.";
     m_de["tut.page.finisher.tip"]      = "Tipp: Ein Finisher trifft wie 5 normale Angriffe UND setzt Unverwundbarkeit zurueck.";
+
+    m_de["tut.page.synergy.title"]    = "Synergien — Build Crafting";
+    m_de["tut.page.synergy.intro"]    = "25 versteckte Synergien aktivieren sich bei bestimmten Kombinationen.";
+    m_de["tut.page.synergy.relic"]    = "Relikt-Relikt: 13 Paare aus zwei Relikten ergeben einen neuen Effekt.";
+    m_de["tut.page.synergy.relic_ex"] = "Beispiel: BloodOrb + GlassCannon = +50% Schaden bei niedriger HP.";
+    m_de["tut.page.synergy.weapon"]   = "Waffe-Relikt: 12 Paare verbinden eine Waffe mit einem Relikt fuer einen Bonus.";
+    m_de["tut.page.synergy.weapon_ex"]= "Beispiel: GravityGauntlet + ThornMail = +5 Aufprallschaden bei Treffer.";
+    m_de["tut.page.synergy.discover"] = "Aktive Synergien erscheinen im HUD-Waffenpanel.";
+    m_de["tut.page.synergy.tip"]      = "Tipp: Synergien schlagen oft Rohstats — lies Beschreibungen im Shop.";
 
     m_de["tut.page.ready.title"]        = "Bereit zum Riss!";
     m_de["tut.page.ready.1"]            = "Du weisst was noetig ist. Zeit den Riss zu durchschreiten.";

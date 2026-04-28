@@ -25,6 +25,8 @@ void AISystem::attackWindupEffect(Entity& entity, float timer, float windupTime)
     if (!entity.hasComponent<TransformComponent>()) return;
 
     float progress = 1.0f - (timer / windupTime); // 0→1 as attack approaches
+    bool isBoss = entity.hasComponent<AIComponent>() &&
+                  entity.getComponent<AIComponent>().enemyType == EnemyType::Boss;
 
     // Color pulse: flash from base color toward bright red as attack nears
     if (entity.hasComponent<SpriteComponent>()) {
@@ -39,7 +41,8 @@ void AISystem::attackWindupEffect(Entity& entity, float timer, float windupTime)
     }
 
     // Warning particles: red-orange sparks above enemy, intensifying.
-    // At 2K, a 1-particle/1.5px burst was invisible — bumped to 3-particle/5px.
+    // Boss windups get DOUBLE the particles + larger size + a ring underneath
+    // — boss attacks punish hard, so they deserve a clearly readable telegraph.
     if (m_particles && progress > 0.3f) {
         auto& t = entity.getComponent<TransformComponent>();
         Vec2 aboveHead = {t.getCenter().x, t.position.y - 6.0f};
@@ -47,7 +50,23 @@ void AISystem::attackWindupEffect(Entity& entity, float timer, float windupTime)
         aboveHead.x += offsetX;
         SDL_Color warnColor = {255, static_cast<Uint8>(80 + 100 * (1.0f - progress)), 40, 220};
         float size = 4.0f + progress * 3.0f;
-        m_particles->burst(aboveHead, 3, warnColor, 30.0f + progress * 60.0f, size);
+        int particleCount = isBoss ? 6 : 3;
+        if (isBoss) size *= 1.4f;
+        m_particles->burst(aboveHead, particleCount, warnColor,
+                           30.0f + progress * 60.0f, size);
+
+        // Boss: late-windup ground telegraph — radial ring of upward sparks at
+        // boss feet during the final 35% of windup. Reads as "danger here NOW".
+        if (isBoss && progress > 0.65f) {
+            Vec2 feet = {t.getCenter().x, t.position.y + t.height - 2.0f};
+            // 6 evenly-spaced upward sparks around feet
+            for (int ang = 0; ang < 6; ++ang) {
+                float a = ang * 60.0f - 90.0f; // start above center, spread
+                m_particles->directionalBurst(feet, 2,
+                    {255, 200, 60, 220}, a, 25.0f,
+                    80.0f + progress * 80.0f, 3.5f);
+            }
+        }
     }
 }
 
