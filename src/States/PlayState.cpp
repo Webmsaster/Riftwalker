@@ -1261,9 +1261,13 @@ void PlayState::update(float dt) {
     if (m_exitLockedHintTimer > 0) m_exitLockedHintTimer -= dt;
     if (m_riftDimensionHintTimer > 0) m_riftDimensionHintTimer -= dt;
 
-    // Track dash count for achievement
+    // Track dash count for achievement + fire haptic on dash start.
+    // Detected by edge-triggered "dashTimer just hit max" — fires once per dash.
     if (m_player && m_player->isDashing && m_player->dashTimer >= m_player->dashDuration - 0.02f) {
         m_dashCount++;
+        // Haptic: short crisp pulse marks the dash kick. Stronger than passive
+        // rumble (0.45) but very brief (90ms) so it doesn't bleed into combat.
+        game->getInputMutable().rumble(0.45f, 90);
     }
 
     // Consume shard pickups from item drops
@@ -1280,9 +1284,15 @@ void PlayState::update(float dt) {
         game->getUpgradeSystem().addRiftShards(finalShards);
         m_player->riftShardsCollected = 0;
 
-        // Pickup feedback: purple particles + floating shard count
+        // Pickup feedback: purple particles + floating shard count.
+        // Big-haul rumble bump (>=10 shards = a chunky drop) for tactile satisfaction.
         Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
         m_particles.burst(pPos, 6, {180, 130, 255, 220}, 60.0f, 2.5f);
+        if (finalShards >= 10) {
+            game->getInputMutable().rumble(0.18f, 60);
+            // Tiny camera bump signals "you got something good"
+            m_camera.shake(2.0f, 0.06f);
+        }
         FloatingDamageNumber num;
         num.position = {pPos.x + (std::rand() % 10 - 5.0f), pPos.y - 10.0f};
         num.value = static_cast<float>(finalShards);

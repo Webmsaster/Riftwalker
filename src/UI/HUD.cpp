@@ -539,6 +539,26 @@ void HUD::render(SDL_Renderer* renderer, TTF_Font* font,
             char hpText[32];
             std::snprintf(hpText, sizeof(hpText), LOC("hud.hp_display"), hp.currentHP, hp.maxHP);
             renderText(renderer, font, hpText, margin + hpBarOffset + 10, margin + 4, {255, 255, 255, 220});
+
+            // Critical % indicator: when HP <= 25%, append a pulsing red percent
+            // beside the HP bar so the player knows urgency to the digit. Below
+            // 10% the percent flashes harder.
+            if (pct <= 0.25f && hp.maxHP > 0.0f) {
+                int pctInt = static_cast<int>(pct * 100.0f + 0.5f);
+                if (pctInt < 0) pctInt = 0;
+                char pctText[16];
+                std::snprintf(pctText, sizeof(pctText), "%d%%", pctInt);
+                float urgentPulse = pct < 0.10f
+                    ? (0.55f + 0.45f * std::sin(m_frameTicks * 0.018f))
+                    : (0.75f + 0.25f * std::sin(m_frameTicks * 0.010f));
+                Uint8 cr = static_cast<Uint8>(255 * urgentPulse);
+                Uint8 cg = static_cast<Uint8>(60 * urgentPulse);
+                SDL_Color critC = {cr, cg, 60, 255};
+                // Place to the right of the bar.
+                renderText(renderer, font, pctText,
+                           margin + hpBarOffset + (barW - hpBarOffset) + 14,
+                           margin + 2, critC);
+            }
         }
     }
 
