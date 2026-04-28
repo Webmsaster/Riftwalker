@@ -208,6 +208,8 @@ void Game::run() {
 
 void Game::handleEvents() {
     ZoneScopedN("HandleEvents");
+    extern bool g_autoSmokeTest;
+    extern bool g_autoPlaytest;
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
@@ -229,6 +231,16 @@ void Game::handleEvents() {
         if (event.type == SDL_WINDOWEVENT &&
             event.window.event == SDL_WINDOWEVENT_RESIZED) {
             m_window->onResize(event.window.data1, event.window.data2);
+        }
+
+        // Auto-pause on focus loss: if the player Alt-Tabs out during a real
+        // run, push PauseState so they don't return to a corpse. Skip for
+        // automation (smoke test, playtest bot) where focus can fluctuate.
+        if (event.type == SDL_WINDOWEVENT &&
+            event.window.event == SDL_WINDOWEVENT_FOCUS_LOST &&
+            !g_autoSmokeTest && !g_autoPlaytest &&
+            getCurrentStateID() == StateID::Play) {
+            pushState(StateID::Pause);
         }
 
         // Map raw window mouse coordinates to logical (2560x1440) space so all

@@ -174,6 +174,38 @@ void PlayState::updateDimensionSwitch() {
 }
 
 void PlayState::updateDimensionEffects(float dt) {
+    // Pickup magnet: shards within ~150px accelerate toward the player so
+    // post-fight cleanup isn't fiddly. Distance check uses squared distance
+    // to avoid sqrt; pull strength tapers with distance for a soft fall-off.
+    if (m_player && m_player->getEntity()) {
+        Vec2 pPos = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+        constexpr float kMagnetRange = 150.0f;
+        constexpr float kMagnetRangeSq = kMagnetRange * kMagnetRange;
+        constexpr float kMagnetStrength = 600.0f; // px/s^2 toward player at edge
+        m_entities.forEach([&](Entity& e) {
+            if (e.getTag() != "pickup_shard") return;
+            if (!e.hasComponent<TransformComponent>() ||
+                !e.hasComponent<PhysicsBody>()) return;
+            // Only pull shards in the player's dimension (or dim-0 'both')
+            if (e.dimension != 0 &&
+                e.dimension != m_dimManager.getCurrentDimension()) return;
+            auto& tt = e.getComponent<TransformComponent>();
+            Vec2 sp = tt.getCenter();
+            float dx = pPos.x - sp.x;
+            float dy = pPos.y - sp.y;
+            float d2 = dx * dx + dy * dy;
+            if (d2 > kMagnetRangeSq || d2 < 1.0f) return;
+            float d = std::sqrt(d2);
+            float t = 1.0f - (d / kMagnetRange); // 1 close, 0 at edge
+            float pull = kMagnetStrength * t * dt;
+            auto& sphys = e.getComponent<PhysicsBody>();
+            sphys.velocity.x += (dx / d) * pull;
+            sphys.velocity.y += (dy / d) * pull;
+            // Disable gravity inside magnet zone so shards don't fall through floors
+            sphys.useGravity = false;
+        });
+    }
+
     // Resonance particle aura around player
     int resTier = m_dimManager.getResonanceTier();
     if (resTier > 0) {
