@@ -26,7 +26,7 @@ private:
     void finish();
 
     int m_page = 0;
-    static constexpr int PAGE_COUNT = 6;
+    static constexpr int PAGE_COUNT = 8;
     float m_fadeIn = 0;
     float m_time = 0;
     float m_pageTransition = 0; // 0=stable, >0=transitioning

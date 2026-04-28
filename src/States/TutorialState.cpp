@@ -400,7 +400,37 @@ void TutorialState::renderPage(SDL_Renderer* renderer, TTF_Font* font) {
             break;
         }
 
-        case 5: { // Ready!
+        case 5: { // Parry — defensive timing
+            renderTitle("tut.page.parry.title");
+            int y = contentY;
+
+            renderLine(LOC("tut.page.parry.what"), y, {255, 220, 100, 255}); y += lineH;
+            renderLine(LOC("tut.page.parry.timing"), y); y += lineH;
+            renderLine(LOC("tut.page.parry.window"), y, {200, 180, 200, 255}); y += lineH;
+            y += 16;
+            renderLine(LOC("tut.page.parry.reward"), y, {180, 255, 180, 255}); y += lineH;
+            renderLine(LOC("tut.page.parry.counter"), y); y += lineH;
+            y += 16;
+            renderLine(LOC("tut.page.parry.tip"), y, {200, 180, 100, 255});
+            break;
+        }
+
+        case 6: { // Combo Finisher
+            renderTitle("tut.page.finisher.title");
+            int y = contentY;
+
+            renderLine(LOC("tut.page.finisher.build"), y); y += lineH;
+            renderKeyIcon(renderer, cx - 35, y, keyW, keyH, "F", font);
+            y += keyH + 30;
+            renderLine(LOC("tut.page.finisher.cue"), y, {255, 200, 100, 255}); y += lineH;
+            renderLine(LOC("tut.page.finisher.execute"), y); y += lineH;
+            y += 16;
+            renderLine(LOC("tut.page.finisher.classes"), y, {180, 140, 255, 255}); y += lineH;
+            renderLine(LOC("tut.page.finisher.tip"), y, {200, 180, 100, 255});
+            break;
+        }
+
+        case 7: { // Ready!
             renderTitle("tut.page.ready.title");
             int y = contentY + 40;
 

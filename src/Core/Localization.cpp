@@ -519,6 +519,21 @@ void Localization::loadStrings() {
     m_en["tut.page.prog.floors"]        = "30 floors across 5 zones, each with unique hazards and enemies.";
     m_en["tut.page.prog.bosses"]        = "Defeat zone bosses to progress. Each has unique attack patterns.";
 
+    m_en["tut.page.parry.title"]    = "Parry — Turn Defense Into Offense";
+    m_en["tut.page.parry.what"]     = "PARRY: hit Attack right as an enemy strike connects.";
+    m_en["tut.page.parry.timing"]   = "The window is short — about 0.2 seconds before the hit lands.";
+    m_en["tut.page.parry.window"]   = "Watch for the wind-up flash — that's your cue to time the press.";
+    m_en["tut.page.parry.reward"]   = "Reward: enemy is stunned, your next hit is a guaranteed CRIT.";
+    m_en["tut.page.parry.counter"]  = "Press Attack right after parrying for a weapon-specific counter move.";
+    m_en["tut.page.parry.tip"]      = "Tip: parries trigger PARRY MASTER (20 parries) for a permanent bonus.";
+
+    m_en["tut.page.finisher.title"]    = "Combo Finisher — The Big Payoff";
+    m_en["tut.page.finisher.build"]    = "Build a combo (chain hits without taking damage).";
+    m_en["tut.page.finisher.cue"]      = "FINISHER READY appears — combo is fully charged.";
+    m_en["tut.page.finisher.execute"]  = "Press Interact to unleash a class-specific super move.";
+    m_en["tut.page.finisher.classes"]  = "Each class finisher is unique: Rift Pulse, Blood Cleave, Phase Burst, Overcharge.";
+    m_en["tut.page.finisher.tip"]      = "Tip: a finisher hits like 5 normal attacks AND resets your invincibility.";
+
     m_en["tut.page.ready.title"]        = "Ready to Rift!";
     m_en["tut.page.ready.1"]            = "You know what you need. Time to walk the rift.";
     m_en["tut.page.ready.2"]            = "Choose your class, pick your difficulty, and dive in.";
@@ -1723,6 +1738,21 @@ void Localization::loadStrings() {
     m_de["tut.page.prog.relics"]        = "Finde Relikte waehrend Durchlaeufen fuer maechtige passive Boni.";
     m_de["tut.page.prog.floors"]        = "30 Etagen ueber 5 Zonen, jede mit eigenen Gefahren und Gegnern.";
     m_de["tut.page.prog.bosses"]        = "Besiege Zonenbosse um voranzukommen. Jeder hat eigene Angriffsmuster.";
+
+    m_de["tut.page.parry.title"]    = "Parieren — Verteidigung wird Angriff";
+    m_de["tut.page.parry.what"]     = "PARIEREN: Druecke Angriff genau wenn ein Feindschlag trifft.";
+    m_de["tut.page.parry.timing"]   = "Das Fenster ist kurz — etwa 0,2 Sekunden vor dem Treffer.";
+    m_de["tut.page.parry.window"]   = "Achte auf den Aufladeblitz — das ist dein Timing-Signal.";
+    m_de["tut.page.parry.reward"]   = "Belohnung: Feind wird betaeubt, dein naechster Treffer ist garantierter CRIT.";
+    m_de["tut.page.parry.counter"]  = "Druecke Angriff direkt danach fuer einen waffenspezifischen Konter.";
+    m_de["tut.page.parry.tip"]      = "Tipp: 20 Paraden schalten PARRY MASTER frei — dauerhafter Bonus.";
+
+    m_de["tut.page.finisher.title"]    = "Combo-Finisher — Der grosse Knall";
+    m_de["tut.page.finisher.build"]    = "Baue eine Combo auf (Treffer ohne Schaden zu erleiden).";
+    m_de["tut.page.finisher.cue"]      = "FINISHER BEREIT erscheint — die Combo ist voll geladen.";
+    m_de["tut.page.finisher.execute"]  = "Druecke Interagieren fuer einen klassenspezifischen Supermove.";
+    m_de["tut.page.finisher.classes"]  = "Jede Klasse hat einen eigenen Finisher: Rift Pulse, Blood Cleave, Phase Burst, Overcharge.";
+    m_de["tut.page.finisher.tip"]      = "Tipp: Ein Finisher trifft wie 5 normale Angriffe UND setzt Unverwundbarkeit zurueck.";
 
     m_de["tut.page.ready.title"]        = "Bereit zum Riss!";
     m_de["tut.page.ready.1"]            = "Du weisst was noetig ist. Zeit den Riss zu durchschreiten.";
