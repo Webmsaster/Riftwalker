@@ -217,6 +217,11 @@ void PlayState::updateDimensionEffects(float dt) {
                 // Beat faster as HP gets lower (1.2s at 25% -> 0.6s near 0%)
                 float urgency = 1.0f - (hp / 0.25f);
                 m_heartbeatTimer = 1.2f - urgency * 0.6f;
+                // Tactile heartbeat: soft rumble pulse on each beat. Scales
+                // with urgency (subtle at 25% -> firm near 0%). Brief 80ms
+                // pulse so it feels like a heartbeat, not constant rumble.
+                float rumbleStrength = 0.10f + urgency * 0.30f; // 0.10..0.40
+                game->getInputMutable().rumble(rumbleStrength, 80);
             }
         } else {
             m_heartbeatTimer = 0; // Reset so it plays immediately when entering low HP
