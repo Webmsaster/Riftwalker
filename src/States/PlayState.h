@@ -162,6 +162,11 @@ private:
     // flash exactly once per unlock (timer goes from 0 -> duration on unlock).
     float m_lastAchievementTimer = 0.0f;
 
+    // Edge-detect mastery tier-ups so we can fire camera flash + rumble +
+    // particle burst at the player when a weapon hits a new mastery tier
+    // mid-run. Tracks 2 slots: [0]=melee, [1]=ranged.
+    int m_lastMasteryTier[2] = {0, 0};
+
     // Auto-pause resume countdown: when the auto-pause-on-focus-loss path
     // triggers, this is set so the player gets a brief "ready" freeze on
     // return (avoids dying instantly to whatever was on screen during Alt-Tab).

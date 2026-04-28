@@ -730,6 +730,12 @@ void PlayState::spawnBoss() {
     // Switch to boss music
     AudioManager::instance().playMusic(BOSS_TRACK);
 
+    // Boss arena entry: brief zoom-out to reveal the arena, then snap back.
+    // Camera::zoomTarget is reset to 2.8 (default) when the boss-intro fade
+    // completes via PlayState's existing zoom restore.
+    m_camera.zoomTarget = 2.2f;     // pulled back ~21% from default 2.8
+    m_camera.zoomSpeed = 1.5f;      // slow zoom-out feels cinematic
+
     // Spawn boss near the center of the level
     Vec2 exitPos = m_level->getExitPoint();
     Vec2 spawnPos = {exitPos.x - 200.0f, exitPos.y - 64.0f};

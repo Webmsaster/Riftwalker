@@ -211,6 +211,16 @@ void PlayState::updateDimensionEffects(float dt) {
             // Disable gravity inside magnet zone so the pull dominates and
             // shards don't sink while being attracted across uneven terrain.
             sphys.useGravity = false;
+            // Visual trail: rare purple sparkle behind the shard so the magnet
+            // effect reads as "pulled". Throttled by the squared distance so
+            // close shards spawn fewer particles (avoids noise near pickup).
+            if ((std::rand() & 0x1F) == 0 && t > 0.15f) {
+                Vec2 tail = {sp.x - (dx / d) * 6.0f,
+                             sp.y - (dy / d) * 6.0f};
+                Uint8 tailA = static_cast<Uint8>(120 + 80 * t);
+                m_particles.burst(tail, 1,
+                    {180, 130, 255, tailA}, 18.0f, 1.5f);
+            }
         });
     }
 

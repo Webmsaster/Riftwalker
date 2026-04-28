@@ -923,7 +923,15 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
         if (entity.hasComponent<AnimationComponent>())
             srcRect2 = entity.getComponent<AnimationComponent>().getCurrentSrcRect();
         SDL_RendererFlip flip2 = spr.flipX ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-        Uint8 rimA = static_cast<Uint8>(18 * alpha);
+        // Base rim alpha 18; elites + bosses get a brighter pulsing rim so
+        // they read at a glance even in busy combat (was indistinguishable
+        // from normal enemies at the same alpha).
+        float pulse = (ai.isElite || entity.isBoss || ai.isMiniBoss)
+            ? (0.7f + 0.3f * std::sin(m_frameTicks * 0.005f))
+            : 1.0f;
+        float baseRim = (ai.isElite || ai.isMiniBoss) ? 32.0f
+                      : (entity.isBoss ? 38.0f : 18.0f);
+        Uint8 rimA = static_cast<Uint8>(baseRim * pulse * alpha);
         SDL_SetTextureBlendMode(spr.texture, SDL_BLENDMODE_ADD);
         SDL_SetTextureColorMod(spr.texture, rimR, rimG, rimB);
         SDL_SetTextureAlphaMod(spr.texture, rimA);

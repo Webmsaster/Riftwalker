@@ -477,8 +477,12 @@ void PlayState::update(float dt) {
     if (m_bossIntroActive) {
         m_screenEffects.update(dt);  // Animate the title card
         m_particles.update(dt);      // Ambient particles keep going
+        m_camera.update(dt);         // let the cinematic zoom-out animate
         if (!m_screenEffects.isBossIntroActive()) {
             m_bossIntroActive = false;
+            // Restore default zoom now that the cinematic is done.
+            m_camera.zoomTarget = 2.8f;
+            m_camera.zoomSpeed = 3.0f; // snap back faster than the zoom-out
         }
         return;
     }
@@ -655,6 +659,31 @@ void PlayState::update(float dt) {
             }
         }
         m_lastAchievementTimer = curTimer;
+    }
+
+    // Mastery tier-up celebration: fire once per weapon when its tier rises.
+    // Camera flash + rumble + particle burst at player. Pairs with the
+    // existing HUD text-flash so the moment hits all senses.
+    if (m_player && m_player->getEntity() &&
+        m_player->getEntity()->hasComponent<CombatComponent>()) {
+        auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+        for (int slot = 0; slot < 2; ++slot) {
+            WeaponID wid = (slot == 0) ? combat.currentMelee : combat.currentRanged;
+            int wIdx = static_cast<int>(wid);
+            if (wIdx < 0 || wIdx >= static_cast<int>(WeaponID::COUNT)) continue;
+            int kills = m_combatSystem.weaponKills[wIdx];
+            int curTier = static_cast<int>(WeaponSystem::getMasteryTier(kills));
+            if (curTier > m_lastMasteryTier[slot]) {
+                m_camera.flash(0.30f, 255, 220, 100);
+                game->getInputMutable().rumble(0.50f, 220);
+                if (m_player->getEntity()->hasComponent<TransformComponent>()) {
+                    Vec2 pp = m_player->getEntity()->getComponent<TransformComponent>().getCenter();
+                    m_particles.burst(pp, 18, {255, 230, 120, 255}, 160.0f, 4.0f);
+                    m_particles.burst(pp, 10, {255, 200, 60, 220}, 90.0f, 3.0f);
+                }
+            }
+            m_lastMasteryTier[slot] = curTier;
+        }
     }
 
     // Combo break red flash: detect drop from >=5 combo to 0 (timeout). The
