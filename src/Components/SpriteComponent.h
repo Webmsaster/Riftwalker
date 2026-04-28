@@ -38,6 +38,10 @@ struct SpriteComponent : public Component {
     float landingSquashTimer = 0;
     float landingSquashIntensity = 0; // 0-1, scales with impact speed
 
+    // Jump stretch effect: brief vertical pull on takeoff for springy feel
+    float jumpStretchTimer = 0;
+    float jumpStretchIntensity = 0; // 0-1
+
     // Dash afterimage ghost trail
     static constexpr int MAX_AFTERIMAGES = 8;
     Afterimage afterimages[MAX_AFTERIMAGES];

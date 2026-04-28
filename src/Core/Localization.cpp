@@ -114,6 +114,7 @@ void Localization::loadStrings() {
     m_en["gameover.floor_stats"]   = "Floor %d  |  %d Kills  |  %d:%02d";
     m_en["gameover.critical"]      = "CRITICAL";
     m_en["gameover.continue"]      = "Press any key to return";
+    m_en["gameover.retry_hint"]    = "[R] for quick retry — same class, fresh seed";
     m_en["gameover.suit_failure"]  = "SUIT FAILURE";
 
     // Run Summary
@@ -1233,6 +1234,7 @@ void Localization::loadStrings() {
     m_de["gameover.floor_stats"]   = "Etage %d  |  %d Kills  |  %d:%02d";
     m_de["gameover.critical"]      = "KRITISCH";
     m_de["gameover.continue"]      = "Beliebige Taste zum Fortfahren";
+    m_de["gameover.retry_hint"]    = "[R] fuer Schnellstart — gleiche Klasse, neuer Seed";
     m_de["gameover.suit_failure"]  = "ANZUGVERSAGEN";
 
     // Run Summary

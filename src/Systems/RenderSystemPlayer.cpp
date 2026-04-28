@@ -84,6 +84,17 @@ void RenderSystem::renderPlayer(SDL_Renderer* renderer, SDL_Rect rect, Entity& e
         stretchY = 1.0f - intensity * 0.7f; // shorter
     }
 
+    // Jump stretch: tall+narrow on takeoff, decays back to normal. Quick rise +
+    // quadratic decay produces a snappy "spring" feel that pairs with the
+    // landing squash on the way down. Skips when landing squash is active so
+    // the two effects don't fight each other on rapid bounces.
+    if (sprite.jumpStretchTimer > 0 && sprite.landingSquashTimer <= 0) {
+        float t = sprite.jumpStretchTimer / 0.18f; // 1.0 at start, 0.0 when done
+        float intensity = sprite.jumpStretchIntensity * (t * t); // quadratic decay
+        squashX = 1.0f - intensity * 0.5f; // narrower
+        stretchY = 1.0f + intensity;        // taller
+    }
+
     int w = static_cast<int>(rect.w * squashX);
     int h = static_cast<int>(rect.h * stretchY);
     int x = rect.x + (rect.w - w) / 2;

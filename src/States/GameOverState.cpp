@@ -253,5 +253,47 @@ void GameOverState::render(SDL_Renderer* renderer) {
             }
             SDL_FreeSurface(s2);
         }
+
+        // Quick-retry hint (in dimmer color so it doesn't dominate)
+        SDL_Color c3 = {110, 90, 120, static_cast<Uint8>(140 * promptAlpha)};
+        SDL_Surface* s3 = TTF_RenderUTF8_Blended(font, LOC("gameover.retry_hint"), c3);
+        if (s3) {
+            SDL_Texture* t3 = SDL_CreateTextureFromSurface(renderer, s3);
+            if (t3) {
+                SDL_Rect r3 = {SCREEN_WIDTH / 2 - s3->w / 2, 1048, s3->w, s3->h};
+                SDL_RenderCopy(renderer, t3, nullptr, &r3);
+                SDL_DestroyTexture(t3);
+            }
+            SDL_FreeSurface(s3);
+        }
+    }
+
+    // Tactical tip — surfaces a gameplay hint on every death so the next run
+    // starts with one new piece of knowledge. Seeded by run-time so consecutive
+    // deaths show different tips.
+    if (m_timer > 2.0f) {
+        float tipAlpha = std::min(1.0f, (m_timer - 2.0f) * 1.2f);
+        Uint8 ta = static_cast<Uint8>(140 * tipAlpha);
+        // 162 tips defined in Localization.cpp (tip.0..tip.161). Seed from
+        // run-time integer + floors so every death feels fresh.
+        int tipIdx = (static_cast<int>(s_runTime) + s_floorsCleared * 7
+                      + s_killCount * 13 + s_deathCause * 41) % 162;
+        if (tipIdx < 0) tipIdx += 162;
+        char tipKey[16];
+        std::snprintf(tipKey, sizeof(tipKey), "tip.%d", tipIdx);
+        SDL_Color tipColor = {150, 130, 170, ta};
+        SDL_Surface* tipS = TTF_RenderUTF8_Blended(font, LOC(tipKey), tipColor);
+        if (tipS) {
+            SDL_Texture* tipT = SDL_CreateTextureFromSurface(renderer, tipS);
+            if (tipT) {
+                SDL_SetTextureAlphaMod(tipT, ta);
+                int tw = tipS->w * 3 / 4;
+                int th = tipS->h * 3 / 4;
+                SDL_Rect tr = {SCREEN_WIDTH / 2 - tw / 2, 1120, tw, th};
+                SDL_RenderCopy(renderer, tipT, nullptr, &tr);
+                SDL_DestroyTexture(tipT);
+            }
+            SDL_FreeSurface(tipS);
+        }
     }
 }

@@ -115,6 +115,58 @@ void CombatSystem::processRangedAttack(Entity& attacker, EntityManager& entities
             }
         }
 
+        // Subtle keyboard aim-assist: snap firing direction toward nearest enemy
+        // within a narrow cone. Only active for player attacks. Compensates for
+        // the keyboard's coarse 8-directional aim — pros won't notice the ~10°
+        // bend, casual players land more shots.
+        if (isPlayer) {
+            constexpr float kAssistRange = 600.0f;
+            constexpr float kAssistConeCos = 0.94f;       // ~20° half-cone
+            constexpr float kAssistMaxBendCos = 0.985f;   // ~10° max bend
+            float bx = combat.attackDirection.x;
+            float by = combat.attackDirection.y;
+            float bmag = std::sqrt(bx * bx + by * by);
+            if (bmag > 0.001f) {
+                bx /= bmag; by /= bmag;
+                float bestDot = kAssistConeCos;
+                Vec2 bestDir = combat.attackDirection;
+                bool found = false;
+                for (auto* e : entities.getEntitiesWithComponent<AIComponent>()) {
+                    if (!e || !e->isAlive() || !e->isEnemy) continue;
+                    if (e->dimension != 0 && e->dimension != currentDim &&
+                        projDim != 0) continue;
+                    if (!e->hasComponent<TransformComponent>() ||
+                        !e->hasComponent<HealthComponent>()) continue;
+                    if (e->getComponent<HealthComponent>().currentHP <= 0) continue;
+                    Vec2 ec = e->getComponent<TransformComponent>().getCenter();
+                    float dx = ec.x - pos.x;
+                    float dy = ec.y - pos.y;
+                    float d2 = dx * dx + dy * dy;
+                    if (d2 > kAssistRange * kAssistRange || d2 < 1.0f) continue;
+                    float dist = std::sqrt(d2);
+                    float ndx = dx / dist;
+                    float ndy = dy / dist;
+                    float dot = ndx * bx + ndy * by;
+                    if (dot > bestDot) {
+                        bestDot = dot;
+                        bestDir = {ndx, ndy};
+                        found = true;
+                    }
+                }
+                if (found) {
+                    // Cap how far we bend the shot — preserves feel of "I aimed there"
+                    if (bestDot < kAssistMaxBendCos) {
+                        // Lerp 60% toward target dir, then renormalize.
+                        float lx = bx + (bestDir.x - bx) * 0.6f;
+                        float ly = by + (bestDir.y - by) * 0.6f;
+                        float lmag = std::sqrt(lx * lx + ly * ly);
+                        if (lmag > 0.001f) { bestDir = {lx / lmag, ly / lmag}; }
+                    }
+                    combat.attackDirection = bestDir;
+                }
+            }
+        }
+
         // Weapon-specific ranged behavior (player only)
         if (isPlayer && combat.currentRanged == WeaponID::RiftShotgun) {
             // 5 pellets in a fan pattern
@@ -795,6 +847,13 @@ void CombatSystem::createProjectile(EntityManager& entities, const Vec2& pos, co
                     if (self->hasComponent<SpriteComponent>())
                         col = self->getComponent<SpriteComponent>().color;
                     cs->m_particles->burst(hitPos, 6, col, 120.0f, 2.5f);
+                }
+                // Game feel: subtle hitstop on player ranged crits + tiny camera kick.
+                // Non-crit hits stay snappy (no freeze), crits punch through. Mirrors
+                // the melee crit feel so ranged builds don't feel weightless.
+                if (isPlayerDamage && isCrit) {
+                    cs->addHitFreeze(0.05f);
+                    if (cs->m_camera) cs->m_camera->shake(3.0f, 0.08f);
                 }
             }
         }

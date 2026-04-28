@@ -159,6 +159,7 @@ void Player::update(float dt, const InputManager& input) {
     // Decay landing squash visual effect
     auto& spr = m_entity->getComponent<SpriteComponent>();
     if (spr.landingSquashTimer > 0) spr.landingSquashTimer -= dt;
+    if (spr.jumpStretchTimer > 0) spr.jumpStretchTimer -= dt;
     spr.updateAfterimages(dt);
 
     handleDash(dt, input);
@@ -506,6 +507,13 @@ void Player::handleJump(const InputManager& input) {
             phys.velocity.y = jumpForce;
             phys.coyoteTimer = 0;
             jumpBufferTimer = 0;
+            // Game feel: brief vertical stretch on takeoff (Mario-style "spring").
+            // Grounded jumps get the strongest pull; double-jumps slightly less.
+            if (m_entity->hasComponent<SpriteComponent>()) {
+                auto& jspr = m_entity->getComponent<SpriteComponent>();
+                jspr.jumpStretchTimer = 0.18f;
+                jspr.jumpStretchIntensity = (phys.onGround || phys.canCoyoteJump()) ? 0.18f : 0.12f;
+            }
             if (!phys.onGround && !phys.canCoyoteJump()) {
                 jumpsRemaining--;
                 // Double jump particle effect
