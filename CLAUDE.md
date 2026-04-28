@@ -7,23 +7,52 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 
 ## Current State (2026-04-28)
 - **Content**: 12 weapons (12/12 counter-attacks), 4 classes (4/4 combo finishers), 38 relics, 25 synergies (13 relic-relic + 12 weapon-relic, fully localized), 6 bosses, 17 enemy types, NG+ tiers 0–10
-- **Localization**: 963 EN + 1192 DE keys, ~162 gameplay tips (EN+DE)
-- **Quality**: 0 compiler warnings, visual regression 17/17 PASS, 41 bug patterns documented in `.claude/rules/bug-patterns.md`
+- **Localization**: 988 EN + 1217 DE keys, ~162 gameplay tips, **9-page Tutorial** (Welcome / Controls / Combat / Dimensions / Progression / Parry / Finisher / Synergy / Ready)
+- **Quality presets**: Low / Medium / High with toggle persistence, photosensitivity-friendly "Reduce Flashes" toggle, casual-friendly Easy difficulty (+30% HP, +20% damage, -25% damage taken)
+- **Quality**: 0 compiler warnings (one informational D9025), 41 bug patterns + 2 new audit-fix patterns (#43 magnet gravity leak, #44 stale save toast)
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
+- **Build flags (Release)**: `/O2 /Oi /Ot /Oy /GL /Gy /Gw /GS- /fp:fast` + `/LTCG /OPT:REF /OPT:ICF`. Tracy linked but `TRACY_ENABLE` undef'd in Release → ZoneScopedN no-op. Binary 1.83 MB (was 2.01 MB).
 
 **History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-04-28).
 
-**Latest session (2026-04-28, 9 autonomous commits, Game Feel + Human-Friendly polish):**
-- **Round 3**: Camera-Kick auf Player-Damage (skaliert mit Schadenshöhe), Parry-Shockwave-Star (8 Strahlen × 45°), Parry-Rumble (0.55 / 140ms)
-- **Round 4**: Dash-Haptic (0.45 / 90ms), Pickup-Pop bei großen Hauls (Rumble + 2px Camera-Bump), HP-% bei < 25 % HP neben dem Balken
-- **Round 5**: Tutorial Page 5 "Parry" + Page 6 "Finisher" (deferred items completed)
-- **Round 6**: Boss-Telegraph deutlich verstärkt — 2× Partikel-Anzahl + 1.4× Größe, ab 65% Windup zusätzlicher 6-Speichen-Bodenring, Tutorial Page 7 "Synergy"
-- **Round 7**: Pickup-Magnet (150 px, quadratischer Falloff), Auto-Pause bei Fokusverlust
-- **Round 8**: Off-Screen-Pfeile für Bosse (rot) und Elites (orange) am Bildschirmrand
-- **Round 9**: Exit-Beacon (grün) wenn alle Rifts repariert und Exit Off-Screen
-- **Pause-Menu**: Live-Controls-Panel (8 Aktionen mit aktuellen Bindings aus InputManager), Save-Indicator mit grünem Toast
-- **All deferred Tutorial Pages complete**: Parry (Page 5), Finisher (Page 6), Synergy (Page 7) — all three from previous CLAUDE.md deferred list now implemented
-- **Build**: 0 Errors, 0 echte Warnungen (nur informatives D9025 zur Tracy-Disable-Bestätigung), Smoke-Tests grün
+**Latest session (2026-04-27/28, 25+ commits across 4 phases):**
+
+**Phase 1 — Performance (5 commits)**
+- Aggressive Release compiler flags + LTCG + dead-code stripping (Tracy disabled in Release)
+- Quality preset (Low/Medium/High): drives particle count (0.4/0.7/1.0×), procedural-tile-detail density, post-FX toggles (bloom, ambient particles, dynamic lighting, color grading, vignette, screen overlays), screen-edge chromatic aberration & entropy-glitch overlays, persisted to settings.cfg, EN+DE localized
+- Render batching: dim-exclusive borders 4-bucket alpha tiers (~80–200 SetColor → 8 SetColor)
+- Cached HUD elements: finisher prompt, speedrun timer (1Hz), endless score (event-driven)
+- Light/glow/overlay registration gated by quality preset (no bookkeeping when off)
+
+**Phase 2 — Game Feel (8 commits)**
+- Hit-stop on player ranged crits (50ms freeze + 3px camera kick)
+- Jump stretch (Mario-spring): tall+narrow on takeoff, scales with anticipation
+- Audio variation: ±12% volume drift on hit/swing/shot/crit/elemental SFX (no ear fatigue)
+- Camera look-ahead scales with speed (0.6x..1.4x), asymmetric smoothing
+- Damage number tiering: crit+50dmg=2.2x, 100dmg=1.7x, 50dmg=1.5x
+- Low-HP heartbeat rumble (0.10..0.40 strength, 80ms pulses)
+- Camera kick on damage taken (scales 1.5..20px, 0.10..0.45s)
+- Parry shockwave star (8 directional rays × 45°) + parry rumble (0.55/140ms)
+- Dash haptic (0.45/90ms), big-haul pickup pop (rumble + camera bump)
+- Boss telegraph: 2× particle count, 1.4× size, plus 6-spoke radial ground ring at 65%+ windup
+- Pickup magnet (150px squared-falloff) + auto-pause on focus loss
+- Off-screen boss/elite arrow indicators (red/orange) + exit beacon (green) when active
+
+**Phase 3 — Human-Friendly / Accessibility (6 commits)**
+- Death-screen rotating gameplay tip (162-tip pool, seeded by death context) + retry-hint
+- Keyboard aim-assist (~20° detection cone, ~10° max bend, 60% lerp)
+- Photosensitivity "Reduce Flashes" toggle: 30% kill-flash, no chromatic aberration, no glitch
+- First-run welcome arrow + hint pulses next to Tutorial button (auto-disappears post-run)
+- Pause-menu live controls reference panel (8 actions × current InputManager bindings)
+- Save indicator toast (state-agnostic decay so no stale toasts)
+- HP critical % display (pulsing red beside HP bar at ≤25%, harder pulse below 10%)
+- Three deferred tutorial pages added: Parry (5), Finisher (6), Synergy (7)
+- Casual difficulty (Easy): +30% HP, +20% damage, -25% damage taken, on top of existing -30% spawns / 1.5× shards
+- Stuck-detection: 60s no-progress → 6s contextual hint "[Q] switch dimensions"
+
+**Phase 4 — Audit Fixes (1 commit, see bug patterns #43, #44)**
+- Pickup magnet permanently disabled gravity (similar to bug #22): out-of-range branch now restores
+- Save indicator timer never decayed outside Play (stale toast on Play re-entry): now ticked from Game::update
 
 **Previous session (2026-04-18, 3 commits, major perf-focused):**
 - **`97e69af` — 4 Render-Hotpath-Reduktionen + DimResidue-Loop-Inversion**

@@ -351,3 +351,19 @@ would have missed by eye.
 - **Fix**: Replaced shared `m_snapshotBuffer` (for forEach) with a depth-indexed `static thread_local std::vector<std::vector<Entity*>> s_pool`. Each nesting level owns a stable buffer with sticky capacity, so single-call steady-state cost matches the previous shared-buffer version. Update() retains its own dedicated `m_snapshotBuffer` (never re-entered).
 - **Lesson**: Any "shared scratch buffer" used by a function that can be re-entered (directly or via callbacks) is a re-entrancy bomb. When templating an iteration helper that takes a `Func&&` callback, assume the callback may invoke the helper again and design for re-entry: depth-indexed pool, local buffer, or explicit re-entry guard.
 - **Detection heuristic**: Grep for any class member `vector<T>` named `*Buffer`/`*Snapshot`/`scratch*` that is `clear()`ed at the start of a function taking a callback. If such a function is called from anywhere inside its own callback chain (search for the function name within file groups that pass it a lambda), the buffer is being clobbered. For ECS-style `forEach(Func)`, grep `forEach\(.*forEach\(` (multiline) or just look at every call site for a nested invocation of the same helper.
+
+## Session 2026-04-28 (Game-Feel Round Audit Fixes)
+
+### 43. Pickup Magnet Permanently Disables Gravity (Same Class as #22)
+- **Pattern**: Magnet logic inside `forEach` set `useGravity = false` when shard was in range, but the early-return paths for out-of-range / cross-dim / wrong tag never restored it. Once a shard entered the magnet zone, then left (player moved away), `useGravity` stayed false forever — shard hovered in mid-air.
+- **Impact**: Visual bug (shards floating where they were last pulled). Subtle because shards usually get picked up before drifting far, masking the issue in casual play.
+- **Fix**: Out-of-range branch (`d2 > kMagnetRangeSq`) now explicitly sets `useGravity = true`. Cross-dim / wrong-tag branches still don't touch the shard.
+- **Lesson**: Same lesson as #22 (stat compounding without reset) and #34 (overwrite vs compose). When a per-frame check toggles a state, EVERY exit path must restore the state, not just the "in range" path.
+- **Detection heuristic**: For any per-frame `if (cond) { state = X; }` block, check that the falsy branch (or early return) restores `state` to its default. Grep for `useGravity = false`, `enabled = false`, etc. inside conditionals — verify a paired restore exists.
+
+### 44. Save Indicator Timer Stale Toast Across States
+- **Pattern**: `notifySaved()` set `g_saveIndicatorTimer = 1.5f` from any save site (state transitions in Game::update, popState in PauseState, Menu setting changes). HUD render checked `> 0` and showed toast. But the timer was only ticked in `PlayState::update` (`g_saveIndicatorTimer -= dt`).
+- **Impact**: A save fired in Menu/Pause set the timer. As long as the user stayed out of Play, the timer didn't decay. When they later entered Play, the timer started decaying from 1.5s — popping a "Saved" toast minutes after the actual save. Confusing and decoupled from action.
+- **Fix**: Tick `g_saveIndicatorTimer` in `Game::update` instead of `PlayState::update` so it decays state-agnostically. Removed the duplicate decay in PlayState.
+- **Lesson**: When a global timer-based UI is triggered from many states, tick it in a state-agnostic update path (Game::update, AudioManager::tick, etc.). State-scoped tick logic creates "freeze when not in that state" surprises.
+- **Detection heuristic**: For any `inline float g_*Timer` global, grep for the `-= dt` (or `-= FIXED_TIMESTEP`) decrement site. If it's inside a state's update method but the trigger sites span multiple states, the timer can freeze mid-decay. Move the tick to a global update path.
