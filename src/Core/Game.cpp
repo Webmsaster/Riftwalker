@@ -245,10 +245,15 @@ void Game::handleEvents() {
         // Auto-pause on focus loss: if the player Alt-Tabs out during a real
         // run, push PauseState so they don't return to a corpse. Skip for
         // automation (smoke test, playtest bot) where focus can fluctuate.
+        // Arms a resume-countdown so the player gets a brief "ready" freeze
+        // on return instead of dying instantly to whatever was on screen.
         if (event.type == SDL_WINDOWEVENT &&
             event.window.event == SDL_WINDOWEVENT_FOCUS_LOST &&
             !g_autoSmokeTest && !g_autoPlaytest &&
             getCurrentStateID() == StateID::Play) {
+            if (auto* playState = dynamic_cast<PlayState*>(getState(StateID::Play))) {
+                playState->requestResumeCountdown();
+            }
             pushState(StateID::Pause);
         }
 

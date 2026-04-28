@@ -34,6 +34,12 @@ struct SpriteComponent : public Component {
     AnimState animState = AnimState::Idle;
     float animTimer = 0;    // Time spent in current state
 
+    // Wall-clock ticks at sprite creation. Used by render code to drive
+    // simple "spawn pop" animations without a per-entity update path —
+    // since SDL_GetTicks() is monotonic, render can derive (now - spawnTicks)
+    // anywhere. Set automatically at component construction.
+    Uint32 spawnTicks = 0;
+
     // Landing squash effect (set externally, decays over time)
     float landingSquashTimer = 0;
     float landingSquashIntensity = 0; // 0-1, scales with impact speed
@@ -72,9 +78,9 @@ struct SpriteComponent : public Component {
         }
     }
 
-    SpriteComponent() = default;
+    SpriteComponent() : spawnTicks(SDL_GetTicks()) {}
     SpriteComponent(SDL_Texture* tex, int layer = 2)
-        : texture(tex), renderLayer(layer) {
+        : spawnTicks(SDL_GetTicks()), texture(tex), renderLayer(layer) {
         if (tex) {
             int w = 0, h = 0;
             if (SDL_QueryTexture(tex, nullptr, nullptr, &w, &h) == 0 && w > 0 && h > 0) {

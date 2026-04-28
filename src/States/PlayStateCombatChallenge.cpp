@@ -141,6 +141,12 @@ void PlayState::checkRiftInteraction() {
                 m_particles.burst(m_dimManager.playerPos, 40,
                     repairColor, 250.0f, 6.0f);
                 m_camera.shake(5.0f, 0.3f);
+                // Rift repair celebratory feedback: brief gentle camera flash
+                // tinted by the dimension that was repaired + tactile rumble
+                // pulse. Reads as "you fixed something important" instead of
+                // just shrapnel + sound.
+                m_camera.flash(0.18f, repairColor.r, repairColor.g, repairColor.b);
+                game->getInputMutable().rumble(0.30f, 110);
 
                 // Start collapse after all rifts in THIS level repaired
                 // (skip if already collapsing, e.g. boss kill already triggered it)

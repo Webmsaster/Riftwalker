@@ -147,6 +147,16 @@ void PlayState::exit() {
 }
 
 void PlayState::handleEvent(const SDL_Event& event) {
+    // Death-sequence skip: any key/button press during the death freeze
+    // collapses the remaining slow-mo + freeze to 0.2s so quick-retry
+    // players don't have to sit through the full 1.2s cinematic each time.
+    if (m_playerDying && m_deathSequenceTimer > 0.2f &&
+        (event.type == SDL_KEYDOWN ||
+         event.type == SDL_CONTROLLERBUTTONDOWN ||
+         event.type == SDL_MOUSEBUTTONDOWN)) {
+        m_deathSequenceTimer = 0.2f;
+        return;
+    }
     if (event.type == SDL_KEYDOWN) {
         if (event.key.keysym.scancode == SDL_SCANCODE_F3) {
             m_showDebugOverlay = !m_showDebugOverlay;
@@ -592,6 +602,17 @@ void PlayState::update(float dt) {
 
     // Run time tracking
     m_runTime += dt;
+
+    // Auto-pause resume countdown: freeze gameplay briefly after returning
+    // from a focus-loss-triggered pause so the player can re-orient before
+    // the world unfreezes. The countdown still ticks (real-time) so the
+    // freeze ends naturally.
+    if (m_resumeCountdown > 0.0f) {
+        m_resumeCountdown -= dt;
+        if (m_resumeCountdown < 0.0f) m_resumeCountdown = 0.0f;
+        // Skip the rest of update — gameplay is frozen during the countdown.
+        return;
+    }
 
     // Save indicator timer is now ticked from Game::update() so it decays in
     // any state (avoids stale toast on Play re-entry after a Menu-side save).

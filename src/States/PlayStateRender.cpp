@@ -917,6 +917,34 @@ void PlayState::render(SDL_Renderer* renderer) {
     // Tutorial hints (first 3 levels only)
     renderTutorialHints(renderer, game->getFont());
 
+    // Resume countdown overlay: dimmed scene + large "READY" text during the
+    // 1.2s freeze after returning from auto-pause. Helps the player re-orient.
+    if (m_resumeCountdown > 0.0f && game->getFont()) {
+        TTF_Font* font = game->getFont();
+        float t = m_resumeCountdown / 1.2f; // 1 -> 0
+        Uint8 dim = static_cast<Uint8>(t * 100);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, dim);
+        SDL_Rect full = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+        SDL_RenderFillRect(renderer, &full);
+        const char* msg = (m_resumeCountdown > 0.4f) ? "READY..." : "GO!";
+        SDL_Color c = {255, 240, 180, static_cast<Uint8>(t * 240 + 30)};
+        SDL_Surface* s = TTF_RenderUTF8_Blended(font, msg, c);
+        if (s) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, s);
+            if (tex) {
+                SDL_SetTextureAlphaMod(tex, static_cast<Uint8>(t * 240 + 30));
+                int sw = s->w * 3;
+                int sh = s->h * 3;
+                SDL_Rect dst = {SCREEN_WIDTH / 2 - sw / 2,
+                                SCREEN_HEIGHT / 2 - sh / 2, sw, sh};
+                SDL_RenderCopy(renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+
     // Combo break red border flash — fires when a 5+ combo drops to 0 from
     // timeout, so the loss reads viscerally instead of just disappearing.
     if (m_comboBreakFlashTimer > 0.0f) {

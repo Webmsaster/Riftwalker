@@ -161,6 +161,14 @@ private:
     // Edge-detect achievement notifications so we can fire haptic + camera
     // flash exactly once per unlock (timer goes from 0 -> duration on unlock).
     float m_lastAchievementTimer = 0.0f;
+
+    // Auto-pause resume countdown: when the auto-pause-on-focus-loss path
+    // triggers, this is set so the player gets a brief "ready" freeze on
+    // return (avoids dying instantly to whatever was on screen during Alt-Tab).
+public:
+    void requestResumeCountdown() { m_resumeCountdown = 1.2f; }
+private:
+    float m_resumeCountdown = 0.0f;
     // Edge-detect combo break: fire a red border flash when combo drops from
     // a meaningful threshold (>=5) to 0 abruptly.
     int m_lastComboCount = 0;

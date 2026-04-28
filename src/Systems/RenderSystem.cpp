@@ -948,6 +948,29 @@ void RenderSystem::renderEntity(SDL_Renderer* renderer, Entity& entity,
 
 void RenderSystem::renderPickup(SDL_Renderer* renderer, SDL_Rect rect, Entity& entity, float alpha) {
     Uint8 a = static_cast<Uint8>(255 * alpha);
+
+    // Spawn pop: pickups scale up from 0.5 -> 1.1 -> 1.0 over the first 280ms
+    // of life (overshoot bounce). Reads as "the loot just landed" without
+    // adding a per-frame system. Driven by sprite.spawnTicks captured at
+    // construction.
+    if (entity.hasComponent<SpriteComponent>()) {
+        auto& spr = entity.getComponent<SpriteComponent>();
+        Uint32 elapsed = (m_frameTicks > spr.spawnTicks)
+                       ? (m_frameTicks - spr.spawnTicks) : 0;
+        if (elapsed < 280) {
+            float t = static_cast<float>(elapsed) / 280.0f;          // 0..1
+            // Ease: starts at 0.5x, overshoots to ~1.1x, settles to 1.0x.
+            float scale = 0.5f + t * 0.7f;                            // 0.5..1.2 linear-ish
+            if (t > 0.6f) scale = 1.1f - (t - 0.6f) * 0.25f;          // 1.1..1.0 settle
+            int sw = std::max(2, static_cast<int>(rect.w * scale));
+            int sh = std::max(2, static_cast<int>(rect.h * scale));
+            rect.x += (rect.w - sw) / 2;
+            rect.y += (rect.h - sh);
+            rect.w = sw;
+            rect.h = sh;
+        }
+    }
+
     int x = rect.x, y = rect.y, w = rect.w, h = rect.h;
     float time = m_frameTicks * 0.005f;
 
