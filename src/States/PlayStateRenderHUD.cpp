@@ -537,6 +537,93 @@ void PlayState::renderDebugOverlay(SDL_Renderer* renderer, TTF_Font* font) {
     }
 }
 
+void PlayState::renderOffScreenEnemyArrows(SDL_Renderer* renderer) {
+    // Render small directional arrow + dot for any boss or elite that exists
+    // off-screen, anchored at the screen edge along the line from camera center
+    // to the enemy. Pulses + colored by tier (boss = red, elite = orange).
+    if (!m_player) return;
+    constexpr int kEdgeMargin = 40; // distance from screen edge
+    const int cx = SCREEN_WIDTH / 2;
+    const int cy = SCREEN_HEIGHT / 2;
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    Uint32 ticks = m_frameTicks;
+    float pulse = 0.7f + 0.3f * std::sin(ticks * 0.008f);
+
+    int curDim = m_dimManager.getCurrentDimension();
+
+    m_entities.forEach([&](Entity& e) {
+        if (!e.isAlive() || !e.isEnemy) return;
+        if (!e.hasComponent<TransformComponent>() ||
+            !e.hasComponent<HealthComponent>()) return;
+        if (e.dimension != 0 && e.dimension != curDim) return;
+        if (e.getComponent<HealthComponent>().currentHP <= 0) return;
+        bool isBoss = e.isBoss;
+        bool isElite = e.hasComponent<AIComponent>() &&
+                       e.getComponent<AIComponent>().isElite;
+        if (!isBoss && !isElite) return;
+
+        Vec2 wp = e.getComponent<TransformComponent>().getCenter();
+        Vec2 sp = m_camera.worldToScreen(wp);
+        // On-screen with margin? skip arrow (real enemy is visible)
+        if (sp.x >= -20 && sp.x <= SCREEN_WIDTH + 20 &&
+            sp.y >= -20 && sp.y <= SCREEN_HEIGHT + 20) return;
+
+        // Direction from screen center to off-screen enemy
+        float dx = sp.x - cx;
+        float dy = sp.y - cy;
+        float mag = std::sqrt(dx * dx + dy * dy);
+        if (mag < 0.001f) return;
+        dx /= mag; dy /= mag;
+
+        // Project onto screen rect (inset by kEdgeMargin)
+        float halfW = SCREEN_WIDTH * 0.5f - kEdgeMargin;
+        float halfH = SCREEN_HEIGHT * 0.5f - kEdgeMargin;
+        float t1 = (std::abs(dx) > 0.001f) ? halfW / std::abs(dx) : 1e9f;
+        float t2 = (std::abs(dy) > 0.001f) ? halfH / std::abs(dy) : 1e9f;
+        float t = std::min(t1, t2);
+        int ax = cx + static_cast<int>(dx * t);
+        int ay = cy + static_cast<int>(dy * t);
+
+        // Color: boss = red-pink, elite = orange
+        Uint8 r = isBoss ? 255 : 255;
+        Uint8 g = isBoss ? 70  : 160;
+        Uint8 b = isBoss ? 70  : 40;
+        Uint8 a = static_cast<Uint8>(220 * pulse);
+
+        // Anchor dot
+        SDL_SetRenderDrawColor(renderer, r, g, b, a);
+        SDL_Rect dot = {ax - 6, ay - 6, 12, 12};
+        SDL_RenderFillRect(renderer, &dot);
+        // Halo
+        SDL_SetRenderDrawColor(renderer, r, g, b, static_cast<Uint8>(a / 3));
+        SDL_Rect halo = {ax - 12, ay - 12, 24, 24};
+        SDL_RenderFillRect(renderer, &halo);
+
+        // Triangle arrow pointing outward (toward the enemy direction)
+        const int tipLen = 22;
+        int tipX = ax + static_cast<int>(dx * tipLen);
+        int tipY = ay + static_cast<int>(dy * tipLen);
+        // Perpendicular for triangle base
+        float px = -dy;
+        float py = dx;
+        const int baseHalf = 9;
+        int b1x = ax + static_cast<int>(px * baseHalf);
+        int b1y = ay + static_cast<int>(py * baseHalf);
+        int b2x = ax - static_cast<int>(px * baseHalf);
+        int b2y = ay - static_cast<int>(py * baseHalf);
+        // Outline triangle (3 lines)
+        SDL_SetRenderDrawColor(renderer, r, g, b, a);
+        SDL_RenderDrawLine(renderer, b1x, b1y, tipX, tipY);
+        SDL_RenderDrawLine(renderer, b2x, b2y, tipX, tipY);
+        SDL_RenderDrawLine(renderer, b1x, b1y, b2x, b2y);
+        // A second line offset for thickness
+        SDL_RenderDrawLine(renderer, b1x, b1y + 1, tipX, tipY + 1);
+        SDL_RenderDrawLine(renderer, b2x, b2y + 1, tipX, tipY + 1);
+    });
+}
+
 void PlayState::renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font) {
     // Find boss entity
     Entity* boss = nullptr;

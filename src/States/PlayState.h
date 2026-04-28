@@ -399,6 +399,7 @@ private:
     float m_bossBarLastPct = 1.0f;    // Track HP for damage detection
     void spawnBoss();
     void renderBossHealthBar(SDL_Renderer* renderer, TTF_Font* font);
+    void renderOffScreenEnemyArrows(SDL_Renderer* renderer);
     void endRun();
     void finalizeRun(bool abandoned);
     void populateRunSummary(int runShards, bool isNewRecord);

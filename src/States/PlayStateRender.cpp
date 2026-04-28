@@ -972,6 +972,10 @@ void PlayState::render(SDL_Renderer* renderer) {
         renderBossHealthBar(renderer, game->getFont());
     }
 
+    // Off-screen boss/elite arrow indicators — point toward important enemies
+    // that are alive but outside the camera frustum so the player can find them.
+    renderOffScreenEnemyArrows(renderer);
+
     // Combo milestone golden flash overlay
     if (m_comboMilestoneFlash > 0) {
         float alpha = m_comboMilestoneFlash / 0.4f;
