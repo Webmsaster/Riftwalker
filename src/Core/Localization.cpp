@@ -920,6 +920,14 @@ void Localization::loadStrings() {
     m_en["tip.159"] = "TIP: Boss enrage phases deal more damage but also take more — aggressive play is rewarded in late phases!";
     m_en["tip.160"] = "TIP: Shop buffs persist for the entire run — invest early for maximum value across all 30 floors!";
     m_en["tip.161"] = "TIP: Technomancer's combo finisher 'Overcharge Surge' stuns all nearby enemies for 1s and deals 1.5x ranged damage!";
+    m_en["tip.162"] = "TIP: Press [R] on the death screen for instant retry — same class, same difficulty, fresh seed.";
+    m_en["tip.163"] = "TIP: Settings → Quality lets you trade post-FX for FPS. Low-end PCs run smoother on Low.";
+    m_en["tip.164"] = "TIP: Settings → Reduce Flashes dampens screen flashes for photosensitive players.";
+    m_en["tip.165"] = "TIP: Casual difficulty gives +30% HP, +20% damage, and -25% damage taken — try it if Normal feels harsh.";
+    m_en["tip.166"] = "TIP: Ranged shots have subtle aim-assist within ~20° — focus on positioning, the bullets nudge to the target.";
+    m_en["tip.167"] = "TIP: Bosses telegraph attacks with a wind-up flash + radial floor sparks — that's your cue to dodge or parry.";
+    m_en["tip.168"] = "TIP: Off-screen enemies show as colored arrows at the screen edge: red = boss, orange = elite, green = exit.";
+    m_en["tip.169"] = "TIP: Stuck on a floor? Try [Q] to switch dimensions — paths and platforms differ between A and B.";
 
     // Input action names (shown in Keybindings screen)
     m_en["action.move_left"]       = "Move Left";
@@ -2151,6 +2159,14 @@ void Localization::loadStrings() {
     m_de["tip.159"] = "TIPP: Boss-Raserei-Phasen machen mehr Schaden aber stecken auch mehr ein — aggressives Spiel wird belohnt!";
     m_de["tip.160"] = "TIPP: Shop-Buffs halten den ganzen Lauf — investiere frueh fuer maximalen Wert ueber alle 30 Etagen!";
     m_de["tip.161"] = "TIPP: Technomancers Kombo-Finisher 'Ueberladungsstoss' betaeubt alle nahen Feinde fuer 1s und macht 1,5x Fernkampfschaden!";
+    m_de["tip.162"] = "TIPP: Druecke [R] im Game-Over-Screen fuer Schnellstart — gleiche Klasse, gleiche Schwierigkeit, neuer Seed.";
+    m_de["tip.163"] = "TIPP: Optionen → Qualitaet tauscht Post-FX gegen FPS. Schwache PCs laufen auf Niedrig fluessiger.";
+    m_de["tip.164"] = "TIPP: Optionen → Blitze reduzieren daempft Bildschirmblitze fuer photoempfindliche Spieler.";
+    m_de["tip.165"] = "TIPP: Casual-Schwierigkeit gibt +30% HP, +20% Schaden und -25% erlittenen Schaden — gut fuer Einstieg.";
+    m_de["tip.166"] = "TIPP: Fernkampfschuesse haben sanfte Zielhilfe (~20°) — konzentriere dich auf Positionierung, Schuesse korrigieren leicht.";
+    m_de["tip.167"] = "TIPP: Bosse kuendigen Angriffe mit Aufladeblitz + Bodenfunken an — das ist dein Signal zum Ausweichen oder Parieren.";
+    m_de["tip.168"] = "TIPP: Off-Screen-Feinde zeigen sich als Pfeile am Rand: rot = Boss, orange = Elite, gruen = Ausgang.";
+    m_de["tip.169"] = "TIPP: Festgefahren? Druecke [Q] fuer Dim-Wechsel — Wege und Plattformen unterscheiden sich zwischen A und B.";
 
     // Input action names
     m_de["action.move_left"]       = "Links bewegen";

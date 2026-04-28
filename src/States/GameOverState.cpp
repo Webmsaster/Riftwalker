@@ -274,11 +274,11 @@ void GameOverState::render(SDL_Renderer* renderer) {
     if (m_timer > 2.0f) {
         float tipAlpha = std::min(1.0f, (m_timer - 2.0f) * 1.2f);
         Uint8 ta = static_cast<Uint8>(140 * tipAlpha);
-        // 162 tips defined in Localization.cpp (tip.0..tip.161). Seed from
+        // 170 tips defined in Localization.cpp (tip.0..tip.169). Seed from
         // run-time integer + floors so every death feels fresh.
         int tipIdx = (static_cast<int>(s_runTime) + s_floorsCleared * 7
-                      + s_killCount * 13 + s_deathCause * 41) % 162;
-        if (tipIdx < 0) tipIdx += 162;
+                      + s_killCount * 13 + s_deathCause * 41) % 170;
+        if (tipIdx < 0) tipIdx += 170;
         char tipKey[16];
         std::snprintf(tipKey, sizeof(tipKey), "tip.%d", tipIdx);
         SDL_Color tipColor = {150, 130, 170, ta};
