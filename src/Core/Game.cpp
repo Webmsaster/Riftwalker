@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "SteamShim.h"
 #include "Localization.h"
 #include "Game/ClassSystem.h"
 #include <tracy/Tracy.hpp>
@@ -153,6 +154,11 @@ bool Game::init() {
         changeState(StateID::Play);
     else
         changeState(StateID::Splash);
+
+    // Steamworks: opt-in init. Without ENABLE_STEAMWORKS this is a no-op
+    // and the game runs DRM-free. With it, Steam achievement unlocks +
+    // cloud save reads/writes start working transparently.
+    Steam::init();
 
     m_running = true;
     return true;
@@ -514,6 +520,14 @@ void Game::loadSaveData() {
         std::string key;
         float value;
         while (cfg >> key >> value) {
+            if (key == "format_version") {
+                int fv = static_cast<int>(value);
+                if (fv > kSaveFormatVersion) {
+                    SDL_Log("Settings file from a newer build (v%d > v%d) — using defaults for unknown keys.",
+                            fv, kSaveFormatVersion);
+                }
+                continue;
+            }
             if (key == "sfx_volume")           g_sfxVolume      = std::clamp(value, 0.0f, 1.0f);
             else if (key == "music_volume")    g_musicVolume    = std::clamp(value, 0.0f, 1.0f);
             else if (key == "shake_intensity") g_shakeIntensity = std::clamp(value, 0.0f, 2.0f);
@@ -559,6 +573,7 @@ void Game::saveSaveData() {
 
 void Game::saveSettings() {
     atomicSave("riftwalker_settings.cfg", [&](std::ofstream& f) {
+        writeSaveHeader(f);
         f << "master_volume "   << AudioManager::instance().getMasterVolume() << "\n";
         f << "sfx_volume "      << g_sfxVolume       << "\n";
         f << "music_volume "    << g_musicVolume      << "\n";
@@ -591,6 +606,8 @@ void Game::shutdown() {
     Bestiary::save("bestiary_save.dat");
     AscensionSystem::save("ascension_save.dat");
     ChallengeMode::save("riftwalker_challenges.dat");
+
+    Steam::shutdown();
 
     if (m_font) {
         TTF_CloseFont(m_font);

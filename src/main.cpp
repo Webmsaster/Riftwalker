@@ -1,4 +1,5 @@
 #include "Core/Game.h"
+#include "Core/CrashHandler.h"
 #include "Game/LevelGenerator.h"
 #include "Game/Tile.h"
 #include "Game/WorldTheme.h"
@@ -513,6 +514,10 @@ bool runGeneratorValidationTests(const GeneratorTestConfig& config) {
 } // namespace
 
 int main(int argc, char* argv[]) {
+    // Install Windows unhandled-exception filter first thing so even
+    // very-early crashes (asset load, init) get a riftwalker_crash.txt.
+    CrashHandler::install();
+
     // Set working directory to exe location so assets resolve correctly
     // regardless of where the exe is launched from
     if (SDL_Init(0) == 0) {

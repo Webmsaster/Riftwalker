@@ -14,6 +14,11 @@ find_package(SDL2_ttf CONFIG REQUIRED)
 # Tracy Profiler (optional, enabled by default in Debug/RelWithDebInfo)
 find_package(Tracy CONFIG REQUIRED)
 
+# Steamworks SDK (opt-in). Set ENABLE_STEAMWORKS=ON and drop
+# vendor/steamworks/{public/steam/*.h, redistributable_bin/win64/steam_api64.lib}
+# in place. Without this option, SteamShim runs as a no-op (DRM-free build).
+option(ENABLE_STEAMWORKS "Link against the Steamworks SDK" OFF)
+
 # pixelmatch-cpp17 for visual regression testing
 include(FetchContent)
 FetchContent_Declare(
@@ -63,6 +68,21 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     $<IF:$<TARGET_EXISTS:SDL2_ttf::SDL2_ttf>,SDL2_ttf::SDL2_ttf,SDL2_ttf::SDL2_ttf-static>
     Tracy::TracyClient
 )
+
+# Steamworks (opt-in via ENABLE_STEAMWORKS)
+if(ENABLE_STEAMWORKS)
+    set(STEAMWORKS_DIR "${CMAKE_SOURCE_DIR}/vendor/steamworks" CACHE PATH "Steamworks SDK root")
+    target_include_directories(${PROJECT_NAME} PRIVATE "${STEAMWORKS_DIR}/public")
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        "${STEAMWORKS_DIR}/redistributable_bin/win64/steam_api64.lib"
+    )
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_STEAMWORKS)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${STEAMWORKS_DIR}/redistributable_bin/win64/steam_api64.dll"
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    )
+endif()
 
 # Tracy: link in every config so the header is available, but undefine
 # TRACY_ENABLE in Release so ZoneScopedN macros expand to no-ops (no per-zone

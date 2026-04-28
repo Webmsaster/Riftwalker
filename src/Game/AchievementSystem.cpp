@@ -1,5 +1,6 @@
 #include "AchievementSystem.h"
 #include "Core/SaveUtils.h"
+#include "Core/SteamShim.h"
 #include "Core/Localization.h"
 #include <fstream>
 #include <sstream>
@@ -70,6 +71,9 @@ bool AchievementSystem::unlock(const std::string& id) {
             m_notification.name = (std::strcmp(locName, nameKey) == 0) ? a.name : locName;
             m_notification.rewardText = a.rewardDesc;
             m_notification.timer = m_notification.duration;
+            // Mirror to Steam (no-op without ENABLE_STEAMWORKS). Achievement
+            // API name = the same id we use locally (e.g. "boss_slayer").
+            Steam::setAchievement(id);
             return true;
         }
     }

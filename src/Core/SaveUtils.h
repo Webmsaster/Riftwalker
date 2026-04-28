@@ -5,6 +5,21 @@
 #include <cstdio>
 #include <SDL2/SDL.h>
 
+// Save-format version. Bumped when on-disk save layout changes
+// in a way that older code can't tolerate. Older saves with a
+// LOWER format_version are still loadable (forward compatible);
+// HIGHER format_versions fall back to defaults (the user is on
+// an older binary than the saves).
+constexpr int kSaveFormatVersion = 1;
+
+// Helper: write the format-version line at the top of a save file.
+// Pass this into atomicSave's writer callback before any other content
+// so loaders see it first. Backward-compatible: existing loaders that
+// do `while (cfg >> key >> value)` simply read it as another key/value.
+inline void writeSaveHeader(std::ofstream& f) {
+    f << "format_version " << kSaveFormatVersion << "\n";
+}
+
 // Atomic save: write to .tmp, flush, then rename. Old file becomes .bak.
 // Prevents data loss if game crashes mid-write.
 inline bool atomicSave(const std::string& path,
