@@ -1,0 +1,26 @@
+// SteamPipe app build script for Riftwalker.
+// Upload with:  steamcmd +login <user> +run_app_build "<abs path>\steam\scripts\app_build.vdf" +quit
+//
+// Replace the two placeholders BEFORE first upload:
+//   YOUR_APP_ID    -> the App ID Valve assigned to Riftwalker
+//   YOUR_DEPOT_ID  -> the Depot ID (usually App ID + 1, shown in Steamworks)
+//
+// "setlive" is intentionally EMPTY: the build uploads but is NOT set live on
+// any branch. You promote it manually in the Steamworks "Builds" page after
+// testing on a beta branch. NEVER auto-setlive to "default".
+
+"appbuild"
+{
+	"appid"	"YOUR_APP_ID"
+	"desc"	"Riftwalker v1.0.0"          // shown in the Steamworks build list
+
+	"buildoutput"	"..\\output\\"        // SteamPipe logs + chunk cache
+	"contentroot"	"..\\content\\"       // what make_steam_build.ps1 fills
+
+	"setlive"	""                        // empty = do not auto-promote any branch
+
+	"depots"
+	{
+		"YOUR_DEPOT_ID"	"depot_build.vdf"
+	}
+}

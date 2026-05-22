@@ -1,0 +1,30 @@
+// SteamPipe depot build script for Riftwalker (referenced by app_build.vdf).
+// Replace YOUR_DEPOT_ID with the depot Valve assigned (usually App ID + 1).
+
+"DepotBuildConfig"
+{
+	"DepotID"	"YOUR_DEPOT_ID"
+
+	"contentroot"	"..\\content\\"
+
+	// Ship everything under content/ recursively.
+	"FileMapping"
+	{
+		"LocalPath"	"*"
+		"DepotPath"	"."
+		"recursive"	"1"
+	}
+
+	// Never ship dev/test artifacts even if they sneak into content/.
+	"FileExclusion"	"*.pdb"
+	"FileExclusion"	"*.log"
+	"FileExclusion"	"*.txt.bak"
+	"FileExclusion"	"steam_appid.txt"   // Valve injects the real App ID at runtime
+	"FileExclusion"	"riftwalker_save.dat*"
+	"FileExclusion"	"*.dat.bak"
+	"FileExclusion"	"*.cfg.bak"
+	"FileExclusion"	"screenshots"
+	"FileExclusion"	"balance_snapshots.csv"
+	"FileExclusion"	"playtest_report.log"
+	"FileExclusion"	"game_log.txt"
+}
