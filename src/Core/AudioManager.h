@@ -51,6 +51,11 @@ public:
     void shutdown();
     void generateSounds(); // create all procedural SFX
 
+    // Render every procedural SFX to <dir>/<Name>.wav (mono 16-bit 44.1kHz).
+    // Used by the --dump-sfx CLI to regenerate the cached .wav assets from the
+    // current SoundGenerator. Opens audio if needed. Returns count written.
+    int dumpProceduralSFX(const std::string& dir);
+
     // Music (with crossfade support)
     void playMusic(const std::string& path, int loops = -1, int fadeMs = 500);
     void stopMusic(int fadeMs = 300);

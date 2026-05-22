@@ -4,6 +4,9 @@
 #include "MusicSystem.h"
 #include <SDL2/SDL.h>
 #include <cstdlib>
+#include <cstdint>
+#include <fstream>
+#include <vector>
 
 AudioManager& AudioManager::instance() {
     static AudioManager inst;
@@ -128,6 +131,53 @@ void AudioManager::generateSounds() {
     if (wavLoaded > 0) {
         SDL_Log("Audio: Loaded %d/%d SFX from .wav files", wavLoaded, static_cast<int>(SFX::COUNT));
     }
+}
+
+// Write a mono 16-bit PCM WAV (matches the cached SFX asset format).
+static void writeWavMono16(const std::string& path, const Sint16* mono,
+                           int samples, int sampleRate) {
+    std::ofstream f(path, std::ios::binary);
+    if (!f) return;
+    const uint32_t dataBytes = static_cast<uint32_t>(samples) * 2u;
+    const uint32_t byteRate = static_cast<uint32_t>(sampleRate) * 2u;
+    auto u32 = [&](uint32_t v) {
+        f.put(char(v & 0xff)); f.put(char((v >> 8) & 0xff));
+        f.put(char((v >> 16) & 0xff)); f.put(char((v >> 24) & 0xff));
+    };
+    auto u16 = [&](uint16_t v) { f.put(char(v & 0xff)); f.put(char((v >> 8) & 0xff)); };
+    f.write("RIFF", 4); u32(36 + dataBytes); f.write("WAVE", 4);
+    f.write("fmt ", 4); u32(16); u16(1); u16(1);       // PCM, 1 channel
+    u32(sampleRate); u32(byteRate); u16(2); u16(16);    // block align 2, 16-bit
+    f.write("data", 4); u32(dataBytes);
+    f.write(reinterpret_cast<const char*>(mono), dataBytes);
+}
+
+int AudioManager::dumpProceduralSFX(const std::string& dir) {
+    // Generators call Mix_QuickLoad_RAW, which needs an open audio device.
+    bool openedHere = false;
+    if (!m_initialized) {
+        if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 2048) < 0) {
+            SDL_Log("dumpProceduralSFX: Mix_OpenAudio failed: %s", Mix_GetError());
+            return 0;
+        }
+        openedHere = true;
+    }
+    int written = 0;
+    std::vector<Sint16> mono;
+    for (int i = 0; i < static_cast<int>(SFX::COUNT); i++) {
+        Mix_Chunk* c = sfxGenerators[i]();
+        if (!c) continue;
+        // abuf is stereo-interleaved S16 (L,R,L,R...); both channels identical.
+        const Sint16* stereo = reinterpret_cast<const Sint16*>(c->abuf);
+        const int frames = static_cast<int>(c->alen / (2 * sizeof(Sint16)));
+        mono.resize(frames);
+        for (int n = 0; n < frames; n++) mono[n] = stereo[n * 2];
+        writeWavMono16(dir + "/" + sfxNames[i] + ".wav", mono.data(), frames, 44100);
+        Mix_FreeChunk(c);
+        written++;
+    }
+    if (openedHere) Mix_CloseAudio();
+    return written;
 }
 
 void AudioManager::shutdown() {

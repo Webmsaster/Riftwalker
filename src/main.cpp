@@ -1,5 +1,6 @@
 #include "Core/Game.h"
 #include "Core/CrashHandler.h"
+#include "Core/AudioManager.h"
 #include "Game/LevelGenerator.h"
 #include "Game/Tile.h"
 #include "Game/WorldTheme.h"
@@ -36,6 +37,7 @@ float g_smokeMaxRuntime = 600.0f;
 int g_smokeCompletedFloor = 0;
 bool g_autoScreenshot = false; // --screenshot: take one screenshot after menu loads, then exit
 extern bool g_visualTest;     // --visual-test: navigate states and capture multi-point screenshots
+std::string g_dumpSfxDir;     // --dump-sfx=DIR: render all procedural SFX to DIR as .wav, then exit
 int g_smokeFailureCode = 0;
 char g_smokeFailureReason[256] = {};
 
@@ -577,6 +579,10 @@ int main(int argc, char* argv[]) {
             g_playtestOutputFile[sizeof(g_playtestOutputFile) - 1] = '\0';
             continue;
         }
+        if (std::strncmp(argv[i], "--dump-sfx=", 11) == 0) {
+            g_dumpSfxDir = argv[i] + 11;
+            continue;
+        }
         if (std::strcmp(argv[i], "--screenshot") == 0) {
             g_autoScreenshot = true;
             continue;
@@ -665,6 +671,19 @@ int main(int argc, char* argv[]) {
 
     if (generatorTests.enabled) {
         return runGeneratorValidationTests(generatorTests) ? 0 : 1;
+    }
+
+    // --dump-sfx=DIR: render every procedural SFX to DIR/<Name>.wav and exit.
+    // Used to regenerate the cached SFX assets from the current SoundGenerator.
+    if (!g_dumpSfxDir.empty()) {
+        if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+            SDL_Log("--dump-sfx: SDL audio init failed: %s", SDL_GetError());
+            return 1;
+        }
+        int n = AudioManager::instance().dumpProceduralSFX(g_dumpSfxDir);
+        SDL_Log("--dump-sfx: wrote %d SFX to %s", n, g_dumpSfxDir.c_str());
+        SDL_Quit();
+        return n > 0 ? 0 : 1;
     }
 
     if (g_autoSmokeTest || g_autoPlaytest) {
