@@ -69,6 +69,7 @@ void PlayState::startNewRun() {
     }
 
     m_currentDifficulty = 1;
+    m_ascensionModifiersApplied = false;  // one-time ascension bonuses re-armed per run
     m_ngPlusTier = g_selectedNGPlus;      // Capture NG+ tier at run start
     m_ngPlusForceSwitchTimer = 30.0f;     // NG+4 forced dim-switch interval
     m_isDailyRun = g_dailyRunActive;
@@ -278,6 +279,12 @@ void PlayState::generateLevel() {
     m_camera.zoomSpeed = 2.0f;
 
     m_levelGen.setThemes(m_themeA, m_themeB);
+    // Ascension: denser hazards at higher tiers (advertised in the Ascension
+    // descriptions). Must be set BEFORE generate() so it affects level layout.
+    m_levelGen.setTrapDensityMult(
+        AscensionSystem::currentLevel > 0
+            ? AscensionSystem::getLevel(AscensionSystem::currentLevel).trapDensityMult
+            : 1.0f);
     m_level = std::make_unique<Level>(m_levelGen.generate(m_currentDifficulty, m_runSeed + m_currentDifficulty));
 
     // Try to load tileset for sprite-based tile rendering
@@ -708,7 +715,10 @@ void PlayState::applyUpgrades() {
     m_player->dotDurationMult = achBonus.dotDurationMult;
 
     // Store shard drop multiplier from achievements + NG+ bonus (+20% per tier)
-    m_achievementShardMult = achBonus.shardDropMult * (1.0f + m_ngPlusTier * 0.20f);
+    // + Ascension shardGainMult (advertised in Ascension descriptions).
+    float ascShardMult = (AscensionSystem::currentLevel > 0)
+        ? AscensionSystem::getLevel(AscensionSystem::currentLevel).shardGainMult : 1.0f;
+    m_achievementShardMult = achBonus.shardDropMult * (1.0f + m_ngPlusTier * 0.20f) * ascShardMult;
 
     // Ability upgrades
     if (m_player->getEntity()->hasComponent<AbilityComponent>()) {
@@ -1161,11 +1171,14 @@ void PlayState::applyAscensionModifiers() {
     if (!m_player) return;
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
 
-    // Bonus: start shards
-    if (asc.startShardBonus > 0) {
+    // Bonus: start shards — ONE-TIME per run. applyAscensionModifiers() runs
+    // on every floor's generateLevel(), so this must be gated or a 30-floor
+    // run would grant the bonus 30x (e.g. 300 shards instead of 10 at Asc 1).
+    if (!m_ascensionModifiersApplied && asc.startShardBonus > 0) {
         int bonus = static_cast<int>(asc.startShardBonus * 100);
         game->getUpgradeSystem().addRiftShards(bonus);
     }
+    m_ascensionModifiersApplied = true;
 
     // Bonus: shop discount (stored for later use in shop)
     // Bonus: shard gain multiplier (applied in combat loot)

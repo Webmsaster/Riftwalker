@@ -214,11 +214,17 @@ void UpgradeSystem::deserialize(const std::string& data) {
     }
     if (m_riftShards < 0) m_riftShards = 0;
     if (m_riftShards > MAX_SHARDS) m_riftShards = MAX_SHARDS;
+    // Clamp both bounds — these counters drive milestone bonuses and class
+    // unlocks, so a corrupted save with huge values could inject permanent
+    // damage bonuses or force-unlock classes (bug pattern #14, upper bound).
     if (totalRuns < 0) totalRuns = 0;
+    if (totalRuns > 100000) totalRuns = 100000;
     if (bestRoomReached < 0) bestRoomReached = 0;
     if (bestRoomReached > 99) bestRoomReached = 99;
     if (totalEnemiesKilled < 0) totalEnemiesKilled = 0;
+    if (totalEnemiesKilled > 10000000) totalEnemiesKilled = 10000000;
     if (totalRiftsRepaired < 0) totalRiftsRepaired = 0;
+    if (totalRiftsRepaired > 1000000) totalRiftsRepaired = 1000000;
     for (auto& u : m_upgrades) {
         if (!(ss >> u.currentLevel)) break;
         if (u.currentLevel < 0) u.currentLevel = 0;

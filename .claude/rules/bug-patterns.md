@@ -367,3 +367,26 @@ would have missed by eye.
 - **Fix**: Tick `g_saveIndicatorTimer` in `Game::update` instead of `PlayState::update` so it decays state-agnostically. Removed the duplicate decay in PlayState.
 - **Lesson**: When a global timer-based UI is triggered from many states, tick it in a state-agnostic update path (Game::update, AudioManager::tick, etc.). State-scoped tick logic creates "freeze when not in that state" surprises.
 - **Detection heuristic**: For any `inline float g_*Timer` global, grep for the `-= dt` (or `-= FIXED_TIMESTEP`) decrement site. If it's inside a state's update method but the trigger sites span multiple states, the timer can freeze mid-decay. Move the tick to a global update path.
+
+## Session 2026-05-22 (Audio Fix + Agent Bug-Hunt)
+
+### 45. Procedural SFX Bypassed by Stale .wav Cache
+- **Pattern**: `AudioManager::generateSounds()` loads `assets/sounds/<Name>.wav` first and only falls back to the `SoundGenerator` procedural fallback when a file is MISSING. All 74 wavs existed (committed 2026-03-21), so improvements to `SoundGenerator` (declick envelope, band-limited square, low-passed noise) never reached the in-game SFX — only music/ambient (which have no wav cache) were affected.
+- **Impact**: A "sound fix" that built clean and measured better in isolation had ZERO audible effect in-game. User reported "still the same".
+- **Fix**: Added `--dump-sfx=DIR` CLI (`AudioManager::dumpProceduralSFX`) to render the current generator to wav, then regenerated all 74 cached assets. Now the generator IS the source of truth again.
+- **Lesson**: When a system has a file-cache-with-procedural-fallback, improving the generator does nothing until the cache is invalidated/regenerated. Always check the actual load path (runtime log: "Loaded N/N SFX from .wav files") before assuming a generator change is audible.
+- **Also**: the desktop-icon install is a SEPARATE copy from `build/Release/`. Rebuilding doesn't update it — `tools/deploy_local.ps1` must run. User clicked the icon and heard the old binary.
+
+### 46. Ascension One-Time Bonus Granted Every Floor (startShardBonus)
+- **Pattern**: `applyAscensionModifiers()` is called from `generateLevel()`, which runs on EVERY floor transition (PlayState.cpp:358), not just run start. The "start shard bonus" (`asc.startShardBonus * 100`) was granted unconditionally on each call.
+- **Impact**: At Ascension 1 (`startShardBonus=0.1` → 10 shards), a 30-floor run granted 300 shards instead of 10. At Asc 10, 600 instead of 20. Completely broke the upgrade economy for any ascended player.
+- **Fix**: Gated the one-time bonus behind the (previously declared-but-unused) `m_ascensionModifiersApplied` flag; reset it in `startNewRun()`. Set the flag true after the first per-run call.
+- **Lesson**: Any one-time per-run bonus living in a function that also does per-floor work needs an explicit guard. The unused `m_ascensionModifiersApplied` flag was a leftover that hinted the guard was once intended but never wired.
+- **Detection heuristic**: For bonuses described as "start"/"starting"/"per run", grep the granting function's call sites — if it's reachable from `generateLevel()`/level-transition, it fires per floor.
+
+### 47. Dead Ascension Fields — Advertised Bonuses That Do Nothing
+- **Pattern**: `AscensionLevel` has 5 fields populated in `AscensionSystem::init()` and SHOWN to players in the tier descriptions, but never read by game logic: `eliteSpawnMult`, `shardGainMult`, `trapDensityMult`, `startRelicTier`, `extraRelicChoices`. (`LevelGenerator::setTrapDensityMult()` even existed, unused.)
+- **Impact**: Players see "Elites +20% Spawn", "+15% Shard Gain", "Traps +30%", "+1 Relic Choice", "Start: Common Relic" in the Ascension menu but receive none of them — only the HP/DMG/speed scaling + a few wired bonuses.
+- **Fix (partial)**: Wired the two low-risk fields — `trapDensityMult` (set on `m_levelGen` before `generate()`) and `shardGainMult` (multiplied into `m_achievementShardMult`).
+- **FOLLOW-UP (needs playtesting)**: `eliteSpawnMult` (elite-promotion chance in spawn logic), `extraRelicChoices` (relic-choice generation in PlayStateEvents), `startRelicTier` (grant a starting relic at run start) remain dead. Deferred from the autonomous pass because they touch the relic/spawn systems and the resulting balance can't be verified without playtesting.
+- **Lesson**: Designer-specified struct fields shown in UI but never read are "advertised dead code" — worse than ordinary dead code because they're a visible broken promise. Grep every field of a config struct for read sites.
