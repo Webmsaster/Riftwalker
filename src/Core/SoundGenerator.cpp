@@ -37,11 +37,21 @@ void SoundGenerator::addSquare(Sample& s, float freq, float startVol, float endV
     endSamp = std::min(endSamp, static_cast<int>(s.data.size()));
     if (endSamp <= startSamp) return;
 
+    // Band-limited square: sum of odd harmonics instead of a hard ±1 step.
+    // A naive square has infinite harmonics that alias into harsh, buzzy
+    // digital "grit". Capping to odd harmonics below ~Nyquist keeps it warm
+    // and clean. 4/pi normalizes the partial sum toward unity amplitude.
+    const float nyquist = s.sampleRate * 0.45f;
+    const float twoPi = 2.0f * static_cast<float>(M_PI);
     for (int i = startSamp; i < endSamp; i++) {
         float t = static_cast<float>(i - startSamp) / (endSamp - startSamp);
         float vol = startVol + (endVol - startVol) * t;
-        float phase = std::fmod(freq * i / s.sampleRate, 1.0f);
-        float sample = phase < 0.5f ? 1.0f : -1.0f;
+        float theta = twoPi * freq * i / s.sampleRate;
+        float sample = 0.0f;
+        for (int h = 1; h <= 13 && h * freq < nyquist; h += 2) {
+            sample += std::sin(h * theta) / h;
+        }
+        sample *= 4.0f / static_cast<float>(M_PI);
         s.data[i] = static_cast<Sint16>(std::clamp(
             static_cast<int>(s.data[i] + sample * vol * 32767), -32767, 32767));
     }
@@ -55,10 +65,19 @@ void SoundGenerator::addNoise(Sample& s, float startVol, float endVol,
     endSamp = std::min(endSamp, static_cast<int>(s.data.size()));
     if (endSamp <= startSamp) return;
 
+    // One-pole low-pass on the white noise. Raw full-spectrum noise is the
+    // hissy/harsh component; rolling off the top octaves turns it into softer
+    // "air"/whoosh that sits better under impacts. makeup gain compensates
+    // the amplitude the filter removes.
+    const float lpCoeff = 0.45f;   // lower = darker
+    const float makeup  = 1.5f;
+    float lp = 0.0f;
     for (int i = startSamp; i < endSamp; i++) {
         float t = static_cast<float>(i - startSamp) / (endSamp - startSamp);
         float vol = startVol + (endVol - startVol) * t;
-        float sample = (std::rand() / static_cast<float>(RAND_MAX)) * 2.0f - 1.0f;
+        float white = (std::rand() / static_cast<float>(RAND_MAX)) * 2.0f - 1.0f;
+        lp += lpCoeff * (white - lp);
+        float sample = lp * makeup;
         s.data[i] = static_cast<Sint16>(std::clamp(
             static_cast<int>(s.data[i] + sample * vol * 32767), -32767, 32767));
     }
@@ -116,8 +135,29 @@ Mix_Chunk* SoundGenerator::toChunk(const Sample& s) {
     Uint8* buf = static_cast<Uint8*>(SDL_malloc(bufSize));
     if (!buf) return nullptr;
     Sint16* out = reinterpret_cast<Sint16*>(buf);
+
+    // Anti-click envelope: a few ms of fade at the very start and end removes
+    // the pop you get when a waveform begins/ends on a non-zero amplitude —
+    // the single biggest source of "cheap" procedural-audio harshness.
+    // Skipped for long (>1.2s) music/ambient loops so their loop seam stays
+    // seamless (a fade there would pulse on every repeat).
+    const float duration = static_cast<float>(monoSamples) / s.sampleRate;
+    const bool declick = duration <= 1.2f;
+    int atk = 0, rel = 0;
+    if (declick) {
+        const int quarter = static_cast<int>(monoSamples / 4);
+        atk = std::min(quarter, static_cast<int>(0.004f * s.sampleRate)); //  4 ms
+        rel = std::min(quarter, static_cast<int>(0.012f * s.sampleRate)); // 12 ms
+    }
+
     for (size_t i = 0; i < monoSamples; i++) {
-        const Sint16 sample = s.data[i];
+        float env = 1.0f;
+        if (declick) {
+            const int fromEnd = static_cast<int>(monoSamples - 1 - i);
+            if (static_cast<int>(i) < atk)      env = static_cast<float>(i) / atk;
+            else if (fromEnd < rel)             env = static_cast<float>(fromEnd) / rel;
+        }
+        const Sint16 sample = static_cast<Sint16>(std::lround(s.data[i] * env));
         out[i * 2]     = sample; // L
         out[i * 2 + 1] = sample; // R
     }
