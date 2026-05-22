@@ -31,7 +31,12 @@ FetchContent_Declare(
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE HEADERS "src/*.h")
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+# Windows app icon (embedded via resource script)
+if(WIN32)
+    set(APP_RESOURCES "${CMAKE_SOURCE_DIR}/resource.rc")
+endif()
+
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${APP_RESOURCES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/src

@@ -1,0 +1,3 @@
+// Windows resource script — embeds the application icon into Riftwalker.exe.
+// Icon ID 1 is the lowest, so Explorer/taskbar use it as the app icon.
+1 ICON "assets\\icon.ico"
