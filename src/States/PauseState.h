@@ -6,6 +6,7 @@
 class PauseState : public GameState {
 public:
     void enter() override;
+    void exit() override;
     void handleEvent(const SDL_Event& event) override;
     void update(float dt) override;
     void render(SDL_Renderer* renderer) override;
@@ -22,4 +23,11 @@ private:
     float m_slideInTimer = 0;   // 0->1 over SLIDE_IN_DURATION for entry animation
     bool m_confirmAbandon = false;
     bool m_confirmRestart = false;
+
+    // Cached title texture (static "pause.title" string) — built once per
+    // pause session, reused for glow + main layers each frame. Freed on exit()
+    // so a language change between sessions rebuilds it.
+    SDL_Texture* m_titleTex = nullptr;
+    int m_titleW = 0;
+    int m_titleH = 0;
 };

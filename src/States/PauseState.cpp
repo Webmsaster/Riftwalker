@@ -87,6 +87,14 @@ void PauseState::enter() {
     m_slideInTimer = 0;
 }
 
+void PauseState::exit() {
+    // Drop the cached title so it rebuilds next pause (picks up language change).
+    if (m_titleTex) {
+        SDL_DestroyTexture(m_titleTex);
+        m_titleTex = nullptr;
+    }
+}
+
 void PauseState::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
         switch (event.key.keysym.scancode) {
@@ -259,31 +267,32 @@ void PauseState::render(SDL_Renderer* renderer) {
     TTF_Font* font = game->getFont();
     const int titleY = 240;
     if (font) {
-        // Glow layer
-        SDL_Color glowC = {120, 80, 200, static_cast<Uint8>(60 + 40 * pulse)};
-        SDL_Surface* gs = TTF_RenderUTF8_Blended(font, LOC("pause.title"), glowC);
-        if (gs) {
-            SDL_Texture* gt = SDL_CreateTextureFromSurface(renderer, gs);
-            if (gt) {
-                SDL_SetTextureBlendMode(gt, SDL_BLENDMODE_ADD);
-                SDL_Rect gr = {SCREEN_WIDTH / 2 - gs->w - 2, titleY - 4, gs->w * 2 + 4, gs->h * 2 + 4};
-                SDL_RenderCopy(renderer, gt, nullptr, &gr);
-                SDL_DestroyTexture(gt);
+        // Rasterize the (static) title once; reuse for glow + main layers.
+        if (!m_titleTex) {
+            SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("pause.title"), {255, 255, 255, 255});
+            if (s) {
+                m_titleTex = SDL_CreateTextureFromSurface(renderer, s);
+                m_titleW = s->w;
+                m_titleH = s->h;
+                SDL_FreeSurface(s);
             }
-            SDL_FreeSurface(gs);
         }
+        if (m_titleTex) {
+            // Glow layer (additive). TTF_RenderUTF8_Blended ignores the fg
+            // alpha (the codebase fades via SetTextureAlphaMod elsewhere), so
+            // the original glow was full-alpha — reproduce that with 255.
+            SDL_SetTextureColorMod(m_titleTex, 120, 80, 200);
+            SDL_SetTextureAlphaMod(m_titleTex, 255);
+            SDL_SetTextureBlendMode(m_titleTex, SDL_BLENDMODE_ADD);
+            SDL_Rect gr = {SCREEN_WIDTH / 2 - m_titleW - 2, titleY - 4, m_titleW * 2 + 4, m_titleH * 2 + 4};
+            SDL_RenderCopy(renderer, m_titleTex, nullptr, &gr);
 
-        // Main title
-        SDL_Color c = {200, 200, 230, 255};
-        SDL_Surface* s = TTF_RenderUTF8_Blended(font, LOC("pause.title"), c);
-        if (s) {
-            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-            if (t) {
-                SDL_Rect r = {SCREEN_WIDTH / 2 - s->w, titleY, s->w * 2, s->h * 2};
-                SDL_RenderCopy(renderer, t, nullptr, &r);
-                SDL_DestroyTexture(t);
-            }
-            SDL_FreeSurface(s);
+            // Main title
+            SDL_SetTextureColorMod(m_titleTex, 200, 200, 230);
+            SDL_SetTextureAlphaMod(m_titleTex, 255);
+            SDL_SetTextureBlendMode(m_titleTex, SDL_BLENDMODE_BLEND);
+            SDL_Rect r = {SCREEN_WIDTH / 2 - m_titleW, titleY, m_titleW * 2, m_titleH * 2};
+            SDL_RenderCopy(renderer, m_titleTex, nullptr, &r);
         }
 
         // Separator line under title

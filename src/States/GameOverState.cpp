@@ -37,6 +37,15 @@ void GameOverState::enter() {
     }
 }
 
+void GameOverState::exit() {
+    // Free the cached title texture so it rebuilds fresh next time (also picks
+    // up a language change between game-over screens).
+    if (m_titleTex) {
+        SDL_DestroyTexture(m_titleTex);
+        m_titleTex = nullptr;
+    }
+}
+
 void GameOverState::handleEvent(const SDL_Event& event) {
     if (m_timer <= 1.5f) return;
 
@@ -111,52 +120,48 @@ void GameOverState::render(SDL_Renderer* renderer) {
     TTF_Font* font = game->getFont();
     if (!font) return;
 
-    // Main title with color channel separation (glitch effect)
-    SDL_Surface* textSurf = TTF_RenderUTF8_Blended(font, LOC("gameover.title"), {255, 255, 255, 255});
-    if (textSurf) {
-        int tw = textSurf->w * 2;
-        int th = textSurf->h * 2;
+    // Main title with color channel separation (glitch effect).
+    // The title string is static, so rasterize once and reuse the cached
+    // texture for all three glitch channels (was 1 surface + 3 textures/frame).
+    if (!m_titleTex) {
+        SDL_Surface* textSurf = TTF_RenderUTF8_Blended(font, LOC("gameover.title"), {255, 255, 255, 255});
+        if (textSurf) {
+            m_titleTex = SDL_CreateTextureFromSurface(renderer, textSurf);
+            m_titleW = textSurf->w * 2;
+            m_titleH = textSurf->h * 2;
+            SDL_FreeSurface(textSurf);
+        }
+    }
+    if (m_titleTex) {
+        int tw = m_titleW;
+        int th = m_titleH;
         int tx = SCREEN_WIDTH / 2 - tw / 2;
         int ty = 560;
 
         // Glitch offset
         int glitchOff = static_cast<int>(m_glitchIntensity * 20.0f *
             (std::rand() % 2 == 0 ? 1.0f : -1.0f));
+        int chanOff = static_cast<int>(m_glitchIntensity * 6);
 
         // Red channel (offset left)
-        SDL_Texture* redTex = SDL_CreateTextureFromSurface(renderer, textSurf);
-        if (redTex) {
-            SDL_SetTextureColorMod(redTex, 255, 30, 30);
-            SDL_SetTextureAlphaMod(redTex, 180);
-            SDL_SetTextureBlendMode(redTex, SDL_BLENDMODE_ADD);
-            int redOff = static_cast<int>(m_glitchIntensity * 6);
-            SDL_Rect rr = {tx - redOff + glitchOff, ty, tw, th};
-            SDL_RenderCopy(renderer, redTex, nullptr, &rr);
-            SDL_DestroyTexture(redTex);
-        }
+        SDL_SetTextureColorMod(m_titleTex, 255, 30, 30);
+        SDL_SetTextureAlphaMod(m_titleTex, 180);
+        SDL_SetTextureBlendMode(m_titleTex, SDL_BLENDMODE_ADD);
+        SDL_Rect rr = {tx - chanOff + glitchOff, ty, tw, th};
+        SDL_RenderCopy(renderer, m_titleTex, nullptr, &rr);
 
         // Blue channel (offset right)
-        SDL_Texture* blueTex = SDL_CreateTextureFromSurface(renderer, textSurf);
-        if (blueTex) {
-            SDL_SetTextureColorMod(blueTex, 30, 30, 255);
-            SDL_SetTextureAlphaMod(blueTex, 120);
-            SDL_SetTextureBlendMode(blueTex, SDL_BLENDMODE_ADD);
-            int blueOff = static_cast<int>(m_glitchIntensity * 6);
-            SDL_Rect br = {tx + blueOff + glitchOff, ty + 1, tw, th};
-            SDL_RenderCopy(renderer, blueTex, nullptr, &br);
-            SDL_DestroyTexture(blueTex);
-        }
+        SDL_SetTextureColorMod(m_titleTex, 30, 30, 255);
+        SDL_SetTextureAlphaMod(m_titleTex, 120);
+        SDL_Rect br = {tx + chanOff + glitchOff, ty + 1, tw, th};
+        SDL_RenderCopy(renderer, m_titleTex, nullptr, &br);
 
         // Main white text
-        SDL_Texture* mainTex = SDL_CreateTextureFromSurface(renderer, textSurf);
-        if (mainTex) {
-            SDL_SetTextureColorMod(mainTex, 220, 40, 40);
-            SDL_Rect mr = {tx + glitchOff, ty, tw, th};
-            SDL_RenderCopy(renderer, mainTex, nullptr, &mr);
-            SDL_DestroyTexture(mainTex);
-        }
-
-        SDL_FreeSurface(textSurf);
+        SDL_SetTextureColorMod(m_titleTex, 220, 40, 40);
+        SDL_SetTextureAlphaMod(m_titleTex, 255);
+        SDL_SetTextureBlendMode(m_titleTex, SDL_BLENDMODE_BLEND);
+        SDL_Rect mr = {tx + glitchOff, ty, tw, th};
+        SDL_RenderCopy(renderer, m_titleTex, nullptr, &mr);
     }
 
     // Subtitle with entropy warning

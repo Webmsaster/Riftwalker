@@ -4,6 +4,7 @@
 class GameOverState : public GameState {
 public:
     void enter() override;
+    void exit() override;
     void handleEvent(const SDL_Event& event) override;
     void update(float dt) override;
     void render(SDL_Renderer* renderer) override;
@@ -19,4 +20,10 @@ private:
     float m_timer = 0;
     float m_glitchIntensity = 1.0f;
     const char* m_subtitleText = nullptr;
+
+    // Cached title texture (static string) — built once, reused for the 3
+    // glitch channels each frame instead of rasterizing 3x/frame at 60fps.
+    SDL_Texture* m_titleTex = nullptr;
+    int m_titleW = 0;
+    int m_titleH = 0;
 };
