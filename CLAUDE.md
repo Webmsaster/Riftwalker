@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-## Current State (2026-04-28)
+## Current State (2026-05-22)
 - **Content**: 12 weapons (12/12 counter-attacks), 4 classes (4/4 combo finishers), 38 relics, 25 synergies (13 relic-relic + 12 weapon-relic, fully localized), 6 bosses, 17 enemy types, NG+ tiers 0–10
 - **Localization**: 996 EN + 1225 DE keys, **170 gameplay tips** (tip.0..tip.169, EN+DE), **9-page Tutorial** (Welcome / Controls / Combat / Dimensions / Progression / Parry / Finisher / Synergy / Ready)
 - **Quality presets**: Low / Medium / High with toggle persistence, photosensitivity-friendly "Reduce Flashes" toggle, casual-friendly Easy difficulty (+30% HP, +20% damage, -25% damage taken)
@@ -13,9 +13,16 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
 - **Build flags (Release)**: `/O2 /Oi /Ot /Oy /GL /Gy /Gw /GS- /fp:fast` + `/LTCG /OPT:REF /OPT:ICF`. Tracy linked but `TRACY_ENABLE` undef'd in Release → ZoneScopedN no-op. Binary 1.83 MB (was 2.01 MB).
 
-**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-04-28).
+**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-05-22).
 
-**Latest session (2026-04-27/28, 25+ commits across 4 phases):**
+**Latest session (2026-05-22, Steam Release Preparation)**:
+- Complete Steam-Build pipeline: SteamPipe upload scripts + PowerShell orchestrator
+- `docs/STEAM_RELEASE.md` — 7-phase release checklist (Account creation → review → launch)
+- Release bundle tested: 324 files, 82 MB, 0 extraneous saves/logs/test-data
+- Store assets verified: 9 screenshots @ 1920×1080, app icon ready
+- Code release-ready (awaiting Partner Account + App ID from user)
+
+**Previous session (2026-04-27/28, 25+ commits across 4 phases):**
 
 **Phase 1 — Performance (5 commits)**
 - Aggressive Release compiler flags + LTCG + dead-code stripping (Tracy disabled in Release)
@@ -213,6 +220,31 @@ Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victo
 ## Build & Asset Tools
 - `tools/fix_transparency.py` — Removes white backgrounds from sprite PNGs (batch processing)
 - `tools/upscale_sprites_v2.py` — Upscales sprites 4× using Real-ESRGAN (GPU-accelerated)
+- `tools/make_steam_build.ps1` — PowerShell script that builds Release binary + creates upload bundle for Steam (excludes saves, test data, PDBs, logs; tested: 324 files, 82 MB)
+
+## Steam Release Pipeline
+**Status**: Release-ready code side (waiting for user Partner Account + App ID)
+
+**Files** (2026-05-22):
+- `steam/scripts/app_build.vdf` — SteamPipe upload script (App-ID/Depot-ID placeholders)
+- `steam/scripts/depot_build.vdf` — Depot build configuration (auto-excludes saves/logs/screenshots/PDBs)
+- `tools/make_steam_build.ps1` — Orchestrates Release build + creates clean upload bundle
+- `docs/STEAM_RELEASE.md` — 7-phase checklist (Account → Release button), with status markers per step
+
+**Implementation checklist** (for user):
+1. Create Steamworks Partner Account (100 USD fee)
+2. Request App ID from Valve
+3. Download Steamworks SDK → copy to `vendor/steamworks/`
+4. Re-run CMake with `-DENABLE_STEAMWORKS=ON`
+5. Update `steam/scripts/*.vdf` with real App-ID/Depot-IDs
+6. Run `tools/make_steam_build.ps1` to generate upload bundle
+7. Use SteamCmd to upload + request review
+
+**Store Assets**:
+- ✅ 9 screenshots @ 1920×1080 (Steam-compliant) in `dist/screenshots/`
+- ✅ App icon
+- ✅ Placeholder capsules (all 8 Steam sizes) in `assets/store/` via `tools/make_store_capsules.py`
+- 🔲 Final capsule key-art — placeholders presentable but should be replaced with commissioned art before launch
 
 ## Rules
 - **UI Coordinates**: Logical resolution is 2560x1440. ALL pixel values in UI/HUD/overlay code must be designed for this resolution. Never use 720p values. When unsure, use `SCREEN_WIDTH/HEIGHT` relative values or multiply intended 720p value by 2.
