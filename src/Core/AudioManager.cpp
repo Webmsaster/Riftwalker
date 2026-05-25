@@ -3,9 +3,11 @@
 #include "SoundGenerator.h"
 #include "MusicSystem.h"
 #include <SDL2/SDL.h>
+#include <cctype>
 #include <cstdlib>
 #include <cstdint>
 #include <fstream>
+#include <string>
 #include <vector>
 
 AudioManager& AudioManager::instance() {
@@ -14,9 +16,58 @@ AudioManager& AudioManager::instance() {
 }
 
 void AudioManager::init() {
-    if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 2048) < 0) {
-        SDL_Log("SDL_mixer init failed: %s", Mix_GetError());
-        return;
+    // Windows often defaults to a monitor's HDMI/DP audio that has no real
+    // speakers connected, so Mix_OpenAudio(default) plays into the void. We
+    // scan available output devices first and prefer one whose name suggests
+    // a real audio output (headset/headphones/speakers/onboard codec). Falls
+    // back to the system default if no match.
+    const char* drv = SDL_GetCurrentAudioDriver();
+    SDL_Log("Audio: SDL driver = %s", drv ? drv : "(none)");
+
+    const char* preferredDevice = nullptr;
+    int n = SDL_GetNumAudioDevices(0);
+    for (int i = 0; i < n; i++) {
+        const char* name = SDL_GetAudioDeviceName(i, 0);
+        if (!name) continue;
+        SDL_Log("Audio: output device [%d] = %s", i, name);
+        if (preferredDevice) continue;
+        std::string lower(name);
+        for (char& c : lower) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        const char* hints[] = {
+            "headset", "headphone", "kopfh",       // EN + DE headphone-ish
+            "speaker", "lautsprecher",              // EN + DE speakers
+            "cloud alpha", "airpods", "earphone",   // common product names
+            "realtek", "soundbar"                   // onboard codec + soundbars
+        };
+        for (const char* h : hints) {
+            if (lower.find(h) != std::string::npos) {
+                preferredDevice = name;
+                break;
+            }
+        }
+    }
+
+    int rc = -1;
+    if (preferredDevice) {
+        rc = Mix_OpenAudioDevice(44100, AUDIO_S16SYS, 2, 2048, preferredDevice, 0);
+        if (rc == 0) {
+            SDL_Log("Audio: opened preferred device = %s", preferredDevice);
+        } else {
+            SDL_Log("Audio: Mix_OpenAudioDevice(%s) failed: %s", preferredDevice, Mix_GetError());
+        }
+    }
+    if (rc != 0) {
+        if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 2048) < 0) {
+            SDL_Log("SDL_mixer init failed: %s", Mix_GetError());
+            return;
+        }
+        SDL_Log("Audio: opened system default device");
+    }
+
+    int freq = 0, channels = 0;
+    Uint16 format = 0;
+    if (Mix_QuerySpec(&freq, &format, &channels) > 0) {
+        SDL_Log("Audio: mixer opened freq=%d format=0x%04x channels=%d", freq, format, channels);
     }
     Mix_AllocateChannels(18); // 0-9: SFX, 10: theme ambient, 11-14: music layers, 15: ambient, 16-17: procedural music
     m_initialized = true;

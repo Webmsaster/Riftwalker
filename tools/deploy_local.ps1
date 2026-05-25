@@ -27,9 +27,15 @@ Write-Host "Updated Riftwalker.exe -> $dst" -ForegroundColor Green
 
 if ($Assets) {
     Copy-Item (Join-Path $src "*.dll") $dst -Force
+    # Copy assets from the REPO (authoritative source), not from build/Release.
+    # build/Release/assets is a build-time snapshot that goes stale whenever
+    # assets are regenerated outside a fresh build (e.g. tools/gen_music_v3.py
+    # or --dump-sfx). Pulling straight from the repo avoids the stale-cache
+    # gotcha where deploy silently ships old assets.
+    $repoAssets = Join-Path $root "assets"
     if (Test-Path "$dst\assets") { Remove-Item "$dst\assets" -Recurse -Force }
-    Copy-Item (Join-Path $src "assets") $dst -Recurse -Force
-    Write-Host "Refreshed DLLs + assets" -ForegroundColor Green
+    Copy-Item $repoAssets $dst -Recurse -Force
+    Write-Host "Refreshed DLLs + assets (from repo)" -ForegroundColor Green
 }
 
 $ts = (Get-Item "$dst\Riftwalker.exe").LastWriteTime
