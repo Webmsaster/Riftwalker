@@ -25,7 +25,7 @@ void GameOverState::enter() {
     // Game over music
     AudioManager::instance().stopAmbient();
     AudioManager::instance().stopMusicLayers();
-    AudioManager::instance().playMusic("assets/music/gameover.ogg", 0);
+    AudioManager::instance().playMusic("assets/music/gameover.ogg", -1);
 
     // Select subtitle based on death cause
     switch (s_deathCause) {

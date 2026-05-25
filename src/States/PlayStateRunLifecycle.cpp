@@ -691,7 +691,10 @@ void PlayState::applyUpgrades() {
     // can recompute relic bonuses from scratch without compounding on repeated pickups.
     m_player->baseMoveSpeed = m_player->moveSpeed;
     m_player->baseMaxHP = hp.maxHP;
-    hp.armor = upgrades.getArmorBonus() + achBonus.armorBonus;
+    // Cap armor at 0.75 (75% DR) — never let the player become fully invulnerable
+    // from stacked upgrade/achievement bonuses. Defense-in-depth after the
+    // mini_boss_hunter +1.0 armorBonus typo that gated every takeDamage to 0.
+    hp.armor = std::min(0.75f, upgrades.getArmorBonus() + achBonus.armorBonus);
 
     auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
     // BALANCE: Base melee 20 -> 25, ranged 12 -> 15 (matches Player.cpp change)

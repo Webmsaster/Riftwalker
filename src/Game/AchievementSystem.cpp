@@ -19,7 +19,7 @@ void AchievementSystem::init() {
         {"unstoppable",     "Unstoppable",       "Reach difficulty 5",              "+10 Max HP"},
         {"shard_hoarder",   "Shard Hoarder",     "Collect 1000 shards total",       "+10% Shard Drop"},
         {"full_upgrade",    "Fully Upgraded",    "Max out any upgrade",             "+5% All DMG"},
-        {"mini_boss_hunter","Mini-Boss Hunter",  "Defeat a mini-boss",              "+1 Armor"},
+        {"mini_boss_hunter","Mini-Boss Hunter",  "Defeat a mini-boss",              "+5% Armor"},
         {"elemental_slayer","Elemental Slayer",  "Kill an elemental enemy",         "-15% DOT Duration"},
         {"dash_master",     "Dash Master",       "Dash 100 times in a single run",  "-8% Dash CD"},
         {"dimension_hopper","Dimension Hopper",  "Switch dimensions 50 times total","-5% Switch CD"},
@@ -146,7 +146,7 @@ AchievementBonuses AchievementSystem::getUnlockedBonuses() const {
         else if (a.id == "unstoppable")      b.maxHPBonus += 10.0f;
         else if (a.id == "shard_hoarder")    b.shardDropMult *= 1.10f;
         else if (a.id == "full_upgrade")     b.allDamageMult *= 1.05f;
-        else if (a.id == "mini_boss_hunter") b.armorBonus += 1.0f;
+        else if (a.id == "mini_boss_hunter") b.armorBonus += 0.05f; // 5% DR. Was 1.0f (100% — made player invulnerable once unlocked).
         else if (a.id == "elemental_slayer") b.dotDurationMult *= 0.85f;
         else if (a.id == "dash_master")      b.dashCooldownMult *= 0.92f;
         else if (a.id == "dimension_hopper") b.switchCooldownMult *= 0.95f;

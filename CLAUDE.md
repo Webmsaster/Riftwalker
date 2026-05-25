@@ -9,17 +9,22 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Content**: 12 weapons (12/12 counter-attacks), 4 classes (4/4 combo finishers), 38 relics, 25 synergies (13 relic-relic + 12 weapon-relic, fully localized), 6 bosses, 17 enemy types, NG+ tiers 0–10
 - **Localization**: 996 EN + 1225 DE keys, **170 gameplay tips** (tip.0..tip.169, EN+DE), **9-page Tutorial** (Welcome / Controls / Combat / Dimensions / Progression / Parry / Finisher / Synergy / Ready)
 - **Quality presets**: Low / Medium / High with toggle persistence, photosensitivity-friendly "Reduce Flashes" toggle, casual-friendly Easy difficulty (+30% HP, +20% damage, -25% damage taken)
-- **Quality**: 0 compiler warnings (one informational D9025), 47 bug patterns (latest: #47 fully wired)
+- **Quality**: 0 compiler warnings (one informational D9025), 49 bug patterns (latest: #48 player invulnerability fix, #49 gameover music loop)
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
 - **Build flags (Release)**: `/O2 /Oi /Ot /Oy /GL /Gy /Gw /GS- /fp:fast` + `/LTCG /OPT:REF /OPT:ICF`. Tracy linked but `TRACY_ENABLE` undef'd in Release → ZoneScopedN no-op. Binary 1.83 MB (was 2.01 MB).
 
 **History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-05-25).
 
-**Latest session (2026-05-25, Audio + Ascension Completion — 3 commits)**:
+**Latest session (2026-05-25 late, Live-Release Pass — invulnerability fix)**:
+- **Bug #48 — Player literally invulnerable**: `AchievementSystem.cpp:149` granted `mini_boss_hunter` a bonus of `armorBonus += 1.0f`. Armor is clamped 0-1 inside `HealthComponent::takeDamage` → 1.0 = 100% DR = takeDamage(X)→0. The user had unlocked `mini_boss_hunter` on save, so every run every damage source dealt 0 HP — reproduces user report "Mein Charakter ist unverwundbar". Magnitude was a leftover from a pre-refactor "+1 Armor" stat system (description string still said "+1 Armor"). Fix: `1.0f` → `0.05f` (5% DR, matches other achievement magnitudes). Description "+1 Armor" → "+5% Armor". Plus defense-in-depth: `hp.armor = std::min(0.75f, …)` cap at the assignment site so no future magnitude typo can ever reach invulnerability.
+- **Bug #49 — GameOver music silence**: `GameOverState.cpp:28` called `playMusic(track, 0)` — loops=0 = play once. Player sat in silence after the track ended on a high-stakes decision screen. Fix: `0` → `-1` (loop, matches every other music call site).
+- Smoke-Test: 5 levels in 154s, exit 0, audio routing log confirms HyperX Cloud Alpha picked.
+
+**Earlier same day (2026-05-25, Audio + Ascension Completion — 3 commits)**:
 - **Commit dfadf5e**: Audio device picker (prefers Headset/Speaker over HDMI), repo-sourced deploy (fresh assets every time), FluidSynth 2.5.4 + FluidR3_GM rendered music to OGG (no MIDI synthesis artifacts)
 - **Commit 360b86c**: Wired remaining 3 dead Ascension fields (eliteSpawnMult→elite-spawn chance, extraRelicChoices→relic selection, startRelicTier→granted starting relic). Bug-Pattern #47 now complete.
 - **Commits 39350fc/5f77c2e**: CLAUDE.md update + Ascension economy fix + save clamping. Build clean, Smoke-Test passed (exit 0, no crash).
-- **Stack**: 2 commits ahead of origin/master, ready to push when user confirms.
+- **Stack**: 3 commits ahead of origin/master, ready to push when user confirms.
 
 **Previous session (2026-05-22, Steam Release Preparation)**:
 - Complete Steam-Build pipeline: SteamPipe upload scripts + PowerShell orchestrator
