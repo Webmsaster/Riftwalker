@@ -5,20 +5,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Collection of games built with C++17 and SDL2. Currently one active game: **Riftwalker** (roguelike platformer with dimension-shifting mechanics).
 
-## Current State (2026-05-23)
+## Current State (2026-05-25)
 - **Content**: 12 weapons (12/12 counter-attacks), 4 classes (4/4 combo finishers), 38 relics, 25 synergies (13 relic-relic + 12 weapon-relic, fully localized), 6 bosses, 17 enemy types, NG+ tiers 0–10
 - **Localization**: 996 EN + 1225 DE keys, **170 gameplay tips** (tip.0..tip.169, EN+DE), **9-page Tutorial** (Welcome / Controls / Combat / Dimensions / Progression / Parry / Finisher / Synergy / Ready)
 - **Quality presets**: Low / Medium / High with toggle persistence, photosensitivity-friendly "Reduce Flashes" toggle, casual-friendly Easy difficulty (+30% HP, +20% damage, -25% damage taken)
-- **Quality**: 0 compiler warnings (one informational D9025), 47 bug patterns (latest: #47 dead ascension fields)
+- **Quality**: 0 compiler warnings (one informational D9025), 47 bug patterns (latest: #47 fully wired)
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
 - **Build flags (Release)**: `/O2 /Oi /Ot /Oy /GL /Gy /Gw /GS- /fp:fast` + `/LTCG /OPT:REF /OPT:ICF`. Tracy linked but `TRACY_ENABLE` undef'd in Release → ZoneScopedN no-op. Binary 1.83 MB (was 2.01 MB).
 
-**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-05-23).
+**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-05-25).
 
-**Latest session (2026-05-23, Autonomous Bug-Hunt — 3 bugs fixed, Smoke-Test clean)**:
-- **Autonomous multi-agent review** found & verified 3 critical bugs: (1) Ascension startShardBonus granted every floor instead of once per run (300→600 shards instead of 10-20 at high Ascension), (2) 2 dead Ascension fields wired (trapDensityMult, shardGainMult), (3) Save deserialization hardening (totalRuns, totalEnemiesKilled, totalRiftsRepaired clamped to prevent overflow)
-- Audio fix from 2026-05-22: SoundGenerator bypassed by stale .wav cache → regenerated all 74 SFX assets, now cache is source-of-truth
-- Build clean, Smoke-Test passed (exit 0, no crash)
+**Latest session (2026-05-25, Audio + Ascension Completion — 3 commits)**:
+- **Commit dfadf5e**: Audio device picker (prefers Headset/Speaker over HDMI), repo-sourced deploy (fresh assets every time), FluidSynth 2.5.4 + FluidR3_GM rendered music to OGG (no MIDI synthesis artifacts)
+- **Commit 360b86c**: Wired remaining 3 dead Ascension fields (eliteSpawnMult→elite-spawn chance, extraRelicChoices→relic selection, startRelicTier→granted starting relic). Bug-Pattern #47 now complete.
+- **Commits 39350fc/5f77c2e**: CLAUDE.md update + Ascension economy fix + save clamping. Build clean, Smoke-Test passed (exit 0, no crash).
+- **Stack**: 2 commits ahead of origin/master, ready to push when user confirms.
 
 **Previous session (2026-05-22, Steam Release Preparation)**:
 - Complete Steam-Build pipeline: SteamPipe upload scripts + PowerShell orchestrator
