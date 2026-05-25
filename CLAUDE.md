@@ -9,16 +9,25 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Content**: 12 weapons (12/12 counter-attacks), 4 classes (4/4 combo finishers), 38 relics, 25 synergies (13 relic-relic + 12 weapon-relic, fully localized), 6 bosses, 17 enemy types, NG+ tiers 0–10
 - **Localization**: 996 EN + 1225 DE keys, **170 gameplay tips** (tip.0..tip.169, EN+DE), **9-page Tutorial** (Welcome / Controls / Combat / Dimensions / Progression / Parry / Finisher / Synergy / Ready)
 - **Quality presets**: Low / Medium / High with toggle persistence, photosensitivity-friendly "Reduce Flashes" toggle, casual-friendly Easy difficulty (+30% HP, +20% damage, -25% damage taken)
-- **Quality**: 0 compiler warnings (one informational D9025), 49 bug patterns (latest: #48 player invulnerability fix, #49 gameover music loop)
+- **Quality**: 0 compiler warnings (one informational D9025), 53 bug patterns (latest: #48 player invulnerability, #49 gameover loop, #50 SwitchCooldown level-5 boundary, #51 dmgTakenMult floor, #52 entropy bar leak on non-entropy death, #53 menu panel misalignment)
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
 - **Build flags (Release)**: `/O2 /Oi /Ot /Oy /GL /Gy /Gw /GS- /fp:fast` + `/LTCG /OPT:REF /OPT:ICF`. Tracy linked but `TRACY_ENABLE` undef'd in Release → ZoneScopedN no-op. Binary 1.83 MB (was 2.01 MB).
 
 **History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-05-25).
 
-**Latest session (2026-05-25 late, Live-Release Pass — invulnerability fix)**:
-- **Bug #48 — Player literally invulnerable**: `AchievementSystem.cpp:149` granted `mini_boss_hunter` a bonus of `armorBonus += 1.0f`. Armor is clamped 0-1 inside `HealthComponent::takeDamage` → 1.0 = 100% DR = takeDamage(X)→0. The user had unlocked `mini_boss_hunter` on save, so every run every damage source dealt 0 HP — reproduces user report "Mein Charakter ist unverwundbar". Magnitude was a leftover from a pre-refactor "+1 Armor" stat system (description string still said "+1 Armor"). Fix: `1.0f` → `0.05f` (5% DR, matches other achievement magnitudes). Description "+1 Armor" → "+5% Armor". Plus defense-in-depth: `hp.armor = std::min(0.75f, …)` cap at the assignment site so no future magnitude typo can ever reach invulnerability.
-- **Bug #49 — GameOver music silence**: `GameOverState.cpp:28` called `playMusic(track, 0)` — loops=0 = play once. Player sat in silence after the track ended on a high-stakes decision screen. Fix: `0` → `-1` (loop, matches every other music call site).
-- Smoke-Test: 5 levels in 154s, exit 0, audio routing log confirms HyperX Cloud Alpha picked.
+**Latest session (2026-05-25 evening, Live-Release Pass — 6 bug fixes, 2 commits)**:
+
+User request: "ich will live ready werden mein charakter ist unverwundbar und noch kein echtes game".
+
+- **Bug #48 — Player literally invulnerable**: `AchievementSystem.cpp:149` granted `mini_boss_hunter` a bonus of `armorBonus += 1.0f`. Armor is clamped 0-1 inside `HealthComponent::takeDamage` → 1.0 = 100% DR. Player with mini_boss_hunter unlocked took 0 damage. Magnitude leftover from pre-refactor "+1 Armor" integer stat (description string confirms). Fix: `1.0f` → `0.05f` + defense-in-depth `std::min(0.75f, …)` cap at assignment site.
+- **Bug #49 — GameOver music silence**: `GameOverState.cpp:28` called `playMusic(track, 0)` — plays once then silence. Fix: `0` → `-1` (loop).
+- **Bug #50 — SwitchCooldown level-5 = 0 cooldown**: `UpgradeSystem.cpp:72` returned `1.0f - level × 0.2f`. At maxLevel=5 → 0.0 exact → instant dim-switch. Four other assignment sites had a 0.20f floor — the initial `generateLevel()` site at PlayStateRunLifecycle:709 was missing it. Fix: floor the getter at 0.1 + add the std::max(0.20f, …) to match siblings.
+- **Bug #51 — getDamageTakenMult no floor**: DualityGem ×0.75 + ChaosRift type-2 ×0.70 + Easy ×0.75 = 0.394 (60% DR), combined with armor 0.75 cap → 90% total DR. Sibling getters (`getAbilityCooldownMultiplier`, `getAttackSpeedMult`) all have explicit floors. Fix: `return std::max(0.25f, mult);`.
+- **Bug #52 — Entropy bar on all death screens**: `GameOverState.cpp:210` rendered "ENTROPY CRITICAL" bar unconditionally even on spike-trap, HP-zero, rift-collapse deaths. Confusing — reads as wrong screen. Fix: gate behind `s_deathCause == 2`.
+- **Bug #53 — Menu Daily-Run panel misaligned**: `MenuState.cpp:566` used `12 * (btnH + gap)` for vertical positioning but the menu has 13 buttons. Hover popup sat 64px below the button. Fix: `12` → `13`.
+- **Bonus**: OptionsState items resized from 64 → 56 px so the last (Back) card no longer overlaps the nav hint.
+- Build: clean, 0 warnings. Smoke-Test: 5 levels in 140s, exit 0.
+- **Stack**: 5 commits ahead of origin/master (Ascension #47 + audio + invuln #48-49 + this batch).
 
 **Earlier same day (2026-05-25, Audio + Ascension Completion — 3 commits)**:
 - **Commit dfadf5e**: Audio device picker (prefers Headset/Speaker over HDMI), repo-sourced deploy (fresh assets every time), FluidSynth 2.5.4 + FluidR3_GM rendered music to OGG (no MIDI synthesis artifacts)

@@ -462,8 +462,11 @@ void OptionsState::render(SDL_Renderer* renderer) {
     }
 
     // Options
+    // 18 items × 64px from startY=300 ended at y=1388 — nav hint at y=1390
+    // overlapped the last (Back) card. Shrunk itemH to 56 → last card at 1252,
+    // clean 138px gap below the nav hint.
     int startY = 300;
-    int itemH = 64;
+    int itemH = 56;
     int cardW = 1000;
     int cardX = SCREEN_WIDTH / 2 - cardW / 2;
 

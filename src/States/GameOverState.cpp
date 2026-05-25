@@ -207,8 +207,10 @@ void GameOverState::render(SDL_Renderer* renderer) {
         }
     }
 
-    // Entropy bar (full/overloaded)
-    if (m_timer > 1.0f) {
+    // Entropy bar (full/overloaded) — only shown on entropy-death.
+    // Spike-trap / pit-fall / rift-collapse deaths previously showed
+    // "ENTROPY CRITICAL" too, which read as a bug to players.
+    if (m_timer > 1.0f && s_deathCause == 2) {
         float barAlpha = std::min(1.0f, (m_timer - 1.0f) * 2.0f);
         Uint8 ba = static_cast<Uint8>(200 * barAlpha);
 

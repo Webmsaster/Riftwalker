@@ -706,7 +706,11 @@ void PlayState::applyUpgrades() {
         combat.rangedAttack.damage *= 1.20f;
     }
 
-    m_dimManager.switchCooldown = 0.5f * upgrades.getSwitchCooldownMultiplier() * achBonus.switchCooldownMult;
+    // Match the 0.20f floor every other switchCooldown assignment uses
+    // (PlayState.cpp:385, PlayStateEvents.cpp:70, this file's :327 and :1215).
+    // Without the floor a level-5 SwitchCooldown upgrade zeroed the CD.
+    m_dimManager.switchCooldown = std::max(0.20f,
+        0.5f * upgrades.getSwitchCooldownMultiplier() * achBonus.switchCooldownMult);
     // Bug fix: base passive decay (0.15f default from SuitEntropy ctor) was being overwritten
     // to 0 at upgrade level 0, wiping the NG+ 0.8x slow-decay modifier applied in startNewRun().
     // Add upgrade bonus on top of base, then re-apply NG+ modifier here to keep both effects.

@@ -563,7 +563,7 @@ void MenuState::renderDailyInfo(SDL_Renderer* renderer, TTF_Font* font) {
     int btnW = 520;
     int btnH = 60;
     int gap = 4;
-    int totalMenuH = 12 * (btnH + gap) - gap;
+    int totalMenuH = 13 * (btnH + gap) - gap;
     int startY = SCREEN_HEIGHT - totalMenuH - 32;
     int panelX = SCREEN_WIDTH / 2 + btnW / 2 + 16;
     int panelY = startY + (btnH + gap); // same Y as button 1

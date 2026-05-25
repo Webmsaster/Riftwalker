@@ -69,7 +69,14 @@ float UpgradeSystem::getEntropyResistance() const { return getUpgradeLevel(Upgra
 float UpgradeSystem::getEntropyDecay() const { return getUpgradeLevel(UpgradeID::EntropyDecay) * 2.0f; }
 float UpgradeSystem::getJumpMultiplier() const { return 1.0f + getUpgradeLevel(UpgradeID::JumpHeight) * 0.1f; }
 int UpgradeSystem::getExtraJumps() const { return getUpgradeLevel(UpgradeID::DoubleJump); }
-float UpgradeSystem::getSwitchCooldownMultiplier() const { return 1.0f - getUpgradeLevel(UpgradeID::SwitchCooldown) * 0.2f; }
+float UpgradeSystem::getSwitchCooldownMultiplier() const {
+    // Max level 5 × 0.2 = 1.0 exact, which would zero out the cooldown
+    // entirely (instant dim-switch every frame). Floor at 0.1 so a fully
+    // upgraded player still has a tiny CD that gameplay/relic floors can
+    // build on. Same defensive pattern as the hp.armor cap in #48.
+    float mult = 1.0f - getUpgradeLevel(UpgradeID::SwitchCooldown) * 0.2f;
+    return std::max(0.1f, mult);
+}
 float UpgradeSystem::getArmorBonus() const { return getUpgradeLevel(UpgradeID::Armor) * 0.1f; }
 float UpgradeSystem::getComboBonus() const { return getUpgradeLevel(UpgradeID::ComboMaster) * 0.1f; }
 // FIX: WallSlide upgrade had no getter — players could buy it but it did nothing

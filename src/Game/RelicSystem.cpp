@@ -501,7 +501,12 @@ float RelicSystem::getDamageTakenMult(const RelicComponent& relics, int currentD
     if (g_selectedDifficulty == GameDifficulty::Easy) {
         mult *= 0.75f;
     }
-    return mult;
+    // Floor at 0.25 (75% max DR) — same pattern as getAbilityCooldownMultiplier
+    // and getAttackSpeedMult clamps. DualityGem + ChaosRift type-2 + Easy stack
+    // multiplicatively (0.75 × 0.70 × 0.75 = 0.394 ≈ 60% DR). Combined with the
+    // armor 0.75 cap (PlayStateRunLifecycle:697) the player could effectively
+    // hit 90% total DR. Floor keeps boss damage meaningful in late-game.
+    return std::max(0.25f, mult);
 }
 
 float RelicSystem::getAbilityCDMultCursed(const RelicComponent& relics) {
