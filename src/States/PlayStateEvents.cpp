@@ -20,6 +20,7 @@
 #include "Game/DailyRun.h"
 #include "Game/Bestiary.h"
 #include "Game/DimensionShiftBalance.h"
+#include "Game/AscensionSystem.h"
 #include "Components/RelicComponent.h"
 #include <cstdlib>
 #include <cmath>
@@ -31,7 +32,13 @@
 void PlayState::showRelicChoice() {
     if (!m_player || !m_player->getEntity()->hasComponent<RelicComponent>()) return;
     auto& relics = m_player->getEntity()->getComponent<RelicComponent>();
-    m_relicChoices = RelicSystem::generateChoice(m_currentDifficulty, relics.relics);
+    // Ascension extraRelicChoices adds to base 3 (clamped to 5 so the card row
+    // still fits on screen; current overlay layout assumes ~5-wide max).
+    int count = 3;
+    if (AscensionSystem::currentLevel > 0) {
+        count = std::min(3 + AscensionSystem::getLevel(AscensionSystem::currentLevel).extraRelicChoices, 5);
+    }
+    m_relicChoices = RelicSystem::generateChoice(m_currentDifficulty, relics.relics, count);
     if (m_relicChoices.empty()) return;
     m_showRelicChoice = true;
     m_relicChoiceSelected = 0;

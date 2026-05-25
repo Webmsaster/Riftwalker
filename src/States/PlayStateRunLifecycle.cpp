@@ -441,6 +441,12 @@ void PlayState::spawnEnemies() {
     int eliteChance = static_cast<int>(zoneScale.eliteChance);
     int miniBossChance = static_cast<int>(zoneScale.miniBossChance);
     if (m_ngPlusTier >= 2) eliteChance = std::min(eliteChance + 15, 60);
+    // Ascension: eliteSpawnMult scales the post-NG+ chance (Asc 3-7: 1.2x,
+    // 8-9: 1.4x, 10: 1.6x). Clamp at 80% so spawns aren't all-elite.
+    if (AscensionSystem::currentLevel > 0) {
+        float mult = AscensionSystem::getLevel(AscensionSystem::currentLevel).eliteSpawnMult;
+        eliteChance = std::min(static_cast<int>(eliteChance * mult), 80);
+    }
     if (m_ngPlusTier >= 4) miniBossChance = 100;
 
     if (!m_spawnWaves.empty()) {
@@ -1171,12 +1177,52 @@ void PlayState::applyAscensionModifiers() {
     if (!m_player) return;
     auto& hp = m_player->getEntity()->getComponent<HealthComponent>();
 
-    // Bonus: start shards — ONE-TIME per run. applyAscensionModifiers() runs
-    // on every floor's generateLevel(), so this must be gated or a 30-floor
-    // run would grant the bonus 30x (e.g. 300 shards instead of 10 at Asc 1).
-    if (!m_ascensionModifiersApplied && asc.startShardBonus > 0) {
-        int bonus = static_cast<int>(asc.startShardBonus * 100);
-        game->getUpgradeSystem().addRiftShards(bonus);
+    // Bonus: start shards / starting relic — BOTH ONE-TIME per run.
+    // applyAscensionModifiers() runs on every floor's generateLevel(), so
+    // these must be gated or a 30-floor run would grant them 30x (e.g. 300
+    // shards instead of 10 at Asc 1).
+    if (!m_ascensionModifiersApplied) {
+        if (asc.startShardBonus > 0) {
+            int bonus = static_cast<int>(asc.startShardBonus * 100);
+            game->getUpgradeSystem().addRiftShards(bonus);
+        }
+
+        // Bonus: start with a random relic of the configured tier (Asc 5+: Common,
+        // Asc 10: Legendary). Skips cursed relics — those are deliberate choices,
+        // not handouts.
+        if (asc.startRelicTier >= 0 && m_player->getEntity()->hasComponent<RelicComponent>()) {
+            RelicTier target = static_cast<RelicTier>(asc.startRelicTier);
+            auto& relicComp = m_player->getEntity()->getComponent<RelicComponent>();
+            std::vector<RelicID> pool;
+            for (int i = 1; i < static_cast<int>(RelicID::COUNT); i++) {
+                RelicID id = static_cast<RelicID>(i);
+                const auto& data = RelicSystem::getRelicData(id);
+                if (data.tier != target) continue;
+                if (RelicSystem::isCursed(id)) continue;
+                if (relicComp.hasRelic(id)) continue;
+                pool.push_back(id);
+            }
+            if (!pool.empty()) {
+                RelicID pick = pool[std::rand() % pool.size()];
+                relicComp.addRelic(pick);
+                auto& combat = m_player->getEntity()->getComponent<CombatComponent>();
+                RelicSystem::applyStatEffects(relicComp, *m_player, hp, combat);
+                // Mirror the switch-cooldown recompose from selectRelic so RiftMantle
+                // starts active and survives later applyStatEffects calls.
+                m_dimManager.switchCooldown = std::max(0.20f,
+                    m_dimManager.switchCooldown * RelicSystem::getSwitchCooldownMult(relicComp));
+                // TimeDilator/TimeTax CD effect mirrors selectRelic's one-shot apply.
+                if ((pick == RelicID::TimeDilator || pick == RelicID::TimeTax) &&
+                    m_player->getEntity()->hasComponent<AbilityComponent>()) {
+                    auto& abil = m_player->getEntity()->getComponent<AbilityComponent>();
+                    float cdMult = RelicSystem::getAbilityCooldownMultiplier(relicComp)
+                                 * RelicSystem::getAbilityCDMultCursed(relicComp);
+                    abil.abilities[0].cooldown *= cdMult;
+                    abil.abilities[1].cooldown *= cdMult;
+                    abil.abilities[2].cooldown *= cdMult;
+                }
+            }
+        }
     }
     m_ascensionModifiersApplied = true;
 

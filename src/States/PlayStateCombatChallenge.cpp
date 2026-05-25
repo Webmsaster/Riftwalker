@@ -20,6 +20,7 @@
 #include "Game/DailyRun.h"
 #include "Game/Bestiary.h"
 #include "Game/DimensionShiftBalance.h"
+#include "Game/AscensionSystem.h"
 #include "Components/RelicComponent.h"
 #include <cstdlib>
 #include <cmath>
@@ -510,6 +511,11 @@ void PlayState::updateSpawnWaves(float dt) {
         auto waveZoneScale = getZoneScaling(m_currentDifficulty);
         int waveEliteChance = static_cast<int>(waveZoneScale.eliteChance);
         if (m_ngPlusTier >= 2) waveEliteChance = std::min(waveEliteChance + 15, 60);
+        // Ascension eliteSpawnMult: same scaling/clamp as initial-wave spawns.
+        if (AscensionSystem::currentLevel > 0) {
+            float ascMult = AscensionSystem::getLevel(AscensionSystem::currentLevel).eliteSpawnMult;
+            waveEliteChance = std::min(static_cast<int>(waveEliteChance * ascMult), 80);
+        }
         for (auto& sp : m_spawnWaves[m_currentWave]) {
             auto& e = Enemy::createByType(m_entities, sp.enemyType, sp.position, sp.dimension);
             // Theme-specific variant
