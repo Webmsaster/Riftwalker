@@ -14,9 +14,27 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
 - **Build flags (Release)**: `/O2 /Oi /Ot /Oy /GL /Gy /Gw /GS- /fp:fast` + `/LTCG /OPT:REF /OPT:ICF`. Tracy linked but `TRACY_ENABLE` undef'd in Release → ZoneScopedN no-op. Binary 1.83 MB (was 2.01 MB).
 
-**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-05-25).
+**History**: Full session log in `docs/HISTORY.md` (2026-03-28 → 2026-05-26).
 
-**Latest session (2026-05-25 evening, Live-Release Pass — 6 bug fixes, 2 commits)**:
+**Latest session (2026-05-26 morning, Codex CLI Collaboration Round 3 — Save Versioning + Zone Music + Steam Schema)**:
+
+User request (2026-05-25 23:xx): "verwende codex cli nicht api sondern meine lokale codex app und mach das mit ihm zusammen" — deferred Round 3 items.
+
+- **Commits a0d2a41 (Save Versioning + Steam Schema) + b1d7c7b (Zone 4/5 MIDI)**
+- **Save versioning** — 5 files (UpgradeSystem, AscensionSystem, Bestiary, LoreSystem, AchievementSystem) write `format_version 1\n` headers via existing `writeSaveHeader()`. Loaders backward-compatible: peek first token, if "format_version" consume it+int, else rewind. Existing .dat files keep loading identically. Build PASS, Smoke PASS (140s).
+- **Zone 4 + Zone 5 music** — `tools/gen_zone45_midi.py` (new) composes procedurally via mido: zone4 = F minor 95 BPM NewAgePad + dissonance, zone5 = D minor 78 BPM BrassEnsemble + march drums. Rendered via existing FluidSynth. `ZONE_TRACKS[]` extended in both PlayState.cpp + PlayStateRunLifecycle.cpp (both `std::clamp(..., 0, 2)` lifted to `0, 4` — Codex found the boss-resume site at line 994 independently).
+- **Steam achievement schema generator** — `tools/gen_steam_achievements.py` (new) parses AchievementSystem.cpp and emits Steamworks CSV + preview MD + icon checklist. 41 achievements (8 hidden). In-game `Steam::setAchievement` wiring already present; this completes dashboard-side schema. `docs/STEAM_RELEASE.md` Phase 4b updated.
+- **Tutorial visuals** (added after Codex usage cap, written directly): Pages 5/6/7 now have animated SDL diagrams. Parry page has enemy→shield→deflected-arrow with pulsing "0.15s WINDOW" label. Finisher page has a 10-cell combo meter that fills on a 3s cycle + pulsing "F!" prompt + slash effect when full. Synergy page has Relic⊕Weapon circle diagram with flowing arc + animated SYNERGY ACTIVE label. No new assets, no new LOC keys — pure SDL_RenderDraw* + existing TTF font.
+- **Codex CLI learnings (documented in memory)**:
+  - Stdin-piped prompts (`< promptfile`) avoid hang on "Reading additional input from stdin..."
+  - Trusted-project config in `~/.codex/config.toml` enables danger-full-access without prompts
+  - Diff-apply occasionally fails first try; Codex auto-retries
+  - Usage caps are per-session; recoverable after reset
+- Build: clean, 0 warnings. Smoke-Test: 5 levels in 120.3s, exit 0 (12s faster post-zone-music).
+- **Stack**: 9 commits ahead of origin/master (5 from Round 1+2 + 4 from Round 3).
+- **Awaiting user input**: Push to origin/master or implement Tutorial visuals first?
+
+**Previous session (2026-05-25 evening, Live-Release Pass — 6 bug fixes, 2 commits)**:
 
 User request: "ich will live ready werden mein charakter ist unverwundbar und noch kein echtes game".
 
@@ -241,6 +259,9 @@ Profiles: balanced, aggressive, defensive, speedrun. Bot reaches Floor 31 (Victo
 ## Build & Asset Tools
 - `tools/fix_transparency.py` — Removes white backgrounds from sprite PNGs (batch processing)
 - `tools/upscale_sprites_v2.py` — Upscales sprites 4× using Real-ESRGAN (GPU-accelerated)
+- `tools/gen_music_v3.py` — Procedural music composer: reads per-zone config, generates MIDI via mido, renders to OGG via FluidSynth + FluidR3_GM SoundFont
+- `tools/gen_zone45_midi.py` — Zone 4/5 music generator (F-moll Entropy + D-moll Sovereign, added 2026-05-26)
+- `tools/gen_steam_achievements.py` — Parses AchievementSystem.cpp, generates Steamworks schema CSV + preview MD + icon checklist (added 2026-05-26)
 - `tools/make_steam_build.ps1` — PowerShell script that builds Release binary + creates upload bundle for Steam (excludes saves, test data, PDBs, logs; tested: 324 files, 82 MB)
 
 ## Steam Release Pipeline

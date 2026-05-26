@@ -412,6 +412,70 @@ void TutorialState::renderPage(SDL_Renderer* renderer, TTF_Font* font) {
             renderLine(LOC("tut.page.parry.counter"), y); y += lineH;
             y += 16;
             renderLine(LOC("tut.page.parry.tip"), y, {200, 180, 100, 255});
+
+            // Parry deflect diagram: enemy attack → shield → deflected back
+            int dy = contentY + lineH * 6 + 80;
+            int enemyX = cx - 320, playerX = cx - 40;
+            // Enemy figure (red rectangle body + head circle)
+            SDL_SetRenderDrawColor(renderer, 180, 50, 50, static_cast<Uint8>(220 * m_fadeIn));
+            SDL_Rect enemyBody = {enemyX, dy + 30, 50, 70};
+            SDL_RenderFillRect(renderer, &enemyBody);
+            for (int r = 0; r < 18; r++) {
+                int rad = 18 - r / 2;
+                SDL_SetRenderDrawColor(renderer, 200, 70, 70, static_cast<Uint8>(220 * m_fadeIn));
+                for (int dx = -rad; dx <= rad; dx++) {
+                    int dyy = static_cast<int>(std::sqrt(rad * rad - dx * dx));
+                    SDL_RenderDrawLine(renderer, enemyX + 25 + dx, dy + 10 - dyy,
+                                       enemyX + 25 + dx, dy + 10 + dyy);
+                }
+                break; // single ellipse — loop kept for readability
+            }
+            // Attack arrow swinging from enemy toward player (orange, animated tip)
+            float swing = std::sin(m_time * 4.0f);
+            SDL_SetRenderDrawColor(renderer, 255, 180, 60, static_cast<Uint8>(230 * m_fadeIn));
+            for (int t = -2; t <= 2; t++) {
+                SDL_RenderDrawLine(renderer, enemyX + 50, dy + 60 + t,
+                                   playerX - 24, dy + 60 + static_cast<int>(swing * 3) + t);
+            }
+            // Player figure (blue)
+            SDL_SetRenderDrawColor(renderer, 60, 120, 220, static_cast<Uint8>(230 * m_fadeIn));
+            SDL_Rect playerBody = {playerX, dy + 30, 50, 70};
+            SDL_RenderFillRect(renderer, &playerBody);
+            SDL_SetRenderDrawColor(renderer, 100, 150, 240, static_cast<Uint8>(230 * m_fadeIn));
+            for (int dx = -16; dx <= 16; dx++) {
+                int dyy = static_cast<int>(std::sqrt(16 * 16 - dx * dx));
+                SDL_RenderDrawLine(renderer, playerX + 25 + dx, dy + 10 - dyy,
+                                   playerX + 25 + dx, dy + 10 + dyy);
+            }
+            // Glowing shield arc in front of player (curve)
+            float shieldPulse = 0.6f + 0.4f * std::sin(m_time * 5.0f);
+            for (int ring = 0; ring < 3; ring++) {
+                Uint8 sa = static_cast<Uint8>((180 - ring * 40) * shieldPulse * m_fadeIn);
+                SDL_SetRenderDrawColor(renderer, 120, 200, 255, sa);
+                int sr = 38 + ring * 6;
+                // Front-facing half-arc (left half, since enemy is on the left)
+                for (int aDeg = 90; aDeg <= 270; aDeg += 3) {
+                    float a = aDeg * 3.14159f / 180.0f;
+                    int sx = playerX - 6 + static_cast<int>(std::cos(a) * sr);
+                    int sy = dy + 65 + static_cast<int>(std::sin(a) * sr);
+                    SDL_RenderDrawPoint(renderer, sx, sy);
+                    SDL_RenderDrawPoint(renderer, sx + 1, sy);
+                }
+            }
+            // Deflected arrow going UP-RIGHT (white-gold, pulses)
+            float reflectPulse = 0.5f + 0.5f * std::sin(m_time * 6.0f);
+            Uint8 reflA = static_cast<Uint8>(255 * reflectPulse * m_fadeIn);
+            SDL_SetRenderDrawColor(renderer, 255, 240, 180, reflA);
+            for (int t = -2; t <= 2; t++) {
+                SDL_RenderDrawLine(renderer, playerX + 50 + t, dy + 50,
+                                   playerX + 260 + t, dy - 30);
+            }
+            // Arrow head on deflected
+            SDL_RenderDrawLine(renderer, playerX + 260, dy - 30, playerX + 240, dy - 18);
+            SDL_RenderDrawLine(renderer, playerX + 260, dy - 30, playerX + 248, dy - 6);
+
+            // Window label
+            renderLine("0.15s WINDOW", dy + 130, {255, 220, 100, 255});
             break;
         }
 
@@ -427,6 +491,71 @@ void TutorialState::renderPage(SDL_Renderer* renderer, TTF_Font* font) {
             y += 16;
             renderLine(LOC("tut.page.finisher.classes"), y, {180, 140, 255, 255}); y += lineH;
             renderLine(LOC("tut.page.finisher.tip"), y, {200, 180, 100, 255});
+
+            // Combo meter diagram: 10 cells fill left→right on a 3s cycle.
+            // When full, an "F!" prompt pulses above and a horizontal slash
+            // sweeps below — showing the combo→trigger→strike loop.
+            int meterY = contentY + lineH * 5 + 70;
+            const int cells = 10;
+            const int cellW = 50, cellH = 30, cellGap = 8;
+            int meterW = cells * cellW + (cells - 1) * cellGap;
+            int meterX = cx - meterW / 2;
+            float cycle = std::fmod(m_time, 3.0f);
+            int filled = std::min(cells, static_cast<int>(cycle * (cells / 2.5f)));
+            bool full = (cycle > 2.5f);
+            for (int i = 0; i < cells; i++) {
+                int x = meterX + i * (cellW + cellGap);
+                SDL_Rect cell = {x, meterY, cellW, cellH};
+                if (i < filled) {
+                    float pulse = (i == filled - 1) ? (0.6f + 0.4f * std::sin(m_time * 10.0f)) : 1.0f;
+                    Uint8 r = static_cast<Uint8>(255 * pulse);
+                    Uint8 g = static_cast<Uint8>(180 * pulse);
+                    SDL_SetRenderDrawColor(renderer, r, g, 50, static_cast<Uint8>(230 * m_fadeIn));
+                    SDL_RenderFillRect(renderer, &cell);
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 40, 35, 60, static_cast<Uint8>(200 * m_fadeIn));
+                    SDL_RenderFillRect(renderer, &cell);
+                }
+                SDL_SetRenderDrawColor(renderer, 120, 100, 160, static_cast<Uint8>(180 * m_fadeIn));
+                SDL_RenderDrawRect(renderer, &cell);
+            }
+            // "F!" pulsing prompt above meter when full
+            if (full) {
+                float promptPulse = 0.5f + 0.5f * std::sin(m_time * 12.0f);
+                int promptY = meterY - 70;
+                int pw = 90, ph = 50;
+                SDL_SetRenderDrawColor(renderer, 255, 220, 80,
+                    static_cast<Uint8>(220 * promptPulse * m_fadeIn));
+                SDL_Rect prompt = {cx - pw / 2, promptY, pw, ph};
+                SDL_RenderFillRect(renderer, &prompt);
+                SDL_SetRenderDrawColor(renderer, 255, 240, 160,
+                    static_cast<Uint8>(255 * promptPulse * m_fadeIn));
+                SDL_RenderDrawRect(renderer, &prompt);
+                SDL_Surface* fs = TTF_RenderUTF8_Blended(font, "F!",
+                    {30, 20, 0, static_cast<Uint8>(255 * promptPulse * m_fadeIn)});
+                if (fs) {
+                    SDL_Texture* ft = SDL_CreateTextureFromSurface(renderer, fs);
+                    if (ft) {
+                        SDL_Rect fr = {cx - fs->w / 2, promptY + (ph - fs->h) / 2, fs->w, fs->h};
+                        SDL_RenderCopy(renderer, ft, nullptr, &fr);
+                        SDL_DestroyTexture(ft);
+                    }
+                    SDL_FreeSurface(fs);
+                }
+                // Slash effect below meter (3 parallel lines, orange→white)
+                int slashY = meterY + cellH + 30;
+                int slashW = 420;
+                for (int band = 0; band < 3; band++) {
+                    Uint8 r = 255;
+                    Uint8 g = static_cast<Uint8>(150 + band * 50);
+                    Uint8 b = static_cast<Uint8>(60 + band * 60);
+                    SDL_SetRenderDrawColor(renderer, r, g, b,
+                        static_cast<Uint8>((220 - band * 40) * promptPulse * m_fadeIn));
+                    int yo = (band - 1) * 4;
+                    SDL_RenderDrawLine(renderer, cx - slashW / 2, slashY + yo,
+                                       cx + slashW / 2, slashY + yo - 8);
+                }
+            }
             break;
         }
 
@@ -444,6 +573,98 @@ void TutorialState::renderPage(SDL_Renderer* renderer, TTF_Font* font) {
             y += 16;
             renderLine(LOC("tut.page.synergy.discover"), y, {180, 255, 180, 255}); y += lineH;
             renderLine(LOC("tut.page.synergy.tip"), y, {200, 180, 100, 255});
+
+            // Synergy diagram: relic-circle + weapon-circle connected by a
+            // flowing arc with a "+" between, "SYNERGY ACTIVE" below.
+            int dy = contentY + lineH * 8 + 30;
+            int leftCX = cx - 180, rightCX = cx + 180, circleY = dy + 80;
+            int radius = 40;
+            // Helper: filled circle via horizontal scanlines
+            auto drawDisc = [&](int ccx, int ccy, int r, SDL_Color col) {
+                SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b,
+                    static_cast<Uint8>(col.a * m_fadeIn));
+                for (int dyy = -r; dyy <= r; dyy++) {
+                    int dxx = static_cast<int>(std::sqrt(r * r - dyy * dyy));
+                    SDL_RenderDrawLine(renderer, ccx - dxx, ccy + dyy, ccx + dxx, ccy + dyy);
+                }
+            };
+            // Relic circle (purple) and rim halo
+            drawDisc(leftCX, circleY, radius, {140, 80, 220, 230});
+            for (int rr = 1; rr <= 3; rr++) {
+                SDL_SetRenderDrawColor(renderer, 200, 160, 255,
+                    static_cast<Uint8>((90 - rr * 25) * m_fadeIn));
+                for (int aDeg = 0; aDeg < 360; aDeg += 4) {
+                    float a = aDeg * 3.14159f / 180.0f;
+                    SDL_RenderDrawPoint(renderer,
+                        leftCX + static_cast<int>(std::cos(a) * (radius + rr * 2)),
+                        circleY + static_cast<int>(std::sin(a) * (radius + rr * 2)));
+                }
+            }
+            // Weapon circle (cyan)
+            drawDisc(rightCX, circleY, radius, {80, 200, 230, 230});
+            for (int rr = 1; rr <= 3; rr++) {
+                SDL_SetRenderDrawColor(renderer, 160, 230, 255,
+                    static_cast<Uint8>((90 - rr * 25) * m_fadeIn));
+                for (int aDeg = 0; aDeg < 360; aDeg += 4) {
+                    float a = aDeg * 3.14159f / 180.0f;
+                    SDL_RenderDrawPoint(renderer,
+                        rightCX + static_cast<int>(std::cos(a) * (radius + rr * 2)),
+                        circleY + static_cast<int>(std::sin(a) * (radius + rr * 2)));
+                }
+            }
+            // Circle labels
+            SDL_Color labelColor = {255, 255, 255, static_cast<Uint8>(255 * m_fadeIn)};
+            SDL_Surface* rs = TTF_RenderUTF8_Blended(font, "R", labelColor);
+            if (rs) {
+                SDL_Texture* rt = SDL_CreateTextureFromSurface(renderer, rs);
+                if (rt) {
+                    SDL_Rect rr2 = {leftCX - rs->w / 2, circleY - rs->h / 2, rs->w, rs->h};
+                    SDL_RenderCopy(renderer, rt, nullptr, &rr2);
+                    SDL_DestroyTexture(rt);
+                }
+                SDL_FreeSurface(rs);
+            }
+            SDL_Surface* ws = TTF_RenderUTF8_Blended(font, "W", labelColor);
+            if (ws) {
+                SDL_Texture* wt = SDL_CreateTextureFromSurface(renderer, ws);
+                if (wt) {
+                    SDL_Rect wr = {rightCX - ws->w / 2, circleY - ws->h / 2, ws->w, ws->h};
+                    SDL_RenderCopy(renderer, wt, nullptr, &wr);
+                    SDL_DestroyTexture(wt);
+                }
+                SDL_FreeSurface(ws);
+            }
+            // Flowing arc between the two circles — 12 segments, alpha cycles
+            const int segments = 12;
+            int arcLeft = leftCX + radius + 4;
+            int arcRight = rightCX - radius - 4;
+            int arcSpan = arcRight - arcLeft;
+            int arcMidY = circleY - 70; // arc height above the circles
+            for (int s = 0; s < segments; s++) {
+                float t0 = static_cast<float>(s) / segments;
+                float t1 = static_cast<float>(s + 1) / segments;
+                int x0 = arcLeft + static_cast<int>(t0 * arcSpan);
+                int x1 = arcLeft + static_cast<int>(t1 * arcSpan);
+                int y0 = circleY - static_cast<int>(4.0f * (circleY - arcMidY) * t0 * (1.0f - t0));
+                int y1 = circleY - static_cast<int>(4.0f * (circleY - arcMidY) * t1 * (1.0f - t1));
+                float aFrac = 0.5f + 0.5f * std::sin(m_time * 2.0f + s * 0.35f);
+                Uint8 sa = static_cast<Uint8>(220 * aFrac * m_fadeIn);
+                SDL_SetRenderDrawColor(renderer, 255, 220, 120, sa);
+                SDL_RenderDrawLine(renderer, x0, y0, x1, y1);
+                SDL_RenderDrawLine(renderer, x0, y0 + 1, x1, y1 + 1);
+            }
+            // Plus symbol at the apex of the arc
+            int plusCX = cx, plusCY = arcMidY - 8;
+            SDL_SetRenderDrawColor(renderer, 255, 220, 80, static_cast<Uint8>(240 * m_fadeIn));
+            for (int t = -1; t <= 1; t++) {
+                SDL_RenderDrawLine(renderer, plusCX - 12, plusCY + t, plusCX + 12, plusCY + t);
+                SDL_RenderDrawLine(renderer, plusCX + t, plusCY - 12, plusCX + t, plusCY + 12);
+            }
+            // "SYNERGY ACTIVE" label pulsing
+            float labelPulse = 0.6f + 0.4f * std::sin(m_time * 3.0f);
+            SDL_Color synActive = {180, 255, 180,
+                static_cast<Uint8>(255 * labelPulse)};
+            renderLine("SYNERGY ACTIVE", circleY + radius + 30, synActive);
             break;
         }
 
