@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+"""Riftwalker — Steam Achievement Schema Generator.
+
+Steamworks does not accept a .vdf schema file like depots — achievement
+records are created in the partner dashboard one at a time (or imported
+via CSV in the Stats & Achievements tab). This script parses
+src/Game/AchievementSystem.cpp and emits three outputs the user can
+paste/upload into Steamworks:
+
+  1. steam/achievements_schema.csv         — for "Import Achievements"
+                                              in the Steamworks dashboard
+                                              (column order matches the
+                                              Steamworks export format)
+  2. steam/achievements_dashboard_list.md  — human-readable preview, so
+                                              the user can sanity-check
+                                              before uploading
+  3. steam/achievements_icons.txt          — checklist of icon PNGs the
+                                              user needs to upload to
+                                              Steamworks (one per
+                                              achievement, plus a locked
+                                              variant)
+
+The in-game side is ALREADY wired:
+  - src/Core/SteamShim.cpp:setAchievement calls SteamUserStats->
+    SetAchievement(apiName) when ENABLE_STEAMWORKS is on.
+  - src/Game/AchievementSystem.cpp:76 invokes Steam::setAchievement(id)
+    inside unlock() so every local unlock mirrors to Steam.
+  - The local id IS the Steam API name. No translation needed.
+
+Usage:
+  python tools/gen_steam_achievements.py
+
+Run after editing AchievementSystem.cpp to keep the schema in sync.
+"""
+
+from __future__ import annotations
+import csv
+import os
+import re
+import sys
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+SRC_PATH = os.path.join(PROJECT_DIR, "src", "Game", "AchievementSystem.cpp")
+OUT_DIR = os.path.join(PROJECT_DIR, "steam")
+
+# Matches lines like:
+#   {"first_blood",     "First Blood",      "Kill your first enemy",  "+5 Max HP"},
+ENTRY_RE = re.compile(
+    r'^\s*\{\s*'
+    r'"([^"]+)"\s*,\s*'        # id
+    r'"([^"]+)"\s*,\s*'        # display name
+    r'"([^"]+)"\s*,\s*'        # description (unlock condition)
+    r'"([^"]+)"\s*'            # reward text
+    r'\}\s*,\s*$'
+)
+
+
+def parse_achievements(src_path: str) -> list[dict]:
+    achievements: list[dict] = []
+    in_table = False
+    with open(src_path, encoding="utf-8") as f:
+        for line in f:
+            if "m_achievements = {" in line:
+                in_table = True
+                continue
+            if not in_table:
+                continue
+            if line.strip().startswith("};"):
+                break
+            m = ENTRY_RE.match(line)
+            if not m:
+                continue
+            ach_id, name, desc, reward = m.groups()
+            # Heuristic: achievements named after a specific late-game spoiler
+            # ("entropy_master", "wyrm_hunter", "void_mastery", etc.) are
+            # marked hidden so players don't see them in the dashboard until
+            # earned. Edit this list if balance changes which ones spoil.
+            HIDDEN_HINTS = (
+                "wyrm_hunter", "entropy_master", "void_mastery",
+                "berserk_mastery", "phantom_mastery", "tech_mastery",
+                "all_classes", "cursed_survivor",
+            )
+            hidden = ach_id in HIDDEN_HINTS
+            achievements.append({
+                "api_name": ach_id,
+                "display_name": name,
+                "description": desc,
+                "reward": reward,
+                "hidden": hidden,
+            })
+    return achievements
+
+
+def write_csv(path: str, rows: list[dict]) -> None:
+    # Column order matches Steamworks "Import Achievements" template
+    # (API Name, Display Name, Description, Hidden, Icon, Icon_gray).
+    # We leave Icon and Icon_gray blank — Steamworks needs them uploaded
+    # via the per-achievement editor; this CSV imports the metadata only.
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "API Name",
+            "Display Name (English)",
+            "Description (English)",
+            "Hidden",
+            "Icon (achieved)",
+            "Icon (unachieved/gray)",
+        ])
+        for r in rows:
+            w.writerow([
+                r["api_name"],
+                r["display_name"],
+                r["description"],
+                "Yes" if r["hidden"] else "No",
+                f"icons/{r['api_name']}.png",
+                f"icons/{r['api_name']}_gray.png",
+            ])
+
+
+def write_markdown_preview(path: str, rows: list[dict]) -> None:
+    lines: list[str] = []
+    lines.append("# Riftwalker — Steam Achievement Schema Preview")
+    lines.append("")
+    lines.append(
+        "Generated by `tools/gen_steam_achievements.py`. "
+        "Re-run after changing `src/Game/AchievementSystem.cpp`."
+    )
+    lines.append("")
+    lines.append(f"Total: **{len(rows)} achievements** "
+                 f"({sum(1 for r in rows if r['hidden'])} hidden).")
+    lines.append("")
+    lines.append("| API Name | Display Name | Description | Reward | Hidden |")
+    lines.append("|---|---|---|---|---|")
+    for r in rows:
+        lines.append(
+            f"| `{r['api_name']}` | {r['display_name']} | {r['description']} | "
+            f"{r['reward']} | {'Yes' if r['hidden'] else 'No'} |"
+        )
+    lines.append("")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+
+def write_icons_checklist(path: str, rows: list[dict]) -> None:
+    lines: list[str] = []
+    lines.append("# Steam Achievement Icon Checklist")
+    lines.append("")
+    lines.append(
+        "Each Steam achievement needs TWO icon PNGs uploaded via the "
+        "Steamworks per-achievement editor:"
+    )
+    lines.append("")
+    lines.append("  - **Achieved icon**: 64×64 PNG, full color")
+    lines.append("  - **Unachieved icon**: 64×64 PNG, desaturated/locked")
+    lines.append("")
+    lines.append(
+        "Place source PNGs under `steam/icons/` so they live next to the "
+        "schema CSV. Naming convention: `<api_name>.png` + `<api_name>_gray.png`."
+    )
+    lines.append("")
+    lines.append("Icons needed:")
+    lines.append("")
+    for r in rows:
+        lines.append(f"- [ ] `icons/{r['api_name']}.png` — {r['display_name']}")
+        lines.append(f"  - [ ] `icons/{r['api_name']}_gray.png`  (locked)")
+    lines.append("")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+
+def main() -> int:
+    if not os.path.isfile(SRC_PATH):
+        sys.stderr.write(f"ERROR: source not found: {SRC_PATH}\n")
+        return 1
+    os.makedirs(OUT_DIR, exist_ok=True)
+
+    rows = parse_achievements(SRC_PATH)
+    if not rows:
+        sys.stderr.write(
+            "ERROR: parsed 0 achievements. The regex in this script is "
+            "matched against AchievementSystem.cpp's `m_achievements = {…}` "
+            "table. Verify the file format hasn't changed.\n"
+        )
+        return 2
+
+    csv_path = os.path.join(OUT_DIR, "achievements_schema.csv")
+    md_path = os.path.join(OUT_DIR, "achievements_dashboard_list.md")
+    icons_path = os.path.join(OUT_DIR, "achievements_icons.txt")
+
+    write_csv(csv_path, rows)
+    write_markdown_preview(md_path, rows)
+    write_icons_checklist(icons_path, rows)
+
+    print(f"Parsed {len(rows)} achievements "
+          f"({sum(1 for r in rows if r['hidden'])} hidden).")
+    print(f"  wrote {csv_path}")
+    print(f"  wrote {md_path}")
+    print(f"  wrote {icons_path}")
+    print()
+    print("Next steps (user side):")
+    print("  1. Open Steamworks dashboard for Riftwalker.")
+    print("  2. Stats & Achievements -> Import -> upload "
+          "steam/achievements_schema.csv.")
+    print("  3. For each achievement: upload <api_name>.png + "
+          "<api_name>_gray.png via the editor.")
+    print("  4. Publish.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

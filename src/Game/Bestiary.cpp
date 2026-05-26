@@ -315,6 +315,7 @@ int Bestiary::getTotalCount() {
 void Bestiary::save(const std::string& filepath) {
     init();
     atomicSave(filepath, [](std::ofstream& f) {
+        writeSaveHeader(f);
         for (auto& e : s_entries) {
             f << static_cast<int>(e.type) << " " << e.killCount << " " << (e.discovered ? 1 : 0) << "\n";
         }
@@ -332,6 +333,7 @@ void Bestiary::load(const std::string& filepath) {
     std::string line;
     bool readingBoss = false;
     while (std::getline(f, line)) {
+        if (line.rfind("format_version", 0) == 0) continue;
         if (line == "BOSS") { readingBoss = true; continue; }
         int id, kills, disc;
         if (sscanf(line.c_str(), "%d %d %d", &id, &kills, &disc) == 3) {

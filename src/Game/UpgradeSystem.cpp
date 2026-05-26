@@ -2,6 +2,7 @@
 #include "ClassSystem.h"
 #include "WeaponSystem.h"
 #include "Core/Localization.h"
+#include "Core/SaveUtils.h"
 #include <sstream>
 #include <algorithm>
 
@@ -175,6 +176,7 @@ UpgradeSystem::MilestoneBonus UpgradeSystem::getAccumulatedMilestoneBonus() cons
 
 std::string UpgradeSystem::serialize() const {
     std::ostringstream ss;
+    ss << "format_version " << kSaveFormatVersion << "\n";
     ss << m_riftShards << " " << totalRuns << " " << bestRoomReached << " "
        << totalEnemiesKilled << " " << totalRiftsRepaired << " ";
     for (auto& u : m_upgrades) {
@@ -209,6 +211,17 @@ std::string UpgradeSystem::serialize() const {
 
 void UpgradeSystem::deserialize(const std::string& data) {
     std::istringstream ss(data);
+    std::string firstToken;
+    if (ss >> firstToken) {
+        if (firstToken == "format_version") {
+            int saveVersion = 0;
+            ss >> saveVersion;
+            (void)saveVersion;
+        } else {
+            ss.clear();
+            ss.seekg(0);
+        }
+    }
     if (!(ss >> m_riftShards >> totalRuns >> bestRoomReached
            >> totalEnemiesKilled >> totalRiftsRepaired)) {
         // Corrupted or empty save — keep defaults

@@ -69,6 +69,7 @@ int AscensionSystem::getMaxLevel() { return 10; }
 
 void AscensionSystem::save(const std::string& filepath) {
     atomicSave(filepath, [](std::ofstream& f) {
+        writeSaveHeader(f);
         f << currentLevel << "\n" << riftCores << "\n";
     });
 }
@@ -77,6 +78,17 @@ void AscensionSystem::load(const std::string& filepath) {
     init();
     std::ifstream f = openWithBackupFallback(filepath);
     if (!f) return;
+    std::string firstToken;
+    if (f >> firstToken) {
+        if (firstToken == "format_version") {
+            int saveVersion = 0;
+            f >> saveVersion;
+            (void)saveVersion;
+        } else {
+            f.clear();
+            f.seekg(0);
+        }
+    }
     f >> currentLevel >> riftCores;
     if (currentLevel < 0) currentLevel = 0;
     if (currentLevel > 10) currentLevel = 10;

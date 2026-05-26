@@ -1,0 +1,93 @@
+# Steam Achievement Icon Checklist
+
+Each Steam achievement needs TWO icon PNGs uploaded via the Steamworks per-achievement editor:
+
+  - **Achieved icon**: 64×64 PNG, full color
+  - **Unachieved icon**: 64×64 PNG, desaturated/locked
+
+Place source PNGs under `steam/icons/` so they live next to the schema CSV. Naming convention: `<api_name>.png` + `<api_name>_gray.png`.
+
+Icons needed:
+
+- [ ] `icons/first_blood.png` — First Blood
+  - [ ] `icons/first_blood_gray.png`  (locked)
+- [ ] `icons/rift_walker.png` — Rift Walker
+  - [ ] `icons/rift_walker_gray.png`  (locked)
+- [ ] `icons/room_clearer.png` — Room Clearer
+  - [ ] `icons/room_clearer_gray.png`  (locked)
+- [ ] `icons/boss_slayer.png` — Boss Slayer
+  - [ ] `icons/boss_slayer_gray.png`  (locked)
+- [ ] `icons/wyrm_hunter.png` — Wyrm Hunter
+  - [ ] `icons/wyrm_hunter_gray.png`  (locked)
+- [ ] `icons/combo_king.png` — Combo King
+  - [ ] `icons/combo_king_gray.png`  (locked)
+- [ ] `icons/unstoppable.png` — Unstoppable
+  - [ ] `icons/unstoppable_gray.png`  (locked)
+- [ ] `icons/shard_hoarder.png` — Shard Hoarder
+  - [ ] `icons/shard_hoarder_gray.png`  (locked)
+- [ ] `icons/full_upgrade.png` — Fully Upgraded
+  - [ ] `icons/full_upgrade_gray.png`  (locked)
+- [ ] `icons/mini_boss_hunter.png` — Mini-Boss Hunter
+  - [ ] `icons/mini_boss_hunter_gray.png`  (locked)
+- [ ] `icons/elemental_slayer.png` — Elemental Slayer
+  - [ ] `icons/elemental_slayer_gray.png`  (locked)
+- [ ] `icons/dash_master.png` — Dash Master
+  - [ ] `icons/dash_master_gray.png`  (locked)
+- [ ] `icons/dimension_hopper.png` — Dimension Hopper
+  - [ ] `icons/dimension_hopper_gray.png`  (locked)
+- [ ] `icons/grade_s.png` — S-Rank
+  - [ ] `icons/grade_s_gray.png`  (locked)
+- [ ] `icons/survivor.png` — Survivor
+  - [ ] `icons/survivor_gray.png`  (locked)
+- [ ] `icons/aerial_ace.png` — Aerial Ace
+  - [ ] `icons/aerial_ace_gray.png`  (locked)
+- [ ] `icons/flawless_floor.png` — Flawless Floor
+  - [ ] `icons/flawless_floor_gray.png`  (locked)
+- [ ] `icons/resonance_master.png` — Resonance Master
+  - [ ] `icons/resonance_master_gray.png`  (locked)
+- [ ] `icons/combo_legend.png` — Combo Legend
+  - [ ] `icons/combo_legend_gray.png`  (locked)
+- [ ] `icons/dash_slayer.png` — Dash Slayer
+  - [ ] `icons/dash_slayer_gray.png`  (locked)
+- [ ] `icons/charged_fury.png` — Charged Fury
+  - [ ] `icons/charged_fury_gray.png`  (locked)
+- [ ] `icons/entropy_master.png` — Entropy Master
+  - [ ] `icons/entropy_master_gray.png`  (locked)
+- [ ] `icons/quest_helper.png` — Helpful Traveler
+  - [ ] `icons/quest_helper_gray.png`  (locked)
+- [ ] `icons/speed_demon.png` — Speed Demon
+  - [ ] `icons/speed_demon_gray.png`  (locked)
+- [ ] `icons/weapon_collector.png` — Arsenal Master
+  - [ ] `icons/weapon_collector_gray.png`  (locked)
+- [ ] `icons/dimension_dancer.png` — Dimension Dancer
+  - [ ] `icons/dimension_dancer_gray.png`  (locked)
+- [ ] `icons/void_mastery.png` — Void Master
+  - [ ] `icons/void_mastery_gray.png`  (locked)
+- [ ] `icons/berserk_mastery.png` — Berserker Lord
+  - [ ] `icons/berserk_mastery_gray.png`  (locked)
+- [ ] `icons/phantom_mastery.png` — Ghost Protocol
+  - [ ] `icons/phantom_mastery_gray.png`  (locked)
+- [ ] `icons/tech_mastery.png` — Chief Engineer
+  - [ ] `icons/tech_mastery_gray.png`  (locked)
+- [ ] `icons/all_classes.png` — Jack of All Trades
+  - [ ] `icons/all_classes_gray.png`  (locked)
+- [ ] `icons/relic_collector.png` — Relic Hoarder
+  - [ ] `icons/relic_collector_gray.png`  (locked)
+- [ ] `icons/synergy_hunter.png` — Synergist
+  - [ ] `icons/synergy_hunter_gray.png`  (locked)
+- [ ] `icons/cursed_survivor.png` — Curse Bearer
+  - [ ] `icons/cursed_survivor_gray.png`  (locked)
+- [ ] `icons/parry_master.png` — Parry King
+  - [ ] `icons/parry_master_gray.png`  (locked)
+- [ ] `icons/no_damage_boss.png` — Untouchable
+  - [ ] `icons/no_damage_boss_gray.png`  (locked)
+- [ ] `icons/kill_streak_50.png` — Massacre
+  - [ ] `icons/kill_streak_50_gray.png`  (locked)
+- [ ] `icons/ranged_only.png` — Sharpshooter
+  - [ ] `icons/ranged_only_gray.png`  (locked)
+- [ ] `icons/lore_hunter.png` — Lore Keeper
+  - [ ] `icons/lore_hunter_gray.png`  (locked)
+- [ ] `icons/ascension_1.png` — New Game Plus
+  - [ ] `icons/ascension_1_gray.png`  (locked)
+- [ ] `icons/ascension_5.png` — True Riftwalker
+  - [ ] `icons/ascension_5_gray.png`  (locked)

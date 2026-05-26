@@ -164,6 +164,7 @@ int LoreSystem::discoveredCount() const {
 
 void LoreSystem::save(const std::string& path) const {
     atomicSave(path, [&](std::ofstream& file) {
+        writeSaveHeader(file);
         for (auto& f : m_fragments) {
             file << static_cast<int>(f.id) << " " << (f.discovered ? 1 : 0) << "\n";
         }
@@ -173,8 +174,11 @@ void LoreSystem::save(const std::string& path) const {
 void LoreSystem::load(const std::string& path) {
     std::ifstream file = openWithBackupFallback(path);
     if (!file.is_open()) return;
-    int id, disc;
-    while (file >> id >> disc) {
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.rfind("format_version", 0) == 0) continue;
+        int id, disc;
+        if (sscanf(line.c_str(), "%d %d", &id, &disc) != 2) continue;
         if (id >= 0 && id < static_cast<int>(m_fragments.size())) {
             m_fragments[id].discovered = (disc != 0);
         }

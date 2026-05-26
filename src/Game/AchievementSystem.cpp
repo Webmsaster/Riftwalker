@@ -108,6 +108,7 @@ const AchievementNotification* AchievementSystem::getActiveNotification() const 
 
 bool AchievementSystem::save(const std::string& filepath) const {
     return atomicSave(filepath, [&](std::ofstream& file) {
+        writeSaveHeader(file);
         for (auto& a : m_achievements) {
             if (a.unlocked) {
                 file << a.id << "\n";
@@ -123,6 +124,7 @@ bool AchievementSystem::load(const std::string& filepath) {
     std::string line;
     while (std::getline(file, line)) {
         if (line.empty()) continue;
+        if (line.rfind("format_version", 0) == 0) continue;
         for (auto& a : m_achievements) {
             if (a.id == line) {
                 a.unlocked = true;

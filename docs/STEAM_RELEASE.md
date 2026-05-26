@@ -69,7 +69,34 @@ Valve-review-gated and can only be done by the account owner.
 2. Run `build/Release/Riftwalker.exe` with `steam_appid.txt` (your real ID) beside it.
 3. Confirm the log line `Connected to Steam (user: ...)`.
 4. Unlock an in-game achievement → verify it mirrors to Steam (needs achievements
-   defined in *Steamworks → Stats & Achievements* first).
+   defined in *Steamworks → Stats & Achievements* first — see Phase 4b below).
+
+## Phase 4b — Steam achievement schema 🔲
+
+The in-game side is **already wired**: `AchievementSystem::unlock(id)` calls
+`Steam::setAchievement(id)`, and the local achievement ID **is** the Steam API
+name. All 41 in-game achievements will mirror to Steam automatically once
+they exist in the Steamworks dashboard.
+
+1. Generate the schema from the source of truth:
+   ```powershell
+   python tools\gen_steam_achievements.py
+   ```
+   This parses `src/Game/AchievementSystem.cpp` and emits three files into
+   `steam/`:
+
+   | File | Purpose |
+   |---|---|
+   | `achievements_schema.csv` | Steamworks "Import Achievements" CSV |
+   | `achievements_dashboard_list.md` | Human-readable preview of what'll be uploaded |
+   | `achievements_icons.txt` | Per-achievement icon checklist (64×64 PNG + grey variant) |
+
+2. Open *Steamworks → Stats & Achievements → Import* and upload
+   `steam/achievements_schema.csv`.
+3. For each achievement, upload the achieved + greyed icon PNGs via the
+   per-achievement editor. Source PNGs live under `steam/icons/`.
+4. **Re-run `gen_steam_achievements.py`** after any edit to
+   `AchievementSystem.cpp` to keep the schema in sync.
 
 ## Phase 5 — Upload the build 🔲
 

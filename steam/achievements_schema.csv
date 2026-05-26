@@ -1,0 +1,42 @@
+API Name,Display Name (English),Description (English),Hidden,Icon (achieved),Icon (unachieved/gray)
+first_blood,First Blood,Kill your first enemy,No,icons/first_blood.png,icons/first_blood_gray.png
+rift_walker,Rift Walker,Repair your first rift,No,icons/rift_walker.png,icons/rift_walker_gray.png
+room_clearer,Room Clearer,Clear 10 rooms in a single run,No,icons/room_clearer.png,icons/room_clearer_gray.png
+boss_slayer,Boss Slayer,Defeat a boss,No,icons/boss_slayer.png,icons/boss_slayer_gray.png
+wyrm_hunter,Wyrm Hunter,Defeat the Void Wyrm,Yes,icons/wyrm_hunter.png,icons/wyrm_hunter_gray.png
+combo_king,Combo King,Reach a 10-hit combo,No,icons/combo_king.png,icons/combo_king_gray.png
+unstoppable,Unstoppable,Reach difficulty 5,No,icons/unstoppable.png,icons/unstoppable_gray.png
+shard_hoarder,Shard Hoarder,Collect 1000 shards total,No,icons/shard_hoarder.png,icons/shard_hoarder_gray.png
+full_upgrade,Fully Upgraded,Max out any upgrade,No,icons/full_upgrade.png,icons/full_upgrade_gray.png
+mini_boss_hunter,Mini-Boss Hunter,Defeat a mini-boss,No,icons/mini_boss_hunter.png,icons/mini_boss_hunter_gray.png
+elemental_slayer,Elemental Slayer,Kill an elemental enemy,No,icons/elemental_slayer.png,icons/elemental_slayer_gray.png
+dash_master,Dash Master,Dash 100 times in a single run,No,icons/dash_master.png,icons/dash_master_gray.png
+dimension_hopper,Dimension Hopper,Switch dimensions 50 times total,No,icons/dimension_hopper.png,icons/dimension_hopper_gray.png
+grade_s,S-Rank,Get an S grade on a run,No,icons/grade_s.png,icons/grade_s_gray.png
+survivor,Survivor,Survive 20 rooms in a single run,No,icons/survivor.png,icons/survivor_gray.png
+aerial_ace,Aerial Ace,Kill 5 enemies while airborne in one run,No,icons/aerial_ace.png,icons/aerial_ace_gray.png
+flawless_floor,Flawless Floor,Complete a level without taking damage,No,icons/flawless_floor.png,icons/flawless_floor_gray.png
+resonance_master,Resonance Master,Reach maximum resonance tier,No,icons/resonance_master.png,icons/resonance_master_gray.png
+combo_legend,Combo Legend,Reach a 15-hit combo,No,icons/combo_legend.png,icons/combo_legend_gray.png
+dash_slayer,Dash Slayer,Kill 10 enemies with dash in one run,No,icons/dash_slayer.png,icons/dash_slayer_gray.png
+charged_fury,Charged Fury,Kill 3 enemies with charged attacks in one run,No,icons/charged_fury.png,icons/charged_fury_gray.png
+entropy_master,Entropy Master,Complete a floor using only Entropy Scythe,Yes,icons/entropy_master.png,icons/entropy_master_gray.png
+quest_helper,Helpful Traveler,Complete 5 NPC quests,No,icons/quest_helper.png,icons/quest_helper_gray.png
+speed_demon,Speed Demon,Complete the game in under 10 minutes,No,icons/speed_demon.png,icons/speed_demon_gray.png
+weapon_collector,Arsenal Master,Unlock all 12 weapons,No,icons/weapon_collector.png,icons/weapon_collector_gray.png
+dimension_dancer,Dimension Dancer,Switch dimensions 50 times in one run,No,icons/dimension_dancer.png,icons/dimension_dancer_gray.png
+void_mastery,Void Master,Win a run as Voidwalker,Yes,icons/void_mastery.png,icons/void_mastery_gray.png
+berserk_mastery,Berserker Lord,Win a run as Berserker,Yes,icons/berserk_mastery.png,icons/berserk_mastery_gray.png
+phantom_mastery,Ghost Protocol,Win a run as Phantom,Yes,icons/phantom_mastery.png,icons/phantom_mastery_gray.png
+tech_mastery,Chief Engineer,Win a run as Technomancer,Yes,icons/tech_mastery.png,icons/tech_mastery_gray.png
+all_classes,Jack of All Trades,Win a run with each class,Yes,icons/all_classes.png,icons/all_classes_gray.png
+relic_collector,Relic Hoarder,Hold 6 relics in a single run,No,icons/relic_collector.png,icons/relic_collector_gray.png
+synergy_hunter,Synergist,Activate 3 relic synergies in one run,No,icons/synergy_hunter.png,icons/synergy_hunter_gray.png
+cursed_survivor,Curse Bearer,Win a run with 3 cursed relics,Yes,icons/cursed_survivor.png,icons/cursed_survivor_gray.png
+parry_master,Parry King,Parry 20 attacks in a single run,No,icons/parry_master.png,icons/parry_master_gray.png
+no_damage_boss,Untouchable,Defeat a boss without taking damage,No,icons/no_damage_boss.png,icons/no_damage_boss_gray.png
+kill_streak_50,Massacre,Kill 50 enemies in a single floor,No,icons/kill_streak_50.png,icons/kill_streak_50_gray.png
+ranged_only,Sharpshooter,Complete 5 floors using only ranged weapons,No,icons/ranged_only.png,icons/ranged_only_gray.png
+lore_hunter,Lore Keeper,Discover 12 lore fragments,No,icons/lore_hunter.png,icons/lore_hunter_gray.png
+ascension_1,New Game Plus,Complete Ascension Tier 1,No,icons/ascension_1.png,icons/ascension_1_gray.png
+ascension_5,True Riftwalker,Complete Ascension Tier 5,No,icons/ascension_5.png,icons/ascension_5_gray.png
