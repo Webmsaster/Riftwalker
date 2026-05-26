@@ -10,6 +10,7 @@ Collection of games built with C++17 and SDL2. Currently one active game: **Rift
 - **Localization**: 996 EN + 1225 DE keys, **170 gameplay tips** (tip.0..tip.169, EN+DE), **9-page Tutorial** (Welcome / Controls / Combat / Dimensions / Progression / Parry / Finisher / Synergy / Ready)
 - **Quality presets**: Low / Medium / High with toggle persistence, photosensitivity-friendly "Reduce Flashes" toggle, casual-friendly Easy difficulty (+30% HP, +20% damage, -25% damage taken)
 - **Quality**: 0 compiler warnings (one informational D9025), 53 bug patterns (latest: #48 player invulnerability, #49 gameover loop, #50 SwitchCooldown level-5 boundary, #51 dmgTakenMult floor, #52 entropy bar leak on non-entropy death, #53 menu panel misalignment). All 5 remaining unversioned save files now write `format_version 1` headers and the loaders are backward-compatible with pre-versioned saves.
+- **Music**: 9 OGG tracks (menu_theme, zone1-5, boss_theme, victory, gameover). Zones 4-5 added 2026-05-26 — late-game zones no longer silently reuse zone3. Generator at `tools/gen_zone45_midi.py` + `tools/gen_music_v3.py` (FluidSynth + FluidR3_GM SoundFont).
 - **Codebase**: ~196 files, ~63K LOC, ECS architecture, 2560×1440 logical resolution
 - **Build flags (Release)**: `/O2 /Oi /Ot /Oy /GL /Gy /Gw /GS- /fp:fast` + `/LTCG /OPT:REF /OPT:ICF`. Tracy linked but `TRACY_ENABLE` undef'd in Release → ZoneScopedN no-op. Binary 1.83 MB (was 2.01 MB).
 

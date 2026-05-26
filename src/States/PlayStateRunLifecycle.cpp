@@ -39,6 +39,8 @@ static const char* const ZONE_TRACKS[] = {
     "assets/music/zone1.ogg",
     "assets/music/zone2.ogg",
     "assets/music/zone3.ogg",
+    "assets/music/zone4.ogg",
+    "assets/music/zone5.ogg",
 };
 static constexpr const char* BOSS_TRACK = "assets/music/boss_theme.ogg";
 

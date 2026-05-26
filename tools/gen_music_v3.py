@@ -41,7 +41,7 @@ SOUNDFONT_SEARCH = [
 
 TRACKS = [
     "menu_theme", "zone1", "zone2", "zone3",
-    "boss_theme", "victory", "gameover"
+    "boss_theme", "victory", "gameover", "zone4", "zone5"
 ]
 
 def find_soundfont(custom_path=None):
